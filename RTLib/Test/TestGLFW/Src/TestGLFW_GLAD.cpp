@@ -1,6 +1,7 @@
 #include <TestGLFW_GLAD.h>
 #include <vector>
 #include <utility>
+#include <string>
 int main(int argc, const char** argv)
 {
 	auto app = std::make_unique<RTLib::Test::TestGLFWApplication>();
@@ -12,11 +13,17 @@ int main(int argc, const char** argv)
 void RTLib::Test::TestGLFWGLADAppInitDelegate::Init()
 {
 	InitGLFW();
+	InitGLWindow();
+	InitGLAD();
+	ShowWindow();
+}
+
+void RTLib::Test::TestGLFWGLADAppInitDelegate::InitGLWindow() {
 	auto windowHints = std::unordered_map<int, int>();
-	windowHints[GLFW_CLIENT_API]			= GLFW_OPENGL_API;
-	windowHints[GLFW_OPENGL_PROFILE]		= GLFW_OPENGL_CORE_PROFILE;
+	windowHints[GLFW_CLIENT_API] = GLFW_OPENGL_API;
+	windowHints[GLFW_OPENGL_PROFILE] = GLFW_OPENGL_CORE_PROFILE;
 	windowHints[GLFW_OPENGL_FORWARD_COMPAT] = GLFW_TRUE;
-	windowHints[GLFW_VISIBLE]				= GLFW_FALSE;
+	windowHints[GLFW_VISIBLE] = GLFW_FALSE;
 	std::vector<std::pair<int, int>> glVersions = {
 		{4,6},{4,5},{4,4},{4,3},{4,2},{4,1},{4,0},
 		{3,3},{3,2},{3,1},{3,0},
@@ -36,8 +43,6 @@ void RTLib::Test::TestGLFWGLADAppInitDelegate::Init()
 			break;
 		}
 	}
-	InitGLAD();
-	ShowWindow();
 }
 
 void RTLib::Test::TestGLFWGLADAppInitDelegate::InitGLAD()

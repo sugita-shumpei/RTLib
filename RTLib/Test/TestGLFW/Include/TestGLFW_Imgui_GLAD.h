@@ -16,6 +16,7 @@ namespace RTLib {
 
             virtual void Init() override;
         private:
+            void InitGLWindow();
             void InitGLAD();
             void InitImGui();
         };

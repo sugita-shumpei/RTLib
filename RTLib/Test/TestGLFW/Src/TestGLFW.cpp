@@ -160,7 +160,7 @@ auto RTLib::Test::TestGLFWAppMainDelegate::GetWindow() const noexcept -> GLFWwin
 void RTLib::Test::TestGLFWAppFreeDelegate::FreeWindow()noexcept
 {
     if (!GetParent()) {
-        return nullptr;
+        return;
     }
     auto app = static_cast<TestGLFWApplication*>(GetParent());
     if (app->m_Window) {
@@ -171,7 +171,7 @@ void RTLib::Test::TestGLFWAppFreeDelegate::FreeWindow()noexcept
 void RTLib::Test::TestGLFWAppFreeDelegate::FreeGLFW()noexcept
 {
     if (!GetParent()) {
-        return nullptr;
+        return;
     }
     auto app = static_cast<TestGLFWApplication*>(GetParent());
     if (app->m_IsGlfwInit) {

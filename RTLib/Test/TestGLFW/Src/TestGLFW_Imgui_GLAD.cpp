@@ -1,12 +1,13 @@
 #include <TestGLFW_Imgui_GLAD.h>
 #include <vector>
 #include <utility>
+#include <string>
 int main(int argc, const char** argv)
 {
     auto app = std::make_unique<RTLib::Test::TestGLFWApplication>();
-    app->AddInitDelegate< RTLib::Test::TestGLFWImGuiGLADAppInitDelegate>(256, 256, "title");
-    app->AddMainDelegate< RTLib::Test::TestGLFWImGuiGLADAppMainDelegate>();
-    app->AddFreeDelegate< RTLib::Test::TestGLFWImGuiGLADAppFreeDelegate>();
+    app->AddInitDelegate< RTLib::Test::TestGLFWImGuiGLADAppInitDelegate >(256, 256, "title");
+    app->AddMainDelegate< RTLib::Test::TestGLFWImGuiGLADAppMainDelegate >();
+    app->AddFreeDelegate< RTLib::Test::TestGLFWImGuiGLADAppFreeDelegate >();
     app->AddExtensionData<RTLib::Test::TestGLFWImGuiGLADAppExtensionData>();
     return app->Run(argc,argv);
 }
@@ -88,18 +89,24 @@ void RTLib::Test::TestGLFWImGuiGLADAppExtensionData::DrawImGui(){
 void RTLib::Test::TestGLFWImGuiGLADAppInitDelegate::Init()
 {
     InitGLFW();
+    InitGLWindow();
+    InitGLAD();
+    InitImGui();
+    ShowWindow();
+}
+void RTLib::Test::TestGLFWImGuiGLADAppInitDelegate::InitGLWindow()
+{
     auto windowHints = std::unordered_map<int, int>();
     windowHints[GLFW_CLIENT_API]            = GLFW_OPENGL_API;
     windowHints[GLFW_OPENGL_PROFILE]        = GLFW_OPENGL_CORE_PROFILE;
     windowHints[GLFW_OPENGL_FORWARD_COMPAT] = GLFW_TRUE;
-    windowHints[GLFW_VISIBLE]                = GLFW_FALSE;
+    windowHints[GLFW_VISIBLE]               = GLFW_FALSE;
     std::vector<std::pair<int, int>> glVersions = {
-        {4,6},{4,5},{4,4},{4,3},{4,2},{4,1},{4,0},
-        {3,3},{3,2},{3,1},{3,0},
-        {2,1},{2,0}
+        /*OpenGL 4.x*/{4,6},{4,5},{4,4},{4,3},{4,2},{4,1},{4,0},
+        /*OpenGL 3.x*/{3,3},{3,2},{3,1},{3,0},
+        /*OpenGL 2.x*/{2,1},{2,0}
     };
 
-    
     for (auto& [version_major, version_minor] : glVersions) {
         bool isSuccess = true;
         try {
@@ -114,9 +121,6 @@ void RTLib::Test::TestGLFWImGuiGLADAppInitDelegate::Init()
             break;
         }
     }
-    InitGLAD();
-    InitImGui();
-    ShowWindow();
 }
 void RTLib::Test::TestGLFWImGuiGLADAppInitDelegate::InitGLAD()
 {
@@ -135,7 +139,6 @@ void RTLib::Test::TestGLFWImGuiGLADAppInitDelegate::InitImGui()
         return;
     }
     auto appExtData = static_cast<RTLib::Test::TestGLFWImGuiGLADAppExtensionData*>(app->GetExtensionData());
-    
     appExtData->InitImGui();
 }
 void RTLib::Test::TestGLFWImGuiGLADAppMainDelegate::Main() {
