@@ -35,15 +35,15 @@ if(NOT OptiX_INSTALL_DIR)
 endif()
 
 if(NOT OptiX_INSTALL_DIR)
-    message(FATAL_ERROR "Failed To Find OptiX Install Directory!")
-endif()
+    message(STATUS "Failed To Find OptiX Install Directory!")
+else()
+    find_path(OptiX_INCLUDE_DIR 
+        NAMES optix.h 
+        PATHS "${OptiX_INSTALL_DIR}/include")
 
-find_path(OptiX_INCLUDE_DIR 
-    NAMES optix.h 
-    PATHS "${OptiX_INSTALL_DIR}/include")
-
-if(OptiX_INCLUDE_DIR STREQUAL "OptiX_INCLUDE_DIR-NOTFOUND")
-    message(FATAL_ERROR "Failed To Find OptiX Install Directory!")
+    if(OptiX_INCLUDE_DIR STREQUAL "OptiX_INCLUDE_DIR-NOTFOUND")
+        message(STATUS "Failed To Find OptiX Install Directory!")
+    endif()
 endif()
 
 #message(STATUS "OptiX_INCLUDE_DIR=${OptiX_INCLUDE_DIR}")
@@ -62,10 +62,12 @@ function(OptiX_Find_Version_From_File include_dir)
     set(OptiX_VERSION_PATCH ${OptiX_VERSION_PATCH} PARENT_SCOPE)
 endfunction()
 
-OptiX_Find_Version_From_File(${OptiX_INCLUDE_DIR})
+if (OptiX_INCLUDE_DIR)
+    OptiX_Find_Version_From_File(${OptiX_INCLUDE_DIR})
+endif()
 
 if(NOT OptiX_VERSION_STR)
-    message(FATAL_ERROR "Failed To Find OptiX Version!")
+    message(STATUS "Failed To Find OptiX Version!")
 endif()
 #message(STATUS "${OptiX_VERSION_STR}")
 

@@ -10,7 +10,7 @@ namespace RTLib {
 
 		class TestGLFWVulkanAppExtData: public  RTLib::Test::TestGLFWApplicationExtData {
 		public:
-			TestGLFWVulkanAppExtData()noexcept;
+			TestGLFWVulkanAppExtData(TestLib::TestApplication* app)noexcept;
 			virtual ~TestGLFWVulkanAppExtData()noexcept;
 
 			virtual void Init()         override;

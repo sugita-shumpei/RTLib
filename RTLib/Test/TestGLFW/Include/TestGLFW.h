@@ -9,32 +9,16 @@ namespace RTLib {
 	namespace Test {
 		class TestGLFWAppInitDelegate;
 		class TestGLFWAppMainDelegate;
-		class TestGLFWApplicationExtData {
-		public:
-			virtual ~TestGLFWApplicationExtData()noexcept{
-				Free();
-			}
-			virtual void Init()         = 0;
-			virtual void Free()noexcept {}
-		};
+        class TestGLFWAppFreeDelegate;
+        class TestGLFWAppExtensionData;
 		class TestGLFWApplication : public TestLib::TestApplication {
 		public:
-			using ExtData      = TestGLFWApplicationExtData;
 			using InitDelegate = TestGLFWAppInitDelegate;
 			using MainDelegate = TestGLFWAppMainDelegate;
+            using FreeDelegate = TestGLFWAppFreeDelegate;
 		public:
 			TestGLFWApplication()noexcept;
 			virtual ~TestGLFWApplication()noexcept;
-
-			template<typename AppExtData, bool Cond = std::is_base_of_v<ExtData, AppExtData>>
-			void AddExtData()noexcept {
-				m_ExtData = std::unique_ptr<ExtData>(new AppExtData());
-			}
-
-			template<typename AppExtData,typename ...Args, bool Cond = std::is_base_of_v<ExtData, AppExtData>>
-			void AddExtData(Args&&... args)noexcept {
-				m_ExtData = std::unique_ptr<ExtData>(new AppExtData(args...));
-			}
 		protected:
 			virtual void Init()			 override;
 			virtual void Main()          override;
@@ -42,9 +26,10 @@ namespace RTLib {
 		private:
 			friend class TestGLFWAppInitDelegate;
 			friend class TestGLFWAppMainDelegate;
+            friend class TestGLFWAppFreeDelegate;
+            friend class TestGLFWAppExtensionData;
 			bool										m_IsGlfwInit;
 			GLFWwindow*									m_Window;
-			std::unique_ptr<TestGLFWApplicationExtData> m_ExtData;
 		};
 		class TestGLFWAppInitDelegate:public TestLib::TestAppInitDelegate {
 		public:
@@ -54,7 +39,8 @@ namespace RTLib {
 				m_Title  = title ;
 			}
 			virtual ~TestGLFWAppInitDelegate()noexcept {}
-
+            
+            //all resource must be initialized in this function
 			virtual void Init() override;
 
 			auto GetWidth ()const noexcept -> int		  { return m_Width;  }
@@ -68,7 +54,6 @@ namespace RTLib {
 			void InitWindow( const std::unordered_map<int,int>& windowHints);
 			void MakeContext();
 			void ShowWindow();
-			void InitExtData();
 		private:
 			int			 m_Width;
 			int			 m_Height;
@@ -86,8 +71,24 @@ namespace RTLib {
 			void SwapBuffers();
 			void PollEvents();
 			auto GetWindow() const noexcept -> GLFWwindow*;
-			auto GetExtData()const noexcept -> TestGLFWApplicationExtData*;
 		};
+        class TestGLFWAppFreeDelegate : public TestLib::TestAppFreeDelegate{
+        public:
+            TestGLFWAppFreeDelegate(TestLib::TestApplication* parent)noexcept :TestAppFreeDelegate(parent) {}
+            virtual ~TestGLFWAppFreeDelegate()noexcept {}
+            //all resource must be released in this function
+            virtual void Free()noexcept override;
+        protected:
+            void FreeWindow()noexcept;
+            void FreeGLFW()noexcept;
+        };
+        class TestGLFWAppExtensionData : public TestLib::TestAppExtensionData{
+        public:
+            TestGLFWAppExtensionData(TestLib::TestApplication* parent)noexcept:TestLib::TestAppExtensionData(parent){}
+            virtual ~TestGLFWAppExtensionData()noexcept{}
+        protected:
+            auto GetWindow()const noexcept -> GLFWwindow*;
+        };
 	}
 }
 #endif

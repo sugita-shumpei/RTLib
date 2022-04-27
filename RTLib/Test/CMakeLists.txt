@@ -1,4 +1,6 @@
 add_subdirectory(TestLib)
 add_subdirectory(TestEmbree3)
 add_subdirectory(TestGLFW)
-add_subdirectory(TestOptiX)
+if (Optix_FOUND)
+    add_subdirectory(TestOptiX)
+endif()

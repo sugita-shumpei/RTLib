@@ -1,6 +1,6 @@
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
-find_package(CUDAToolkit   REQUIRED)
-find_package(OptiX         REQUIRED)
+find_package(CUDAToolkit   )
+find_package(OptiX         )
 find_package(glad          REQUIRED)
 find_package(Vulkan        REQUIRED)
 find_package(embree        REQUIRED)

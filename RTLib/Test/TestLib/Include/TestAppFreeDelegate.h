@@ -11,7 +11,7 @@ namespace RTLib
 			TestAppFreeDelegate(TestApplication* app)noexcept;
 			virtual ~TestAppFreeDelegate()noexcept;
 			virtual void Free()noexcept = 0;
-
+            
 			auto GetParent()const noexcept -> const TestApplication*;
 			auto GetParent()      noexcept ->	    TestApplication*;
 		private:

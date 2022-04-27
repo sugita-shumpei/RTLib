@@ -4,13 +4,11 @@
 RTLib::Test::TestGLFWApplication::TestGLFWApplication() noexcept
 {
 	m_IsGlfwInit = false;
-	m_Window = nullptr;
-	m_ExtData = nullptr;
+	m_Window     = nullptr;
 }
 
 RTLib::Test::TestGLFWApplication::~TestGLFWApplication() noexcept
-{
-}
+{}
 
 void RTLib::Test::TestGLFWApplication::Init()
 {
@@ -23,9 +21,6 @@ void RTLib::Test::TestGLFWApplication::Init()
 	if (!m_Window) {
 		throw std::runtime_error("Failed To Create Window!");
 	}
-	if (m_ExtData) {
-		m_ExtData->Init();
-	}
 }
 
 void RTLib::Test::TestGLFWApplication::Main()
@@ -37,10 +32,6 @@ void RTLib::Test::TestGLFWApplication::Main()
 
 void RTLib::Test::TestGLFWApplication::Free() noexcept
 {
-	if (m_ExtData) {
-		m_ExtData->Free();
-		m_ExtData.reset();
-	}
 	if (m_Window) {
 		glfwDestroyWindow(m_Window);
 		m_Window = nullptr;
@@ -125,18 +116,6 @@ void RTLib::Test::TestGLFWAppInitDelegate::ShowWindow()
 	glfwShowWindow(app->m_Window);
 }
 
-void RTLib::Test::TestGLFWAppInitDelegate::InitExtData()
-{
-	if (!GetParent()) {
-		return;
-	}
-	auto app = static_cast<TestGLFWApplication*>(GetParent());
-	if (!app->m_ExtData) {
-		return;
-	}
-	app->m_ExtData->Init();
-}
-
 void RTLib::Test::TestGLFWAppMainDelegate::Main()
 {
 	if (!GetParent()) {
@@ -178,11 +157,40 @@ auto RTLib::Test::TestGLFWAppMainDelegate::GetWindow() const noexcept -> GLFWwin
 	return app->m_Window;
 }
 
-auto RTLib::Test::TestGLFWAppMainDelegate::GetExtData() const noexcept -> TestGLFWApplicationExtData*
+void RTLib::Test::TestGLFWAppFreeDelegate::FreeWindow()noexcept
 {
-	if (!GetParent()) {
-		return nullptr;
-	}
-	auto app = static_cast<const TestGLFWApplication*>(GetParent());
-	return app->m_ExtData.get();
+    if (!GetParent()) {
+        return nullptr;
+    }
+    auto app = static_cast<TestGLFWApplication*>(GetParent());
+    if (app->m_Window) {
+        glfwDestroyWindow(app->m_Window);
+        app->m_Window = nullptr;
+    }
+}
+void RTLib::Test::TestGLFWAppFreeDelegate::FreeGLFW()noexcept
+{
+    if (!GetParent()) {
+        return nullptr;
+    }
+    auto app = static_cast<TestGLFWApplication*>(GetParent());
+    if (app->m_IsGlfwInit) {
+        glfwTerminate();
+        app->m_IsGlfwInit = false;
+    }
+}
+
+void RTLib::Test::TestGLFWAppFreeDelegate::Free()noexcept
+{
+    FreeWindow();
+    FreeGLFW();
+}
+
+auto RTLib::Test::TestGLFWAppExtensionData::GetWindow() const noexcept -> GLFWwindow*
+{
+    if (!GetParent()) {
+        return nullptr;
+    }
+    auto app = static_cast<const TestGLFWApplication*>(GetParent());
+    return app->m_Window;
 }

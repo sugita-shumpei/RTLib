@@ -33,7 +33,7 @@ struct RTLib::Test::TestGLFWVulkanAppExtData::Impl {
 	vk::DynamicLoader m_DynamicLoader;
 };
 
-RTLib::Test::TestGLFWVulkanAppExtData::TestGLFWVulkanAppExtData() noexcept
+RTLib::Test::TestGLFWVulkanAppExtData::TestGLFWVulkanAppExtData(TestLib::TestApplication* app) noexcept
 {
 	m_Impl = std::unique_ptr< RTLib::Test::TestGLFWVulkanAppExtData::Impl>(new RTLib::Test::TestGLFWVulkanAppExtData::Impl());
 }

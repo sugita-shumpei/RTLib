@@ -3,6 +3,7 @@
 #include <TestAppInitDelegate.h>
 #include <TestAppMainDelegate.h>
 #include <TestAppFreeDelegate.h>
+#include <TestAppExtensionData.h>
 #include <memory>
 #include <iostream>
 #include <stdexcept>
@@ -56,6 +57,18 @@ namespace RTLib {
 				}
 				m_FreeDelegate = std::unique_ptr<TestAppFreeDelegate>(new FreeDelegate(this, std::forward<Args&&>(args)...));
 			}
+            template<typename AppExtData, bool Cond = std::is_base_of_v<TestAppExtensionData, AppExtData>>
+            void AddExtensionData()noexcept {
+                m_ExtensionData = std::unique_ptr<TestAppExtensionData>(new AppExtData(this));
+            }
+
+            template<typename AppExtData,typename ...Args, bool Cond = std::is_base_of_v<TestAppExtensionData, AppExtData>>
+            void AddExtensionData(Args&&... args)noexcept {
+                m_ExtensionData = std::unique_ptr<TestAppExtensionData>(new AppExtData(this,args...));
+            }
+            
+            auto GetExtensionData()const noexcept -> const TestAppExtensionData*;
+            auto GetExtensionData()      noexcept ->       TestAppExtensionData*;
 
 			auto GetArgc()const noexcept -> int;
 			auto GetArgv()const noexcept -> const char**;
@@ -68,11 +81,12 @@ namespace RTLib {
 			void Impl_Main();
 			void Impl_Free()noexcept;
 		private:
-			std::unique_ptr<TestAppInitDelegate> m_InitDelegate;
-			std::unique_ptr<TestAppMainDelegate> m_MainDelegate;
-			std::unique_ptr<TestAppFreeDelegate> m_FreeDelegate;
-			int									 m_Argc;
-			const char**                         m_Argv;
+			std::unique_ptr<TestAppInitDelegate>  m_InitDelegate;
+			std::unique_ptr<TestAppMainDelegate>  m_MainDelegate;
+			std::unique_ptr<TestAppFreeDelegate>  m_FreeDelegate;
+            std::unique_ptr<TestAppExtensionData> m_ExtensionData;
+			int									  m_Argc;
+			const char**                          m_Argv;
 		};
 	}
 }
