@@ -7,7 +7,7 @@ RTLib::TestLib::TestApplication::TestApplication() noexcept
 	m_InitDelegate = nullptr;
 	m_MainDelegate = nullptr;
 	m_FreeDelegate = nullptr;
-    m_ExtensionData= nullptr;
+    m_ExtendedData= nullptr;
 }
 
 RTLib::TestLib::TestApplication::~TestApplication() noexcept
@@ -18,7 +18,7 @@ RTLib::TestLib::TestApplication::~TestApplication() noexcept
 	m_InitDelegate  = nullptr;
 	m_MainDelegate  = nullptr;
 	m_FreeDelegate  = nullptr;
-    m_ExtensionData = nullptr;
+    m_ExtendedData = nullptr;
 }
 
 auto RTLib::TestLib::TestApplication::Run(int argc, const char** argv) noexcept -> int
@@ -38,11 +38,11 @@ auto RTLib::TestLib::TestApplication::Run(int argc, const char** argv) noexcept 
 	return res;
 }
 
-auto RTLib::TestLib::TestApplication::GetExtensionData()const noexcept -> const TestAppExtensionData* {
-    return m_ExtensionData.get();
+auto RTLib::TestLib::TestApplication::GetExtendedData()const noexcept -> const TestAppExtendedData* {
+    return m_ExtendedData.get();
 }
-auto RTLib::TestLib::TestApplication::GetExtensionData()      noexcept ->       TestAppExtensionData* {
-    return m_ExtensionData.get();
+auto RTLib::TestLib::TestApplication::GetExtendedData()      noexcept ->       TestAppExtendedData* {
+    return m_ExtendedData.get();
 }
 auto RTLib::TestLib::TestApplication::GetArgc() const noexcept -> int
 {

@@ -1,15 +1,15 @@
-#ifndef TEST_TEST_APP_EXTENSION_DATA_H
-#define TEST_TEST_APP_EXTENSION_DATA_H
+#ifndef TEST_TEST_APP_EXTENDED_DATA_H
+#define TEST_TEST_APP_EXTENDED_DATA_H
 namespace RTLib
 {
     namespace TestLib
     {
         class TestApplication;
-        class TestAppExtensionData
+        class TestAppExtendedData
         {
         public:
-            TestAppExtensionData(TestApplication* app)noexcept;
-            virtual ~TestAppExtensionData()noexcept;
+            TestAppExtendedData(TestApplication* app)noexcept;
+            virtual ~TestAppExtendedData()noexcept;
             
             auto GetParent()const noexcept -> const TestApplication*;
             auto GetParent()      noexcept ->        TestApplication*;

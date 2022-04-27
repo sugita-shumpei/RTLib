@@ -1,31 +1,22 @@
-#include <TestGLFW_Imgui_GLAD.h>
+#include <TestGLFW_GLAD_Imgui.h>
 #include <vector>
 #include <utility>
 #include <string>
-int main(int argc, const char** argv)
-{
-    auto app = std::make_unique<RTLib::Test::TestGLFWApplication>();
-    app->AddInitDelegate< RTLib::Test::TestGLFWImGuiGLADAppInitDelegate >(256, 256, "title");
-    app->AddMainDelegate< RTLib::Test::TestGLFWImGuiGLADAppMainDelegate >();
-    app->AddFreeDelegate< RTLib::Test::TestGLFWImGuiGLADAppFreeDelegate >();
-    app->AddExtensionData<RTLib::Test::TestGLFWImGuiGLADAppExtensionData>();
-    return app->Run(argc,argv);
-}
-struct RTLib::Test::TestGLFWImGuiGLADAppExtensionData::Impl{
+struct RTLib::Test::TestGLFWGLADImGuiAppExtendedData::Impl{
     bool  m_IsImguiInit = false;
     float m_X           = 0.0f;
     float m_Y           = 0.0f;
 };
-RTLib::Test::TestGLFWImGuiGLADAppExtensionData::TestGLFWImGuiGLADAppExtensionData(TestLib::TestApplication* app)noexcept
-:Test::TestGLFWAppExtensionData(static_cast<Test::TestGLFWApplication*>(app)){
-    m_Impl = std::unique_ptr<RTLib::Test::TestGLFWImGuiGLADAppExtensionData::Impl>(new RTLib::Test::TestGLFWImGuiGLADAppExtensionData::Impl());
+RTLib::Test::TestGLFWGLADImGuiAppExtendedData::TestGLFWGLADImGuiAppExtendedData(TestLib::TestApplication* app)noexcept
+:Test::TestGLFWAppExtendedData(static_cast<Test::TestGLFWApplication*>(app)){
+    m_Impl = std::unique_ptr<RTLib::Test::TestGLFWGLADImGuiAppExtendedData::Impl>(new RTLib::Test::TestGLFWGLADImGuiAppExtendedData::Impl());
 }
 
-RTLib::Test::TestGLFWImGuiGLADAppExtensionData::~TestGLFWImGuiGLADAppExtensionData()noexcept{
+RTLib::Test::TestGLFWGLADImGuiAppExtendedData::~TestGLFWGLADImGuiAppExtendedData()noexcept{
     m_Impl.reset();
 }
 
-void RTLib::Test::TestGLFWImGuiGLADAppExtensionData::InitImGui(){
+void RTLib::Test::TestGLFWGLADImGuiAppExtendedData::InitImGui(){
     if (m_Impl->m_IsImguiInit){
         return;
     }
@@ -50,7 +41,7 @@ void RTLib::Test::TestGLFWImGuiGLADAppExtensionData::InitImGui(){
     ImGui_ImplOpenGL3_Init(glsl_version.data());
     m_Impl->m_IsImguiInit = true;
 }
-void RTLib::Test::TestGLFWImGuiGLADAppExtensionData::FreeImGui()noexcept{
+void RTLib::Test::TestGLFWGLADImGuiAppExtendedData::FreeImGui()noexcept{
     if (!m_Impl->m_IsImguiInit){
         return;
     }
@@ -62,7 +53,7 @@ void RTLib::Test::TestGLFWImGuiGLADAppExtensionData::FreeImGui()noexcept{
     ImGui::DestroyContext();
     m_Impl->m_IsImguiInit = false;
 }
-void RTLib::Test::TestGLFWImGuiGLADAppExtensionData::DrawImGui(){
+void RTLib::Test::TestGLFWGLADImGuiAppExtendedData::DrawImGui(){
     if (!m_Impl->m_IsImguiInit){
         return;
     }
@@ -86,7 +77,7 @@ void RTLib::Test::TestGLFWImGuiGLADAppExtensionData::DrawImGui(){
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
-void RTLib::Test::TestGLFWImGuiGLADAppInitDelegate::Init()
+void RTLib::Test::TestGLFWGLADImGuiAppInitDelegate::Init()
 {
     InitGLFW();
     InitGLWindow();
@@ -94,7 +85,7 @@ void RTLib::Test::TestGLFWImGuiGLADAppInitDelegate::Init()
     InitImGui();
     ShowWindow();
 }
-void RTLib::Test::TestGLFWImGuiGLADAppInitDelegate::InitGLWindow()
+void RTLib::Test::TestGLFWGLADImGuiAppInitDelegate::InitGLWindow()
 {
     auto windowHints = std::unordered_map<int, int>();
     windowHints[GLFW_CLIENT_API]            = GLFW_OPENGL_API;
@@ -122,26 +113,26 @@ void RTLib::Test::TestGLFWImGuiGLADAppInitDelegate::InitGLWindow()
         }
     }
 }
-void RTLib::Test::TestGLFWImGuiGLADAppInitDelegate::InitGLAD()
+void RTLib::Test::TestGLFWGLADImGuiAppInitDelegate::InitGLAD()
 {
     MakeContext();
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
         throw std::runtime_error("Failed To Initialize GLAD!");
     }
 }
-void RTLib::Test::TestGLFWImGuiGLADAppInitDelegate::InitImGui()
+void RTLib::Test::TestGLFWGLADImGuiAppInitDelegate::InitImGui()
 {
     if (!GetParent()){
         return;
     }
     auto app = static_cast<RTLib::Test::TestGLFWApplication*>(GetParent());
-    if (!app->GetExtensionData()){
+    if (!app->GetExtendedData()){
         return;
     }
-    auto appExtData = static_cast<RTLib::Test::TestGLFWImGuiGLADAppExtensionData*>(app->GetExtensionData());
+    auto appExtData = static_cast<RTLib::Test::TestGLFWGLADImGuiAppExtendedData*>(app->GetExtendedData());
     appExtData->InitImGui();
 }
-void RTLib::Test::TestGLFWImGuiGLADAppMainDelegate::Main() {
+void RTLib::Test::TestGLFWGLADImGuiAppMainDelegate::Main() {
     while (!ShouldClose()) {
         PollEvents ();
         RenderFrame();
@@ -149,7 +140,7 @@ void RTLib::Test::TestGLFWImGuiGLADAppMainDelegate::Main() {
         SwapBuffers();
     }
 }
-void RTLib::Test::TestGLFWImGuiGLADAppMainDelegate::RenderFrame() {
+void RTLib::Test::TestGLFWGLADImGuiAppMainDelegate::RenderFrame() {
     int display_w, display_h;
     glfwGetFramebufferSize(GetWindow(), &display_w, &display_h);
     glClearColor(1.0f, 0.0f, 0.0f, 0.0f);
@@ -157,20 +148,20 @@ void RTLib::Test::TestGLFWImGuiGLADAppMainDelegate::RenderFrame() {
     glViewport(0, 0, display_w, display_h);
 
 }
-void RTLib::Test::TestGLFWImGuiGLADAppMainDelegate::RenderImGui() {
+void RTLib::Test::TestGLFWGLADImGuiAppMainDelegate::RenderImGui() {
     
     if (!GetParent()){
         return;
     }
     auto app = static_cast<RTLib::Test::TestGLFWApplication*>(GetParent());
-    if (!app->GetExtensionData()){
+    if (!app->GetExtendedData()){
         return;
     }
-    auto appExtData = static_cast<RTLib::Test::TestGLFWImGuiGLADAppExtensionData*>(app->GetExtensionData());
+    auto appExtData = static_cast<RTLib::Test::TestGLFWGLADImGuiAppExtendedData*>(app->GetExtendedData());
     appExtData->DrawImGui();
 }
 
-void RTLib::Test::TestGLFWImGuiGLADAppFreeDelegate::Free()noexcept{
+void RTLib::Test::TestGLFWGLADImGuiAppFreeDelegate::Free()noexcept{
     if (!GetParent()){
         return;
     }
@@ -178,15 +169,15 @@ void RTLib::Test::TestGLFWImGuiGLADAppFreeDelegate::Free()noexcept{
     FreeWindow();
     FreeGLFW();
 }
-void RTLib::Test::TestGLFWImGuiGLADAppFreeDelegate::FreeImGui()noexcept
+void RTLib::Test::TestGLFWGLADImGuiAppFreeDelegate::FreeImGui()noexcept
 {
     if (!GetParent()){
         return;
     }
     auto app = static_cast<RTLib::Test::TestGLFWApplication*>(GetParent());
-    if (!app->GetExtensionData()){
+    if (!app->GetExtendedData()){
         return;
     }
-    auto appExtData = static_cast<RTLib::Test::TestGLFWImGuiGLADAppExtensionData*>(app->GetExtensionData());
+    auto appExtData = static_cast<RTLib::Test::TestGLFWGLADImGuiAppExtendedData*>(app->GetExtendedData());
     appExtData->FreeImGui();
 }

@@ -1,7 +1,7 @@
 #ifndef TEST_TEST_GLFW_GLAD_H
 #define TEST_TEST_GLFW_GLAD_H
 #include <glad/glad.h>
-#include <TestGLFW.h>
+#include <TestGLFW_Common.h>
 #include <stdexcept>
 #include <iostream>
 namespace RTLib {

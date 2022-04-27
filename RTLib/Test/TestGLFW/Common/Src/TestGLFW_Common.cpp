@@ -1,5 +1,5 @@
 #include <TestApplication.h>
-#include <TestGLFW.h>
+#include <TestGLFW_Common.h>
 
 RTLib::Test::TestGLFWApplication::TestGLFWApplication() noexcept
 {
@@ -186,7 +186,7 @@ void RTLib::Test::TestGLFWAppFreeDelegate::Free()noexcept
     FreeGLFW();
 }
 
-auto RTLib::Test::TestGLFWAppExtensionData::GetWindow() const noexcept -> GLFWwindow*
+auto RTLib::Test::TestGLFWAppExtendedData::GetWindow() const noexcept -> GLFWwindow*
 {
     if (!GetParent()) {
         return nullptr;

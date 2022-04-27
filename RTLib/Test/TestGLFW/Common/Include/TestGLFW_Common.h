@@ -1,5 +1,5 @@
-#ifndef TEST_TEST_GLFW_H
-#define TEST_TEST_GLFW_H
+#ifndef TEST_TEST_GLFW_COMMON_H
+#define TEST_TEST_GLFW_COMMON_H
 #include <TestApplication.h>
 #include <GLFW/glfw3.h>
 #include <stdexcept>
@@ -10,7 +10,7 @@ namespace RTLib {
 		class TestGLFWAppInitDelegate;
 		class TestGLFWAppMainDelegate;
         class TestGLFWAppFreeDelegate;
-        class TestGLFWAppExtensionData;
+        class TestGLFWAppExtendedData;
 		class TestGLFWApplication : public TestLib::TestApplication {
 		public:
 			using InitDelegate = TestGLFWAppInitDelegate;
@@ -27,7 +27,7 @@ namespace RTLib {
 			friend class TestGLFWAppInitDelegate;
 			friend class TestGLFWAppMainDelegate;
             friend class TestGLFWAppFreeDelegate;
-            friend class TestGLFWAppExtensionData;
+            friend class TestGLFWAppExtendedData;
 			bool										m_IsGlfwInit;
 			GLFWwindow*									m_Window;
 		};
@@ -82,10 +82,10 @@ namespace RTLib {
             void FreeWindow()noexcept;
             void FreeGLFW()noexcept;
         };
-        class TestGLFWAppExtensionData : public TestLib::TestAppExtensionData{
+        class TestGLFWAppExtendedData : public TestLib::TestAppExtendedData{
         public:
-            TestGLFWAppExtensionData(TestLib::TestApplication* parent)noexcept:TestLib::TestAppExtensionData(parent){}
-            virtual ~TestGLFWAppExtensionData()noexcept{}
+            TestGLFWAppExtendedData(TestLib::TestApplication* parent)noexcept:TestLib::TestAppExtendedData(parent){}
+            virtual ~TestGLFWAppExtendedData()noexcept{}
         protected:
             auto GetWindow()const noexcept -> GLFWwindow*;
         };

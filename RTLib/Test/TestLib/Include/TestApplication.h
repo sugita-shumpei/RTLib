@@ -3,7 +3,7 @@
 #include <TestAppInitDelegate.h>
 #include <TestAppMainDelegate.h>
 #include <TestAppFreeDelegate.h>
-#include <TestAppExtensionData.h>
+#include <TestAppExtendedData.h>
 #include <memory>
 #include <iostream>
 #include <stdexcept>
@@ -57,18 +57,18 @@ namespace RTLib {
 				}
 				m_FreeDelegate = std::unique_ptr<TestAppFreeDelegate>(new FreeDelegate(this, std::forward<Args&&>(args)...));
 			}
-            template<typename AppExtData, bool Cond = std::is_base_of_v<TestAppExtensionData, AppExtData>>
-            void AddExtensionData()noexcept {
-                m_ExtensionData = std::unique_ptr<TestAppExtensionData>(new AppExtData(this));
+            template<typename AppExtData, bool Cond = std::is_base_of_v<TestAppExtendedData, AppExtData>>
+            void AddExtendedData()noexcept {
+                m_ExtendedData = std::unique_ptr<TestAppExtendedData>(new AppExtData(this));
             }
 
-            template<typename AppExtData,typename ...Args, bool Cond = std::is_base_of_v<TestAppExtensionData, AppExtData>>
-            void AddExtensionData(Args&&... args)noexcept {
-                m_ExtensionData = std::unique_ptr<TestAppExtensionData>(new AppExtData(this,args...));
+            template<typename AppExtData,typename ...Args, bool Cond = std::is_base_of_v<TestAppExtendedData, AppExtData>>
+            void AddExtendedData(Args&&... args)noexcept {
+                m_ExtendedData = std::unique_ptr<TestAppExtendedData>(new AppExtData(this,args...));
             }
             
-            auto GetExtensionData()const noexcept -> const TestAppExtensionData*;
-            auto GetExtensionData()      noexcept ->       TestAppExtensionData*;
+            auto GetExtendedData()const noexcept -> const TestAppExtendedData*;
+            auto GetExtendedData()      noexcept ->       TestAppExtendedData*;
 
 			auto GetArgc()const noexcept -> int;
 			auto GetArgv()const noexcept -> const char**;
@@ -84,7 +84,7 @@ namespace RTLib {
 			std::unique_ptr<TestAppInitDelegate>  m_InitDelegate;
 			std::unique_ptr<TestAppMainDelegate>  m_MainDelegate;
 			std::unique_ptr<TestAppFreeDelegate>  m_FreeDelegate;
-            std::unique_ptr<TestAppExtensionData> m_ExtensionData;
+            std::unique_ptr<TestAppExtendedData> m_ExtendedData;
 			int									  m_Argc;
 			const char**                          m_Argv;
 		};
