@@ -1,5 +1,4 @@
 #include <TestGLFW_Vulkan.h>
-VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
 
 static VkBool32 VKAPI_CALL VKAPI_ATTR DebugUtilsCallback(VkDebugUtilsMessageSeverityFlagBitsEXT           messageSeverity,
                                                          VkDebugUtilsMessageTypeFlagsEXT                  messageTypes,
@@ -7,7 +6,7 @@ static VkBool32 VKAPI_CALL VKAPI_ATTR DebugUtilsCallback(VkDebugUtilsMessageSeve
                                                          void*                                            pUserData)
 {
     std::cerr << "[" << vk::to_string(static_cast<vk::DebugUtilsMessageSeverityFlagBitsEXT>(messageSeverity)) << "]";
-    std::cerr << "[" << vk::to_string(static_cast<vk::DebugUtilsMessageTypeFlagsEXT>(messageTypes)) << "]: ";
+    std::cerr << "[" << vk::to_string(static_cast<vk::DebugUtilsMessageTypeFlagsEXT>(messageTypes))           << "]: ";
     std::cerr << pCallbackData->pMessage << std::endl;
     return VK_FALSE;
 }
@@ -24,9 +23,11 @@ struct RTLib::Test::TestGLFWVulkanAppExtendedData::Impl
 RTLib::Test::TestGLFWVulkanAppExtendedData::TestGLFWVulkanAppExtendedData(TestLib::TestApplication* parent)noexcept:Test::TestGLFWAppExtendedData(parent){
     m_Impl = std::unique_ptr<Impl>(new Impl());
 }
+
 RTLib::Test::TestGLFWVulkanAppExtendedData::~TestGLFWVulkanAppExtendedData()noexcept{
     m_Impl.reset();
 }
+
 void RTLib::Test::TestGLFWVulkanAppExtendedData::InitDynamicLoader()
 {
     auto vkGetInstanceProcAddr = m_Impl->m_DynamicLoaderVK.getProcAddress<PFN_vkGetInstanceProcAddr>("vkGetInstanceProcAddr");
@@ -34,15 +35,11 @@ void RTLib::Test::TestGLFWVulkanAppExtendedData::InitDynamicLoader()
 }
 
 bool RTLib::Test::TestGLFWVulkanAppInitDelegate::SupportInstExtName(const std::string& extName)const noexcept{
-    return std::find_if(std::begin(m_InstExtProps),std::end(m_InstExtProps),[extName](const auto& extProp){
-        return std::string(extProp.extensionName) == extName;
-    }) != std::end(m_InstExtProps);
+    return RTLib::Test::Vulkan::findExtName(m_InstExtProps, extName);
 }
 
 bool RTLib::Test::TestGLFWVulkanAppInitDelegate::SupportInstLyrName(const std::string& lyrName)const noexcept{
-    return std::find_if(std::begin(m_InstLyrProps),std::end(m_InstLyrProps),[lyrName](const auto& lyrProp){
-        return std::string(lyrProp.layerName) == lyrName;
-    }) != std::end(m_InstLyrProps);
+    return RTLib::Test::Vulkan::findLyrName(m_InstLyrProps, lyrName);
 }
 
 void RTLib::Test::TestGLFWVulkanAppInitDelegate::Init()
@@ -52,10 +49,11 @@ void RTLib::Test::TestGLFWVulkanAppInitDelegate::Init()
     InitInstance();
 	InitWindow({
 		{GLFW_CLIENT_API,GLFW_NO_API},
-		{GLFW_VISIBLE   ,GLFW_FALSE}
+		{GLFW_VISIBLE   ,GLFW_FALSE }
 	});
 	ShowWindow();
 }
+
 void RTLib::Test::TestGLFWVulkanAppInitDelegate::InitDynamicLoader()
 {
     if (!GetParent()){
@@ -71,6 +69,7 @@ void RTLib::Test::TestGLFWVulkanAppInitDelegate::InitDynamicLoader()
     m_InstExtProps   = vk::enumerateInstanceExtensionProperties();
     m_InstLyrProps   = vk::enumerateInstanceLayerProperties();
 }
+
 void RTLib::Test::TestGLFWVulkanAppInitDelegate::InitInstance()
 {
     if (!GetParent()){
@@ -139,6 +138,9 @@ void RTLib::Test::TestGLFWVulkanAppInitDelegate::InitInstance()
     
 #ifndef NDEBUG
     appExtData->m_Impl->m_DebugUtilsMessengerEXTVK =appExtData->m_Impl->m_InstanceVK->createDebugUtilsMessengerEXTUnique(debugUtilsMessengerCreateInfo);
+    if (!appExtData->m_Impl->m_DebugUtilsMessengerEXTVK) {
+        throw std::runtime_error("Failed To Create DebugUtilsMessengerEXT!");
+    }
 #endif
 }
 

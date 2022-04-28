@@ -1,14 +1,12 @@
 #ifndef TEST_TEST_GLFW_VULKAN_H
 #define TEST_TEST_GLFW_VULKAN_H
-#define VULKAN_HPP_DISPATCH_LOADER_DYNAMIC 1
-#include <vulkan/vulkan.hpp>
+#include <TestVulkan.h>
 #include <TestGLFW_Common.h>
 #include <stdexcept>
 #include <string>
 #include <iostream>
 namespace RTLib {
 	namespace Test {
-
 		class TestGLFWVulkanAppInitDelegate :public TestGLFWAppInitDelegate {
 		public:
 			TestGLFWVulkanAppInitDelegate(TestLib::TestApplication* parent, int width, int height, const char* title)noexcept :TestGLFWAppInitDelegate(parent, width, height, title) {}
