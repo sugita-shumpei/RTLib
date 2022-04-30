@@ -6,4 +6,4 @@ add_executable(TestEmbree3
 target_include_directories(TestEmbree3 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Include)
 
 target_link_libraries(TestEmbree3 embree)
-set_target_properties(TestEmbree3 PROPERTIES FOLDER RTLib/Test/TestEmbree3)
+set_target_properties(TestEmbree3 PROPERTIES FOLDER Test/TestEmbree3)

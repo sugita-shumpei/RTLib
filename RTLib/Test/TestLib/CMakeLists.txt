@@ -11,4 +11,4 @@ ${CMAKE_CURRENT_SOURCE_DIR}/Include/TestAppExtendedData.h
 ${CMAKE_CURRENT_SOURCE_DIR}/Src/TestAppExtendedData.cpp
 )
 target_include_directories(TestLib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Include)
-set_target_properties(TestLib PROPERTIES FOLDER RTLib/Test/TestLib)
+set_target_properties(TestLib PROPERTIES FOLDER Test/TestLib)

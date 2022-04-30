@@ -15,6 +15,7 @@ namespace RTLib {
         private:
             void InitDynamicLoader();
             void InitInstance();
+            void InitPhysDevice();
             
             bool SupportInstExtName(const std::string& extName)const noexcept;
             bool SupportInstLyrName(const std::string& lyrName)const noexcept;

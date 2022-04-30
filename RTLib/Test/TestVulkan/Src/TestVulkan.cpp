@@ -1,4 +1,5 @@
 #include <TestVulkan.h>
+#include <iostream>
 VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
 
 RTLib::Test::Vulkan::FeaturesChain::FeaturesChain(const FeaturesChain& featChain) noexcept {
@@ -47,6 +48,13 @@ void RTLib::Test::Vulkan::FeaturesChain::Clear() noexcept {
 }
 
 auto RTLib::Test::Vulkan::FeaturesChain::Count() const noexcept -> size_t { return m_Indices.size(); }
+
+void RTLib::Test::Vulkan::FeaturesChain::Show() const noexcept
+{
+	for (size_t i = 0; i < m_Holders.size(); ++i) {
+		std::cout << "index " << i << ": " << vk::to_string(m_Holders[i]->GetSType()) << "(" << m_Holders[i]->GetPData() << ")" << " -> " << "(" << m_Holders[i]->GetPNext() << ")" << "\n";
+	}
+}
 
 auto RTLib::Test::Vulkan::FeaturesChain::GetPHead() const noexcept -> const void* {
 	if (m_Holders.empty()) {
