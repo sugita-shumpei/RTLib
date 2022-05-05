@@ -343,11 +343,17 @@ namespace RTLib {
 
 					bool IsAllocated()const noexcept { return m_AllocationInfo != std::nullopt; }
 
-					bool CopyFromMemory(const void* pData, GLenum format, GLenum type, GLint level, GLint layer = 0, GLsizei layers = 1, GLsizei width = 1, GLsizei height = 1, GLsizei depth = 1, GLint  dstXOffset = 0, GLint  dstYOffset = 0, GLint  dstZOffset = 0);
-					bool CopyToMemory(        void* pData, GLenum format, GLenum type, GLint level);
+					bool CopyFromMemory(const void* pData, GLenum format  , GLenum type, GLint level, GLint layer = 0, GLsizei layers = 1, GLsizei width = 1, GLsizei height = 1, GLsizei depth = 1, GLint  dstXOffset = 0, GLint  dstYOffset = 0, GLint  dstZOffset = 0);
+					bool CopyToMemory(        void* pData, GLenum format  , GLenum type, GLint level);
 
 					bool CopyFromBuffer(ImplGLBuffer* src  , GLenum format, GLenum type, GLint level, GLint layer = 0, GLsizei layers = 1, GLsizei width = 1, GLsizei height = 1, GLsizei depth = 1, GLint  dstXOffset = 0, GLint  dstYOffset = 0, GLint  dstZOffset = 0, GLintptr srcOffset = 0);
 					bool CopyToBuffer(  ImplGLBuffer* src  , GLenum format, GLenum type, GLint level, GLintptr srcOffset = 0);
+					
+					bool CopyFaceFromMemory(GLenum target, const void* pData, GLenum format, GLenum type, GLint level, GLint layer = 0, GLsizei layers = 1, GLsizei width = 1, GLsizei height = 1, GLsizei depth = 1, GLint  dstXOffset = 0, GLint  dstYOffset = 0, GLint  dstZOffset = 0);
+					bool CopyFaceToMemory(  GLenum target, void* pData, GLenum format, GLenum type, GLint level);
+
+					bool CopyFaceFromBuffer(GLenum target, ImplGLBuffer* src, GLenum format, GLenum type, GLint level, GLint layer = 0, GLsizei layers = 1, GLsizei width = 1, GLsizei height = 1, GLsizei depth = 1, GLint  dstXOffset = 0, GLint  dstYOffset = 0, GLint  dstZOffset = 0, GLintptr srcOffset = 0);
+					bool CopyFaceToBuffer(  GLenum target, ImplGLBuffer* src, GLenum format, GLenum type, GLint level, GLintptr srcOffset = 0);
 				protected:
 					ImplGLTexture(GLenum target, ImplGLResourceTable* table, ImplGLBindingPoint* tPoint, ImplGLBindingPoint* bPoint)noexcept :ImplGLBindable(table, tPoint), m_Target{ target }, m_BPBuffer{bPoint}{}
 					auto GetTxTarget()const noexcept -> GLuint { return m_Target; }

@@ -507,6 +507,26 @@ bool RTLib::Ext::GL::Internal::ImplGLTexture::CopyToBuffer(ImplGLBuffer* dst, GL
 	return true;
 }
 
+bool RTLib::Ext::GL::Internal::ImplGLTexture::CopyFaceFromMemory(GLenum target, const void* pData, GLenum format, GLenum type, GLint level, GLint layer, GLsizei layers, GLsizei width, GLsizei height, GLsizei depth, GLint dstXOffset, GLint dstYOffset, GLint dstZOffset)
+{
+	return false;
+}
+
+bool RTLib::Ext::GL::Internal::ImplGLTexture::CopyFaceToMemory(GLenum target, void* pData, GLenum format, GLenum type, GLint level)
+{
+	return false;
+}
+
+bool RTLib::Ext::GL::Internal::ImplGLTexture::CopyFaceFromBuffer(GLenum target, ImplGLBuffer* src, GLenum format, GLenum type, GLint level, GLint layer, GLsizei layers, GLsizei width, GLsizei height, GLsizei depth, GLint dstXOffset, GLint dstYOffset, GLint dstZOffset, GLintptr srcOffset)
+{
+	return false;
+}
+
+bool RTLib::Ext::GL::Internal::ImplGLTexture::CopyFaceToBuffer(GLenum target, ImplGLBuffer* src, GLenum format, GLenum type, GLint level, GLintptr srcOffset)
+{
+	return false;
+}
+
 auto RTLib::Ext::GL::Internal::ImplGLTexture::GetBPBuffer() const noexcept -> const ImplGLBindingPoint*
 {
 	return m_BPBuffer;

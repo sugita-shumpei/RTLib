@@ -110,6 +110,7 @@ int main() {
 
 				assert(texture2->CopyToMemory(dstData.data()  , GL_RGBA, GL_FLOAT, 0));
 				texture2->Unbind();
+
 				ShowData(dstData);
 				ClearData(dstData);
 
@@ -117,8 +118,8 @@ int main() {
 
 				assert(texture2->Bind());
 				assert(  buffer->Bind(GL_PIXEL_PACK_BUFFER));
-				assert(  buffer->Allocate(GL_STATIC_DRAW, dstData.size() * sizeof(float)));
-				assert(texture2->CopyToBuffer(buffer.get(), GL_RGBA, GL_FLOAT, 0));
+				assert(  buffer->Allocate(GL_STATIC_DRAW    , dstData.size() * sizeof(float)));
+				assert(texture2->CopyToBuffer(buffer.get()  , GL_RGBA, GL_FLOAT, 0));
 				assert(  buffer->CopyToMemory(dstData.data(), dstData.size()*sizeof(float)));
 				  buffer->Unbind();
 				texture2->Unbind();
