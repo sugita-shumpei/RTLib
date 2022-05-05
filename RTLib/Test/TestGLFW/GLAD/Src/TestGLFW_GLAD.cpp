@@ -1,7 +1,10 @@
 #include <TestGLFW_GLAD.h>
+#include <RTLib/Ext/GL/GLContext.h>
+#include <RTLib/Ext/GL/GLBuffer.h>
 #include <vector>
 #include <utility>
 #include <string>
+#include <cassert>
 
 void RTLib::Test::TestGLFWGLADAppInitDelegate::Init()
 {
@@ -44,6 +47,35 @@ void RTLib::Test::TestGLFWGLADAppInitDelegate::InitGLAD()
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
 		throw std::runtime_error("Failed To Initialize GLAD!");
 	}
+	auto ctx = std::unique_ptr<RTLib::Ext::GL::GLContext>(new RTLib::Ext::GL::GLContext());
+	auto bff1= std::unique_ptr<RTLib::Ext::GL::GLBuffer>(ctx->CreateGLBuffer(GL_ARRAY_BUFFER, GL_STATIC_DRAW, sizeof(float) * 9, nullptr));
+	auto bff2= std::unique_ptr<RTLib::Ext::GL::GLBuffer>(ctx->CreateGLBuffer(GL_ARRAY_BUFFER, GL_STATIC_DRAW, sizeof(float) * 9, nullptr));
+	{
+		std::vector<float>  iVertices1{ 0.0f,1.0f,2.0f,3.0f,4.0f,5.0f,6.0f,7.0f,8.0f };
+		std::vector<float>  iVertices2{ 0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f };
+		assert(bff1->CopyFromMemory(iVertices1.data(), sizeof(float) * iVertices1.size()));
+		assert(bff2->CopyFromMemory(iVertices2.data(), sizeof(float) * iVertices2.size()));
+		std::vector<float>  oVertices(9);
+		assert(bff1->CopyToMemory(  oVertices.data(), sizeof(float) * oVertices.size()));
+		for (auto i = 0; i < 9; ++i) {
+			std::cout << oVertices[i] << ",";
+		}
+		std::cout << std::endl;
+		assert(bff2->CopyToMemory(  oVertices.data(), sizeof(float) * oVertices.size()));
+		for (auto i = 0; i < 9; ++i) {
+			std::cout << oVertices[i] << ",";
+		}
+		std::cout << std::endl;
+		assert(bff1->CopyToBuffer(bff2.get(),sizeof(float)*3, sizeof(float) *3));
+		assert(bff2->CopyToMemory(oVertices.data(), sizeof(float) * oVertices.size()));
+		for (auto i = 0; i < 9; ++i) {
+			std::cout << oVertices[i] << ",";
+		}
+		std::cout << std::endl;
+	}
+	ctx.reset();
+	bff1.reset();
+	bff2.reset();
 }
 
 void RTLib::Test::TestGLFWGLADAppMainDelegate::Main()

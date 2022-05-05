@@ -4,7 +4,7 @@ if (glad_FOUND)
 		${CMAKE_CURRENT_SOURCE_DIR}/Src/TestGLFW_GLAD.cpp
 	)
 	target_include_directories(TestGLFW-GLAD-Lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Include)
-	target_link_libraries(TestGLFW-GLAD-Lib TestGLFW-Common-Lib glad::glad)
+	target_link_libraries(TestGLFW-GLAD-Lib TestGLFW-Common-Lib RTLib-Ext-GL glad::glad)
 	set_target_properties(TestGLFW-GLAD-Lib PROPERTIES FOLDER Test/TestGLFW/GLAD)
 	add_executable(TestGLFW-GLAD-Test
 		${CMAKE_CURRENT_SOURCE_DIR}/Src/main.cpp
