@@ -8,4 +8,5 @@ add_library(RTLib-Core
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/Buffer.cpp
 )
 target_include_directories(RTLib-Core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Include)
+target_link_libraries(RTLib-Core PUBLIC Imath::Imath)
 set_target_properties(RTLib-Core PROPERTIES FOLDER RTLib/RTLib/Core)

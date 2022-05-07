@@ -62,11 +62,11 @@ namespace RTLib {
 					bool Allocate(GLenum usage, size_t size, const void* pInitialData = nullptr);
 					bool IsAllocated()const noexcept { return m_AllocationInfo != std::nullopt; }
 
-					bool CopyFromMemory(const void* pSrcData, size_t size, size_t offset = 0);
-					bool CopyToMemory(void* pDstData, size_t size, size_t offset = 0);
+					bool CopyImageFromMemory(const void* pSrcData, size_t size, size_t offset = 0);
+					bool CopyImageToMemory(void* pDstData, size_t size, size_t offset = 0);
 
-					bool CopyFromBuffer(ImplGLBuffer* srcBuffer, size_t size, size_t srcOffset = 0, size_t dstOffset = 0);
-					bool CopyToBuffer(  ImplGLBuffer* dstBuffer, size_t size, size_t dstOffset = 0, size_t srcOffset = 0);
+					bool CopyImageFromBuffer(ImplGLBuffer* srcBuffer, size_t size, size_t srcOffset = 0, size_t dstOffset = 0);
+					bool CopyImageToBuffer(  ImplGLBuffer* dstBuffer, size_t size, size_t dstOffset = 0, size_t srcOffset = 0);
 
 					bool   MapMemory(void** pMappedData, GLenum access);
 					bool   MapMemory(void** pMappedData, GLenum access, GLsizeiptr offset, GLsizeiptr size);

@@ -1,3 +1,4 @@
+#include "Internal/ImplGLUtils.h"
 #include "Internal/ImplGLBuffer.h"
 #include "Internal/ImplGLTexture.h"
 #include "Internal/ImplGLFramebuffer.h"
@@ -37,11 +38,11 @@ int main() {
 				assert(buffer->Allocate(GL_STATIC_DRAW, srcData.size() * sizeof(float)));
 				buffer->Unbind();
 
-				assert(buffer->CopyFromMemory(srcData.data(),srcData.size() * sizeof(float), 0));
-				assert(buffer->CopyToMemory(  dstData.data(),dstData.size() * sizeof(float), 0));
+				assert(buffer->CopyImageFromMemory(srcData.data(),srcData.size() * sizeof(float), 0));
+				assert(buffer->CopyImageToMemory(  dstData.data(),dstData.size() * sizeof(float), 0));
 
 				ShowData(dstData);
-				assert(buffer->CopyToMemory(dstData.data(),(dstData.size()/2) * sizeof(float), (dstData.size() / 2) * sizeof(float)));
+				assert(buffer->CopyImageToMemory(dstData.data(),(dstData.size()/2) * sizeof(float), (dstData.size() / 2) * sizeof(float)));
 				ShowData(dstData);
 				
 				auto buffer2 = std::unique_ptr<RTLib::Ext::GL::Internal::ImplGLBuffer>(context->CreateBuffer());
@@ -49,12 +50,13 @@ int main() {
 				assert(buffer2->Allocate(GL_STATIC_DRAW, srcData.size() * sizeof(float)));
 				buffer2->Unbind();
 
-				assert(buffer2->CopyFromBuffer(buffer.get(), srcData.size() * sizeof(float), 0, 0));
-				assert(buffer2->CopyToMemory(dstData.data(), dstData.size() * sizeof(float), 0));
+				assert(buffer2->CopyImageFromBuffer(buffer.get(), srcData.size() * sizeof(float), 0, 0));
+				assert(buffer2->CopyImageToMemory(dstData.data(), dstData.size() * sizeof(float), 0));
 				ShowData(dstData);
 
 			}
 			{
+				static_assert(RTLib::Ext::GL::Internal::GetGLFormatTypeInfo(GL_RGBA32F, GL_FLOAT).num_bases == 4);
 				auto ShowData = [](const auto& data) {
 					for (auto i = 0; i < data.size(); ++i) {
 						std::cout << data[i] << " ";
@@ -84,31 +86,31 @@ int main() {
 				auto texture = std::unique_ptr<RTLib::Ext::GL::Internal::ImplGLTexture>(context->CreateTexture(GL_TEXTURE_2D));
 				assert(texture->Bind());
 				assert(texture->Allocate(GL_RGBA32F, 3, 1, 4, 4, 1));
-				assert(texture->CopyFromMemory(srcData0.data(), GL_RGBA, GL_FLOAT, 0,0,1,4,4));
-				assert(texture->CopyFromMemory(srcData1.data(), GL_RGBA, GL_FLOAT, 1,0,1,2,2));
-				assert(texture->CopyFromMemory(srcData2.data(), GL_RGBA, GL_FLOAT, 2,0,1,1,1));
+				assert(texture->CopyImageFromMemory(srcData0.data(), GL_RGBA, GL_FLOAT, 0,0,1,4,4));
+				assert(texture->CopyImageFromMemory(srcData1.data(), GL_RGBA, GL_FLOAT, 1,0,1,2,2));
+				assert(texture->CopyImageFromMemory(srcData2.data(), GL_RGBA, GL_FLOAT, 2,0,1,1,1));
 				texture->Unbind();
 
 				auto texture2 = std::unique_ptr<RTLib::Ext::GL::Internal::ImplGLTexture>(context->CreateTexture(GL_TEXTURE_2D_ARRAY));
 
 				assert(texture2->Bind());
 				assert(texture2->Allocate(GL_RGBA32F, 3, 4, 4, 4, 1));
-				assert(texture2->CopyFromMemory(srcData0.data(), GL_RGBA, GL_FLOAT, 0, 0, 1, 4, 4));
-				assert(texture2->CopyFromMemory(srcData0.data(), GL_RGBA, GL_FLOAT, 0, 1, 1, 4, 4));
-				assert(texture2->CopyFromMemory(srcData0.data(), GL_RGBA, GL_FLOAT, 0, 2, 1, 4, 4));
-				assert(texture2->CopyFromMemory(srcData0.data(), GL_RGBA, GL_FLOAT, 0, 3, 1, 4, 4));
+				assert(texture2->CopyImageFromMemory(srcData0.data(), GL_RGBA, GL_FLOAT, 0, 0, 1, 4, 4));
+				assert(texture2->CopyImageFromMemory(srcData0.data(), GL_RGBA, GL_FLOAT, 0, 1, 1, 4, 4));
+				assert(texture2->CopyImageFromMemory(srcData0.data(), GL_RGBA, GL_FLOAT, 0, 2, 1, 4, 4));
+				assert(texture2->CopyImageFromMemory(srcData0.data(), GL_RGBA, GL_FLOAT, 0, 3, 1, 4, 4));
 
-				assert(texture2->CopyFromMemory(srcData1.data(), GL_RGBA, GL_FLOAT, 1, 0, 1, 2, 2));
-				assert(texture2->CopyFromMemory(srcData1.data(), GL_RGBA, GL_FLOAT, 1, 1, 1, 2, 2));
-				assert(texture2->CopyFromMemory(srcData1.data(), GL_RGBA, GL_FLOAT, 1, 2, 1, 2, 2));
-				assert(texture2->CopyFromMemory(srcData1.data(), GL_RGBA, GL_FLOAT, 1, 3, 1, 2, 2));
+				assert(texture2->CopyImageFromMemory(srcData1.data(), GL_RGBA, GL_FLOAT, 1, 0, 1, 2, 2));
+				assert(texture2->CopyImageFromMemory(srcData1.data(), GL_RGBA, GL_FLOAT, 1, 1, 1, 2, 2));
+				assert(texture2->CopyImageFromMemory(srcData1.data(), GL_RGBA, GL_FLOAT, 1, 2, 1, 2, 2));
+				assert(texture2->CopyImageFromMemory(srcData1.data(), GL_RGBA, GL_FLOAT, 1, 3, 1, 2, 2));
 
-				assert(texture2->CopyFromMemory(srcData1.data(), GL_RGBA, GL_FLOAT, 2, 0, 1, 1, 1));
-				assert(texture2->CopyFromMemory(srcData1.data(), GL_RGBA, GL_FLOAT, 2, 1, 1, 1, 1));
-				assert(texture2->CopyFromMemory(srcData1.data(), GL_RGBA, GL_FLOAT, 2, 2, 1, 1, 1));
-				assert(texture2->CopyFromMemory(srcData1.data(), GL_RGBA, GL_FLOAT, 2, 3, 1, 1, 1));
+				assert(texture2->CopyImageFromMemory(srcData1.data(), GL_RGBA, GL_FLOAT, 2, 0, 1, 1, 1));
+				assert(texture2->CopyImageFromMemory(srcData1.data(), GL_RGBA, GL_FLOAT, 2, 1, 1, 1, 1));
+				assert(texture2->CopyImageFromMemory(srcData1.data(), GL_RGBA, GL_FLOAT, 2, 2, 1, 1, 1));
+				assert(texture2->CopyImageFromMemory(srcData1.data(), GL_RGBA, GL_FLOAT, 2, 3, 1, 1, 1));
 
-				assert(texture2->CopyToMemory(dstData.data()  , GL_RGBA, GL_FLOAT, 0));
+				assert(texture2->CopyImageToMemory(dstData.data()  , GL_RGBA, GL_FLOAT, 0));
 				texture2->Unbind();
 
 				ShowData(dstData);
@@ -119,11 +121,89 @@ int main() {
 				assert(texture2->Bind());
 				assert(  buffer->Bind(GL_PIXEL_PACK_BUFFER));
 				assert(  buffer->Allocate(GL_STATIC_DRAW    , dstData.size() * sizeof(float)));
-				assert(texture2->CopyToBuffer(buffer.get()  , GL_RGBA, GL_FLOAT, 0));
-				assert(  buffer->CopyToMemory(dstData.data(), dstData.size()*sizeof(float)));
+				assert(texture2->CopyImageToBuffer(buffer.get()  , GL_RGBA, GL_FLOAT, 0));
+				assert(  buffer->CopyImageToMemory(dstData.data(), dstData.size()*sizeof(float)));
 				  buffer->Unbind();
 				texture2->Unbind();
 
+				ShowData(dstData);
+			}
+			{
+				auto ShowData = [](const auto& data) {
+					for (auto i = 0; i < data.size(); ++i) {
+						std::cout << (float)data[i] << " ";
+					}
+					std::cout << std::endl;
+				};
+				auto ClearData = [](auto& data) {
+					for (auto i = 0; i < data.size(); ++i) {
+						data[i] = 0.0f;
+					}
+				};
+				using GLr10g10b10a2 = RTLib::Ext::GL::Internal::GLTypeInfo<GL_UNSIGNED_INT_10_10_10_2>::type;
+				std::vector<GLr10g10b10a2> srcData0 = {
+					GLr10g10b10a2(4,31,21,1),GLr10g10b10a2(4,3,2,1),GLr10g10b10a2(4,3,2,1),GLr10g10b10a2(4,3,2,1),
+					GLr10g10b10a2(4,31,21,1),GLr10g10b10a2(4,3,2,1),GLr10g10b10a2(4,3,2,1),GLr10g10b10a2(4,3,2,1),
+					GLr10g10b10a2(4,31,21,1),GLr10g10b10a2(4,3,2,1),GLr10g10b10a2(4,3,2,1),GLr10g10b10a2(4,3,2,1),
+					GLr10g10b10a2(4,31,21,1),GLr10g10b10a2(4,3,2,1),GLr10g10b10a2(4,3,2,1),GLr10g10b10a2(4,3,2,1),
+				};				
+				std::vector<GLr10g10b10a2> srcData1 = {
+					GLr10g10b10a2(4,3,2,1),GLr10g10b10a2(4,3,2,1),GLr10g10b10a2(4,3,2,1),GLr10g10b10a2(4,3,2,1),
+				};
+				std::vector<GLr10g10b10a2> srcData2 = {
+					GLr10g10b10a2(4,3,2,1)
+				};
+				static_assert(GLr10g10b10a2(4, 3, 2, 1).GetR() == 4);
+				static_assert(GLr10g10b10a2(4, 3, 2, 1).GetG() == 3);
+				static_assert(GLr10g10b10a2(4, 3, 2, 1).GetB() == 2);
+				static_assert(GLr10g10b10a2(4, 3, 2, 1).GetA() == 1);
+				std::vector<unsigned short> dstData = std::vector<unsigned short>(4 * 4 * 4);
+				constexpr auto v = RTLib::Ext::GL::Internal::GetGLFormatTypeSize(GL_RGB10_A2, GL_UNSIGNED_INT_10_10_10_2);
+				auto texture = std::unique_ptr<RTLib::Ext::GL::Internal::ImplGLTexture>(context->CreateTexture(GL_TEXTURE_2D));
+				assert(texture->Bind());
+				assert(texture->Allocate(GL_RGB10_A2, 3, 1, 4, 4, 1));
+				assert(texture->CopyImageFromMemory(srcData0.data(), GL_RGBA, GL_UNSIGNED_INT_10_10_10_2, 0, 0, 1, 4, 4));
+				assert(texture->CopyImageFromMemory(srcData1.data(), GL_RGBA, GL_UNSIGNED_INT_10_10_10_2, 1, 0, 1, 2, 2));
+				assert(texture->CopyImageFromMemory(srcData2.data(), GL_RGBA, GL_UNSIGNED_INT_10_10_10_2, 2, 0, 1, 1, 1));
+				assert(texture->CopyImageToMemory(dstData.data()   , GL_RGBA, GL_UNSIGNED_SHORT, 0));
+				texture->Unbind();
+				ShowData(dstData);
+			}
+			{
+				auto ShowData = [](const auto& data) {
+					for (auto i = 0; i < data.size(); ++i) {
+						std::cout << data[i].GetDepth() << " ";
+					}
+					std::cout << std::endl;
+				};
+				auto ClearData = [](auto& data) {
+					for (auto i = 0; i < data.size(); ++i) {
+						data[i] = 0.0f;
+					}
+				};
+				using GLD32S8 = RTLib::Ext::GL::Internal::GLTypeInfo<GL_FLOAT_32_UNSIGNED_INT_24_8_REV>::type;
+				std::vector<GLD32S8> srcData0 = {
+					GLD32S8(1.0f,3),GLD32S8(1.0f,3),GLD32S8(1.0f,3),GLD32S8(1.0f,3),
+					GLD32S8(1.0f,3),GLD32S8(1.0f,3),GLD32S8(1.0f,3),GLD32S8(1.0f,3),
+					GLD32S8(1.0f,3),GLD32S8(1.0f,3),GLD32S8(1.0f,3),GLD32S8(1.0f,3),
+					GLD32S8(1.0f,3),GLD32S8(1.0f,3),GLD32S8(1.0f,3),GLD32S8(1.0f,3),
+					GLD32S8(1.0f,3),GLD32S8(1.0f,3),GLD32S8(1.0f,3),GLD32S8(1.0f,3),
+				};
+				std::vector<GLD32S8> srcData1 = {
+					GLD32S8(1.0f,3),GLD32S8(1.0f,3),GLD32S8(1.0f,3),GLD32S8(1.0f,3),
+				};
+				std::vector<GLD32S8> srcData2 = {
+					GLD32S8(1.0f,3)
+				};
+				std::vector<GLD32S8> dstData = std::vector<GLD32S8>(4 * 4);
+				auto texture = std::unique_ptr<RTLib::Ext::GL::Internal::ImplGLTexture>(context->CreateTexture(GL_TEXTURE_2D));
+				assert(texture->Bind());
+				assert(texture->Allocate(GL_DEPTH32F_STENCIL8, 3, 1, 4, 4, 1));
+				assert(texture->CopyImageFromMemory(srcData0.data(), GL_DEPTH_STENCIL, GL_FLOAT_32_UNSIGNED_INT_24_8_REV, 0, 0, 1, 4, 4));
+				assert(texture->CopyImageFromMemory(srcData1.data(), GL_DEPTH_STENCIL, GL_FLOAT_32_UNSIGNED_INT_24_8_REV, 1, 0, 1, 2, 2));
+				assert(texture->CopyImageFromMemory(srcData2.data(), GL_DEPTH_STENCIL, GL_FLOAT_32_UNSIGNED_INT_24_8_REV, 2, 0, 1, 1, 1));
+				assert(texture->CopyImageToMemory(  dstData.data() , GL_DEPTH_STENCIL, GL_FLOAT_32_UNSIGNED_INT_24_8_REV, 0));
+				texture->Unbind();
 				ShowData(dstData);
 			}
 			{

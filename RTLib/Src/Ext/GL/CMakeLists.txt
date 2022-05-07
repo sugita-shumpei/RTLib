@@ -5,6 +5,7 @@ ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/GL/GLTexture.h
 ${CMAKE_CURRENT_SOURCE_DIR}/Src/GLContext.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/Src/GLBuffer.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/Src/GLTexture.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/Src/Internal/ImplGLUtils.h
 ${CMAKE_CURRENT_SOURCE_DIR}/Src/Internal/ImplGLContext.h
 ${CMAKE_CURRENT_SOURCE_DIR}/Src/Internal/ImplGLContext.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/Src/Internal/ImplGLResource.h

@@ -15,7 +15,7 @@ bool RTLib::Ext::GL::Internal::ImplGLBuffer::Allocate(GLenum usage, size_t size,
 	return true;
 }
 
-bool RTLib::Ext::GL::Internal::ImplGLBuffer::CopyFromMemory(const void* pSrcData, size_t size, size_t offset)
+bool RTLib::Ext::GL::Internal::ImplGLBuffer::CopyImageFromMemory(const void* pSrcData, size_t size, size_t offset)
 {
 	if (!pSrcData) {
 		return false;
@@ -43,7 +43,7 @@ bool RTLib::Ext::GL::Internal::ImplGLBuffer::CopyFromMemory(const void* pSrcData
 	return true;
 }
 
-bool RTLib::Ext::GL::Internal::ImplGLBuffer::CopyToMemory(void* pDstData, size_t size, size_t offset)
+bool RTLib::Ext::GL::Internal::ImplGLBuffer::CopyImageToMemory(void* pDstData, size_t size, size_t offset)
 {
 	if (!pDstData) {
 		return false;
@@ -71,7 +71,7 @@ bool RTLib::Ext::GL::Internal::ImplGLBuffer::CopyToMemory(void* pDstData, size_t
 	return true;
 }
 
-bool RTLib::Ext::GL::Internal::ImplGLBuffer::CopyFromBuffer(ImplGLBuffer* srcBuffer, size_t size, size_t srcOffset, size_t dstOffset)
+bool RTLib::Ext::GL::Internal::ImplGLBuffer::CopyImageFromBuffer(ImplGLBuffer* srcBuffer, size_t size, size_t srcOffset, size_t dstOffset)
 {
 	if (!srcBuffer||!this->IsAllocated()) {
 		return false;
@@ -120,7 +120,7 @@ bool RTLib::Ext::GL::Internal::ImplGLBuffer::CopyFromBuffer(ImplGLBuffer* srcBuf
 	return true;
 }
 
-bool RTLib::Ext::GL::Internal::ImplGLBuffer::CopyToBuffer(ImplGLBuffer* dstBuffer, size_t size, size_t dstOffset, size_t srcOffset)
+bool RTLib::Ext::GL::Internal::ImplGLBuffer::CopyImageToBuffer(ImplGLBuffer* dstBuffer, size_t size, size_t dstOffset, size_t srcOffset)
 {
 	if (!dstBuffer || !this->IsAllocated()) {
 		return false;
