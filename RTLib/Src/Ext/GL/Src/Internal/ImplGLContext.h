@@ -5,8 +5,11 @@
 #include "ImplGLBuffer.h"
 #include "ImplGLTexture.h"
 #include "ImplGLSampler.h"
+#include "ImplGLVertexArray.h"
 #include "ImplGLFramebuffer.h"
 #include "ImplGLRenderbuffer.h"
+#include "ImplGLProgram.h"
+#include "ImplGLShader.h"
 #include <glad/glad.h>
 #include <unordered_map>
 namespace RTLib {
@@ -27,6 +30,9 @@ namespace RTLib {
 					auto CreateSampler()             ->ImplGLSampler*;
 					auto CreateFramebuffer()         ->ImplGLFramebuffer*;
 					auto CreateRenderbuffer()        ->ImplGLRenderbuffer*;
+					auto CreateVertexArray()         ->ImplGLVertexArray*;
+					auto CreateShader(GLenum shaderT)->ImplGLShader*;
+					auto CreateProgram()             ->ImplGLProgram*;
 				private:
 					ImplGLContext()noexcept {}
 					void Init() {
@@ -57,6 +63,8 @@ namespace RTLib {
 						m_BPTexture.AddTarget(GL_TEXTURE_CUBE_MAP_ARRAY);
 						m_BPTexture.AddTarget(GL_TEXTURE_BUFFER);
 
+						m_BPVertexArray.AddTarget(GL_VERTEX_ARRAY);
+
 						m_BPFramebuffer.AddTarget(GL_FRAMEBUFFER);
 						m_BPFramebuffer.AddTarget(GL_DRAW_FRAMEBUFFER);
 						m_BPFramebuffer.AddTarget(GL_READ_FRAMEBUFFER);
@@ -73,6 +81,7 @@ namespace RTLib {
 					ImplGLResourceTable m_ResourceTable     = {};
 					ImplGLBindingPoint  m_BPBuffer          = {};
 					ImplGLBindingPoint  m_BPTexture         = {};
+					ImplGLBindingPoint  m_BPVertexArray     = {};
 					ImplGLBindingPoint  m_BPSampler         = {};
 					ImplGLBindingPoint  m_BPFramebuffer     = {};
 					ImplGLBindingPoint  m_BPRenderbuffer    = {};

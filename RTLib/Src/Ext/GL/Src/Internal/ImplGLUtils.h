@@ -140,6 +140,15 @@
         } \
         return {}
 
+#define RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(FORMAT, BASE_FORMAT, BASE_TYPE, CNT) \
+    case GL_##FORMAT: \
+        for (CNT = 0; CNT<sizeof(GLFormatInfo<GL_##FORMAT>::formats)/sizeof(GLFormatInfo<GL_##FORMAT>::formats[0]); ++CNT) { \
+            if (GLFormatInfo<GL_##FORMAT>::formats[CNT].base_type == BASE_TYPE && GLFormatInfo<GL_##FORMAT>::formats[CNT].base_format == BASE_FORMAT){ \
+                return GLFormatInfo<GL_##FORMAT>::formats[CNT].num_bases; \
+            } \
+        } \
+        return 0
+
 #define RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_BASE_FORMAT(FORMAT) \
     case GL_##FORMAT:                                                         \
         return GLFormatInfo<GL_##FORMAT>::formats[0].base_format
@@ -1236,6 +1245,88 @@ namespace RTLib
                 inline constexpr auto GetGLFormatTypeSize(GLenum format, GLenum baseType) -> size_t {
                     return GetGLFormatTypeInfo(format, baseType).num_bases * GetGLTypeSize(baseType);
                 }
+                inline constexpr auto GetGLNumBases(GLenum format, GLenum baseFormat, GLenum baseType) -> GLsizei {
+                    size_t cnt = 0;
+                    switch (format) {
+                        /*R*/
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(R8,baseFormat, baseType, cnt);
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(R8_SNORM,baseFormat, baseType, cnt);
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(R16,baseFormat, baseType, cnt);
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(R16_SNORM,baseFormat, baseType, cnt);
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(R8UI,baseFormat, baseType, cnt);
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(R16UI,baseFormat, baseType, cnt);
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(R32UI,baseFormat, baseType, cnt);
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(R8I,baseFormat, baseType, cnt);
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(R16I,baseFormat, baseType, cnt);
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(R32I,baseFormat, baseType, cnt);
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(R16F,baseFormat, baseType, cnt);
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(R32F,baseFormat, baseType, cnt);
+                        /*RG*/
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(RG8,baseFormat, baseType, cnt);
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(RG8_SNORM,baseFormat, baseType, cnt);
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(RG16,baseFormat, baseType, cnt);
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(RG16_SNORM,baseFormat, baseType, cnt);
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(RG8UI,baseFormat, baseType, cnt);
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(RG16UI,baseFormat, baseType, cnt);
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(RG32UI,baseFormat, baseType, cnt);
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(RG8I,baseFormat, baseType, cnt);
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(RG16I,baseFormat, baseType, cnt);
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(RG32I,baseFormat, baseType, cnt);
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(RG16F,baseFormat, baseType, cnt);
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(RG32F,baseFormat, baseType, cnt);
+                        /*RGB*/
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(RGB8,baseFormat, baseType, cnt);
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(RGB8_SNORM,baseFormat, baseType, cnt);
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(RGB16,baseFormat, baseType, cnt);
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(RGB16_SNORM,baseFormat, baseType, cnt);
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(RGB8UI,baseFormat, baseType, cnt);
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(RGB16UI,baseFormat, baseType, cnt);
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(RGB32UI,baseFormat, baseType, cnt);
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(RGB8I,baseFormat, baseType, cnt);
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(RGB16I,baseFormat, baseType, cnt);
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(RGB32I,baseFormat, baseType, cnt);
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(RGB16F,baseFormat, baseType, cnt);
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(RGB32F,baseFormat, baseType, cnt);
+                        /*RGBA*/
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(RGBA8,baseFormat, baseType, cnt);
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(RGBA8_SNORM,baseFormat, baseType, cnt);
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(RGBA16,baseFormat, baseType, cnt);
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(RGBA16_SNORM,baseFormat, baseType, cnt);
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(RGBA8UI,baseFormat, baseType, cnt);
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(RGBA16UI,baseFormat, baseType, cnt);
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(RGBA32UI,baseFormat, baseType, cnt);
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(RGBA8I,baseFormat, baseType, cnt);
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(RGBA16I,baseFormat, baseType, cnt);
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(RGBA32I,baseFormat, baseType, cnt);
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(RGBA16F,baseFormat, baseType, cnt);
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(RGBA32F,baseFormat, baseType, cnt);
+                        /*CUSTOM*/
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(R3_G3_B2,baseFormat, baseType, cnt);
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(RGB4,baseFormat, baseType, cnt);
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(RGB5,baseFormat, baseType, cnt);
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(SRGB8,baseFormat, baseType, cnt);
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(SRGB8_ALPHA8,baseFormat, baseType, cnt);
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(RGB10,baseFormat, baseType, cnt);
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(RGB12,baseFormat, baseType, cnt);
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(R11F_G11F_B10F,baseFormat, baseType, cnt);
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(RGB9_E5,baseFormat, baseType, cnt);
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(RGBA2,baseFormat, baseType, cnt);
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(RGBA4,baseFormat, baseType, cnt);
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(RGB5_A1,baseFormat, baseType, cnt);
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(RGB10_A2,baseFormat, baseType, cnt);
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(RGB10_A2UI,baseFormat, baseType, cnt);
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(RGBA12,baseFormat, baseType, cnt);
+                        /*DEPTH*/
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(DEPTH_COMPONENT16,baseFormat, baseType, cnt);
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(DEPTH_COMPONENT24,baseFormat, baseType, cnt);
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(DEPTH_COMPONENT32F,baseFormat, baseType, cnt);
+                        /*DEPTH_STENCIL*/
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(DEPTH24_STENCIL8,baseFormat, baseType, cnt);
+                        RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES(DEPTH32F_STENCIL8,baseFormat, baseType, cnt);
+
+                    default: return 0;
+                    }
+                }
             }
         }
     }
@@ -1250,6 +1341,8 @@ namespace RTLib
 #undef RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_GL_FORMAT_INFO_DEF_INT_RGBA
 #undef RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_GL_FORMAT_INFO_DEF_DEPTH
 #undef RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_GL_FORMAT_INFO_DEF_DEPTH_STENCIL
+#undef RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_FORMAT_TYPE_INFO
+#undef RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_NUM_BASES
 #undef RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_FORMAT_SIZE
 #undef RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_BASE_FORMAT
 #undef RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_GL_BASE_TYPE

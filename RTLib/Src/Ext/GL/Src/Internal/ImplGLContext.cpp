@@ -29,3 +29,18 @@ auto RTLib::Ext::GL::Internal::ImplGLContext::CreateRenderbuffer() -> ImplGLRend
     return ImplGLRenderbuffer::New(&m_ResourceTable, &m_BPRenderbuffer);
 }
 
+auto RTLib::Ext::GL::Internal::ImplGLContext::CreateVertexArray() -> ImplGLVertexArray*
+{
+    return ImplGLVertexArray::New(&m_ResourceTable, &m_BPRenderbuffer);
+}
+
+auto RTLib::Ext::GL::Internal::ImplGLContext::CreateShader(GLenum shaderT) -> ImplGLShader*
+{
+    return ImplGLShader::New(&m_ResourceTable, shaderT);
+}
+
+auto RTLib::Ext::GL::Internal::ImplGLContext::CreateProgram() -> ImplGLProgram*
+{
+    return ImplGLProgram::New(&m_ResourceTable);
+}
+

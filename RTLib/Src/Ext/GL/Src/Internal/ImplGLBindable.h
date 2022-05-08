@@ -14,7 +14,7 @@ namespace RTLib {
 					friend class ImplGLBindable;
 				public:
 					virtual ~ImplGLBindingPoint()noexcept {}
-					void AddTarget(GLenum target) noexcept {
+					void  AddTarget(GLenum target) noexcept {
 						if (!HasTarget(target)) {
 							m_Bindables[target] = nullptr;
 						}
@@ -54,7 +54,7 @@ namespace RTLib {
 					}
 					void   Unbind()noexcept {
 						auto base = GetBase();
-						if (!IsBinded() || !m_Target||!base) {
+						if (!IsBinded() || !base) {
 							return;
 						}
 						bool res = m_BPoint->Unregister(*m_Target);
@@ -63,9 +63,9 @@ namespace RTLib {
 							m_Target = std::nullopt;
 						}
 					}
-					bool   IsBinded()const noexcept { return m_Target != std::nullopt; }
+					bool IsBinded()const noexcept { return m_Target != std::nullopt; }
 				protected:
-					bool   Bind(GLenum target) {
+					bool Bind(GLenum target) {
 						auto base = GetBase();
 						if (!m_BPoint || !base) {
 							return false;
@@ -74,7 +74,7 @@ namespace RTLib {
 							return m_Target == target;
 						}
 						bool res = m_BPoint->Register(target, this);
-						if (res) {
+						if ( res) {
 							static_cast<ImplGLBindableBase*>(base)->Bind(target);
 							m_Target = target;
 						}
@@ -93,8 +93,8 @@ namespace RTLib {
 						return m_BPoint;
 					}
 				private:
-					ImplGLBindingPoint*                 m_BPoint = nullptr;
-					std::optional<GLenum>               m_Target = std::nullopt;
+					ImplGLBindingPoint*       m_BPoint = nullptr;
+					std::optional<GLenum>     m_Target = std::nullopt;
 				};
 			}
 		}

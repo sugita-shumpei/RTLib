@@ -28,7 +28,8 @@ ${CMAKE_CURRENT_SOURCE_DIR}/Src/Internal/ImplGLFramebuffer.h
 ${CMAKE_CURRENT_SOURCE_DIR}/Src/Internal/ImplGLFramebuffer.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/Src/Internal/ImplGLRenderbuffer.h
 ${CMAKE_CURRENT_SOURCE_DIR}/Src/Internal/ImplGLRenderbuffer.cpp
-
+${CMAKE_CURRENT_SOURCE_DIR}/Src/Internal/ImplGLVertexArray.h
+${CMAKE_CURRENT_SOURCE_DIR}/Src/Internal/ImplGLVertexArray.cpp
 )
 target_include_directories(RTLib-Ext-GL PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Include)
 target_link_libraries(RTLib-Ext-GL PUBLIC RTLib-Core glad::glad)

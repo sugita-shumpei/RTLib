@@ -1,23 +1,33 @@
 #include "ImplGLBuffer.h"
-#include "ImplGLBuffer.h"
-#include "ImplGLBuffer.h"
-#include "ImplGLBuffer.h"
-#include "ImplGLBuffer.h"
-#include "ImplGLBuffer.h"
 
-bool RTLib::Ext::GL::Internal::ImplGLBuffer::Allocate(GLenum usage, size_t size, const void* pInitialData)
+bool RTLib::Ext::GL::Internal::ImplGLBuffer::Allocate(GLenum target, GLenum usage, size_t size, const void* pInitialData)
 {
-	if (!IsBinded() || IsAllocated()) {
+	if (IsAllocated()) {
 		return false;
+	}
+	bool bindForAllocated = false;
+	if (IsBinded()) {
+		if (GetTarget() != target) {
+			return false;
+		}
+	}
+	else {
+		bindForAllocated = true;
+	}
+	if (bindForAllocated) {
+		if (!Bind(target)) { return false; }
 	}
 	glBufferData(*GetTarget(), size, pInitialData, usage);
 	m_AllocationInfo = AllocationInfo{ size, usage };
+	if (bindForAllocated) {
+		Unbind();
+	}
 	return true;
 }
 
-bool RTLib::Ext::GL::Internal::ImplGLBuffer::CopyImageFromMemory(const void* pSrcData, size_t size, size_t offset)
+bool RTLib::Ext::GL::Internal::ImplGLBuffer::CopyFromMemory(const void* pSrcData, size_t size, size_t offset)
 {
-	if (!pSrcData) {
+	if (!pSrcData || IsMapped()) {
 		return false;
 	}
 	bool isBinded = IsBinded();
@@ -43,9 +53,9 @@ bool RTLib::Ext::GL::Internal::ImplGLBuffer::CopyImageFromMemory(const void* pSr
 	return true;
 }
 
-bool RTLib::Ext::GL::Internal::ImplGLBuffer::CopyImageToMemory(void* pDstData, size_t size, size_t offset)
+bool RTLib::Ext::GL::Internal::ImplGLBuffer::CopyToMemory(void* pDstData, size_t size, size_t offset)
 {
-	if (!pDstData) {
+	if (!pDstData || !this->IsAllocated() || IsMapped()) {
 		return false;
 	}
 	bool isBinded = IsBinded();
@@ -71,9 +81,9 @@ bool RTLib::Ext::GL::Internal::ImplGLBuffer::CopyImageToMemory(void* pDstData, s
 	return true;
 }
 
-bool RTLib::Ext::GL::Internal::ImplGLBuffer::CopyImageFromBuffer(ImplGLBuffer* srcBuffer, size_t size, size_t srcOffset, size_t dstOffset)
+bool RTLib::Ext::GL::Internal::ImplGLBuffer::CopyFromBuffer(ImplGLBuffer* srcBuffer, size_t size, size_t srcOffset, size_t dstOffset)
 {
-	if (!srcBuffer||!this->IsAllocated()) {
+	if (!srcBuffer||!this->IsAllocated() || IsMapped()) {
 		return false;
 	}
 	if (!srcBuffer->IsAllocated()) {
@@ -120,9 +130,9 @@ bool RTLib::Ext::GL::Internal::ImplGLBuffer::CopyImageFromBuffer(ImplGLBuffer* s
 	return true;
 }
 
-bool RTLib::Ext::GL::Internal::ImplGLBuffer::CopyImageToBuffer(ImplGLBuffer* dstBuffer, size_t size, size_t dstOffset, size_t srcOffset)
+bool RTLib::Ext::GL::Internal::ImplGLBuffer::CopyToBuffer(ImplGLBuffer* dstBuffer, size_t size, size_t dstOffset, size_t srcOffset)
 {
-	if (!dstBuffer || !this->IsAllocated()) {
+	if (!dstBuffer || !this->IsAllocated() || IsMapped()) {
 		return false;
 	}
 	if (!dstBuffer->IsAllocated()) {
@@ -171,29 +181,70 @@ bool RTLib::Ext::GL::Internal::ImplGLBuffer::CopyImageToBuffer(ImplGLBuffer* dst
 
 bool RTLib::Ext::GL::Internal::ImplGLBuffer::MapMemory(void** pMappedData, GLenum access)
 {
-	bool isBinded = IsBinded();
-	if (!isBinded||!pMappedData || IsMapped()) {
+	auto base = GetBase();
+	if (!IsAllocated()||!pMappedData || !base) {
 		return false;
 	}
-	*pMappedData = glMapBuffer(*GetTarget(), access);
-	return true;
+	GLenum target;
+	if (!IsBinded()) {
+		if (access == GL_READ_ONLY) {
+			if (!Bind(GL_COPY_READ_BUFFER)) {
+				return false;
+			}
+			target = GL_COPY_READ_BUFFER;
+		}
+		else if (access == GL_WRITE_ONLY) {
+			if (!Bind(GL_COPY_WRITE_BUFFER)) {
+				return false;
+			}
+			target = GL_COPY_WRITE_BUFFER;
+		}
+		else {
+			return false;
+		}
+	}
+	else {
+		target = *GetTarget();
+	}
+	return static_cast<ImplGLBufferBase*>(base)->MapMemory(target,pMappedData, access);
 }
 
 bool RTLib::Ext::GL::Internal::ImplGLBuffer::MapMemory(void** pMappedData, GLenum access, GLsizeiptr offset, GLsizeiptr size)
 {
-	bool isBinded = IsBinded();
-	if (!isBinded || !pMappedData || IsMapped()) {
+	auto base = GetBase();
+	if (!IsAllocated() || !pMappedData || !base) {
 		return false;
 	}
-	*pMappedData = glMapBufferRange(*GetTarget(),offset,size,access);
-	return true;
+	GLenum target;
+	if (!IsBinded()) {
+		if (access & GL_MAP_READ_BIT == GL_MAP_READ_BIT) {
+			if (!Bind(GL_COPY_READ_BUFFER)) {
+				return false;
+			}
+			target = GL_COPY_READ_BUFFER;
+		}
+		else if (access & GL_MAP_WRITE_BIT == GL_MAP_WRITE_BIT) {
+			if (!Bind(GL_COPY_WRITE_BUFFER)) {
+				return false;
+			}
+			target = GL_COPY_WRITE_BUFFER;
+		}
+		else {
+			return false;
+		}
+	}
+	else {
+		target = *GetTarget();
+	}
+	return static_cast<ImplGLBufferBase*>(base)->MapMemory(target, pMappedData, access, offset, size);
 }
 
 bool RTLib::Ext::GL::Internal::ImplGLBuffer::UnmapMemory()
 {
 	bool isBinded = IsBinded();
-	if (!isBinded ||!IsMapped()) {
+	auto base = GetBase();
+	if (!IsAllocated() || !isBinded||!base) {
 		return false;
 	}
-	return glUnmapBuffer(*GetTarget());
+	return static_cast<ImplGLBufferBase*>(base)->UnmapMemory(*GetTarget());
 }

@@ -1,12 +1,12 @@
 #ifndef RTLIB_EXT_GL_INTERNAL_IMPL_GL_TEXTURE_H
 #define RTLIB_EXT_GL_INTERNAL_IMPL_GL_TEXTURE_H
 #include "ImplGLBindable.h"
+#include <iostream>
 #include <array>
 namespace RTLib {
 	namespace Ext {
 		namespace GL {
 			namespace Internal {
-
 				class ImplGLBuffer;
 				class ImplGLTextureBase : public ImplGLBindableBase {
 				public:
@@ -31,13 +31,15 @@ namespace RTLib {
 					virtual void   Bind(GLenum target) {
 						GLuint resId = GetResId();
 						if (resId > 0) {
+#ifndef NDEBUG
+							std::cout << "BIND: GLTexture " << GetName() << "!\n";
+#endif
 							glBindTexture(target, resId);
 						}
 					}
 					virtual void Unbind(GLenum target) {
 						glBindTexture(target, 0);
 					}
-
 				};
 				class ImplGLTexture : public ImplGLBindable {
 				public:
@@ -62,6 +64,9 @@ namespace RTLib {
 					virtual ~ImplGLTexture()noexcept {}
 					bool Bind()noexcept {
 						return ImplGLBindable::Bind(m_Target);
+					}
+					void Unbind()noexcept {
+						(void)ImplGLBindable::Unbind();
 					}
 
 					bool Allocate(GLenum internalFormat, GLint levels, GLsizei layers, GLsizei width, GLsizei height, GLsizei depth);
@@ -88,19 +93,33 @@ namespace RTLib {
 					auto GetMipDepth (GLint level)const noexcept -> GLsizei;
 				private:
 					//ALLOCATE
-					void AllocateTexture1D(GLenum internalFormat, GLint levels, GLsizei width);
-					void AllocateTexture2D(GLenum internalFormat, GLint levels, GLsizei width, GLsizei height);
-					void AllocateTexture3D(GLenum internalFormat, GLint levels, GLsizei width, GLsizei height, GLsizei depth);
-					void AllocateTexture1DArray(GLenum internalFormat, GLint levels, GLsizei layers, GLsizei width);
-					void AllocateTexture2DArray(GLenum internalFormat, GLint levels, GLsizei layers, GLsizei width, GLsizei height);
-					void AllocateTextureCubemap(GLenum internalFormat, GLint levels, GLsizei width, GLsizei height);
-					void AllocateTextureCubemapArray(GLenum internalFormat, GLint levels, GLsizei layers, GLsizei width, GLsizei height);
+					bool AllocateTexture1D(GLenum internalFormat, GLint levels, GLsizei width);
+					bool AllocateTexture2D(GLenum internalFormat, GLint levels, GLsizei width, GLsizei height);
+					bool AllocateTexture3D(GLenum internalFormat, GLint levels, GLsizei width, GLsizei height, GLsizei depth);
+					bool AllocateTexture1DArray(GLenum internalFormat, GLint levels, GLsizei layers, GLsizei width);
+					bool AllocateTexture2DArray(GLenum internalFormat, GLint levels, GLsizei layers, GLsizei width, GLsizei height);
+					bool AllocateTextureCubemap(GLenum internalFormat, GLint levels, GLsizei width, GLsizei height);
+					bool AllocateTextureCubemapArray(GLenum internalFormat, GLint levels, GLsizei layers, GLsizei width, GLsizei height);
 					//COPYIMAGE
 					bool CopyImage1DFromMemory(const void* pData, GLenum format, GLenum type, GLint level, GLsizei width, GLint  dstXOffset);
 					bool CopyImage2DFromMemory(const void* pData, GLenum format, GLenum type, GLint level, GLsizei width, GLsizei height, GLint  dstXOffset, GLint  dstYOffset);
 					bool CopyImage3DFromMemory(const void* pData, GLenum format, GLenum type, GLint level, GLsizei width, GLsizei height, GLsizei depth, GLint  dstXOffset, GLint  dstYOffset, GLint  dstZOffset);
 					bool CopyLayeredImage1DFromMemory(const void* pData, GLenum format, GLenum type, GLint level, GLint layer, GLsizei layers, GLsizei width, GLint  dstXOffset);
 					bool CopyLayeredImage2DFromMemory(const void* pData, GLenum format, GLenum type, GLint level, GLint layer, GLsizei layers, GLsizei width, GLsizei height, GLint  dstXOffset, GLint  dstYOffset);
+					bool CopyFaceImage2DFromMemory(GLenum target, const void* pData, GLenum format, GLenum type, GLint level, GLsizei width, GLsizei height, GLint  dstXOffset, GLint  dstYOffset);
+					bool CopyLayeredFaceImage2DFromMemory(GLenum target, const void* pData, GLenum format, GLenum type, GLint level, GLint layer, GLsizei layers, GLsizei width, GLsizei height, GLint  dstXOffset, GLint  dstYOffset);
+					static inline constexpr bool IsCubeFaceTarget(GLenum target) {
+						constexpr GLenum cubeFaceTargets[] = {
+							GL_TEXTURE_CUBE_MAP_POSITIVE_X,
+							GL_TEXTURE_CUBE_MAP_POSITIVE_Y,
+							GL_TEXTURE_CUBE_MAP_POSITIVE_Z,
+							GL_TEXTURE_CUBE_MAP_NEGATIVE_X,
+							GL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
+							GL_TEXTURE_CUBE_MAP_NEGATIVE_Z
+						};
+						for (auto& cubeFaceTarget : cubeFaceTargets) { if (target == cubeFaceTarget) { return true; } } 
+						return false;
+					}
 				private:
 					struct AllocationInfo {
 						GLint   levels;
