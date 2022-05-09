@@ -1,66 +1,86 @@
-#ifndef RTLIB_EXT_GL_INTERNAL_IMPL_GL_SHADER_H
+﻿#ifndef RTLIB_EXT_GL_INTERNAL_IMPL_GL_SHADER_H
 #define RTLIB_EXT_GL_INTERNAL_IMPL_GL_SHADER_H
 #include "ImplGLResource.h"
 #include <glad/glad.h>
+#include <string>
+#include <vector>
+#include <optional>
+#include <variant>
 namespace RTLib {
 	namespace Ext {
 		namespace GL {
 			namespace Internal {
-				class ImplGLShaderBase : public ImplGLResourceBase {
-				public:
-					ImplGLShaderBase(GLenum shaderType):ImplGLResourceBase(), m_ShaderType{shaderType}{}
-					virtual ~ImplGLShaderBase()noexcept {}
+				struct ShaderSpecializeConstantInfo {
+					uint32_t constantIndex;
 
-					auto GetShaderType()const noexcept -> GLenum { return m_ShaderType; }
-				protected:
-					virtual bool  Create()noexcept override {
-						GLuint resId = glCreateShader(m_ShaderType);
-						if (resId == 0) {
-							return false;
-						}
-						SetResId(resId);
-						return true;
-					}
-					virtual void Destroy()noexcept override {
-						glDeleteShader(GetResId());
-						SetResId(0);
-					}
-				private:
-					GLenum m_ShaderType;
 				};
 				class ImplGLShader : public ImplGLResource {
 				public:
-					static auto New(ImplGLResourceTable* table, GLenum shaderType)->ImplGLShader* {
-						if (!table) {
-							return nullptr;
-						}
-						auto program = new ImplGLShader(table);
-						if (program) {
-							program->InitBase<ImplGLShaderBase>(shaderType);
-							auto res = program->Create();
-							if (!res) {
-								delete program;
-								return nullptr;
-							}
-						}
-						return program;
-					}
-					virtual ~ImplGLShader()noexcept {}
-
-					auto GetShaderType()const noexcept -> GLenum {
-						auto base = GetBase();
-						if (base) {
-							return static_cast<const ImplGLShaderBase*>(base)->GetShaderType();
-						}
-						else {
-							return GL_COMPUTE_SHADER;
-						}
-					}
+					friend class ImplGLShaderModule;
+					friend class ImplGLProgram;
+					virtual ~ImplGLShader()noexcept;
+					//ResetSourceGLSL
+					bool ResetSourceGLSL(const std::vector<char>& source);
+					bool Compile();
+					bool Compile(std::string& logData);
+					bool IsAttachable()const noexcept;
+					//ResetBinarySpirv
+					bool ResetBinarySPV(const std::vector<uint32_t>& spirvData);
+					bool Specialize(const GLchar* pEntryPoint​, GLuint numSpecializationConstants​ = 0, const GLuint* pConstantIndex = nullptr, const GLuint* pConstantValue​ = nullptr);
+					auto GetShaderType()const noexcept -> GLenum;
 				protected:
-					ImplGLShader(ImplGLResourceTable* table)noexcept :ImplGLResource(table) {}
+					ImplGLShader(ImplGLResourceTable* table, bool isSpirvSupported = false)noexcept;
 				private:
-					bool m_InitSource;
+					struct PreAttachableState {
+						bool ownSource = false;
+						bool ownBinary = false;
+					};
+					bool m_SpvSupported = false;
+					std::optional< PreAttachableState> m_PreAttachableState = PreAttachableState{};
 				};
+				class ImplGLVertexShader : public ImplGLShader {
+				public:
+					static auto New(ImplGLResourceTable* table, bool isSpirvSupported)->ImplGLVertexShader*;
+					virtual ~ImplGLVertexShader()noexcept;
+				protected:
+					ImplGLVertexShader(ImplGLResourceTable* table, bool isSpirvSupported = false)noexcept;
+				};
+				class ImplGLFragmentShader : public ImplGLShader {
+				public:
+					static auto New(ImplGLResourceTable* table, bool isSpirvSupported)->ImplGLFragmentShader*;
+					virtual ~ImplGLFragmentShader()noexcept;
+				protected:
+					ImplGLFragmentShader(ImplGLResourceTable* table, bool isSpirvSupported = false)noexcept;
+				};
+				class ImplGLGeometryShader : public ImplGLShader {
+				public:
+					static auto New(ImplGLResourceTable* table, bool isSpirvSupported)->ImplGLGeometryShader*;
+					virtual ~ImplGLGeometryShader()noexcept;
+				protected:
+					ImplGLGeometryShader(ImplGLResourceTable* table, bool isSpirvSupported = false)noexcept;
+				};
+				class ImplGLTesselationEvaluationShader :public  ImplGLShader {
+				public:
+					static auto New(ImplGLResourceTable* table, bool isSpirvSupported)->ImplGLTesselationEvaluationShader*;
+					virtual ~ImplGLTesselationEvaluationShader()noexcept;
+				protected:
+					ImplGLTesselationEvaluationShader(ImplGLResourceTable* table, bool isSpirvSupported = false)noexcept;
+				};
+				class ImplGLTesselationControlShader : public ImplGLShader {
+				public:
+					static auto New(ImplGLResourceTable* table, bool isSpirvSupported)->ImplGLTesselationControlShader*;
+					virtual ~ImplGLTesselationControlShader()noexcept;
+				protected:
+					ImplGLTesselationControlShader(ImplGLResourceTable* table, bool isSpirvSupported = false)noexcept;
+				};
+				class ImplGLComputeShader : public ImplGLShader {
+				public:
+					static auto New(ImplGLResourceTable* table, bool isSpirvSupported)->ImplGLComputeShader*;
+					virtual ~ImplGLComputeShader()noexcept;
+				protected:
+					ImplGLComputeShader(ImplGLResourceTable* table, bool isSpirvSupported = false)noexcept;
+				};
+
 			}
 		}
 	}

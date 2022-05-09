@@ -4,9 +4,9 @@
 #include "ImplGLFramebuffer.h"
 #include "ImplGLRenderbuffer.h"
 #include "ImplGLSampler.h"
-auto RTLib::Ext::GL::Internal::ImplGLContext::CreateBuffer() -> ImplGLBuffer*
+auto RTLib::Ext::GL::Internal::ImplGLContext::CreateBuffer(GLenum defaultTarget) -> ImplGLBuffer*
 {
-    return ImplGLBuffer::New(&m_ResourceTable,&m_BPBuffer);
+    return ImplGLBuffer::New(&m_ResourceTable,&m_BPBuffer, defaultTarget);
 }
 
 auto RTLib::Ext::GL::Internal::ImplGLContext::CreateTexture(GLenum target) -> ImplGLTexture*
@@ -36,11 +36,34 @@ auto RTLib::Ext::GL::Internal::ImplGLContext::CreateVertexArray() -> ImplGLVerte
 
 auto RTLib::Ext::GL::Internal::ImplGLContext::CreateShader(GLenum shaderT) -> ImplGLShader*
 {
-    return ImplGLShader::New(&m_ResourceTable, shaderT);
+    switch (shaderT) {
+
+    case GL_VERTEX_SHADER:
+        return ImplGLVertexShader::New(&m_ResourceTable, IsSpirvSupported());
+    case GL_FRAGMENT_SHADER:
+        return ImplGLFragmentShader::New(&m_ResourceTable, IsSpirvSupported());
+    case GL_GEOMETRY_SHADER:
+        return ImplGLGeometryShader::New(&m_ResourceTable, IsSpirvSupported());
+    case GL_TESS_EVALUATION_SHADER:
+        return ImplGLTesselationEvaluationShader::New(&m_ResourceTable, IsSpirvSupported());
+    case GL_TESS_CONTROL_SHADER:
+        return ImplGLTesselationControlShader::New(&m_ResourceTable, IsSpirvSupported());
+    case GL_COMPUTE_SHADER:
+        if (!IsSupportedVersion(4, 3)) {
+            return nullptr;
+        }
+        return ImplGLComputeShader::New(&m_ResourceTable, IsSpirvSupported());
+    default:
+        return nullptr;
+    }
 }
 
-auto RTLib::Ext::GL::Internal::ImplGLContext::CreateProgram() -> ImplGLProgram*
+auto RTLib::Ext::GL::Internal::ImplGLContext::CreateGraphicsProgram() -> ImplGLGraphicsProgram*
 {
-    return ImplGLProgram::New(&m_ResourceTable);
+    return ImplGLGraphicsProgram::New(&m_ResourceTable);
 }
 
+auto RTLib::Ext::GL::Internal::ImplGLContext::CreateComputeProgram() -> ImplGLComputeProgram*
+{
+    return ImplGLComputeProgram::New(&m_ResourceTable);
+}

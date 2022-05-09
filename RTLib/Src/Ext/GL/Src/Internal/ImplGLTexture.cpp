@@ -6,7 +6,7 @@ bool RTLib::Ext::GL::Internal::ImplGLTexture::Allocate(GLenum internalFormat, GL
 	if (IsAllocated()|| width == 0|| height == 0|| depth == 0 || !m_BPBuffer) {
 		return false;
 	}
-	if (m_BPBuffer->HasBindable(GL_PIXEL_UNPACK_BUFFER)) {
+	if (!m_BPBuffer->IsBindable(GL_PIXEL_UNPACK_BUFFER)) {
 		return false;
 	}
 	switch (m_Target) {
@@ -70,7 +70,7 @@ bool RTLib::Ext::GL::Internal::ImplGLTexture::CopyImageFromMemory(const void* pD
 	if (!pData || !IsAllocated() || width == 0 || height == 0 || depth == 0 || level < 0 || !m_BPBuffer) {
 		return false;
 	}
-	if (m_BPBuffer->HasBindable(GL_PIXEL_UNPACK_BUFFER)) {
+	if (!m_BPBuffer->IsBindable(GL_PIXEL_UNPACK_BUFFER)) {
 		return false;
 	}
 	if (level >= m_AllocationInfo->levels) {
@@ -128,7 +128,7 @@ bool RTLib::Ext::GL::Internal::ImplGLTexture::CopyImageToMemory(void* pData, GLe
 	if (!pData || !IsAllocated() || level < 0) {
 		return false;
 	}
-	if (m_BPBuffer->HasBindable(GL_PIXEL_PACK_BUFFER)) {
+	if (!m_BPBuffer->IsBindable(GL_PIXEL_PACK_BUFFER)) {
 		return false;
 	}
 	if (level >= m_AllocationInfo->levels) {
@@ -178,12 +178,12 @@ bool RTLib::Ext::GL::Internal::ImplGLTexture::CopyImageFromBuffer(ImplGLBuffer* 
 	}
 	bool bindForCopy = false;
 	if (src->IsBinded()) {
-		if (src->GetTarget() != GL_PIXEL_UNPACK_BUFFER) {
+		if (src->GetBindedTarget() != GL_PIXEL_UNPACK_BUFFER) {
 			return false;
 		}
 	}
 	else {
-		if (m_BPBuffer->HasBindable(GL_PIXEL_UNPACK_BUFFER)) {
+		if (!m_BPBuffer->IsBindable(GL_PIXEL_UNPACK_BUFFER)) {
 			return false;
 		}
 		bindForCopy = true;
@@ -314,12 +314,12 @@ bool RTLib::Ext::GL::Internal::ImplGLTexture::CopyImageToBuffer(ImplGLBuffer* ds
 	bool bindedForCopySrc = !src->IsBinded();
 	bool bindedForCopyDst = false;
 	if (dst->IsBinded()){
-		if (dst->GetTarget() != GL_PIXEL_PACK_BUFFER) {
+		if (dst->GetBindedTarget() != GL_PIXEL_PACK_BUFFER) {
 			return false;
 		}
 	}
 	else {
-		if (dst->GetBindingPoint()->HasBindable(GL_PIXEL_PACK_BUFFER)) {
+		if (!dst->GetBindingPoint()->IsBindable(GL_PIXEL_PACK_BUFFER)) {
 			return false;
 		}
 		bindedForCopyDst = true;
@@ -355,7 +355,7 @@ bool RTLib::Ext::GL::Internal::ImplGLTexture::CopyFaceImageFromMemory(GLenum tar
 	if (!pData || !IsAllocated() || width == 0 || height == 0 || depth == 0 || level < 0 || !m_BPBuffer || !IsCubeFaceTarget(target)) {
 		return false;
 	}
-	if (m_BPBuffer->HasBindable(GL_PIXEL_UNPACK_BUFFER)) {
+	if (!m_BPBuffer->IsBindable(GL_PIXEL_UNPACK_BUFFER)) {
 		return false;
 	}
 	if (level >= m_AllocationInfo->levels) {
@@ -385,7 +385,7 @@ bool RTLib::Ext::GL::Internal::ImplGLTexture::CopyFaceImageToMemory(GLenum targe
 	if (level >= m_AllocationInfo->levels) {
 		return false;
 	}
-	if (m_BPBuffer->HasBindable(GL_PIXEL_PACK_BUFFER)) {
+	if (!m_BPBuffer->IsBindable(GL_PIXEL_PACK_BUFFER)) {
 		return false;
 	}
 	GLsizei pixelSize = GetGLFormatTypeSize(m_AllocationInfo->internalFormat, type);
@@ -432,12 +432,12 @@ bool RTLib::Ext::GL::Internal::ImplGLTexture::CopyFaceImageFromBuffer(GLenum tar
 	}
 	bool bindForCopy = false;
 	if (src->IsBinded()) {
-		if (src->GetTarget() != GL_PIXEL_UNPACK_BUFFER) {
+		if (src->GetBindedTarget() != GL_PIXEL_UNPACK_BUFFER) {
 			return false;
 		}
 	}
 	else {
-		if (m_BPBuffer->HasBindable(GL_PIXEL_UNPACK_BUFFER)) {
+		if (!m_BPBuffer->IsBindable(GL_PIXEL_UNPACK_BUFFER)) {
 			return false;
 		}
 		bindForCopy = true;
@@ -489,12 +489,12 @@ bool RTLib::Ext::GL::Internal::ImplGLTexture::CopyFaceImageToBuffer(GLenum targe
 	bool bindedForSrcCopy = !IsBinded();
 	bool bindedForDstCopy = false;
 	if (dst->IsBinded()) {
-		if (dst->GetTarget() != GL_PIXEL_PACK_BUFFER) {
+		if (dst->GetBindedTarget() != GL_PIXEL_PACK_BUFFER) {
 			return false;
 		}
 	}
 	else {
-		if (m_BPBuffer->HasBindable(GL_PIXEL_PACK_BUFFER)) {
+		if (!m_BPBuffer->IsBindable(GL_PIXEL_PACK_BUFFER)) {
 			return false;
 		}
 		bindedForDstCopy = true;

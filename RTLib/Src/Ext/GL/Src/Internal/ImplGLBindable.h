@@ -22,11 +22,11 @@ namespace RTLib {
 					bool HasTarget(GLenum target)const noexcept {
 						return m_Bindables.count(target) > 0;
 					}
-					bool HasBindable(GLenum target)const noexcept {
+					bool IsBindable(GLenum target)const noexcept {
 						if (!HasTarget(target)) {
 							return false;
 						}
-						return m_Bindables.at(target) != nullptr;
+						return m_Bindables.at(target) == nullptr;
 					}
 					auto GetBindable(GLenum target)->ImplGLBindable*;
 				private:
@@ -80,13 +80,19 @@ namespace RTLib {
 						}
 						return res;
 					}
+					bool IsBindable(GLenum target)const noexcept {
+						if (!m_BPoint || !GetBase()) {
+							return false;
+						}
+						return m_BPoint->IsBindable(target);
+					}
 				protected:
 					ImplGLBindable(ImplGLResourceTable* table, ImplGLBindingPoint* bPoint)noexcept :ImplGLResource(table),m_BPoint{bPoint}{}
 					template<typename BindableBase, typename ...Args, bool Cond = std::is_base_of_v<ImplGLBindable, BindableBase>>
 					void InitBase(Args&&... args) {
 						ImplGLResource::InitBase<BindableBase>(std::forward<Args>(args)...);
 					}
-					auto GetTarget()const noexcept -> std::optional<GLenum> {
+					auto GetBindedTarget()const noexcept -> std::optional<GLenum> {
 						return m_Target;
 					}
 					auto GetBindingPoint()const noexcept -> const ImplGLBindingPoint* {

@@ -1,6 +1,7 @@
 #ifndef RTLIB_EXT_GL_INTERNAL_IMPL_GL_TEXTURE_H
 #define RTLIB_EXT_GL_INTERNAL_IMPL_GL_TEXTURE_H
 #include "ImplGLBindable.h"
+#include "ImplGLUtils.h"
 #include <iostream>
 #include <array>
 namespace RTLib {
@@ -32,7 +33,7 @@ namespace RTLib {
 						GLuint resId = GetResId();
 						if (resId > 0) {
 #ifndef NDEBUG
-							std::cout << "BIND: GLTexture " << GetName() << "!\n";
+							std::cout << "BIND " << ToString(target) << ": " << GetName() << std::endl;
 #endif
 							glBindTexture(target, resId);
 						}

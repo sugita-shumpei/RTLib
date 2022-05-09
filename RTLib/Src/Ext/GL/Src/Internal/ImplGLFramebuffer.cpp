@@ -13,28 +13,28 @@ bool RTLib::Ext::GL::Internal::ImplGLFramebuffer::AttachColorTexture(GLuint idx,
 		if (layer != 0) {
 			return false;
 		}
-		glFramebufferTexture1D(*GetTarget(), GL_COLOR_ATTACHMENT0 + idx, GL_TEXTURE_1D, texture->GetResId(), level);
+		glFramebufferTexture1D(*GetBindedTarget(), GL_COLOR_ATTACHMENT0 + idx, GL_TEXTURE_1D, texture->GetResId(), level);
 		return true;
 	case GL_TEXTURE_2D:
 		if (layer != 0) {
 			return false;
 		}
-		glFramebufferTexture2D(*GetTarget(), GL_COLOR_ATTACHMENT0 + idx, GL_TEXTURE_2D, texture->GetResId(), level);
+		glFramebufferTexture2D(*GetBindedTarget(), GL_COLOR_ATTACHMENT0 + idx, GL_TEXTURE_2D, texture->GetResId(), level);
 		return true;
 	case GL_TEXTURE_RECTANGLE:
 		if (layer != 0 || level != 0) {
 			return false;
 		}
-		glFramebufferTexture2D(*GetTarget(), GL_COLOR_ATTACHMENT0 + idx, GL_TEXTURE_3D, texture->GetResId(), level);
+		glFramebufferTexture2D(*GetBindedTarget(), GL_COLOR_ATTACHMENT0 + idx, GL_TEXTURE_3D, texture->GetResId(), level);
 		return true;
 	case GL_TEXTURE_2D_MULTISAMPLE:
 		if (layer != 0 || level != 0) {
 			return false;
 		}
-		glFramebufferTexture2D(*GetTarget(), GL_COLOR_ATTACHMENT0 + idx, GL_TEXTURE_3D, texture->GetResId(), level);
+		glFramebufferTexture2D(*GetBindedTarget(), GL_COLOR_ATTACHMENT0 + idx, GL_TEXTURE_3D, texture->GetResId(), level);
 		return true;
 	case GL_TEXTURE_3D:
-		glFramebufferTexture3D(*GetTarget(), GL_COLOR_ATTACHMENT0 + idx, GL_TEXTURE_3D, texture->GetResId(), level, layer);
+		glFramebufferTexture3D(*GetBindedTarget(), GL_COLOR_ATTACHMENT0 + idx, GL_TEXTURE_3D, texture->GetResId(), level, layer);
 		return true;
 	default:
 		return false;
@@ -55,28 +55,28 @@ bool RTLib::Ext::GL::Internal::ImplGLFramebuffer::AttachDepthTexture(ImplGLTextu
 		if (layer != 0) {
 			return false;
 		}
-		glFramebufferTexture1D(*GetTarget(), GL_DEPTH_ATTACHMENT, GL_TEXTURE_1D, texture->GetResId(), level);
+		glFramebufferTexture1D(*GetBindedTarget(), GL_DEPTH_ATTACHMENT, GL_TEXTURE_1D, texture->GetResId(), level);
 		return true;
 	case GL_TEXTURE_2D:
 		if (layer != 0) {
 			return false;
 		}
-		glFramebufferTexture2D(*GetTarget(), GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, texture->GetResId(), level);
+		glFramebufferTexture2D(*GetBindedTarget(), GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, texture->GetResId(), level);
 		return true;
 	case GL_TEXTURE_RECTANGLE:
 		if (layer != 0 || level != 0) {
 			return false;
 		}
-		glFramebufferTexture2D(*GetTarget(), GL_DEPTH_ATTACHMENT, GL_TEXTURE_3D, texture->GetResId(), level);
+		glFramebufferTexture2D(*GetBindedTarget(), GL_DEPTH_ATTACHMENT, GL_TEXTURE_3D, texture->GetResId(), level);
 		return true;
 	case GL_TEXTURE_2D_MULTISAMPLE:
 		if (layer != 0 || level != 0) {
 			return false;
 		}
-		glFramebufferTexture2D(*GetTarget(), GL_DEPTH_ATTACHMENT, GL_TEXTURE_3D, texture->GetResId(), level);
+		glFramebufferTexture2D(*GetBindedTarget(), GL_DEPTH_ATTACHMENT, GL_TEXTURE_3D, texture->GetResId(), level);
 		return true;
 	case GL_TEXTURE_3D:
-		glFramebufferTexture3D(*GetTarget(), GL_DEPTH_ATTACHMENT, GL_TEXTURE_3D, texture->GetResId(), level, layer);
+		glFramebufferTexture3D(*GetBindedTarget(), GL_DEPTH_ATTACHMENT, GL_TEXTURE_3D, texture->GetResId(), level, layer);
 		return true;
 	default:
 		return false;
@@ -97,28 +97,28 @@ bool RTLib::Ext::GL::Internal::ImplGLFramebuffer::AttachStencilTexture(ImplGLTex
 		if (layer != 0) {
 			return false;
 		}
-		glFramebufferTexture1D(*GetTarget(), GL_STENCIL_ATTACHMENT, GL_TEXTURE_1D, texture->GetResId(), level);
+		glFramebufferTexture1D(*GetBindedTarget(), GL_STENCIL_ATTACHMENT, GL_TEXTURE_1D, texture->GetResId(), level);
 		return true;
 	case GL_TEXTURE_2D:
 		if (layer != 0) {
 			return false;
 		}
-		glFramebufferTexture2D(*GetTarget(), GL_STENCIL_ATTACHMENT, GL_TEXTURE_2D, texture->GetResId(), level);
+		glFramebufferTexture2D(*GetBindedTarget(), GL_STENCIL_ATTACHMENT, GL_TEXTURE_2D, texture->GetResId(), level);
 		return true;
 	case GL_TEXTURE_RECTANGLE:
 		if (layer != 0 || level != 0) {
 			return false;
 		}
-		glFramebufferTexture2D(*GetTarget(), GL_STENCIL_ATTACHMENT, GL_TEXTURE_3D, texture->GetResId(), level);
+		glFramebufferTexture2D(*GetBindedTarget(), GL_STENCIL_ATTACHMENT, GL_TEXTURE_3D, texture->GetResId(), level);
 		return true;
 	case GL_TEXTURE_2D_MULTISAMPLE:
 		if (layer != 0 || level != 0) {
 			return false;
 		}
-		glFramebufferTexture2D(*GetTarget(), GL_STENCIL_ATTACHMENT, GL_TEXTURE_3D, texture->GetResId(), level);
+		glFramebufferTexture2D(*GetBindedTarget(), GL_STENCIL_ATTACHMENT, GL_TEXTURE_3D, texture->GetResId(), level);
 		return true;
 	case GL_TEXTURE_3D:
-		glFramebufferTexture3D(*GetTarget(), GL_STENCIL_ATTACHMENT, GL_TEXTURE_3D, texture->GetResId(), level, layer);
+		glFramebufferTexture3D(*GetBindedTarget(), GL_STENCIL_ATTACHMENT, GL_TEXTURE_3D, texture->GetResId(), level, layer);
 		return true;
 	default:
 		return false;
@@ -139,28 +139,28 @@ bool RTLib::Ext::GL::Internal::ImplGLFramebuffer::AttachDepthStencilTexture(Impl
 		if (layer != 0) {
 			return false;
 		}
-		glFramebufferTexture1D(*GetTarget(), GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_1D, texture->GetResId(), level);
+		glFramebufferTexture1D(*GetBindedTarget(), GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_1D, texture->GetResId(), level);
 		return true;
 	case GL_TEXTURE_2D:
 		if (layer != 0) {
 			return false;
 		}
-		glFramebufferTexture2D(*GetTarget(), GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, texture->GetResId(), level);
+		glFramebufferTexture2D(*GetBindedTarget(), GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, texture->GetResId(), level);
 		return true;
 	case GL_TEXTURE_RECTANGLE:
 		if (layer != 0 || level != 0) {
 			return false;
 		}
-		glFramebufferTexture2D(*GetTarget(), GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_3D, texture->GetResId(), level);
+		glFramebufferTexture2D(*GetBindedTarget(), GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_3D, texture->GetResId(), level);
 		return true;
 	case GL_TEXTURE_2D_MULTISAMPLE:
 		if (layer != 0 || level != 0) {
 			return false;
 		}
-		glFramebufferTexture2D(*GetTarget(), GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_3D, texture->GetResId(), level);
+		glFramebufferTexture2D(*GetBindedTarget(), GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_3D, texture->GetResId(), level);
 		return true;
 	case GL_TEXTURE_3D:
-		glFramebufferTexture3D(*GetTarget(), GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_3D, texture->GetResId(), level, layer);
+		glFramebufferTexture3D(*GetBindedTarget(), GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_3D, texture->GetResId(), level, layer);
 		return true;
 	default:
 		return false;
@@ -193,5 +193,5 @@ bool RTLib::Ext::GL::Internal::ImplGLFramebuffer::IsCompleted() const noexcept {
 	if (!bPoint || !IsBinded()) {
 		return false;
 	}
-	return glCheckFramebufferStatus(*GetTarget()) == GL_FRAMEBUFFER_COMPLETE;
+	return glCheckFramebufferStatus(*GetBindedTarget()) == GL_FRAMEBUFFER_COMPLETE;
 }
