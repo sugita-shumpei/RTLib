@@ -486,7 +486,7 @@ namespace RTLib
                     }
                     constexpr void SetA(UnsignedType a) noexcept
                     {
-                        UnsignedType tb = (b <= static_cast<UnsignedType>(max_a)) ? a : static_cast<UnsignedType>(max_a);
+                        UnsignedType ta = (a <= static_cast<UnsignedType>(max_a)) ? a : static_cast<UnsignedType>(max_a);
                         m_val &= static_cast<UnsignedType>(mask_a);
                         m_val |= static_cast<UnsignedType>(ta << offset_a);
                     }

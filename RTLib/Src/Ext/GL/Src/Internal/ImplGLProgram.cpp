@@ -171,6 +171,25 @@ void RTLib::Ext::GL::Internal::ImplGLProgram::AddShaderType(GLenum shaderType, b
 	m_AttachedStages[shaderType] = { isRequired,false };
 }
 
+
+auto RTLib::Ext::GL::Internal::ImplGLProgram::GetUniformBlockIndex(const char* name)->GLuint
+{
+    auto resId = GetResId();
+    if (resId == 0||!name ||!IsLinked()){
+        return GL_INVALID_INDEX;
+    }
+    return glGetUniformBlockIndex(resId,name);
+}
+bool RTLib::Ext::GL::Internal::ImplGLProgram::SetUniformBlockBinding(GLuint blockIndex, GLuint bindingIndex)
+{
+    auto resId = GetResId();
+    if (resId == 0 ||!IsLinked() || blockIndex==GL_INVALID_INDEX){
+        return false;
+    }
+    glUniformBlockBinding(resId,blockIndex, bindingIndex);
+    return true;
+}
+
 auto RTLib::Ext::GL::Internal::ImplGLGraphicsProgram::New(RTLib::Ext::GL::Internal::ImplGLResourceTable* table, ImplGLProgramSlot* slot) -> ImplGLGraphicsProgram*
 {
 	if (!table) {

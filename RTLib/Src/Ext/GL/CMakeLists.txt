@@ -49,8 +49,11 @@ add_executable(
     RTLib-Ext-GL-Test
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/TestConfig.h.in
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/Test.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/Src/shaders/Test.vert 
-    ${CMAKE_CURRENT_SOURCE_DIR}/Src/shaders/Test.frag 
+    ${CMAKE_CURRENT_SOURCE_DIR}/Src/shaders/Test460.vert 
+    ${CMAKE_CURRENT_SOURCE_DIR}/Src/shaders/Test460.frag 
+    ${CMAKE_CURRENT_SOURCE_DIR}/Src/shaders/Test410.vert 
+    ${CMAKE_CURRENT_SOURCE_DIR}/Src/shaders/Test410.frag 
+
 
 )
 target_include_directories(RTLib-Ext-GL-Test PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/Test)
@@ -59,9 +62,11 @@ set_target_properties(RTLib-Ext-GL-Test PROPERTIES FOLDER RTLib/RTLib/Ext/GL)
 
 if (Vulkan_FOUND)
     add_custom_command(TARGET RTLib-Ext-GL-Test POST_BUILD 
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/Src/shaders/Test.vert ${CMAKE_CURRENT_BINARY_DIR}/Test/shaders/Test.vert
-        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/Src/shaders/Test.frag ${CMAKE_CURRENT_BINARY_DIR}/Test/shaders/Test.frag
-        COMMAND ${Vulkan_GLSLC_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/Src/shaders/Test.vert -o ${CMAKE_CURRENT_BINARY_DIR}/Test/shaders/Test.vert.spv > ${CMAKE_CURRENT_BINARY_DIR}/Test/shaders/Test.vert.log 2>&1
-        COMMAND ${Vulkan_GLSLC_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/Src/shaders/Test.frag -o ${CMAKE_CURRENT_BINARY_DIR}/Test/shaders/Test.frag.spv > ${CMAKE_CURRENT_BINARY_DIR}/Test/shaders/Test.frag.log 2>&1
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/Src/shaders/Test460.vert ${CMAKE_CURRENT_BINARY_DIR}/Test/shaders/Test460.vert
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/Src/shaders/Test460.frag ${CMAKE_CURRENT_BINARY_DIR}/Test/shaders/Test460.frag
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/Src/shaders/Test410.vert ${CMAKE_CURRENT_BINARY_DIR}/Test/shaders/Test410.vert
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/Src/shaders/Test410.frag ${CMAKE_CURRENT_BINARY_DIR}/Test/shaders/Test410.frag
+        COMMAND ${Vulkan_GLSLC_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/Src/shaders/Test460.vert -o ${CMAKE_CURRENT_BINARY_DIR}/Test/shaders/Test460.vert.spv > ${CMAKE_CURRENT_BINARY_DIR}/Test/shaders/Test460.vert.log 2>&1
+        COMMAND ${Vulkan_GLSLC_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/Src/shaders/Test460.frag -o ${CMAKE_CURRENT_BINARY_DIR}/Test/shaders/Test460.frag.spv > ${CMAKE_CURRENT_BINARY_DIR}/Test/shaders/Test460.frag.log 2>&1
     )
 endif()

@@ -26,11 +26,12 @@ namespace RTLib
 
                     bool HasActiveProgram()const noexcept;
                     auto GetActiveProgram()noexcept -> ImplGLProgram*;
+                    
+                    auto GetAttachedProgram(GLbitfield shaderStage)      noexcept ->      ImplGLProgram*;
+                    auto GetAttachedProgram(GLbitfield shaderStage)const noexcept ->const ImplGLProgram*;
                 protected:
                     ImplGLProgramPipeline(ImplGLResourceTable *table, ImplGLBindingPoint *bPoint) noexcept;
                     void AddShaderStage(GLbitfield shaderStage, bool isRequired = false)noexcept;
-                    auto GetAttachedProgram(GLbitfield shaderStage)      noexcept ->      ImplGLProgram*;
-                    auto GetAttachedProgram(GLbitfield shaderStage)const noexcept ->const ImplGLProgram*;
                     auto GetActiveProgram()const noexcept ->const ImplGLProgram*;
                     auto GetProgramSlot()noexcept -> ImplGLProgramSlot*;
                 private:

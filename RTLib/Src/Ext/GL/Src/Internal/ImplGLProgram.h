@@ -45,6 +45,9 @@ namespace RTLib {
 					//
 					bool HasShaderType(GLenum shaderType)const noexcept;
 					auto GetShaderStages()const noexcept -> GLbitfield;
+                    
+                    auto GetUniformBlockIndex(const char* name)->GLuint;
+                    bool SetUniformBlockBinding(GLuint blockIndex, GLuint bindingIndex);
 				protected:
 					ImplGLProgram(ImplGLResourceTable* table, ImplGLProgramSlot* slot)noexcept;
 					void AddShaderType(GLenum shaderType, bool isRequired = false)noexcept;

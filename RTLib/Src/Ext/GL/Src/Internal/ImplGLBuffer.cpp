@@ -203,7 +203,7 @@ auto RTLib::Ext::GL::Internal::ImplGLBuffer::New(ImplGLResourceTable* table, Imp
 	if (!table || !bPoint || !bPointRange) {
 		return nullptr;
 	}
-	if (!bPoint->HasTarget(defaultTarget)) { return false; }
+	if (!bPoint->HasTarget(defaultTarget)) { return nullptr; }
 	auto buffer = new ImplGLBuffer(table, bPoint, defaultTarget);
 	if (buffer) {
 		buffer->InitBase<ImplGLBufferBase>(bPointRange);

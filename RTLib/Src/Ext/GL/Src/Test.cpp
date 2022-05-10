@@ -44,10 +44,19 @@ int main() {
 	glfwInit();
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
-	auto window = glfwCreateWindow(256, 256, "NONE", NULL, NULL);
+    std::vector<std::pair<int, int>> glVersions = {
+        {4,6},{4,5},{4,4},{4,3},{4,2},{4,1},{4,0},
+        {3,3},{3,2},{3,1},{3,0},
+        {2,1},{2,0}
+    };
+    GLFWwindow* window = nullptr;
+    for (auto& [versionMajor,versionMinor]:glVersions){
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, versionMajor);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, versionMinor);
+        window = glfwCreateWindow(256, 256, "NONE", NULL, NULL);
+        if (window){ break;}
+    }
 	glfwMakeContextCurrent(window);
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
 		std::cerr << "ERROR!";
@@ -55,17 +64,25 @@ int main() {
 	{
 		auto context = std::unique_ptr<RTLib::Ext::GL::Internal::ImplGLContext>(RTLib::Ext::GL::Internal::ImplGLContext::New());
 		{
-			auto testVSSource = LoadShaderSource(RTLIB_EXT_GL_TEST_CONFIG_SHADER_DIR"/Test.vert");
-			auto testFSSource = LoadShaderSource(RTLIB_EXT_GL_TEST_CONFIG_SHADER_DIR"/Test.frag");
-			auto testVSBinary = LoadShaderBinary(RTLIB_EXT_GL_TEST_CONFIG_SHADER_DIR"/Test.vert.spv");
-			auto testFSBinary = LoadShaderBinary(RTLIB_EXT_GL_TEST_CONFIG_SHADER_DIR"/Test.frag.spv");
+			auto testVSSource = LoadShaderSource(RTLIB_EXT_GL_TEST_CONFIG_SHADER_DIR"/Test410.vert");
+			auto testFSSource = LoadShaderSource(RTLIB_EXT_GL_TEST_CONFIG_SHADER_DIR"/Test410.frag");
+			auto testVSBinary = LoadShaderBinary(RTLIB_EXT_GL_TEST_CONFIG_SHADER_DIR"/Test460.vert.spv");
+			auto testFSBinary = LoadShaderBinary(RTLIB_EXT_GL_TEST_CONFIG_SHADER_DIR"/Test460.frag.spv");
 
 			auto vShader = std::unique_ptr<RTLib::Ext::GL::Internal::ImplGLShader>(context->CreateShader(GL_VERTEX_SHADER));
 			RTLIB_DEBUG_ASSERT_IF_FAILED(vShader!=nullptr);
 			vShader->SetName("vShader");
 			{
-				RTLIB_DEBUG_ASSERT_IF_FAILED(vShader->ResetBinarySPV(testVSBinary));
-				RTLIB_DEBUG_ASSERT_IF_FAILED(vShader->Specialize("main"));
+                if(context->IsSpirvSupported()){
+                    RTLIB_DEBUG_ASSERT_IF_FAILED(vShader->ResetBinarySPV(testVSBinary));
+                    RTLIB_DEBUG_ASSERT_IF_FAILED(vShader->Specialize("main"));
+                }else{
+                    RTLIB_DEBUG_ASSERT_IF_FAILED(vShader->ResetSourceGLSL(testVSSource));
+                    std::string log;
+                    auto res = (vShader->Compile(log));
+                    std::cout << log << std::endl;
+                    RTLIB_DEBUG_ASSERT_IF_FAILED(res);
+                }
 			}
 
 			auto fShader = std::unique_ptr<RTLib::Ext::GL::Internal::ImplGLShader>(context->CreateShader(GL_FRAGMENT_SHADER));
@@ -73,8 +90,16 @@ int main() {
 			fShader->SetName("fShader");
 			{
 				/*TEST: SHADER*/
-				RTLIB_DEBUG_ASSERT_IF_FAILED(fShader->ResetBinarySPV(testFSBinary));
-				RTLIB_DEBUG_ASSERT_IF_FAILED(fShader->Specialize("main"));
+                if(context->IsSpirvSupported()){
+                    RTLIB_DEBUG_ASSERT_IF_FAILED(fShader->ResetBinarySPV(testFSBinary));
+                    RTLIB_DEBUG_ASSERT_IF_FAILED(fShader->Specialize("main"));
+                }else{
+                    RTLIB_DEBUG_ASSERT_IF_FAILED(fShader->ResetSourceGLSL(testFSSource));
+                    std::string log;
+                    auto res = (fShader->Compile(log));
+                    std::cout << log << std::endl;
+                    RTLIB_DEBUG_ASSERT_IF_FAILED(res);
+                }
 			}
 
 			auto gProgram = std::unique_ptr<RTLib::Ext::GL::Internal::ImplGLGraphicsProgram>(context->CreateGraphicsProgram());
@@ -149,13 +174,25 @@ int main() {
 			RTLIB_DEBUG_ASSERT_IF_FAILED(uniformBuffer->Allocate(GL_STATIC_DRAW, sizeof(uniformData[0]) * std::size(uniformData), uniformData.data()));
 			RTLIB_DEBUG_ASSERT_IF_FAILED(uniformBuffer->BindBase(0));
 			RTLIB_DEBUG_ASSERT_IF_FAILED(uniformBuffer->UnbindBase(0));
-
-			glViewport(0, 0, 256, 256);
+            
+            GLuint bindingIndex = 3;
+            if(!context->IsSpirvSupported()){
+                auto tFProgram = gProgramPipeline->GetAttachedProgram(GL_FRAGMENT_SHADER_BIT);
+                RTLIB_DEBUG_ASSERT_IF_FAILED(tFProgram!=nullptr);
+                auto blockIndex = tFProgram->GetUniformBlockIndex("UBO");
+                RTLIB_DEBUG_ASSERT_IF_FAILED(tFProgram->SetUniformBlockBinding(blockIndex, bindingIndex));
+            }else{
+                bindingIndex = 0;
+            }
+            
+            int fbWidth, fbHeight;
+            glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
+			glViewport(0, 0, fbWidth, fbHeight);
 			while (!glfwWindowShouldClose(window)) {
 				glClearColor(0.0f, 0.0f, 0.0f,1.0f);
 				glClear(GL_COLOR_BUFFER_BIT);
 				RTLIB_DEBUG_ASSERT_IF_FAILED(gProgramPipeline->Bind());
-				RTLIB_DEBUG_ASSERT_IF_FAILED(uniformBuffer->BindBase(0));
+				RTLIB_DEBUG_ASSERT_IF_FAILED(uniformBuffer->BindBase(bindingIndex));
 				RTLIB_DEBUG_ASSERT_IF_FAILED(meshVertexArray->DrawElements(GL_TRIANGLES, GL_UNSIGNED_INT, 6, 0));
 				glfwSwapBuffers(window);
 				glfwPollEvents();
