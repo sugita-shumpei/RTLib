@@ -5,6 +5,7 @@
 #include <memory>
 #include <optional>
 #include <unordered_map>
+#include <unordered_set>
 #include <iostream>
 namespace RTLib
 {
@@ -14,125 +15,38 @@ namespace RTLib
 		{
 			namespace Internal
 			{
-				class ImplGLVertexArrayBase : public ImplGLBindableBase
+				struct ImplGLVertexBindingInfo
 				{
-				public:
-					friend class ImplGLBindable;
-
-				public:
-					virtual ~ImplGLVertexArrayBase() noexcept {}
-
-				protected:
-					virtual bool Create() noexcept override
-					{
-						GLuint resId;
-						glGenVertexArrays(1, &resId);
-						if (resId == 0)
-						{
-							return false;
-						}
-						SetResId(resId);
-						return true;
-					}
-					virtual void Destroy() noexcept
-					{
-						GLuint resId = GetResId();
-						glDeleteVertexArrays(1, &resId);
-						SetResId(0);
-					}
-					virtual void Bind(GLenum target)
-					{
-						GLuint resId = GetResId();
-						if (resId > 0)
-						{
-							glBindVertexArray(resId);
-						}
-					}
-					virtual void Unbind(GLenum target)
-					{
-						glBindVertexArray(0);
-					}
+					GLsizei  stride;
 				};
-
+				struct ImplGLVertexAttributeFormat
+				{
+					GLuint    attribIndex;
+					GLint     size;
+					GLenum    type;
+					GLboolean normalized;
+					GLuint    relativeOffset;
+				};
 				class ImplGLVertexArray : public ImplGLBindable
 				{
 				public:
-					static auto New(ImplGLResourceTable *table, ImplGLBindingPoint *bPoint) -> ImplGLVertexArray *
-					{
-						if (!table || !bPoint)
-						{
-							return nullptr;
-						}
-						auto vertexArray = new ImplGLVertexArray(table, bPoint);
-						if (vertexArray)
-						{
-							vertexArray->InitBase<ImplGLVertexArrayBase>();
-							auto res = vertexArray->Create();
-							if (!res)
-							{
-								delete vertexArray;
-								return nullptr;
-							}
-						}
-						return vertexArray;
-					}
-					virtual ~ImplGLVertexArray() noexcept {}
-					bool Bind() noexcept
-					{
-						return ImplGLBindable::Bind(GL_VERTEX_ARRAY);
-					}
-					bool IsBindable()const noexcept {
-						return ImplGLBindable::IsBindable(GL_VERTEX_ARRAY);
-					}
-					bool DrawArrays(GLenum mode, GLsizei count, GLint first = 0) {
-						if (!IsValidMode(mode)) {
-							return false;
-						}
-						bool isBindForDraw = false;
-						if (!IsBinded()) {
-							if (!IsBindable()) {
-								return false;
-							}
-							isBindForDraw = false;
-						}
-						else {
-							isBindForDraw = true;
-						}
-						if (!isBindForDraw) {
-							glBindVertexArray(GetResId());
-						}
-						glDrawArrays(mode, first, count);
-						if (!isBindForDraw) {
-							glBindVertexArray(0);
-						}
-						return true;
-					}
-					bool DrawElements(GLenum mode, GLenum  type , GLsizei count, uintptr_t indexOffset = 0)
-					{
-						if (!IsValidMode(mode) || !IsValidType(type) || count == 0 || !m_IndexBuffer) {
-							return false;
-						}
-						bool isBindForDraw = false;
-						if (!IsBinded()) {
-							if (!IsBindable()) {
-								return false;
-							}
-							isBindForDraw = false;
-						}
-						else {
-							isBindForDraw = true;
-						}
-						if (!isBindForDraw) {
-							glBindVertexArray(GetResId());
-						}
-						glDrawElements(mode, count, type, reinterpret_cast<void*>(indexOffset));
-						if (!isBindForDraw) {
-							glBindVertexArray(0);
-						}
-						return true;
-					}
+					static auto New(ImplGLResourceTable* table, ImplGLBindingPoint* bPoint, const ImplGLBindingPoint* bpBuffer)->ImplGLVertexArray*;
+					virtual ~ImplGLVertexArray() noexcept;
+					bool Bind();
+					bool IsBindable()const noexcept;
+					
+					bool SetVertexAttribBinding(GLuint attribIndex, GLuint bindIndex);
+					bool SetVertexAttribFormat( GLuint attribIndex, GLint size, GLenum type, GLboolean normalized, GLuint relativeOffset = 0);
+					bool SetVertexBuffer(GLuint bindIndex, ImplGLBuffer* vertexBuffer, GLsizei stride, GLintptr offset = 0);
+					bool SetIndexBuffer(ImplGLBuffer* indexBuffer);
+					bool Enable();
+
+					bool IsEnabled()const noexcept { return m_IsEnabled; }
+
+					bool DrawArrays(GLenum mode, GLsizei count, GLint first = 0);
+					bool DrawElements(GLenum mode, GLenum  type, GLsizei count, uintptr_t indexOffset = 0);
 				protected:
-					ImplGLVertexArray(ImplGLResourceTable *table, ImplGLBindingPoint *bPoint) noexcept : ImplGLBindable(table, bPoint) {}
+					ImplGLVertexArray(ImplGLResourceTable* table, ImplGLBindingPoint* bPoint, const ImplGLBindingPoint* bpBuffer) noexcept;
 					static inline constexpr bool IsValidMode(GLenum mode)
 					{
 						constexpr GLenum validModes[] = {
@@ -162,8 +76,27 @@ namespace RTLib
 						return false;
 					}
 				private:
-					std::vector<ImplGLBindable*> m_VertexBuffers = {};
-					ImplGLBindable*              m_IndexBuffer   = nullptr;
+					struct VertexAttribFormatInfo
+					{
+						GLuint        attribIndex;
+						GLint		  size;
+						GLenum        type;
+						GLboolean     normalized;
+						GLuint        relativeOffset;
+					};
+					struct VertexBindingInfo {
+						GLuint        bindIndex;
+						ImplGLBuffer* vertexBuffer;
+						GLsizei       stride;
+						GLintptr      offset;
+					};
+				private:
+					const ImplGLBindingPoint*                          m_BPBuffer             = nullptr;
+					std::unordered_map<GLuint, GLuint>                 m_VertexAttribBindings = {};
+					std::unordered_map<GLuint, VertexAttribFormatInfo> m_VertexAttributes     = {};
+					std::unordered_map<GLuint, VertexBindingInfo>      m_VertexBindings       = {};
+					ImplGLBuffer*                                      m_IndexBuffer          = nullptr;
+					bool                                               m_IsEnabled            = false;
 				};
 			}
 		}

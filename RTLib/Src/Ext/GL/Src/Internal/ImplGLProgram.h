@@ -9,7 +9,24 @@ namespace RTLib {
 		namespace GL {
 			namespace Internal {
 				class ImplGLShader;
+				class ImplGLProgram;
+				class ImplGLProgramSlot {
+				public:
+					friend class ImplGLProgram;
+					friend class ImplGLProgramPipeline;
+				public:
+					 ImplGLProgramSlot()noexcept {}
+					~ImplGLProgramSlot()noexcept {}
+					bool IsActive()const noexcept;
+				private:
+					bool Register(ImplGLProgram* program);
+					void Unregister();
+				private:
+					ImplGLProgram* m_UsedProgram = nullptr;
+				};
 				class ImplGLProgram : public ImplGLResource {
+				public:
+					friend class ImplGLProgramPipeline;
 				public:
 					virtual ~ImplGLProgram()noexcept;
 
@@ -18,36 +35,52 @@ namespace RTLib {
 					bool Link();
 					bool Link(std::string& logData);
 
-					bool IsAvailable()const noexcept;
+					bool IsLinked()const noexcept;
 					bool IsLinkable()const noexcept;
 					bool IsAttachable(GLenum shaderType)const noexcept;
+					//USE
+					bool    Enable();
+					void   Disable();
+					bool IsEnabled()const noexcept;
+					//
+					bool HasShaderType(GLenum shaderType)const noexcept;
+					auto GetShaderStages()const noexcept -> GLbitfield;
 				protected:
-					ImplGLProgram(ImplGLResourceTable* table)noexcept;
+					ImplGLProgram(ImplGLResourceTable* table, ImplGLProgramSlot* slot)noexcept;
 					void AddShaderType(GLenum shaderType, bool isRequired = false)noexcept;
 				private:
-					struct AttachState {
+					struct  AttachState {
 						bool isRequired = false;
 						bool isEnabled  = false;
 					};
-					struct PrelinkState {
-						std::unordered_map<GLenum, AttachState> attachedStages= {};
-					};
-					std::optional<PrelinkState> m_PrelinkState = PrelinkState{};
+					std::unordered_map<GLenum, AttachState> m_AttachedStages = {};
+					ImplGLProgramSlot*                      m_ProgramSlot    = nullptr;
+					bool                                    m_IsEnabled      = false;
+					bool                                    m_IsLinked       = false;
 				};
 				class ImplGLGraphicsProgram: public ImplGLProgram {
 				public:
-					static auto New(ImplGLResourceTable* table)->ImplGLGraphicsProgram*;
+					static auto New(ImplGLResourceTable* table, ImplGLProgramSlot* slot)->ImplGLGraphicsProgram*;
 					virtual ~ImplGLGraphicsProgram()noexcept;
 				private:
-					ImplGLGraphicsProgram(ImplGLResourceTable* table)noexcept;
+					ImplGLGraphicsProgram(ImplGLResourceTable* table, ImplGLProgramSlot* slot)noexcept;
 				};
-				class  ImplGLComputeProgram: public ImplGLProgram {
+				class ImplGLComputeProgram: public ImplGLProgram {
 				public:
-					static auto New(ImplGLResourceTable* table)->ImplGLComputeProgram*;
+					static auto New(ImplGLResourceTable* table, ImplGLProgramSlot* slot)->ImplGLComputeProgram*;
 					virtual ~ImplGLComputeProgram()noexcept;
-				private:
-					ImplGLComputeProgram(ImplGLResourceTable* table)noexcept;
 
+					bool Launch(GLuint numGroupX, GLuint numGroupY, GLuint numGroupZ);
+				private:
+					ImplGLComputeProgram(ImplGLResourceTable* table, ImplGLProgramSlot* slot)noexcept;
+				};
+				class ImplGLSeparateProgram: public ImplGLProgram {
+				public:
+					static auto New(ImplGLResourceTable* table, ImplGLProgramSlot* slot)->ImplGLSeparateProgram*;
+					virtual ~ImplGLSeparateProgram()noexcept;
+				private:
+					ImplGLSeparateProgram(ImplGLResourceTable* table, ImplGLProgramSlot* slot)noexcept;
+					void SetSeparatable(bool value);
 				};
 			}
 		}

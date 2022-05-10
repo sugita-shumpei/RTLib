@@ -1,9 +1,81 @@
 #include "ImplGLTexture.h"
 #include "ImplGLBuffer.h"
 #include "ImplGLUtils.h"
+namespace RTLib {
+	namespace Ext {
+		namespace GL {
+			namespace Internal {
+				class ImplGLTextureBase : public ImplGLBindableBase {
+				public:
+					friend class ImplGLBindable;
+				public:
+					virtual ~ImplGLTextureBase()noexcept {}
+				protected:
+					virtual bool      Create()noexcept override {
+						GLuint resId;
+						glGenTextures(1, &resId);
+						if (resId == 0) {
+							return false;
+						}
+						SetResId(resId);
+						return true;
+					}
+					virtual void     Destroy()noexcept {
+						GLuint resId = GetResId();
+						glDeleteTextures(1, &resId);
+						SetResId(0);
+					}
+					virtual void   Bind(GLenum target) {
+						GLuint resId = GetResId();
+						if (resId > 0) {
+#ifndef NDEBUG
+							std::cout << "BIND " << ToString(target) << ": " << GetName() << std::endl;
+#endif
+							glBindTexture(target, resId);
+						}
+					}
+					virtual void Unbind(GLenum target) {
+#ifndef NDEBUG
+						std::cout << "UNBIND " << ToString(target) << ": " << GetName() << std::endl;
+						glBindTexture(target, 0);
+#endif
+					}
+				};
+			}
+		}
+	}
+}
+auto RTLib::Ext::GL::Internal::ImplGLTexture::New(GLenum target, ImplGLResourceTable* table, ImplGLBindingPoint* tPoint, const ImplGLBindingPoint* bPoint) -> ImplGLTexture*
+{
+	if (!table || !tPoint || !bPoint)
+	{
+		return nullptr;
+	}
+	auto buffer = new ImplGLTexture(target, table, tPoint, bPoint);
+	if (buffer)
+	{
+		buffer->InitBase<ImplGLTextureBase>();
+		auto res = buffer->Create();
+		if (!res)
+		{
+			delete buffer;
+			return nullptr;
+		}
+	}
+	return buffer;
+}
+RTLib::Ext::GL::Internal::ImplGLTexture::~ImplGLTexture() noexcept {}
+bool RTLib::Ext::GL::Internal::ImplGLTexture::Bind()
+{
+	return ImplGLBindable::Bind(m_Target);
+}
+void RTLib::Ext::GL::Internal::ImplGLTexture::Unbind() noexcept
+{
+	(void)ImplGLBindable::Unbind();
+}
 bool RTLib::Ext::GL::Internal::ImplGLTexture::Allocate(GLenum internalFormat, GLint levels, GLsizei layers, GLsizei width, GLsizei height, GLsizei depth)
 {
-	if (IsAllocated()|| width == 0|| height == 0|| depth == 0 || !m_BPBuffer) {
+	if (IsAllocated()|| width == 0|| height == 0|| depth == 0) {
 		return false;
 	}
 	if (!m_BPBuffer->IsBindable(GL_PIXEL_UNPACK_BUFFER)) {
@@ -65,9 +137,13 @@ bool RTLib::Ext::GL::Internal::ImplGLTexture::Allocate(GLenum internalFormat, GL
 	}
 }
 
+bool RTLib::Ext::GL::Internal::ImplGLTexture::IsAllocated() const noexcept { 
+	return (GetResId()) != 0 && m_AllocationInfo != std::nullopt;
+}
+
 bool RTLib::Ext::GL::Internal::ImplGLTexture::CopyImageFromMemory(const void* pData, GLenum format, GLenum type, GLint level, GLint layer, GLsizei layers, GLsizei width, GLsizei height, GLsizei depth, GLint dstXOffset, GLint dstYOffset, GLint dstZOffset)
 {
-	if (!pData || !IsAllocated() || width == 0 || height == 0 || depth == 0 || level < 0 || !m_BPBuffer) {
+	if (!pData || !IsAllocated() || width == 0 || height == 0 || depth == 0 || level < 0 ) {
 		return false;
 	}
 	if (!m_BPBuffer->IsBindable(GL_PIXEL_UNPACK_BUFFER)) {
@@ -167,7 +243,7 @@ bool RTLib::Ext::GL::Internal::ImplGLTexture::CopyImageToMemory(void* pData, GLe
 
 bool RTLib::Ext::GL::Internal::ImplGLTexture::CopyImageFromBuffer(ImplGLBuffer* src, GLenum format, GLenum type, GLint level, GLint layer, GLsizei layers, GLsizei width, GLsizei height, GLsizei depth, GLint dstXOffset, GLint dstYOffset, GLint dstZOffset, GLintptr srcOffset)
 {
-	if (!IsAllocated() || width == 0 || height == 0 || depth == 0 || level < 0 || !m_BPBuffer || !src) {
+	if (!IsAllocated() || width == 0 || height == 0 || depth == 0 || level < 0 || !src) {
 		return false;
 	}
 	if (!src->IsAllocated()) {
@@ -352,7 +428,7 @@ bool RTLib::Ext::GL::Internal::ImplGLTexture::CopyImageToBuffer(ImplGLBuffer* ds
 
 bool RTLib::Ext::GL::Internal::ImplGLTexture::CopyFaceImageFromMemory(GLenum target, const void* pData, GLenum format, GLenum type, GLint level, GLint layer, GLsizei layers, GLsizei width, GLsizei height, GLsizei depth, GLint dstXOffset, GLint dstYOffset, GLint dstZOffset)
 {
-	if (!pData || !IsAllocated() || width == 0 || height == 0 || depth == 0 || level < 0 || !m_BPBuffer || !IsCubeFaceTarget(target)) {
+	if (!pData || !IsAllocated() || width == 0 || height == 0 || depth == 0 || level < 0  || !IsCubeFaceTarget(target)) {
 		return false;
 	}
 	if (!m_BPBuffer->IsBindable(GL_PIXEL_UNPACK_BUFFER)) {
@@ -421,7 +497,7 @@ bool RTLib::Ext::GL::Internal::ImplGLTexture::CopyFaceImageToMemory(GLenum targe
 
 bool RTLib::Ext::GL::Internal::ImplGLTexture::CopyFaceImageFromBuffer(GLenum target, ImplGLBuffer* src, GLenum format, GLenum type, GLint level, GLint layer, GLsizei layers, GLsizei width, GLsizei height, GLsizei depth, GLint dstXOffset, GLint dstYOffset, GLint dstZOffset, GLintptr srcOffset)
 {
-	if (!IsAllocated() || width == 0 || height == 0 || depth == 0 || level < 0 || !m_BPBuffer || !src || !IsCubeFaceTarget(target)) {
+	if (!IsAllocated() || width == 0 || height == 0 || depth == 0 || level < 0 || !src || !IsCubeFaceTarget(target)) {
 		return false;
 	}
 	if (!src->IsAllocated()) {
@@ -539,6 +615,10 @@ bool RTLib::Ext::GL::Internal::ImplGLTexture::CopyFaceImageToBuffer(GLenum targe
 	}
 	return result;
 }
+
+RTLib::Ext::GL::Internal::ImplGLTexture::ImplGLTexture(GLenum target, ImplGLResourceTable* table, ImplGLBindingPoint* tPoint, const ImplGLBindingPoint* bPoint) noexcept : ImplGLBindable(table, tPoint), m_Target{ target }, m_BPBuffer{ bPoint } {}
+
+auto RTLib::Ext::GL::Internal::ImplGLTexture::GetTxTarget() const noexcept -> GLuint { return m_Target; }
 
 auto RTLib::Ext::GL::Internal::ImplGLTexture::GetBPBuffer() const noexcept -> const ImplGLBindingPoint*
 {

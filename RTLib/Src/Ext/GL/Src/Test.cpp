@@ -1,4 +1,5 @@
 #include <TestConfig.h>
+#include <RTLib/Core/Common.h>
 #include "Internal/ImplGLUtils.h"
 #include "Internal/ImplGLBuffer.h"
 #include "Internal/ImplGLTexture.h"
@@ -10,6 +11,35 @@
 #include <iostream>
 #include <fstream>
 #include <cassert>
+#include <vector>
+auto LoadShaderSource(const char* filename)->std::vector<GLchar>
+{
+	auto shaderSource = std::vector<GLchar>();
+	auto sourceFile   = std::ifstream(filename, std::ios::binary);
+	if (sourceFile.is_open()) {
+		sourceFile.seekg(0, std::ios::end);
+		auto size = static_cast<size_t>(sourceFile.tellg());
+		shaderSource.resize(size / sizeof(shaderSource[0]));
+		sourceFile.seekg(0, std::ios::beg);
+		sourceFile.read((char*)shaderSource.data(), size);
+		sourceFile.close();
+	}
+	return shaderSource;
+}
+auto LoadShaderBinary(const char* filename)->std::vector<uint32_t>
+{
+	auto shaderBinary = std::vector<uint32_t>();
+	auto sourceFile = std::ifstream(filename, std::ios::binary);
+	if (sourceFile.is_open()) {
+		sourceFile.seekg(0, std::ios::end);
+		auto size = static_cast<size_t>(sourceFile.tellg());
+		shaderBinary.resize(size / sizeof(shaderBinary[0]));
+		sourceFile.seekg(0, std::ios::beg);
+		sourceFile.read((char*)shaderBinary.data(), size);
+		sourceFile.close();
+	}
+	return shaderBinary;
+}
 int main() {
 	glfwInit();
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
@@ -23,353 +53,118 @@ int main() {
 		std::cerr << "ERROR!";
 	}
 	{
-		auto context = RTLib::Ext::GL::Internal::ImplGLContext::New();
+		auto context = std::unique_ptr<RTLib::Ext::GL::Internal::ImplGLContext>(RTLib::Ext::GL::Internal::ImplGLContext::New());
 		{
-			/*TEST: SHADER*/
-			{
-				auto testVSBinary = std::vector<uint32_t>();
-				{
-					auto testVSSpvFile = std::ifstream(RTLIB_EXT_GL_TEST_CONFIG_SHADER_DIR"/Test.vert.spv", std::ios::binary);
-					testVSSpvFile.seekg(0, std::ios::end);
-					auto size = static_cast<size_t>(testVSSpvFile.tellg());
-					testVSBinary.resize(size / sizeof(uint32_t));
-					testVSSpvFile.seekg(0, std::ios::beg);
-					testVSSpvFile.read((char*)testVSBinary.data(), size);
-				}
-				auto testVS  = std::unique_ptr<RTLib::Ext::GL::Internal::ImplGLShader>(context->CreateShader(GL_VERTEX_SHADER));
-				assert(testVS->ResetBinarySPV(testVSBinary));
-				assert(testVS->Specialize("main"));
+			auto testVSSource = LoadShaderSource(RTLIB_EXT_GL_TEST_CONFIG_SHADER_DIR"/Test.vert");
+			auto testFSSource = LoadShaderSource(RTLIB_EXT_GL_TEST_CONFIG_SHADER_DIR"/Test.frag");
+			auto testVSBinary = LoadShaderBinary(RTLIB_EXT_GL_TEST_CONFIG_SHADER_DIR"/Test.vert.spv");
+			auto testFSBinary = LoadShaderBinary(RTLIB_EXT_GL_TEST_CONFIG_SHADER_DIR"/Test.frag.spv");
 
-				auto testFSBinary = std::vector<uint32_t>();
-				{
-					auto testFSSpvFile = std::ifstream(RTLIB_EXT_GL_TEST_CONFIG_SHADER_DIR"/Test.frag.spv", std::ios::binary);
-					testFSSpvFile.seekg(0, std::ios::end);
-					auto size = static_cast<size_t>(testFSSpvFile.tellg());
-					testFSBinary.resize(size / sizeof(uint32_t));
-					testFSSpvFile.seekg(0, std::ios::beg);
-					testFSSpvFile.read((char*)testFSBinary.data(), size);
-				}
-				auto testFS  = std::unique_ptr<RTLib::Ext::GL::Internal::ImplGLShader>(context->CreateShader(GL_FRAGMENT_SHADER));
-				assert(testFS->ResetBinarySPV(testFSBinary));
-				assert(testFS->Specialize("main"));
-				auto program = std::unique_ptr<RTLib::Ext::GL::Internal::ImplGLGraphicsProgram>(context->CreateGraphicsProgram());
-				
-				assert(program->AttachShader(testVS.get()));
-				assert(program->AttachShader(testFS.get()));
+			auto vShader = std::unique_ptr<RTLib::Ext::GL::Internal::ImplGLShader>(context->CreateShader(GL_VERTEX_SHADER));
+			RTLIB_DEBUG_ASSERT_IF_FAILED(vShader!=nullptr);
+			vShader->SetName("vShader");
+			{
+				RTLIB_DEBUG_ASSERT_IF_FAILED(vShader->ResetBinarySPV(testVSBinary));
+				RTLIB_DEBUG_ASSERT_IF_FAILED(vShader->Specialize("main"));
+			}
+
+			auto fShader = std::unique_ptr<RTLib::Ext::GL::Internal::ImplGLShader>(context->CreateShader(GL_FRAGMENT_SHADER));
+			RTLIB_DEBUG_ASSERT_IF_FAILED(fShader!= nullptr);
+			fShader->SetName("fShader");
+			{
+				/*TEST: SHADER*/
+				RTLIB_DEBUG_ASSERT_IF_FAILED(fShader->ResetBinarySPV(testFSBinary));
+				RTLIB_DEBUG_ASSERT_IF_FAILED(fShader->Specialize("main"));
+			}
+
+			auto gProgram = std::unique_ptr<RTLib::Ext::GL::Internal::ImplGLGraphicsProgram>(context->CreateGraphicsProgram());
+			RTLIB_DEBUG_ASSERT_IF_FAILED(gProgram!=nullptr);
+			gProgram->SetName("gProgram");
+			RTLIB_DEBUG_ASSERT_IF_FAILED(gProgram->AttachShader(vShader.get()));
+			RTLIB_DEBUG_ASSERT_IF_FAILED(gProgram->AttachShader(fShader.get()));
+			{
 				std::string infoLog;
-				assert(program->Link(infoLog));
+				RTLIB_DEBUG_ASSERT_IF_FAILED(gProgram->Link(infoLog));
 				std::cout << infoLog << std::endl;
 			}
-			/*TEST: BUFFER*/
-			{
-				std::vector<float> srcData = { 0,1,2,3,4,5,6,7,8 };
-				std::vector<float> dstData = { 0,0,0,0,0,0,0,0,0 };
-				auto ShowData = [](const auto& data) {
-					for (auto i = 0; i < data.size(); ++i) {
-						std::cout << data[i] << " ";
-					}
-					std::cout << std::endl;
-				};
+			RTLIB_DEBUG_ASSERT_IF_FAILED(gProgram->Enable());
+			gProgram->Disable();
 
-				auto buffer = std::unique_ptr<RTLib::Ext::GL::Internal::ImplGLBuffer>(context->CreateBuffer(GL_ARRAY_BUFFER));
-				if (buffer->Bind()) {
-					assert(buffer->Allocate(GL_STATIC_DRAW, srcData.size() * sizeof(float)));
-					assert(buffer->CopyFromMemory(srcData.data(), srcData.size() * sizeof(float), 0));
-					assert(buffer->CopyToMemory(dstData.data(), dstData.size() * sizeof(float), 0));
-					buffer->Unbind();
-				}
+			auto sgProgram = std::unique_ptr<RTLib::Ext::GL::Internal::ImplGLSeparateProgram>(context->CreateSeparateProgram());
+			RTLIB_DEBUG_ASSERT_IF_FAILED(sgProgram != nullptr);
+			sgProgram->SetName("sgProgram");
+			RTLIB_DEBUG_ASSERT_IF_FAILED(sgProgram->AttachShader(vShader.get()));
+			RTLIB_DEBUG_ASSERT_IF_FAILED(sgProgram->AttachShader(fShader.get()));
+			RTLIB_DEBUG_ASSERT_IF_FAILED(sgProgram->Link());
 
-				ShowData(dstData);
-				assert(buffer->CopyToMemory(dstData.data(),(dstData.size()/2) * sizeof(float), (dstData.size() / 2) * sizeof(float)));
-				ShowData(dstData);
-				
-				auto buffer2 = std::unique_ptr<RTLib::Ext::GL::Internal::ImplGLBuffer>(context->CreateBuffer(GL_ARRAY_BUFFER));
-				assert(buffer2->Allocate(GL_STATIC_DRAW, srcData.size() * sizeof(float)));
-				assert(buffer2->CopyFromBuffer(buffer.get(), srcData.size() * sizeof(float), 0, 0));
-				assert(buffer2->CopyToMemory(dstData.data(), dstData.size() * sizeof(float), 0));
-				ShowData(dstData);
+			auto svProgram = std::unique_ptr<RTLib::Ext::GL::Internal::ImplGLSeparateProgram>(context->CreateSeparateProgram());
+			RTLIB_DEBUG_ASSERT_IF_FAILED(svProgram != nullptr);
+			svProgram->SetName("svProgram");
+			RTLIB_DEBUG_ASSERT_IF_FAILED(svProgram->AttachShader(vShader.get()));
+			RTLIB_DEBUG_ASSERT_IF_FAILED(svProgram->Link());
 
-				{
-					srcData[0] = 100;
-					srcData[1] = 99;
-					srcData[2] = 98;
-					void* pMappedData;
-					if (buffer2->MapMemory((void**)&pMappedData, GL_WRITE_ONLY)) {
-						std::memcpy(pMappedData, srcData.data(), sizeof(float) * srcData.size());
-						assert(buffer2->UnmapMemory());
-					}
-				}
-				{
-					void* pMappedData;
-					if (buffer2->MapMemory((void**)&pMappedData, GL_READ_ONLY)) {
-						std::memcpy(dstData.data(), pMappedData, sizeof(float) * dstData.size());
-						assert(buffer2->UnmapMemory());
-					}
-					ShowData(dstData);
-				}
+			auto sfProgram = std::unique_ptr<RTLib::Ext::GL::Internal::ImplGLSeparateProgram>(context->CreateSeparateProgram());
+			RTLIB_DEBUG_ASSERT_IF_FAILED(sfProgram != nullptr);
+			sfProgram->SetName("sfProgram");
+			RTLIB_DEBUG_ASSERT_IF_FAILED(sfProgram->AttachShader(fShader.get()));
+			RTLIB_DEBUG_ASSERT_IF_FAILED(sfProgram->Link());
+
+			auto gProgramPipeline = std::unique_ptr<RTLib::Ext::GL::Internal::ImplGLGraphicsProgramPipeline>(context->CreateGraphicsProgramPipeline());
+			RTLIB_DEBUG_ASSERT_IF_FAILED(gProgramPipeline != nullptr);
+			gProgramPipeline->SetName("gProgramPipeline");
+			RTLIB_DEBUG_ASSERT_IF_FAILED(gProgramPipeline->Attach(GL_VERTEX_SHADER_BIT|GL_FRAGMENT_SHADER_BIT, sgProgram.get()));
+
+			std::vector<float>    meshVertices = std::vector<float>{
+				 -1.0f,-1.0f,0.0f,1.0f, 0.0f,0.0f,
+				  1.0f,-1.0f,0.0f,0.0f, 1.0f,0.0f,
+				  1.0f, 1.0f,0.0f,0.0f, 0.0f,1.0f,
+				 -1.0f, 1.0f,0.0f,1.0f, 1.0f,1.0f
+			};
+			std::vector<uint32_t> meshIndices  = std::vector<uint32_t>{
+				0,1,2,2,3,0
+			};
+			std::vector<float>    uniformData  = std::vector<float>{ 1.0f,0.0f,1.0f,1.0f };
+
+			auto vMeshBuffer = std::unique_ptr<RTLib::Ext::GL::Internal::ImplGLBuffer>(context->CreateBuffer(GL_ARRAY_BUFFER));
+			vMeshBuffer->SetName("vMeshBuffer");
+			RTLIB_DEBUG_ASSERT_IF_FAILED(vMeshBuffer->Allocate(GL_STATIC_DRAW, sizeof(meshVertices[0]) * std::size(meshVertices), meshVertices.data()));
+
+			auto iMeshBuffer = std::unique_ptr<RTLib::Ext::GL::Internal::ImplGLBuffer>(context->CreateBuffer(GL_ELEMENT_ARRAY_BUFFER));
+			iMeshBuffer->SetName("iMeshBuffer");
+			RTLIB_DEBUG_ASSERT_IF_FAILED(iMeshBuffer->Allocate(GL_STATIC_DRAW, sizeof( meshIndices[0]) * std::size(meshIndices), meshIndices.data()));
+
+			auto meshVertexArray = std::unique_ptr<RTLib::Ext::GL::Internal::ImplGLVertexArray>(context->CreateVertexArray());
+			meshVertexArray->SetName("meshVertexArray");
+
+			RTLIB_DEBUG_ASSERT_IF_FAILED(meshVertexArray->SetIndexBuffer(iMeshBuffer.get()));
+			RTLIB_DEBUG_ASSERT_IF_FAILED(meshVertexArray->SetVertexBuffer(0, vMeshBuffer.get(), sizeof(float)*6));
+			RTLIB_DEBUG_ASSERT_IF_FAILED(meshVertexArray->SetVertexAttribBinding(0, 0));
+			RTLIB_DEBUG_ASSERT_IF_FAILED(meshVertexArray->SetVertexAttribFormat(0,3, GL_FLOAT, GL_FALSE, 0));
+			RTLIB_DEBUG_ASSERT_IF_FAILED(meshVertexArray->SetVertexAttribBinding(1, 0));
+			RTLIB_DEBUG_ASSERT_IF_FAILED(meshVertexArray->SetVertexAttribFormat(1,3, GL_FLOAT, GL_FALSE, sizeof(float)*3));
+			RTLIB_DEBUG_ASSERT_IF_FAILED(meshVertexArray->Enable());
+
+			auto uniformBuffer = std::unique_ptr<RTLib::Ext::GL::Internal::ImplGLBuffer>(context->CreateBuffer(GL_UNIFORM_BUFFER));
+			uniformBuffer->SetName("uniformBuffer");
+			RTLIB_DEBUG_ASSERT_IF_FAILED(uniformBuffer->Allocate(GL_STATIC_DRAW, sizeof(uniformData[0]) * std::size(uniformData), uniformData.data()));
+			RTLIB_DEBUG_ASSERT_IF_FAILED(uniformBuffer->BindBase(0));
+			RTLIB_DEBUG_ASSERT_IF_FAILED(uniformBuffer->UnbindBase(0));
+
+			glViewport(0, 0, 256, 256);
+			while (!glfwWindowShouldClose(window)) {
+				glClearColor(0.0f, 0.0f, 0.0f,1.0f);
+				glClear(GL_COLOR_BUFFER_BIT);
+				RTLIB_DEBUG_ASSERT_IF_FAILED(gProgramPipeline->Bind());
+				RTLIB_DEBUG_ASSERT_IF_FAILED(uniformBuffer->BindBase(0));
+				RTLIB_DEBUG_ASSERT_IF_FAILED(meshVertexArray->DrawElements(GL_TRIANGLES, GL_UNSIGNED_INT, 6, 0));
+				glfwSwapBuffers(window);
+				glfwPollEvents();
 			}
-			/*TEST: TEXTURE*/
-			{
-				{
-					static_assert(RTLib::Ext::GL::Internal::GetGLFormatTypeInfo(GL_RGBA32F, GL_FLOAT).num_bases == 4);
-					auto ShowData  = [](const auto& data) {
-						for (auto i = 0; i < data.size(); ++i) {
-							std::cout << data[i] << " ";
-						}
-						std::cout << std::endl;
-					};
-					auto ClearData = [](auto& data) {
-						for (auto i = 0; i < data.size(); ++i) {
-							data[i] = 0.0f;
-						}
-					};
-					std::vector<float> srcData0 = {
-						1.0f,2.0f,3.0f,4.0f, 1.0f,2.0f,3.0f,4.0f,1.0f,2.0f,3.0f,4.0f, 1.0f,2.0f,3.0f,4.0f,
-						1.0f,2.0f,3.0f,4.0f, 1.0f,2.0f,3.0f,4.0f,1.0f,2.0f,3.0f,4.0f, 1.0f,2.0f,3.0f,4.0f,
-						1.0f,2.0f,3.0f,4.0f, 1.0f,2.0f,3.0f,4.0f,1.0f,2.0f,3.0f,4.0f, 1.0f,2.0f,3.0f,4.0f,
-						1.0f,2.0f,3.0f,4.0f, 1.0f,2.0f,3.0f,4.0f,1.0f,2.0f,3.0f,4.0f, 1.0f,2.0f,3.0f,4.0f
-					};
-					std::vector<float> srcData1 = {
-						1.0f,2.0f,3.0f,4.0f,1.0f,2.0f,3.0f,4.0f,
-						1.0f,2.0f,3.0f,4.0f,1.0f,2.0f,3.0f,4.0f
-					};
-					std::vector<float> srcData2 = {
-						1.0f,2.0f,3.0f,4.0f
-					};
-					std::vector<float> dstData = std::vector<float>(4 * 4 * 4 * 4);
 
-					auto texture = std::unique_ptr<RTLib::Ext::GL::Internal::ImplGLTexture>(context->CreateTexture(GL_TEXTURE_2D));
-					texture->SetName("Texture1");
-
-					if (texture->Bind()) {
-						assert(texture->Allocate(GL_RGBA32F, 3, 1, 4, 4, 1));
-						assert(texture->CopyImageFromMemory(srcData0.data(), GL_RGBA, GL_FLOAT, 0, 0, 1, 4, 4));
-						assert(texture->CopyImageFromMemory(srcData1.data(), GL_RGBA, GL_FLOAT, 1, 0, 1, 2, 2));
-						assert(texture->CopyImageFromMemory(srcData2.data(), GL_RGBA, GL_FLOAT, 2, 0, 1, 1, 1));
-						texture->Unbind();
-					}
-					auto texture2 = std::unique_ptr<RTLib::Ext::GL::Internal::ImplGLTexture>(context->CreateTexture(GL_TEXTURE_2D_ARRAY));
-					texture2->SetName("Texture2");
-					//EXPLICIT BIND(FOR OPTIMIZATION)
-					if (texture2->Bind()) {
-						assert(texture2->Allocate(GL_RGBA32F, 3, 4, 4, 4, 1));
-						//CPU¨GPU
-						assert(texture2->CopyImageFromMemory(srcData0.data(), GL_RGBA, GL_FLOAT, 0, 0, 1, 4, 4));
-						assert(texture2->CopyImageFromMemory(srcData0.data(), GL_RGBA, GL_FLOAT, 0, 1, 1, 4, 4));
-						assert(texture2->CopyImageFromMemory(srcData0.data(), GL_RGBA, GL_FLOAT, 0, 2, 1, 4, 4));
-						assert(texture2->CopyImageFromMemory(srcData0.data(), GL_RGBA, GL_FLOAT, 0, 3, 1, 4, 4));
-						assert(texture2->CopyImageFromMemory(srcData1.data(), GL_RGBA, GL_FLOAT, 1, 0, 1, 2, 2));
-						assert(texture2->CopyImageFromMemory(srcData1.data(), GL_RGBA, GL_FLOAT, 1, 1, 1, 2, 2));
-						assert(texture2->CopyImageFromMemory(srcData1.data(), GL_RGBA, GL_FLOAT, 1, 2, 1, 2, 2));
-						assert(texture2->CopyImageFromMemory(srcData1.data(), GL_RGBA, GL_FLOAT, 1, 3, 1, 2, 2));
-						assert(texture2->CopyImageFromMemory(srcData1.data(), GL_RGBA, GL_FLOAT, 2, 0, 1, 1, 1));
-						assert(texture2->CopyImageFromMemory(srcData1.data(), GL_RGBA, GL_FLOAT, 2, 1, 1, 1, 1));
-						assert(texture2->CopyImageFromMemory(srcData1.data(), GL_RGBA, GL_FLOAT, 2, 2, 1, 1, 1));
-						assert(texture2->CopyImageFromMemory(srcData1.data(), GL_RGBA, GL_FLOAT, 2, 3, 1, 1, 1));
-						//GPU¨CPU
-						assert(texture2->CopyImageToMemory(dstData.data(), GL_RGBA, GL_FLOAT, 0));
-						texture2->Unbind();
-					}
-					else {
-						throw std::runtime_error("Failed To Bind Texture2");
-					}
-
-					ShowData(dstData);
-					ClearData(dstData);
-
-					auto buffer = std::unique_ptr<RTLib::Ext::GL::Internal::ImplGLBuffer>(context->CreateBuffer(GL_PIXEL_PACK_BUFFER));
-
-					assert(texture2->Bind());
-					assert(buffer->Allocate(GL_STATIC_DRAW, dstData.size() * sizeof(float)));
-					assert(texture2->CopyImageToBuffer(buffer.get(), GL_RGBA, GL_FLOAT, 0));
-					assert(buffer->CopyToMemory(dstData.data(), dstData.size() * sizeof(float)));
-					texture2->Unbind();
-
-					ShowData(dstData);
-				}
-				{
-					auto ShowData = [](const auto& data) {
-						for (auto i = 0; i < data.size(); ++i) {
-							std::cout << (float)data[i] << " ";
-						}
-						std::cout << std::endl;
-					};
-					auto ClearData = [](auto& data) {
-						for (auto i = 0; i < data.size(); ++i) {
-							data[i] = 0.0f;
-						}
-					};
-					using GLr10g10b10a2 = RTLib::Ext::GL::Internal::GLTypeInfo<GL_UNSIGNED_INT_10_10_10_2>::type;
-					std::vector<GLr10g10b10a2> srcData0 = {
-						GLr10g10b10a2(4,31,21,1),GLr10g10b10a2(4,3,2,1),GLr10g10b10a2(4,3,2,1),GLr10g10b10a2(4,3,2,1),
-						GLr10g10b10a2(4,31,21,1),GLr10g10b10a2(4,3,2,1),GLr10g10b10a2(4,3,2,1),GLr10g10b10a2(4,3,2,1),
-						GLr10g10b10a2(4,31,21,1),GLr10g10b10a2(4,3,2,1),GLr10g10b10a2(4,3,2,1),GLr10g10b10a2(4,3,2,1),
-						GLr10g10b10a2(4,31,21,1),GLr10g10b10a2(4,3,2,1),GLr10g10b10a2(4,3,2,1),GLr10g10b10a2(4,3,2,1),
-					};
-					std::vector<GLr10g10b10a2> srcData1 = {
-						GLr10g10b10a2(4,3,2,1),GLr10g10b10a2(4,3,2,1),GLr10g10b10a2(4,3,2,1),GLr10g10b10a2(4,3,2,1),
-					};
-					std::vector<GLr10g10b10a2> srcData2 = {
-						GLr10g10b10a2(4,3,2,1)
-					};
-					static_assert(GLr10g10b10a2(4, 3, 2, 1).GetR() == 4);
-					static_assert(GLr10g10b10a2(4, 3, 2, 1).GetG() == 3);
-					static_assert(GLr10g10b10a2(4, 3, 2, 1).GetB() == 2);
-					static_assert(GLr10g10b10a2(4, 3, 2, 1).GetA() == 1);
-					std::vector<unsigned short> dstData = std::vector<unsigned short>(4 * 4 * 4);
-					constexpr auto v = RTLib::Ext::GL::Internal::GetGLFormatTypeSize(GL_RGB10_A2, GL_UNSIGNED_INT_10_10_10_2);
-					auto texture = std::unique_ptr<RTLib::Ext::GL::Internal::ImplGLTexture>(context->CreateTexture(GL_TEXTURE_2D));
-					assert(texture->Bind());
-					assert(texture->Allocate(GL_RGB10_A2, 3, 1, 4, 4, 1));
-					assert(texture->CopyImageFromMemory(srcData0.data(), GL_RGBA, GL_UNSIGNED_INT_10_10_10_2, 0, 0, 1, 4, 4));
-					assert(texture->CopyImageFromMemory(srcData1.data(), GL_RGBA, GL_UNSIGNED_INT_10_10_10_2, 1, 0, 1, 2, 2));
-					assert(texture->CopyImageFromMemory(srcData2.data(), GL_RGBA, GL_UNSIGNED_INT_10_10_10_2, 2, 0, 1, 1, 1));
-					assert(texture->CopyImageToMemory(dstData.data(), GL_RGBA, GL_UNSIGNED_SHORT, 0));
-					texture->Unbind();
-					ShowData(dstData);
-				}
-				{
-					auto ShowData = [](const auto& data) {
-						for (auto i = 0; i < data.size(); ++i) {
-							std::cout << data[i].GetDepth() << " ";
-						}
-						std::cout << std::endl;
-					};
-					auto ClearData = [](auto& data) {
-						for (auto i = 0; i < data.size(); ++i) {
-							data[i] = 0.0f;
-						}
-					};
-					using GLD32S8 = RTLib::Ext::GL::Internal::GLTypeInfo<GL_FLOAT_32_UNSIGNED_INT_24_8_REV>::type;
-					std::vector<GLD32S8> srcData0 = {
-						GLD32S8(1.0f,3),GLD32S8(1.0f,3),GLD32S8(1.0f,3),GLD32S8(1.0f,3),
-						GLD32S8(1.0f,3),GLD32S8(1.0f,3),GLD32S8(1.0f,3),GLD32S8(1.0f,3),
-						GLD32S8(1.0f,3),GLD32S8(1.0f,3),GLD32S8(1.0f,3),GLD32S8(1.0f,3),
-						GLD32S8(1.0f,3),GLD32S8(1.0f,3),GLD32S8(1.0f,3),GLD32S8(1.0f,3),
-						GLD32S8(1.0f,3),GLD32S8(1.0f,3),GLD32S8(1.0f,3),GLD32S8(1.0f,3),
-					};
-					std::vector<GLD32S8> srcData1 = {
-						GLD32S8(1.0f,3),GLD32S8(1.0f,3),GLD32S8(1.0f,3),GLD32S8(1.0f,3),
-					};
-					std::vector<GLD32S8> srcData2 = {
-						GLD32S8(1.0f,3)
-					};
-					std::vector<GLD32S8> dstData = std::vector<GLD32S8>(4 * 4);
-					auto texture = std::unique_ptr<RTLib::Ext::GL::Internal::ImplGLTexture>(context->CreateTexture(GL_TEXTURE_2D));
-					assert(texture->Bind());
-					assert(texture->Allocate(GL_DEPTH32F_STENCIL8, 3, 1, 4, 4, 1));
-					assert(texture->CopyImageFromMemory(srcData0.data(), GL_DEPTH_STENCIL, GL_FLOAT_32_UNSIGNED_INT_24_8_REV, 0, 0, 1, 4, 4));
-					assert(texture->CopyImageFromMemory(srcData1.data(), GL_DEPTH_STENCIL, GL_FLOAT_32_UNSIGNED_INT_24_8_REV, 1, 0, 1, 2, 2));
-					assert(texture->CopyImageFromMemory(srcData2.data(), GL_DEPTH_STENCIL, GL_FLOAT_32_UNSIGNED_INT_24_8_REV, 2, 0, 1, 1, 1));
-					assert(texture->CopyImageToMemory(dstData.data(), GL_DEPTH_STENCIL, GL_FLOAT_32_UNSIGNED_INT_24_8_REV, 0));
-					texture->Unbind();
-					ShowData(dstData);
-				}
-				{
-					static_assert(RTLib::Ext::GL::Internal::GetGLFormatTypeInfo(GL_RGBA32F, GL_FLOAT).num_bases == 4);
-					auto ShowData = [](const auto& data) {
-						for (auto i = 0; i < data.size(); ++i) {
-							std::cout << data[i] << " ";
-						}
-						std::cout << std::endl;
-					};
-					auto ClearData = [](auto& data) {
-						for (auto i = 0; i < data.size(); ++i) {
-							data[i] = 0.0f;
-						}
-					};
-					std::vector<float> srcData0 = {
-						1.0f,2.0f,3.0f,4.0f, 1.0f,2.0f,3.0f,4.0f,1.0f,2.0f,3.0f,4.0f, 1.0f,2.0f,3.0f,4.0f,
-						1.0f,2.0f,3.0f,4.0f, 1.0f,2.0f,3.0f,4.0f,1.0f,2.0f,3.0f,4.0f, 1.0f,2.0f,3.0f,4.0f,
-						1.0f,2.0f,3.0f,4.0f, 1.0f,2.0f,3.0f,4.0f,1.0f,2.0f,3.0f,4.0f, 1.0f,2.0f,3.0f,4.0f,
-						1.0f,2.0f,3.0f,4.0f, 1.0f,2.0f,3.0f,4.0f,1.0f,2.0f,3.0f,4.0f, 1.0f,2.0f,3.0f,4.0f
-					};
-					std::vector<float> srcData1 = {
-						1.0f,2.0f,3.0f,4.0f,1.0f,2.0f,3.0f,4.0f,
-						1.0f,2.0f,3.0f,4.0f,1.0f,2.0f,3.0f,4.0f
-					};
-					std::vector<float> srcData2 = {
-						1.0f,2.0f,3.0f,4.0f
-					};
-
-					auto texture = std::unique_ptr<RTLib::Ext::GL::Internal::ImplGLTexture>(context->CreateTexture(GL_TEXTURE_CUBE_MAP));
-					texture->SetName("TextureCube1");
-					if (texture->Bind()) {
-						assert(texture->Allocate(GL_RGBA32F, 3, 1, 4, 4, 1));
-						assert(texture->CopyFaceImageFromMemory(GL_TEXTURE_CUBE_MAP_POSITIVE_X, srcData0.data(), GL_RGBA, GL_FLOAT, 0, 0, 1, 4, 4));
-						assert(texture->CopyFaceImageFromMemory(GL_TEXTURE_CUBE_MAP_POSITIVE_X, srcData1.data(), GL_RGBA, GL_FLOAT, 1, 0, 1, 2, 2));
-						assert(texture->CopyFaceImageFromMemory(GL_TEXTURE_CUBE_MAP_POSITIVE_X, srcData2.data(), GL_RGBA, GL_FLOAT, 2, 0, 1, 1, 1));
-
-						assert(texture->CopyFaceImageFromMemory(GL_TEXTURE_CUBE_MAP_NEGATIVE_X, srcData0.data(), GL_RGBA, GL_FLOAT, 0, 0, 1, 4, 4));
-						assert(texture->CopyFaceImageFromMemory(GL_TEXTURE_CUBE_MAP_NEGATIVE_X, srcData1.data(), GL_RGBA, GL_FLOAT, 1, 0, 1, 2, 2));
-						assert(texture->CopyFaceImageFromMemory(GL_TEXTURE_CUBE_MAP_NEGATIVE_X, srcData2.data(), GL_RGBA, GL_FLOAT, 2, 0, 1, 1, 1));
-
-						assert(texture->CopyFaceImageFromMemory(GL_TEXTURE_CUBE_MAP_POSITIVE_Y, srcData0.data(), GL_RGBA, GL_FLOAT, 0, 0, 1, 4, 4));
-						assert(texture->CopyFaceImageFromMemory(GL_TEXTURE_CUBE_MAP_POSITIVE_Y, srcData1.data(), GL_RGBA, GL_FLOAT, 1, 0, 1, 2, 2));
-						assert(texture->CopyFaceImageFromMemory(GL_TEXTURE_CUBE_MAP_POSITIVE_Y, srcData2.data(), GL_RGBA, GL_FLOAT, 2, 0, 1, 1, 1));
-
-						assert(texture->CopyFaceImageFromMemory(GL_TEXTURE_CUBE_MAP_NEGATIVE_Y, srcData0.data(), GL_RGBA, GL_FLOAT, 0, 0, 1, 4, 4));
-						assert(texture->CopyFaceImageFromMemory(GL_TEXTURE_CUBE_MAP_NEGATIVE_Y, srcData1.data(), GL_RGBA, GL_FLOAT, 1, 0, 1, 2, 2));
-						assert(texture->CopyFaceImageFromMemory(GL_TEXTURE_CUBE_MAP_NEGATIVE_Y, srcData2.data(), GL_RGBA, GL_FLOAT, 2, 0, 1, 1, 1));
-
-						assert(texture->CopyFaceImageFromMemory(GL_TEXTURE_CUBE_MAP_POSITIVE_Z, srcData0.data(), GL_RGBA, GL_FLOAT, 0, 0, 1, 4, 4));
-						assert(texture->CopyFaceImageFromMemory(GL_TEXTURE_CUBE_MAP_POSITIVE_Z, srcData1.data(), GL_RGBA, GL_FLOAT, 1, 0, 1, 2, 2));
-						assert(texture->CopyFaceImageFromMemory(GL_TEXTURE_CUBE_MAP_POSITIVE_Z, srcData2.data(), GL_RGBA, GL_FLOAT, 2, 0, 1, 1, 1));
-
-						assert(texture->CopyFaceImageFromMemory(GL_TEXTURE_CUBE_MAP_NEGATIVE_Z, srcData0.data(), GL_RGBA, GL_FLOAT, 0, 0, 1, 4, 4));
-						assert(texture->CopyFaceImageFromMemory(GL_TEXTURE_CUBE_MAP_NEGATIVE_Z, srcData1.data(), GL_RGBA, GL_FLOAT, 1, 0, 1, 2, 2));
-						assert(texture->CopyFaceImageFromMemory(GL_TEXTURE_CUBE_MAP_NEGATIVE_Z, srcData2.data(), GL_RGBA, GL_FLOAT, 2, 0, 1, 1, 1));
-						texture->Unbind();
-					}
-					else {
-						throw std::runtime_error("Failed To Bind Texture!");
-					}
-
-				}
-			}
-			/*TEST: FRAME BUFFER*/
-			{
-				auto colorTexture     = std::unique_ptr<RTLib::Ext::GL::Internal::ImplGLTexture>(context->CreateTexture(GL_TEXTURE_2D));
-				assert(colorTexture->Bind());
-				assert(colorTexture->Allocate(GL_RGBA8, 1, 1, 256, 256, 1));
-				colorTexture->Unbind();
-
-				auto depthTexture = std::unique_ptr<RTLib::Ext::GL::Internal::ImplGLTexture>(context->CreateTexture(GL_TEXTURE_2D));
-				assert(depthTexture->Bind());
-				assert(depthTexture->Allocate(GL_DEPTH_COMPONENT16, 1, 1, 256, 256, 1));
-				depthTexture->Unbind();
-
-				auto depthStencilTexture = std::unique_ptr<RTLib::Ext::GL::Internal::ImplGLTexture>(context->CreateTexture(GL_TEXTURE_2D));
-				assert(depthStencilTexture->Bind());
-				assert(depthStencilTexture->Allocate(GL_DEPTH24_STENCIL8, 1, 1, 256, 256, 1));
-				depthStencilTexture->Unbind();
-
-				auto framebuffer = std::unique_ptr<RTLib::Ext::GL::Internal::ImplGLFramebuffer>(context->CreateFramebuffer());
-				assert(framebuffer->Bind(GL_FRAMEBUFFER));
-				assert(framebuffer->AttachColorTexture(0, colorTexture.get()));
-				assert(framebuffer->AttachDepthTexture(   depthTexture.get()));
-				assert(framebuffer->IsCompleted());
-				framebuffer->Unbind();
-
-				auto framebuffer2 = std::unique_ptr<RTLib::Ext::GL::Internal::ImplGLFramebuffer>(context->CreateFramebuffer());
-				assert(framebuffer2->Bind(GL_FRAMEBUFFER));
-				assert(framebuffer2->AttachColorTexture(0, colorTexture.get()));
-				assert(framebuffer2->AttachDepthStencilTexture(depthStencilTexture.get()));
-				assert(framebuffer2->IsCompleted());
-				framebuffer2->Unbind();
-			}
-			{
-				auto renderbuffer = std::unique_ptr<RTLib::Ext::GL::Internal::ImplGLRenderbuffer>(context->CreateRenderbuffer());
-				renderbuffer->Bind();
-				renderbuffer->Unbind();
-			}
-			{
-				auto vertexArray = std::unique_ptr<RTLib::Ext::GL::Internal::ImplGLVertexArray>(context->CreateVertexArray());
-				vertexArray->Bind();
-				vertexArray->Unbind();
-			}
+			context.reset();
 		}
 	}
+
 	glfwDestroyWindow(window);
 	glfwTerminate();
 }

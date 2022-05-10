@@ -1,4 +1,5 @@
 #include "ImplGLProgram.h"
+#include "ImplGLProgram.h"
 #include "ImplGLShader.h"
 namespace RTLib {
 	namespace Ext {
@@ -21,48 +22,7 @@ namespace RTLib {
 						SetResId(0);
 					}
 				};
-				auto ImplGLGraphicsProgram::New(ImplGLResourceTable* table) -> ImplGLGraphicsProgram*
-				{
-					if (!table) {
-						return nullptr;
-					}
-					auto shader = new ImplGLGraphicsProgram(table);
-					if (shader) {
-						shader->InitBase<ImplGLProgramBase>();
-						auto res = shader->Create();
-						if (!res) {
-							delete shader;
-							return nullptr;
-						}
-						shader->AddShaderType(GL_VERTEX_SHADER, true);
-						shader->AddShaderType(GL_FRAGMENT_SHADER, true);
-						shader->AddShaderType(GL_GEOMETRY_SHADER);
-						shader->AddShaderType(GL_TESS_CONTROL_SHADER);
-						shader->AddShaderType(GL_TESS_EVALUATION_SHADER);
-					}
-					return shader;
-				}
-				ImplGLGraphicsProgram::~ImplGLGraphicsProgram() noexcept {}
-				ImplGLGraphicsProgram::ImplGLGraphicsProgram(ImplGLResourceTable* table) noexcept :ImplGLProgram(table) {}
-				auto ImplGLComputeProgram::New(ImplGLResourceTable* table) -> ImplGLComputeProgram*
-				{
-					if (!table) {
-						return nullptr;
-					}
-					auto shader = new ImplGLComputeProgram(table);
-					if (shader) {
-						shader->InitBase<ImplGLProgramBase>();
-						auto res = shader->Create();
-						if (!res) {
-							delete shader;
-							return nullptr;
-						}
-						shader->AddShaderType(GL_COMPUTE_SHADER, true);
-					}
-					return shader;
-				}
-				ImplGLComputeProgram::~ImplGLComputeProgram() noexcept {}
-				ImplGLComputeProgram::ImplGLComputeProgram(ImplGLResourceTable* table) noexcept :ImplGLProgram(table) {}
+				
 			}
 		}
 	}
@@ -77,11 +37,11 @@ bool RTLib::Ext::GL::Internal::ImplGLProgram::AttachShader(ImplGLShader* shader)
 		return false;
 	}
 
-	GLenum shaderType = shader->GetShaderType();
-	if (!IsAttachable(shaderType)) {
+	GLenum programType = shader->GetShaderType();
+	if (!IsAttachable(programType)) {
 		return false;
 	}
-	m_PrelinkState->attachedStages[shaderType].isEnabled = true;
+	m_AttachedStages[programType].isEnabled = true;
 	glAttachShader(resId, shader->GetResId());
 	return true;
 }
@@ -93,7 +53,7 @@ bool RTLib::Ext::GL::Internal::ImplGLProgram::Link() {
 	GLint res;
 	glGetProgramiv(resId, GL_LINK_STATUS, &res);
 	if (res == GL_TRUE) {
-		m_PrelinkState = std::nullopt;
+		m_IsLinked = true;
 	}
 	return res == GL_TRUE;
 }
@@ -106,7 +66,7 @@ bool RTLib::Ext::GL::Internal::ImplGLProgram::Link(std::string& logData) {
 	GLint res;
 	glGetProgramiv(resId, GL_LINK_STATUS, &res);
 	if (res == GL_TRUE) {
-		m_PrelinkState = std::nullopt;
+		m_IsLinked = true;
 	}
 	auto len = GLint(0);
 	glGetProgramiv(resId, GL_INFO_LOG_LENGTH, &len);
@@ -116,13 +76,13 @@ bool RTLib::Ext::GL::Internal::ImplGLProgram::Link(std::string& logData) {
 	return res;
 }
 
-bool RTLib::Ext::GL::Internal::ImplGLProgram::IsAvailable() const noexcept {
-	return !m_PrelinkState;
+bool RTLib::Ext::GL::Internal::ImplGLProgram::IsLinked() const noexcept {
+	return m_IsLinked;
 }
 
 bool RTLib::Ext::GL::Internal::ImplGLProgram::IsLinkable() const noexcept {
-	if (!GetResId() || IsAvailable()) { return false; }
-	for (auto& [target, state] : m_PrelinkState->attachedStages) {
+	if (!GetResId() || IsLinked()) { return false; }
+	for (auto& [target, state] : m_AttachedStages) {
 		if (state.isRequired && !state.isEnabled) {
 			return false;
 		}
@@ -130,23 +90,198 @@ bool RTLib::Ext::GL::Internal::ImplGLProgram::IsLinkable() const noexcept {
 	return true;
 }
 
-bool RTLib::Ext::GL::Internal::ImplGLProgram::IsAttachable(GLenum shaderType) const noexcept {
+bool RTLib::Ext::GL::Internal::ImplGLProgram::IsAttachable(GLenum programType) const noexcept {
 
-	if (!m_PrelinkState) { return false; }
-	if (m_PrelinkState->attachedStages.count(shaderType) == 0) {
+	if (IsLinked()) { return false; }
+	if (m_AttachedStages.count(programType) == 0) {
 		return false;
 	}
-	if (m_PrelinkState->attachedStages.at(shaderType).isEnabled) {
+	if (m_AttachedStages.at(programType).isEnabled) {
 		return false;
 	}
 	return true;
 }
 
-RTLib::Ext::GL::Internal::ImplGLProgram::ImplGLProgram(ImplGLResourceTable* table) noexcept :ImplGLResource(table) {}
+bool RTLib::Ext::GL::Internal::ImplGLProgram::Enable()
+{
+	auto resId = GetResId();
+	if (!resId || !IsLinked() || !m_ProgramSlot) {
+		return false;
+	}
+	if (m_IsEnabled) { return true; }
+	if (!m_ProgramSlot->Register(this)) {
+		return false;
+	}
+	glUseProgram(resId);
+	m_IsEnabled = true;
+	return true;
+}
 
-void RTLib::Ext::GL::Internal::ImplGLProgram::AddShaderType(GLenum shaderType, bool isRequired) noexcept {
-	if (!m_PrelinkState) {
+void RTLib::Ext::GL::Internal::ImplGLProgram::Disable()
+{
+	auto resId = GetResId();
+	if (!resId || !IsLinked() || !m_ProgramSlot || !m_IsEnabled) {
 		return;
 	}
-	m_PrelinkState->attachedStages[shaderType] = { isRequired,false };
+	m_ProgramSlot->Unregister();
+	glUseProgram(0);
+	m_IsEnabled = false;
+}
+
+bool RTLib::Ext::GL::Internal::ImplGLProgram::IsEnabled() const noexcept { return m_IsEnabled; }
+
+bool RTLib::Ext::GL::Internal::ImplGLProgram::HasShaderType(GLenum shaderType) const noexcept
+{
+	if (m_AttachedStages.count(shaderType) == 0) {
+		return false;
+	}
+	return m_AttachedStages.at(shaderType).isEnabled;
+}
+
+auto RTLib::Ext::GL::Internal::ImplGLProgram::GetShaderStages() const noexcept -> GLbitfield
+{
+	GLbitfield stages = 0;
+	if (HasShaderType(GL_VERTEX_SHADER_BIT)) {
+		stages |= GL_VERTEX_SHADER_BIT;
+	}
+	if (HasShaderType(GL_FRAGMENT_SHADER_BIT)) {
+		stages |= GL_FRAGMENT_SHADER_BIT;
+	}
+	if (HasShaderType(GL_GEOMETRY_SHADER_BIT)) {
+		stages |= GL_GEOMETRY_SHADER_BIT;
+	}	
+	if (HasShaderType(GL_TESS_CONTROL_SHADER_BIT)) {
+		stages |= GL_TESS_CONTROL_SHADER_BIT;
+	}
+	if (HasShaderType(GL_TESS_EVALUATION_SHADER_BIT)) {
+		stages |= GL_TESS_EVALUATION_SHADER_BIT;
+	}
+	if (HasShaderType(GL_COMPUTE_SHADER_BIT)) {
+		stages |= GL_COMPUTE_SHADER_BIT;
+	}
+	return stages;
+}
+
+	 RTLib::Ext::GL::Internal::ImplGLProgram::ImplGLProgram(ImplGLResourceTable* table, ImplGLProgramSlot* slot) noexcept :ImplGLResource(table), m_ProgramSlot{slot} {}
+
+void RTLib::Ext::GL::Internal::ImplGLProgram::AddShaderType(GLenum shaderType, bool isRequired) noexcept {
+	if (IsLinked()) {
+		return;
+	}
+	m_AttachedStages[shaderType] = { isRequired,false };
+}
+
+auto RTLib::Ext::GL::Internal::ImplGLGraphicsProgram::New(RTLib::Ext::GL::Internal::ImplGLResourceTable* table, ImplGLProgramSlot* slot) -> ImplGLGraphicsProgram*
+{
+	if (!table) {
+		return nullptr;
+	}
+	auto program = new ImplGLGraphicsProgram(table, slot);
+	if (program) {
+		program->InitBase<ImplGLProgramBase>();
+		auto res = program->Create();
+		if (!res) {
+			delete program;
+			return nullptr;
+		}
+		program->AddShaderType(GL_VERTEX_SHADER, true);
+		program->AddShaderType(GL_FRAGMENT_SHADER, true);
+		program->AddShaderType(GL_GEOMETRY_SHADER);
+		program->AddShaderType(GL_TESS_CONTROL_SHADER);
+		program->AddShaderType(GL_TESS_EVALUATION_SHADER);
+	}
+	return program;
+}
+RTLib::Ext::GL::Internal::ImplGLGraphicsProgram::~ImplGLGraphicsProgram() noexcept {}
+RTLib::Ext::GL::Internal::ImplGLGraphicsProgram::ImplGLGraphicsProgram(ImplGLResourceTable* table, ImplGLProgramSlot* slot) noexcept :ImplGLProgram(table,slot) {}
+auto RTLib::Ext::GL::Internal::ImplGLComputeProgram::New(ImplGLResourceTable* table, ImplGLProgramSlot* slot) -> ImplGLComputeProgram*
+{
+	if (!table) {
+		return nullptr;
+	}
+	auto program = new ImplGLComputeProgram(table, slot);
+	if (program) {
+		program->InitBase<ImplGLProgramBase>();
+		auto res = program->Create();
+		if (!res) {
+			delete program;
+			return nullptr;
+		}
+		program->AddShaderType(GL_COMPUTE_SHADER, true);
+	}
+	return program;
+}
+RTLib::Ext::GL::Internal::ImplGLComputeProgram::~ImplGLComputeProgram() noexcept {}
+bool RTLib::Ext::GL::Internal::ImplGLComputeProgram::Launch(GLuint numGroupX, GLuint numGroupY, GLuint numGroupZ)
+{
+	bool isEnabled = IsEnabled();
+	if (!isEnabled) {
+		if (!Enable()) {
+			return false;
+		}
+	}
+	glDispatchCompute(numGroupX, numGroupY, numGroupZ);
+	if (!isEnabled) {
+		Disable();
+	}
+	return true;
+}
+RTLib::Ext::GL::Internal::ImplGLComputeProgram::ImplGLComputeProgram(ImplGLResourceTable* table, ImplGLProgramSlot* slot) noexcept :ImplGLProgram(table, slot) {}
+
+auto RTLib::Ext::GL::Internal::ImplGLSeparateProgram::New(ImplGLResourceTable* table, ImplGLProgramSlot* slot) -> ImplGLSeparateProgram*
+{
+	if (!table) {
+		return nullptr;
+	}
+	auto program = new ImplGLSeparateProgram(table, slot);
+	if (program) {
+		program->InitBase<ImplGLProgramBase>();
+		auto res = program->Create();
+		if (!res) {
+			delete program;
+			return nullptr;
+		}
+		program->SetSeparatable(true);
+		program->AddShaderType(GL_VERTEX_SHADER);
+		program->AddShaderType(GL_FRAGMENT_SHADER);
+		program->AddShaderType(GL_GEOMETRY_SHADER);
+		program->AddShaderType(GL_TESS_CONTROL_SHADER);
+		program->AddShaderType(GL_TESS_EVALUATION_SHADER);
+		program->AddShaderType(GL_TESS_CONTROL_SHADER);
+
+	}
+	return program;
+}
+
+RTLib::Ext::GL::Internal::ImplGLSeparateProgram::~ImplGLSeparateProgram() noexcept
+{
+}
+
+RTLib::Ext::GL::Internal::ImplGLSeparateProgram::ImplGLSeparateProgram(ImplGLResourceTable* table, ImplGLProgramSlot* slot) noexcept:ImplGLProgram{table,slot}
+{
+}
+
+void RTLib::Ext::GL::Internal::ImplGLSeparateProgram::SetSeparatable(bool value)
+{
+	auto resId = GetResId();
+	if (!resId || IsLinked()) {
+		return;
+	}
+	glProgramParameteri(resId, GL_PROGRAM_SEPARABLE, value ? GL_TRUE : GL_FALSE);
+}
+
+bool RTLib::Ext::GL::Internal::ImplGLProgramSlot::IsActive() const noexcept
+{
+	return m_UsedProgram != nullptr;
+}
+
+bool RTLib::Ext::GL::Internal::ImplGLProgramSlot::Register(ImplGLProgram* program)
+{
+	if (IsActive()) { return false; }
+	m_UsedProgram = program;
+	return true;
+}
+void RTLib::Ext::GL::Internal::ImplGLProgramSlot::Unregister()
+{
+	m_UsedProgram = nullptr;
 }

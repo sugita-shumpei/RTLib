@@ -8,6 +8,7 @@
 #include "ImplGLVertexArray.h"
 #include "ImplGLFramebuffer.h"
 #include "ImplGLRenderbuffer.h"
+#include "ImplGLProgramPipeline.h"
 #include "ImplGLProgram.h"
 #include "ImplGLShader.h"
 #include <glad/glad.h>
@@ -36,11 +37,14 @@ namespace RTLib {
 					auto CreateShader(GLenum shaderT)->ImplGLShader*;
 					auto CreateGraphicsProgram()     ->ImplGLGraphicsProgram*;
 					auto CreateComputeProgram()      ->ImplGLComputeProgram*;
+					auto CreateSeparateProgram()->ImplGLSeparateProgram*;
+					auto CreateGraphicsProgramPipeline()->ImplGLGraphicsProgramPipeline*;
+					auto CreateComputeProgramPipeline()->ImplGLComputeProgramPipeline*;
 
 					auto GetMajorVersion()const noexcept -> GLint { return m_MajorVersion; }
 					auto GetMinorVersion()const noexcept -> GLint { return m_MinorVersion; }
 					auto GetProfile()const noexcept      -> GLint { return m_Profile; }
-					auto GetFlags()const noexcept -> GLint { return m_Flags; }
+					auto GetFlags()const noexcept        -> GLint { return m_Flags; }
 					bool IsSpirvSupported()const noexcept  { return m_SpirvSupported;}
 				private:
 					ImplGLContext()noexcept {}
@@ -48,27 +52,25 @@ namespace RTLib {
 						if (m_IsInit) {
 							return;
 						}
-						
-						glGetIntegerv(GL_MAJOR_VERSION             , &m_MajorVersion);
-						glGetIntegerv(GL_MINOR_VERSION             , &m_MinorVersion);
-						glGetIntegerv(GL_CONTEXT_PROFILE_MASK      , &m_Profile);
-						glGetIntegerv(GL_CONTEXT_FLAGS             , &m_Flags);
+
+						glGetIntegerv(GL_MAJOR_VERSION, &m_MajorVersion);
+						glGetIntegerv(GL_MINOR_VERSION, &m_MinorVersion);
+						glGetIntegerv(GL_CONTEXT_PROFILE_MASK, &m_Profile);
+						glGetIntegerv(GL_CONTEXT_FLAGS, &m_Flags);
 						m_SpirvSupported = IsSupportedVersion(4, 6);
+
 						GLint numProgramBinaryFormats;
-						glGetIntegerv(GL_NUM_PROGRAM_BINARY_FORMATS, &numProgramBinaryFormats );
+						glGetIntegerv(GL_NUM_PROGRAM_BINARY_FORMATS, &numProgramBinaryFormats);
 						std::vector<GLint> tProgramBinaryFormats(numProgramBinaryFormats);
-						glGetIntegerv(GL_PROGRAM_BINARY_FORMATS    , tProgramBinaryFormats.data());
-						glGetIntegerv(GL_NUM_SHADER_BINARY_FORMATS , &m_NumShaderBinaryFormats);
+						glGetIntegerv(GL_PROGRAM_BINARY_FORMATS, tProgramBinaryFormats.data());
+						glGetIntegerv(GL_NUM_SHADER_BINARY_FORMATS, &m_NumShaderBinaryFormats);
 						GLint numExtensions = 0;
-						glGetIntegerv(GL_NUM_EXTENSIONS            , &numExtensions);
-						
+						glGetIntegerv(GL_NUM_EXTENSIONS, &numExtensions);
+
 						m_ExtensionNames.reserve(numExtensions);
 						for (GLint i = 0; i < numExtensions; ++i) {
 							const char* extensionName = reinterpret_cast<const char*>(glGetStringi(GL_EXTENSIONS, static_cast<GLuint>(i)));
 							m_ExtensionNames.push_back(std::string(extensionName));
-						}
-						for (GLint i = 0; i < numExtensions; ++i) {
-							std::cout << "Extension Enabled: " << m_ExtensionNames[i] << std::endl;
 						}
 
 						m_BPBuffer.AddTarget(GL_ARRAY_BUFFER);
@@ -110,10 +112,22 @@ namespace RTLib {
 
 						m_BPRenderbuffer.AddTarget(GL_RENDERBUFFER);
 
+						m_BPProgramPipeline.AddTarget(GL_PROGRAM_PIPELINE);
+
 						GLint maxTexUnits;
 						glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &maxTexUnits);
 						for (uint32_t i = 0; i < maxTexUnits; ++i) {
 							m_BPSampler.AddTarget(i);
+						}
+						GLint maxUniformBufferBindings;
+						glGetIntegerv(GL_MAX_UNIFORM_BUFFER_BINDINGS, &maxUniformBufferBindings);
+						m_BPBufferRange.AddTarget(GL_TRANSFORM_FEEDBACK_BUFFER, maxUniformBufferBindings);
+						m_BPBufferRange.AddTarget(GL_UNIFORM_BUFFER           , maxUniformBufferBindings);
+						if (IsSupportedVersion(4, 2)) {
+							m_BPBufferRange.AddTarget(GL_ATOMIC_COUNTER_BUFFER, maxUniformBufferBindings);
+						}
+						if (IsSupportedVersion(4, 3)) {
+							m_BPBufferRange.AddTarget(GL_SHADER_STORAGE_BUFFER, maxUniformBufferBindings);
 						}
 						m_IsInit = true;
 					}
@@ -124,17 +138,20 @@ namespace RTLib {
 						if (majorVersion > m_MajorVersion) {
 							return true;
 						}
-						return minorVersion >= m_MinorVersion;
+						return minorVersion <= m_MinorVersion;
 					}
 				private:
-					bool                m_IsInit            = false;
-					ImplGLResourceTable m_ResourceTable     = {};
-					ImplGLBindingPoint  m_BPBuffer          = {};
-					ImplGLBindingPoint  m_BPTexture         = {};
-					ImplGLBindingPoint  m_BPVertexArray     = {};
-					ImplGLBindingPoint  m_BPSampler         = {};
-					ImplGLBindingPoint  m_BPFramebuffer     = {};
-					ImplGLBindingPoint  m_BPRenderbuffer    = {};
+					bool                	      m_IsInit             = false;
+					ImplGLResourceTable 	      m_ResourceTable      = {};
+					ImplGLBindingPoint  	      m_BPBuffer           = {};
+					ImplGLBindingPoint  	      m_BPTexture          = {};
+					ImplGLBindingPoint  	      m_BPVertexArray      = {};
+					ImplGLBindingPoint  	      m_BPSampler          = {};
+					ImplGLBindingPoint  	      m_BPFramebuffer      = {};
+					ImplGLBindingPoint  	      m_BPRenderbuffer     = {};
+					ImplGLBindingPoint		      m_BPProgramPipeline  = {};
+					ImplGLProgramSlot		      m_ProgramSlot        = {};
+					ImplGLBufferBindingPointRange m_BPBufferRange      = {};
 
 					GLint                    m_MajorVersion            = 0;
 					GLint                    m_MinorVersion            = 0;

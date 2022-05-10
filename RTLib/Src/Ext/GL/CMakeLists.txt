@@ -12,6 +12,8 @@ add_library(RTLib-Ext-GL
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/Internal/ImplGLResource.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/Internal/ImplGLBindable.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/Internal/ImplGLBindable.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Src/Internal/ImplGLProgramPipeline.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Src/Internal/ImplGLProgramPipeline.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/Internal/ImplGLProgram.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/Internal/ImplGLProgram.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/Internal/ImplGLShader.h
@@ -57,6 +59,8 @@ set_target_properties(RTLib-Ext-GL-Test PROPERTIES FOLDER RTLib/RTLib/Ext/GL)
 
 if (Vulkan_FOUND)
     add_custom_command(TARGET RTLib-Ext-GL-Test POST_BUILD 
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/Src/shaders/Test.vert ${CMAKE_CURRENT_BINARY_DIR}/Test/shaders/Test.vert
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/Src/shaders/Test.frag ${CMAKE_CURRENT_BINARY_DIR}/Test/shaders/Test.frag
         COMMAND ${Vulkan_GLSLC_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/Src/shaders/Test.vert -o ${CMAKE_CURRENT_BINARY_DIR}/Test/shaders/Test.vert.spv > ${CMAKE_CURRENT_BINARY_DIR}/Test/shaders/Test.vert.log 2>&1
         COMMAND ${Vulkan_GLSLC_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/Src/shaders/Test.frag -o ${CMAKE_CURRENT_BINARY_DIR}/Test/shaders/Test.frag.spv > ${CMAKE_CURRENT_BINARY_DIR}/Test/shaders/Test.frag.log 2>&1
     )

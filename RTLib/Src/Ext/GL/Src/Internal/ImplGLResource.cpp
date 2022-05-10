@@ -1,7 +1,9 @@
 #include "ImplGLResource.h"
 
 RTLib::Ext::GL::Internal::ImplGLResourceTable::~ImplGLResourceTable() noexcept {
-	for (auto& resource : m_Resources) {
+	/*m_Resources is Read/Write on Destructor*/
+	auto tempResources = m_Resources;
+	for (auto& resource : tempResources) {
 		if (resource) {
 			resource->Destroy();
 		}

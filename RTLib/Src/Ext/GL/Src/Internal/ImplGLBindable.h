@@ -2,6 +2,7 @@
 #define RTLIB_EXT_GL_INTERNAL_IMPL_GL_BINDABLE_H
 #include "ImplGLResource.h"
 #include <optional>
+#include <stdexcept>
 #include <unordered_map>
 #include <iostream>
 namespace RTLib {
@@ -11,27 +12,24 @@ namespace RTLib {
 				class ImplGLBindable;
 				class ImplGLBindingPoint {
 				public:
-					friend class ImplGLBindable;
-				public:
 					virtual ~ImplGLBindingPoint()noexcept {}
-					void  AddTarget(GLenum target) noexcept {
+					void   AddTarget(GLenum target) noexcept {
 						if (!HasTarget(target)) {
 							m_Bindables[target] = nullptr;
 						}
 					}
-					bool HasTarget(GLenum target)const noexcept {
+					bool   HasTarget(GLenum target)const noexcept {
 						return m_Bindables.count(target) > 0;
 					}
-					bool IsBindable(GLenum target)const noexcept {
+					bool  IsBindable(GLenum target)const noexcept {
 						if (!HasTarget(target)) {
 							return false;
 						}
 						return m_Bindables.at(target) == nullptr;
 					}
 					auto GetBindable(GLenum target)->ImplGLBindable*;
-				private:
-					bool   Register(GLenum target, ImplGLBindable* bindable);
-					bool Unregister(GLenum target);
+					bool    Register(GLenum target, ImplGLBindable* bindable);
+					bool  Unregister(GLenum target);
 				private:
 					std::unordered_map<GLenum, ImplGLBindable*> m_Bindables = {};
 				};
@@ -96,6 +94,9 @@ namespace RTLib {
 						return m_Target;
 					}
 					auto GetBindingPoint()const noexcept -> const ImplGLBindingPoint* {
+						return m_BPoint;
+					}					
+					auto GetBindingPoint()      noexcept ->       ImplGLBindingPoint* {
 						return m_BPoint;
 					}
 				private:

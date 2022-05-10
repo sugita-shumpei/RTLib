@@ -41,9 +41,10 @@ bool RTLib::Ext::GL::Internal::ImplGLShader::ResetSourceGLSL(const std::vector<c
 	if (m_PreAttachableState->ownBinary || m_PreAttachableState->ownSource) {
 		return false;
 	}
+	GLint length = source.size();
 	const GLchar* pSource = source.data();
 	glShaderSource(
-		obj, static_cast<GLsizei>(source.size()), &pSource, nullptr
+		obj, 1, &pSource,&length
 	);
 	m_PreAttachableState->ownSource = true;
 	return true;

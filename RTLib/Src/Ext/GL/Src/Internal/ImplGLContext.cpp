@@ -6,12 +6,12 @@
 #include "ImplGLSampler.h"
 auto RTLib::Ext::GL::Internal::ImplGLContext::CreateBuffer(GLenum defaultTarget) -> ImplGLBuffer*
 {
-    return ImplGLBuffer::New(&m_ResourceTable,&m_BPBuffer, defaultTarget);
+    return ImplGLBuffer::New(&m_ResourceTable,&m_BPBuffer, &m_BPBufferRange, defaultTarget);
 }
 
 auto RTLib::Ext::GL::Internal::ImplGLContext::CreateTexture(GLenum target) -> ImplGLTexture*
 {
-    return ImplGLTexture::New(target,&m_ResourceTable, &m_BPTexture,&m_BPBuffer);
+    return ImplGLTexture::New(target,&m_ResourceTable, &m_BPTexture, &m_BPBuffer);
 }
 
 auto RTLib::Ext::GL::Internal::ImplGLContext::CreateSampler() -> ImplGLSampler*
@@ -31,7 +31,7 @@ auto RTLib::Ext::GL::Internal::ImplGLContext::CreateRenderbuffer() -> ImplGLRend
 
 auto RTLib::Ext::GL::Internal::ImplGLContext::CreateVertexArray() -> ImplGLVertexArray*
 {
-    return ImplGLVertexArray::New(&m_ResourceTable, &m_BPRenderbuffer);
+    return ImplGLVertexArray::New(&m_ResourceTable, &m_BPVertexArray, &m_BPBuffer);
 }
 
 auto RTLib::Ext::GL::Internal::ImplGLContext::CreateShader(GLenum shaderT) -> ImplGLShader*
@@ -60,10 +60,29 @@ auto RTLib::Ext::GL::Internal::ImplGLContext::CreateShader(GLenum shaderT) -> Im
 
 auto RTLib::Ext::GL::Internal::ImplGLContext::CreateGraphicsProgram() -> ImplGLGraphicsProgram*
 {
-    return ImplGLGraphicsProgram::New(&m_ResourceTable);
+    return ImplGLGraphicsProgram::New(&m_ResourceTable, &m_ProgramSlot);
 }
 
 auto RTLib::Ext::GL::Internal::ImplGLContext::CreateComputeProgram() -> ImplGLComputeProgram*
 {
-    return ImplGLComputeProgram::New(&m_ResourceTable);
+    if (!IsSupportedVersion(4, 3)) { return nullptr; }
+    return ImplGLComputeProgram::New(&m_ResourceTable, &m_ProgramSlot);
+}
+
+auto RTLib::Ext::GL::Internal::ImplGLContext::CreateSeparateProgram() -> ImplGLSeparateProgram*
+{
+    if (!IsSupportedVersion(4, 1)) { return nullptr; }
+    return ImplGLSeparateProgram::New(&m_ResourceTable,&m_ProgramSlot);
+}
+
+auto RTLib::Ext::GL::Internal::ImplGLContext::CreateGraphicsProgramPipeline() -> ImplGLGraphicsProgramPipeline*
+{
+    if (!IsSupportedVersion(4, 1)) { return nullptr; }
+    return ImplGLGraphicsProgramPipeline::New(&m_ResourceTable, &m_BPProgramPipeline, &m_ProgramSlot);
+}
+
+auto RTLib::Ext::GL::Internal::ImplGLContext::CreateComputeProgramPipeline() -> ImplGLComputeProgramPipeline*
+{
+    if (!IsSupportedVersion(4, 1)) { return nullptr; }
+    return ImplGLComputeProgramPipeline::New(&m_ResourceTable, &m_BPProgramPipeline, &m_ProgramSlot);
 }
