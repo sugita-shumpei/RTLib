@@ -1,3 +1,0 @@
-#ifndef RTLIB_EXT_CUDA_CUDA_COMMON_H
-#define RTLIB_EXT_CUDA_CUDA_COMMON_H
-#endif

@@ -1,3 +1,0 @@
-#ifndef RTLIB_EXT_GL_GL_SHADER_H
-#define RTLIB_EXT_GL_GL_SHADER_H
-#endif

@@ -1,3 +1,0 @@
-#ifndef RTLIB_CORE_CONTEXT_H
-#define RTLIB_CORE_CONTEXT_H
-#endif

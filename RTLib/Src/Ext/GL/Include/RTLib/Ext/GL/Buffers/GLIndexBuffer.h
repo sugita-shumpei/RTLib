@@ -1,3 +1,0 @@
-#ifndef RTLIB_EXT_GL_GL_INDEX_BUFFER_H
-#define RTLIB_EXT_GL_GL_INDEX_BUFFER_H
-#endif
