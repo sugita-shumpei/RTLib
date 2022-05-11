@@ -1,0 +1,3 @@
+#ifndef RTLIB_CORE_SAMPLERH
+#define RTLIB_CORE_SAMPLERH
+#endif

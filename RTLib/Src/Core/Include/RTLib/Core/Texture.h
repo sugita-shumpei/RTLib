@@ -1,0 +1,3 @@
+#ifndef RTLIB_CORE__TEXTURE_H
+#define RTLIB_CORE__TEXTURE_H
+#endif
