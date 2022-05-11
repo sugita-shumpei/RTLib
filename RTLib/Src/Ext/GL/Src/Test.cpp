@@ -64,8 +64,30 @@ int main() {
 	{
 		auto context = std::unique_ptr<RTLib::Ext::GL::Internal::ImplGLContext>(RTLib::Ext::GL::Internal::ImplGLContext::New());
 		{
-			auto testVSSource = LoadShaderSource(RTLIB_EXT_GL_TEST_CONFIG_SHADER_DIR"/Test410.vert");
-			auto testFSSource = LoadShaderSource(RTLIB_EXT_GL_TEST_CONFIG_SHADER_DIR"/Test410.frag");
+			auto testVSSource = std::vector<GLchar>();
+			auto testFSSource = std::vector<GLchar>();
+			if (context->IsSupportedVersion(4,6)) {
+				/*For Windows + Latest GPU*/
+				testVSSource = LoadShaderSource(RTLIB_EXT_GL_TEST_CONFIG_SHADER_DIR"/Test460.vert");
+				testFSSource = LoadShaderSource(RTLIB_EXT_GL_TEST_CONFIG_SHADER_DIR"/Test460.frag");
+			}
+			else if (context->IsSupportedVersion(4, 2)) {
+				testVSSource = LoadShaderSource(RTLIB_EXT_GL_TEST_CONFIG_SHADER_DIR"/Test420.vert");
+				testFSSource = LoadShaderSource(RTLIB_EXT_GL_TEST_CONFIG_SHADER_DIR"/Test420.frag");
+			}
+			else if (context->IsSupportedVersion(4, 1)) {
+				/*For Mac (M1)*/
+				testVSSource = LoadShaderSource(RTLIB_EXT_GL_TEST_CONFIG_SHADER_DIR"/Test410.vert");
+				testFSSource = LoadShaderSource(RTLIB_EXT_GL_TEST_CONFIG_SHADER_DIR"/Test410.frag");
+			}
+			else if (context->IsSupportedVersion(3, 3)) {
+				testVSSource = LoadShaderSource(RTLIB_EXT_GL_TEST_CONFIG_SHADER_DIR"/Test330.vert");
+				testFSSource = LoadShaderSource(RTLIB_EXT_GL_TEST_CONFIG_SHADER_DIR"/Test330.frag");
+			}
+			else {
+				std::cerr << "Failed To Support Any Shader!\n";
+			}
+
 			auto testVSBinary = LoadShaderBinary(RTLIB_EXT_GL_TEST_CONFIG_SHADER_DIR"/Test460.vert.spv");
 			auto testFSBinary = LoadShaderBinary(RTLIB_EXT_GL_TEST_CONFIG_SHADER_DIR"/Test460.frag.spv");
 
@@ -73,7 +95,7 @@ int main() {
 			RTLIB_DEBUG_ASSERT_IF_FAILED(vShader!=nullptr);
 			vShader->SetName("vShader");
 			{
-                if(context->IsSpirvSupported()){
+                if(!context->IsSpirvSupported()){
                     RTLIB_DEBUG_ASSERT_IF_FAILED(vShader->ResetBinarySPV(testVSBinary));
                     RTLIB_DEBUG_ASSERT_IF_FAILED(vShader->Specialize("main"));
                 }else{
@@ -90,7 +112,7 @@ int main() {
 			fShader->SetName("fShader");
 			{
 				/*TEST: SHADER*/
-                if(context->IsSpirvSupported()){
+                if(!context->IsSpirvSupported()){
                     RTLIB_DEBUG_ASSERT_IF_FAILED(fShader->ResetBinarySPV(testFSBinary));
                     RTLIB_DEBUG_ASSERT_IF_FAILED(fShader->Specialize("main"));
                 }else{
@@ -172,11 +194,9 @@ int main() {
 			auto uniformBuffer = std::unique_ptr<RTLib::Ext::GL::Internal::ImplGLBuffer>(context->CreateBuffer(GL_UNIFORM_BUFFER));
 			uniformBuffer->SetName("uniformBuffer");
 			RTLIB_DEBUG_ASSERT_IF_FAILED(uniformBuffer->Allocate(GL_STATIC_DRAW, sizeof(uniformData[0]) * std::size(uniformData), uniformData.data()));
-			RTLIB_DEBUG_ASSERT_IF_FAILED(uniformBuffer->BindBase(0));
-			RTLIB_DEBUG_ASSERT_IF_FAILED(uniformBuffer->UnbindBase(0));
             
             GLuint bindingIndex = 3;
-            if(!context->IsSpirvSupported()){
+            if(!context->IsSupportedVersion(4,2)){
                 auto tFProgram = gProgramPipeline->GetAttachedProgram(GL_FRAGMENT_SHADER_BIT);
                 RTLIB_DEBUG_ASSERT_IF_FAILED(tFProgram!=nullptr);
                 auto blockIndex = tFProgram->GetUniformBlockIndex("UBO");
@@ -192,8 +212,8 @@ int main() {
 				glClearColor(0.0f, 0.0f, 0.0f,1.0f);
 				glClear(GL_COLOR_BUFFER_BIT);
 				RTLIB_DEBUG_ASSERT_IF_FAILED(gProgramPipeline->Bind());
-				RTLIB_DEBUG_ASSERT_IF_FAILED(uniformBuffer->BindBase(bindingIndex));
-				RTLIB_DEBUG_ASSERT_IF_FAILED(meshVertexArray->DrawElements(GL_TRIANGLES, GL_UNSIGNED_INT, 6, 0));
+				RTLIB_DEBUG_ASSERT_IF_FAILED(   uniformBuffer->BindBase(bindingIndex));
+				RTLIB_DEBUG_ASSERT_IF_FAILED( meshVertexArray->DrawElements(GL_TRIANGLES, GL_UNSIGNED_INT, 6, 0));
 				glfwSwapBuffers(window);
 				glfwPollEvents();
 			}

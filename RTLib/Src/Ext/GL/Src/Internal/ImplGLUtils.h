@@ -192,9 +192,11 @@ namespace RTLib
                         RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_TO_STRING(GL_TESS_EVALUATION_SHADER, "TessEvaluationShader");
                         RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_TO_STRING(GL_FRAGMENT_SHADER, "FragmentShader");
                         /*GLUsage*/
+                        /*Static : Upload Once*/
                         RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_TO_STRING(GL_STATIC_DRAW, "StaticDraw");
                         RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_TO_STRING(GL_STATIC_READ, "StaticRead");
                         RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_TO_STRING(GL_STATIC_COPY, "StaticCopy");
+                        /*Dynamic: Multiple Time CPU Read/Write*/
                         RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_TO_STRING(GL_DYNAMIC_DRAW,"DynamicDraw");
                         RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_TO_STRING(GL_DYNAMIC_READ,"DynamicRead");
                         RTLIB_EXT_GL_INTERNAL_IMPL_GL_UTILS_MACRO_CASE_TO_STRING(GL_DYNAMIC_COPY,"DynamicCopy");

@@ -23,32 +23,41 @@ namespace RTLib {
 				public:
 					static auto New() ->ImplGLContext* {
 						auto ptr = new ImplGLContext();
-						ptr->Init();
+						ptr->Initialize();
 						return ptr;
 					}
 					virtual ~ImplGLContext()noexcept {}
 
-					auto CreateBuffer (GLenum target)->ImplGLBuffer*;
-					auto CreateTexture(GLenum target)->ImplGLTexture*;
-					auto CreateSampler()             ->ImplGLSampler*;
-					auto CreateFramebuffer()         ->ImplGLFramebuffer*;
-					auto CreateRenderbuffer()        ->ImplGLRenderbuffer*;
-					auto CreateVertexArray()         ->ImplGLVertexArray*;
-					auto CreateShader(GLenum shaderT)->ImplGLShader*;
-					auto CreateGraphicsProgram()     ->ImplGLGraphicsProgram*;
-					auto CreateComputeProgram()      ->ImplGLComputeProgram*;
-					auto CreateSeparateProgram()->ImplGLSeparateProgram*;
+					auto CreateBuffer (GLenum target)   ->ImplGLBuffer*;
+					auto CreateTexture(GLenum target)   ->ImplGLTexture*;
+					auto CreateSampler()                ->ImplGLSampler*;
+					auto CreateFramebuffer()            ->ImplGLFramebuffer*;
+					auto CreateRenderbuffer()           ->ImplGLRenderbuffer*;
+					auto CreateVertexArray()            ->ImplGLVertexArray*;
+					auto CreateShader(GLenum shaderT)   ->ImplGLShader*;
+					auto CreateGraphicsProgram()        ->ImplGLGraphicsProgram*;
+					auto CreateComputeProgram()         ->ImplGLComputeProgram*;
+					auto CreateSeparateProgram()        ->ImplGLSeparateProgram*;
 					auto CreateGraphicsProgramPipeline()->ImplGLGraphicsProgramPipeline*;
-					auto CreateComputeProgramPipeline()->ImplGLComputeProgramPipeline*;
+					auto CreateComputeProgramPipeline() ->ImplGLComputeProgramPipeline*;
 
 					auto GetMajorVersion()const noexcept -> GLint { return m_MajorVersion; }
 					auto GetMinorVersion()const noexcept -> GLint { return m_MinorVersion; }
 					auto GetProfile()const noexcept      -> GLint { return m_Profile; }
 					auto GetFlags()const noexcept        -> GLint { return m_Flags; }
 					bool IsSpirvSupported()const noexcept  { return m_SpirvSupported;}
+					bool IsSupportedVersion(GLint majorVersion, GLint minorVersion)const noexcept {
+						if (majorVersion < m_MajorVersion) {
+							return false;
+						}
+						if (majorVersion > m_MajorVersion) {
+							return true;
+						}
+						return minorVersion <= m_MinorVersion;
+					}
 				private:
 					ImplGLContext()noexcept {}
-					void Init() {
+					void Initialize() {
 						if (m_IsInit) {
 							return;
 						}
@@ -130,15 +139,6 @@ namespace RTLib {
 							m_BPBufferRange.AddTarget(GL_SHADER_STORAGE_BUFFER, maxUniformBufferBindings);
 						}
 						m_IsInit = true;
-					}
-					bool IsSupportedVersion(GLint majorVersion, GLint minorVersion)const noexcept {
-						if (majorVersion < m_MajorVersion) {
-							return false;
-						}
-						if (majorVersion > m_MajorVersion) {
-							return true;
-						}
-						return minorVersion <= m_MinorVersion;
 					}
 				private:
 					bool                	      m_IsInit             = false;

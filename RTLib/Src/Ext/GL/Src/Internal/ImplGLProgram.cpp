@@ -73,7 +73,7 @@ bool RTLib::Ext::GL::Internal::ImplGLProgram::Link(std::string& logData) {
 	logData.resize(len + 1);
 	glGetProgramInfoLog(resId, len, nullptr, logData.data());
 	logData.resize(len);
-	return res;
+	return res == GL_TRUE;
 }
 
 bool RTLib::Ext::GL::Internal::ImplGLProgram::IsLinked() const noexcept {

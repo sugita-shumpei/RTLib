@@ -1,5 +1,6 @@
 add_library(RTLib-Core 
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Core/Common.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Core/Context.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Core/Buffer.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Core/Image.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Core/Texture.h
