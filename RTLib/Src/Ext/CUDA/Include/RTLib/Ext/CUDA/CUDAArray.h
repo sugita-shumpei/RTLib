@@ -1,0 +1,3 @@
+#ifndef RTLIB_EXT_CUDA_CUDA_ARRAY_H
+#define RTLIB_EXT_CUDA_CUDA_ARRAY_H
+#endif

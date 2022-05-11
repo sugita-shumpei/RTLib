@@ -1,0 +1,3 @@
+#ifndef RTLIB_EXT_GLFW_GLFW_WINDOW_H
+#define RTLIB_EXT_GLFW_GLFW_WINDOW_H
+#endif
