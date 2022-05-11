@@ -31,6 +31,9 @@ set(RTLIB_EXT_GL_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/GLTextureCubemap.cpp   
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/GL/Textures/GLTextureCubemapArray.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/GLTextureCubemapArray.cpp   
+    
+    ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/GL/GLImage.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Src/GLImage.cpp
 
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/GL/GLShader.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/GLShader.cpp   
