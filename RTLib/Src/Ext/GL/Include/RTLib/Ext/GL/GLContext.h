@@ -3,6 +3,7 @@
 #include <RTLib/Core/Context.h>
 #include <RTLib/Ext/GL/GLCommon.h>
 #include <vector>
+#include <memory>
 namespace RTLib {
 	namespace Ext {
 		namespace GL {
@@ -12,14 +13,17 @@ namespace RTLib {
 			class GLContext : public Core::Context
 			{
 			public:
-				virtual ~GLContext()noexcept {}
+				GLContext()noexcept;
+				virtual ~GLContext()noexcept;
+
+				virtual bool Initialize() override;
+				virtual void Terminate () override;
 				// Context ‚ð‰î‚µ‚ÄŒp³‚³‚ê‚Ü‚µ‚½
-				virtual bool Initialize() = 0;
-				virtual void Terminate()  = 0;
+				virtual bool InitLoader() = 0;
+				virtual void FreeLoader() = 0;
 
 				virtual auto CreateBuffer(const  GLBufferDesc & desc)-> GLBuffer * = 0;
 				virtual auto CreateTexture(const GLTextureDesc& desc)-> GLTexture* = 0;
-				
 				/*Copy*/
 				bool CopyBuffer(GLBuffer* srcBuffer, GLBuffer* dstBuffer, const std::vector<GLBufferCopy>& regions);
 
@@ -34,6 +38,9 @@ namespace RTLib {
 				bool CopyImageToMemory(GLImage* image, const std::vector<GLImageMemoryCopy>& regions);
 
 				bool CopyMemoryToImage(GLImage* image, const std::vector<GLImageMemoryCopy>& regions);
+			private:
+				struct Impl;
+				std::unique_ptr<Impl> m_Impl;
 			};
 		}
 	}

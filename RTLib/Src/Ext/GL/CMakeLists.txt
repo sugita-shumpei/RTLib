@@ -65,12 +65,29 @@ set(RTLIB_EXT_GL_SOURCES
 
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/GL/GLMesh.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/GLMesh.cpp
+
+    ${CMAKE_CURRENT_SOURCE_DIR}/Src/Internals/GLBindingPointCommon.h
+
+    ${CMAKE_CURRENT_SOURCE_DIR}/Src/Internals/GLBufferBindingPoint.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Src/Internals/GLBufferBindingPoint.cpp
+
+    ${CMAKE_CURRENT_SOURCE_DIR}/Src/Internals/GLTextureBindingPoint.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Src/Internals/GLTextureBindingPoint.cpp
+
+    ${CMAKE_CURRENT_SOURCE_DIR}/Src/Internals/GLRenderbufferBindingPoint.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Src/Internals/GLRenderbufferBindingPoint.cpp
+
+    ${CMAKE_CURRENT_SOURCE_DIR}/Src/Internals/GLFramebufferBindingPoint.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Src/Internals/GLFramebufferBindingPoint.cpp
 )
 add_library(RTLib-Ext-GL 
     ${RTLIB_EXT_GL_SOURCES}
 )
-target_include_directories(RTLib-Ext-GL PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Include)
+
+target_include_directories(RTLib-Ext-GL PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Include PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Src/Internals)
+
 target_link_libraries(RTLib-Ext-GL PUBLIC RTLib-Core glad::glad)
+
 set_target_properties(RTLib-Ext-GL PROPERTIES FOLDER RTLib/RTLib/Ext/GL)
 
 add_executable(RTLib-Ext-GL-Test 

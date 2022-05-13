@@ -95,6 +95,13 @@ namespace RTLib
 	{
 		namespace GL
 		{
+			enum class GLBindingState
+			{
+				eBinded,
+				eUndefined,
+				eUnbinded
+			};
+
 			struct GLExtent2D
 			{
 				uint32_t width;
@@ -344,14 +351,21 @@ namespace RTLib
 				using type = base_type;
 			};
 
-			struct Dummy
-			{
-				static inline constexpr auto v1 = GetGLTypeBaseType(GLTypeFlagBits::eFloat32);
-				static inline constexpr auto v2 = GetGLTypeBaseType(GLTypeFlagBits::eUInt16_4_4_4_4);
-				static inline constexpr auto v3 = GetGLTypeBaseType(GLTypeFlagBits::eUInt32_2_10_10_10_Rev);
-				static inline constexpr auto v4 = GetGLTypeChannelSize(GLTypeFlagBits::eUInt32_2_10_10_10_Rev, 0);
-				static inline constexpr auto v5 = GetGLTypeChannelSize(GLTypeFlagBits::eUInt32_2_10_10_10_Rev, 1);
-			};
+			namespace Test {
+				struct GLTypeTestCase
+				{
+					static inline constexpr auto v1 = GetGLTypeBaseType(GLTypeFlagBits::eFloat32);
+					static_assert(v1 == GLTypeFlagBits::eFloat32);
+					static inline constexpr auto v2 = GetGLTypeBaseType(GLTypeFlagBits::eUInt16_4_4_4_4);
+					static_assert(v2 == GLTypeFlagBits::eUInt16);
+					static inline constexpr auto v3 = GetGLTypeBaseType(GLTypeFlagBits::eUInt32_2_10_10_10_Rev);
+					static_assert(v3 == GLTypeFlagBits::eUInt32);
+					static inline constexpr auto v4 = GetGLTypeChannelSize(GLTypeFlagBits::eUInt32_2_10_10_10_Rev, 0);
+					static_assert(v4 == 2);
+					static inline constexpr auto v5 = GetGLTypeChannelSize(GLTypeFlagBits::eUInt32_2_10_10_10_Rev, 1);
+					static_assert(v5 == 10);
+				};
+			}
 
 			enum class GLFormat : uint64_t
 			{
@@ -607,14 +621,17 @@ namespace RTLib
 				return static_cast<GLFormat>((static_cast<uint64_t>(format) >> (9 * channel)) & (((1 << 3) - 1) << 6));
 			}
 
-			struct Dummy2
-			{
-				static inline constexpr auto v1 = GetGLFormatBaseFormat(GLFormat::eRG8UI);
-				static inline constexpr auto v2 = GetGLFormatChannelType(GLFormat::eRG8UI, 0);
-				static inline constexpr auto v3 = GetGLFormatChannelSize(GLFormat::eRG8UI, 0);
-				static inline constexpr auto v4 = GetGLFormatChannelType(GLFormat::eRG8UI, 2);
-				static inline constexpr auto v5 = GetGLFormatChannelSize(GLFormat::eRG8UI, 2);
-			};
+			namespace Test {
+				struct GLFormatTestCase
+				{
+					static inline constexpr auto v1 = GetGLFormatBaseFormat(GLFormat::eRG8UI);
+					static inline constexpr auto v2 = GetGLFormatChannelType(GLFormat::eRG8UI, 0);
+					static inline constexpr auto v3 = GetGLFormatChannelSize(GLFormat::eRG8UI, 0);
+					static inline constexpr auto v4 = GetGLFormatChannelType(GLFormat::eRG8UI, 2);
+					static inline constexpr auto v5 = GetGLFormatChannelSize(GLFormat::eRG8UI, 2);
+				};
+			}
+			
 
 			struct GLTextureDesc
 			{
@@ -627,6 +644,23 @@ namespace RTLib
 		}
 	}
 }
+
+#undef RTLIB_EXT_GL_GET_GL_ENUM_GL_FORMAT_CASE_2 
+#undef RTLIB_EXT_GL_GET_GL_ENUM_GL_FORMAT_CASE
+#undef RTLIB_EXT_GL_GET_GL_ENUM_GL_FORMAT_CASE_SNORM
+#undef RTLIB_EXT_GL_GET_GL_ENUM_GL_FORMAT_CASE_M_COMPRESS
+#undef RTLIB_EXT_GL_GET_GL_ENUM_GL_FORMAT_CASE_M_N
+#undef RTLIB_EXT_GL_GET_GL_ENUM_GL_FORMAT_CASE_M_N_SNORM
+#undef RTLIB_EXT_GL_GET_GL_ENUM_GL_FORMAT_CASE_M_N_PREFIX
+#undef RTLIB_EXT_GL_GET_GL_FORMAT_GL_ENUM_CASE_2_INV
+#undef RTLIB_EXT_GL_GET_GL_FORMAT_GL_ENUM_CASE_INV
+#undef RTLIB_EXT_GL_GET_GL_FORMAT_GL_ENUM_CASE_SNORM_INV
+#undef RTLIB_EXT_GL_GET_GL_FORMAT_GL_ENUM_CASE_M_COMPRESS_INV
+#undef RTLIB_EXT_GL_GET_GL_FORMAT_GL_ENUM_CASE_M_N_INV
+#undef RTLIB_EXT_GL_GET_GL_FORMAT_GL_ENUM_CASE_M_N_SNORM_INV
+#undef RTLIB_EXT_GL_GET_GL_FORMAT_GL_ENUM_CASE_M_N_PREFIX_INV
+#undef RTLIB_EXT_GL_GET_GL_ENUM_GL_TYPE_CASE_2
+#undef RTLIB_EXT_GL_GET_GL_TYPE_GL_ENUM_CASE_2_INV
 #undef RTLIB_EXT_GL_GL_TYPE_DEF_4
 #undef RTLIB_EXT_GL_GL_TYPE_DEF_3
 #undef RTLIB_EXT_GL_GL_FORMAT_DEF_1
