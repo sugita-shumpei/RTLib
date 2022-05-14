@@ -1,5 +1,6 @@
 #ifndef RTLIB_EXT_GL_GL_COMMON_H
 #define RTLIB_EXT_GL_GL_COMMON_H
+#include <RTLib/Core/Common.h>
 #include <half.h>
 #include <glad/glad.h>
 #include <cstdint>
@@ -181,6 +182,7 @@ namespace RTLib
 
 			enum GLBufferUsageFlagBits : unsigned int
 			{
+				GLBufferUsageFlagBitsUnknown= 0,
 				GLBufferUsageFlagBitsVertex = 1 << 0,
 				GLBufferUsageFlagBitsAtomicCounter = 1 << 1,
 				GLBufferUsageFlagBitsDispatchIndirect = 1 << 2,
@@ -195,6 +197,47 @@ namespace RTLib
 				GLBufferUsageFlagBitsUniform = 1 << 11,
 			};
 			using GLBufferUsageFlags = GLBufferUsageFlagBits;
+
+			inline constexpr auto GetMainUsage(unsigned int usageFlags)->GLBufferUsageFlagBits
+			{
+				if ((usageFlags & GLBufferUsageFlagBitsVertex)	          == GLBufferUsageFlagBitsVertex) {
+					return GLBufferUsageFlagBitsVertex;
+				}
+				if ((usageFlags & GLBufferUsageFlagBitsIndex)             == GLBufferUsageFlagBitsIndex) {
+					return GLBufferUsageFlagBitsIndex;
+				}
+				if ((usageFlags & GLBufferUsageFlagBitsUniform)           == GLBufferUsageFlagBitsUniform) {
+					return GLBufferUsageFlagBitsUniform;
+				}
+				if ((usageFlags & GLBufferUsageFlagBitsStorage)           == GLBufferUsageFlagBitsStorage) {
+					return GLBufferUsageFlagBitsStorage;
+				}
+				if ((usageFlags & GLBufferUsageFlagBitsImageCopySrc)      == GLBufferUsageFlagBitsImageCopySrc) {
+					return GLBufferUsageFlagBitsImageCopySrc;
+				}
+				if ((usageFlags & GLBufferUsageFlagBitsImageCopyDst)      == GLBufferUsageFlagBitsImageCopyDst) {
+					return GLBufferUsageFlagBitsImageCopyDst;
+				}
+				if ((usageFlags & GLBufferUsageFlagBitsDrawIndirect)      == GLBufferUsageFlagBitsDrawIndirect) {
+					return GLBufferUsageFlagBitsDrawIndirect;
+				}
+				if ((usageFlags & GLBufferUsageFlagBitsDispatchIndirect)  == GLBufferUsageFlagBitsDispatchIndirect) {
+					return GLBufferUsageFlagBitsDispatchIndirect;
+				}
+				if ((usageFlags & GLBufferUsageFlagBitsTransformFeedBack) == GLBufferUsageFlagBitsTransformFeedBack) {
+					return GLBufferUsageFlagBitsTransformFeedBack;
+				}
+				if ((usageFlags & GLBufferUsageFlagBitsTexture)           == GLBufferUsageFlagBitsTexture) {
+					return GLBufferUsageFlagBitsTexture;
+				}
+				if ((usageFlags & GLBufferUsageFlagBitsQuery)             == GLBufferUsageFlagBitsQuery) {
+					return GLBufferUsageFlagBitsQuery;
+				}
+				if ((usageFlags & GLBufferUsageFlagBitsAtomicCounter)     == GLBufferUsageFlagBitsAtomicCounter) {
+					return GLBufferUsageFlagBitsAtomicCounter;
+				}
+				return GLBufferUsageFlagBitsUnknown;
+			}
 
 			struct GLBufferDesc
 			{
@@ -214,32 +257,28 @@ namespace RTLib
 			enum class GLTypeFlagBits : uint64_t
 			{
 				eUndefined = 0,
-				eInteger = 1 << 6,
-				eUnsigned = 1 << 7,
-				eFloat = 1 << 8,
-				eRev = 1 << 9,
 
-				eInt8 = 8 | eInteger,
-				eInt16 = 16 | eInteger,
-				eInt32 = 32 | eInteger,
+				eInt8  = static_cast<uint64_t>(Core::SizedTypeFlagBits::eInt8),
+				eInt16 = static_cast<uint64_t>(Core::SizedTypeFlagBits::eInt16),
+				eInt32 = static_cast<uint64_t>(Core::SizedTypeFlagBits::eInt32),
 
-				eUInt8 = 8 | eUnsigned,
-				eUInt16 = 16 | eUnsigned,
-				eUInt32 = 32 | eUnsigned,
+				eUInt8  = static_cast<uint64_t>(Core::SizedTypeFlagBits::eUInt8 ),
+				eUInt16 = static_cast<uint64_t>(Core::SizedTypeFlagBits::eUInt16),
+				eUInt32 = static_cast<uint64_t>(Core::SizedTypeFlagBits::eUInt32),
 
-				eFloat16 = 16 | eFloat,
-				eFloat32 = 32 | eFloat,
+				eFloat16 = static_cast<uint64_t>(Core::SizedTypeFlagBits::eFloat16),
+				eFloat32 = static_cast<uint64_t>(Core::SizedTypeFlagBits::eFloat32),
 
-				eUInt8_3_3_2 = eUInt8 | RTLIB_EXT_GL_GL_TYPE_DEF_3(3, 3, 2),
-				eUInt8_2_3_3_Rev = eUInt8 | eRev | RTLIB_EXT_GL_GL_TYPE_DEF_3(2, 3, 3),
-				eUInt16_4_4_4_4 = eUInt16 | RTLIB_EXT_GL_GL_TYPE_DEF_4(4, 4, 4, 4),
-				eUInt16_4_4_4_4_Rev = eUInt16 | eRev | RTLIB_EXT_GL_GL_TYPE_DEF_4(4, 4, 4, 4),
-				eUInt16_5_5_5_1 = eUInt16 | RTLIB_EXT_GL_GL_TYPE_DEF_4(5, 5, 5, 1),
-				eUInt16_1_5_5_5_Rev = eUInt16 | eRev | RTLIB_EXT_GL_GL_TYPE_DEF_4(1, 5, 5, 5),
-				eUInt32_8_8_8_8 = eUInt32 | RTLIB_EXT_GL_GL_TYPE_DEF_4(8, 8, 8, 8),
-				eUInt32_8_8_8_8_Rev = eUInt32 | eRev | RTLIB_EXT_GL_GL_TYPE_DEF_4(8, 8, 8, 8),
-				eUInt32_10_10_10_2 = eUInt32 | RTLIB_EXT_GL_GL_TYPE_DEF_4(10, 10, 10, 2),
-				eUInt32_2_10_10_10_Rev = eUInt32 | eRev | RTLIB_EXT_GL_GL_TYPE_DEF_4(2, 10, 10, 10),
+				eUInt8_3_3_2           = eUInt8  | RTLIB_EXT_GL_GL_TYPE_DEF_3(3, 3, 2),
+				eUInt8_2_3_3_Rev       = eUInt8  | RTLIB_EXT_GL_GL_TYPE_DEF_3(2, 3, 3)       | (1 << 9),
+				eUInt16_4_4_4_4        = eUInt16 | RTLIB_EXT_GL_GL_TYPE_DEF_4(4, 4, 4, 4)    | (1 << 9),
+				eUInt16_4_4_4_4_Rev    = eUInt16 | RTLIB_EXT_GL_GL_TYPE_DEF_4(4, 4, 4, 4),
+				eUInt16_5_5_5_1        = eUInt16 | RTLIB_EXT_GL_GL_TYPE_DEF_4(5, 5, 5, 1),
+				eUInt16_1_5_5_5_Rev    = eUInt16 | RTLIB_EXT_GL_GL_TYPE_DEF_4(1, 5, 5, 5)    | (1 << 9),
+				eUInt32_8_8_8_8        = eUInt32 | RTLIB_EXT_GL_GL_TYPE_DEF_4(8, 8, 8, 8),
+				eUInt32_8_8_8_8_Rev    = eUInt32 | RTLIB_EXT_GL_GL_TYPE_DEF_4(8, 8, 8, 8)    | (1 << 9),
+				eUInt32_10_10_10_2     = eUInt32 | RTLIB_EXT_GL_GL_TYPE_DEF_4(10, 10, 10, 2),
+				eUInt32_2_10_10_10_Rev = eUInt32 | RTLIB_EXT_GL_GL_TYPE_DEF_4(2, 10, 10, 10) | (1 << 9),
 			};
 
 			inline constexpr auto GetGLenumGLType(GLenum glEnum) -> GLTypeFlagBits
@@ -366,140 +405,134 @@ namespace RTLib
 					static_assert(v5 == 10);
 				};
 			}
+			enum class GLAttachmentComponentExt :uint64_t {
+				eSnorm             = (((uint64_t)1) << 38),
+				eSharedbit         = (((uint64_t)1) << 39),
+				eBaseInteger       = (((uint64_t)1) << 40),
+				eSrgbNonlinear     = (((uint64_t)1) << 41),
+				eCompressed        = (((uint64_t)1) << 42),
+				eRGTC1             = (((uint64_t)1) << 43),
+				eSignedRGTC1       = (((uint64_t)1) << 44),
+				eRGTC2             = (((uint64_t)1) << 45),
+				eSignedRGTC2       = (((uint64_t)1) << 46),
+				eBPTCUnorm         = (((uint64_t)1) << 47),
+				eBPTCSignedFloat   = (((uint64_t)1) << 48),
+				eBPTCUnsignedFloat = (((uint64_t)1) << 49),
+			};
+			enum class GLBaseFormat : uint64_t
+			{
+				eBaseRed	      = static_cast<uint64_t>(Core::BaseFormat::eBaseRed),
+				eBaseRG		      = static_cast<uint64_t>(Core::BaseFormat::eBaseRG),
+				eBaseRGB	      = static_cast<uint64_t>(Core::BaseFormat::eBaseRGB),
+				eBaseRGBA	      = static_cast<uint64_t>(Core::BaseFormat::eBaseRGBA),
+				
+				eBaseIntegerRed   = eBaseRed  | static_cast<uint64_t>(GLAttachmentComponentExt::eBaseInteger),
+				eBaseIntegerRG    = eBaseRG   | static_cast<uint64_t>(GLAttachmentComponentExt::eBaseInteger),
+				eBaseIntegerRGB   = eBaseRGB  | static_cast<uint64_t>(GLAttachmentComponentExt::eBaseInteger),
+				eBaseIntegerRGBA  = eBaseRGBA | static_cast<uint64_t>(GLAttachmentComponentExt::eBaseInteger),
 
+				eBaseDepth        = static_cast<uint64_t>(Core::BaseFormat::eBaseDepth),
+				eBaseStencil	  = static_cast<uint64_t>(Core::BaseFormat::eBaseStencil),
+				eBaseDepthStencil = static_cast<uint64_t>(Core::BaseFormat::eBaseDepthStencil),
+			};
 			enum class GLFormat : uint64_t
 			{
 				//
 				eUndefined = 0,
-				eInteger = 1 << 6,
-				eUnsigned = 1 << 7,
-				eFloat = 1 << 8,
+				eSRGB  = static_cast<uint64_t>(GLBaseFormat::eBaseRGB) | static_cast<uint64_t>(GLAttachmentComponentExt::eSrgbNonlinear),
+				eSRGBA = static_cast<uint64_t>(GLBaseFormat::eBaseRGBA)| static_cast<uint64_t>(GLAttachmentComponentExt::eSrgbNonlinear),
 
-				eRed = ((uint64_t)1) << 32,
-				eGreen = ((uint64_t)1) << 33,
-				eBlue = ((uint64_t)1) << 34,
-				eAlpha = ((uint64_t)1) << 35,
-				eDepth = ((uint64_t)1) << 36,
-				eStencil = ((uint64_t)1) << 37,
-				eSnorm = ((uint64_t)1) << 38,
-				eSharedbit = ((uint64_t)1) << 39,
-				eBaseInteger = ((uint64_t)1) << 40,
+				eCompressedRed   = static_cast<uint64_t>(GLBaseFormat::eBaseRed)  | static_cast<uint64_t>(GLAttachmentComponentExt::eCompressed),
+				eCompressedRG    = static_cast<uint64_t>(GLBaseFormat::eBaseRG)   | static_cast<uint64_t>(GLAttachmentComponentExt::eCompressed),
+				eCompressedRGB   = static_cast<uint64_t>(GLBaseFormat::eBaseRGB)  | static_cast<uint64_t>(GLAttachmentComponentExt::eCompressed),
+				eCompressedRGBA  = static_cast<uint64_t>(GLBaseFormat::eBaseRGBA) | static_cast<uint64_t>(GLAttachmentComponentExt::eCompressed),
+				eCompressedSRGB  = eSRGB  | static_cast<uint64_t>(GLAttachmentComponentExt::eCompressed),
+				eCompressedSRGBA = eSRGBA | static_cast<uint64_t>(GLAttachmentComponentExt::eCompressed),
 
-				eBaseRed = eRed,
-				eBaseRG = eRed | eGreen,
-				eBaseRGB = eRed | eGreen | eBlue,
-				eBaseRGBA = eRed | eGreen | eBlue | eAlpha,
+				eCompressedRedRGTC1       = eCompressedRed | static_cast<uint64_t>(GLAttachmentComponentExt::eRGTC1),
+				eCompressedSignedRedRGTC1 = eCompressedRed | static_cast<uint64_t>(GLAttachmentComponentExt::eSignedRGTC1),
 
-				eBaseIntegerRed = eBaseRed | eBaseInteger,
-				eBaseIntegerRG = eBaseRG | eBaseInteger,
-				eBaseIntegerRGB = eBaseRGB | eBaseInteger,
-				eBaseIntegerRGBA = eBaseRGBA | eBaseInteger,
+				eCompressedRGRGTC2        = eCompressedRG | static_cast<uint64_t>(GLAttachmentComponentExt::eRGTC2),
+				eCompressedSignedRGRGTC2  = eCompressedRG | static_cast<uint64_t>(GLAttachmentComponentExt::eSignedRGTC2),
 
-				eBaseDepth = eDepth,
-				eBaseDepthStencil = eDepth | eStencil,
+				eCompressedRGBABPTCUnorm  = eCompressedRGBA | static_cast<uint64_t>(GLAttachmentComponentExt::eBPTCUnorm),
+				eCompressedSRGBABPTCUnorm = eCompressedSRGBA| static_cast<uint64_t>(GLAttachmentComponentExt::eBPTCUnorm),
 
-				eSRGB = (((uint64_t)1) << 41) | eBaseRGB,
-				eSRGBA = (((uint64_t)1) << 41) | eBaseRGBA,
-				eCompressed = ((uint64_t)1) << 42,
-				eRGTC1 = ((uint64_t)1) << 43,
-				eSignedRGTC1 = ((uint64_t)1) << 44,
-				eRGTC2 = ((uint64_t)1) << 45,
-				eSignedRGTC2 = ((uint64_t)1) << 46,
-				eBPTCUnorm = ((uint64_t)1) << 47,
-				eBPTCSignedFloat = ((uint64_t)1) << 48,
-				eBPTCUnsignedFloat = ((uint64_t)1) << 49,
-
-				eCompressedRed = eCompressed | eBaseRed,
-				eCompressedRG = eCompressed | eBaseRG,
-				eCompressedRGB = eCompressed | eBaseRGB,
-				eCompressedRGBA = eCompressed | eBaseRGBA,
-				eCompressedSRGB = eCompressed | eSRGB,
-				eCompressedSRGBA = eCompressed | eSRGBA,
-
-				eCompressedRedRGTC1 = eCompressedRed | eRGTC1,
-				eCompressedSignedRedRGTC1 = eCompressedRed | eSignedRGTC1,
-
-				eCompressedRGRGTC2 = eCompressedRG | eRGTC2,
-				eCompressedSignedRGRGTC2 = eCompressedRG | eSignedRGTC2,
-
-				eCompressedRGBABPTCUnorm = eCompressedRGBA|eBPTCUnorm,
-				eCompressedSRGBABPTCUnorm= eCompressedSRGBA|eBPTCUnorm,
-
-				eCompressedSRGBBPTCSignedFloat = eCompressedRGB | eBPTCSignedFloat,
-				eCompressedSRGBBPTCUnsignedFloat = eCompressedRGB | eBPTCUnsignedFloat,
+				eCompressedSRGBBPTCSignedFloat   = eCompressedRGB | static_cast<uint64_t>(GLAttachmentComponentExt::eBPTCSignedFloat),
+				eCompressedSRGBBPTCUnsignedFloat = eCompressedRGB | static_cast<uint64_t>(GLAttachmentComponentExt::eBPTCUnsignedFloat),
 
 				// RGBA
-				eR8 = eBaseRed | RTLIB_EXT_GL_GL_FORMAT_DEF_1(8),
-				eR8Snorm = eBaseRed | RTLIB_EXT_GL_GL_FORMAT_DEF_1(8) | eSnorm,
-				eR16 = eBaseRed | RTLIB_EXT_GL_GL_FORMAT_DEF_1(16),
-				eR16Snorm = eBaseRed | RTLIB_EXT_GL_GL_FORMAT_DEF_1(16) | eSnorm,
-				eRG8 = eBaseRG | RTLIB_EXT_GL_GL_FORMAT_DEF_2(8, 8),
-				eRG8Snorm = eBaseRG | RTLIB_EXT_GL_GL_FORMAT_DEF_2(8, 8) | eSnorm,
-				eRG16 = eBaseRG | RTLIB_EXT_GL_GL_FORMAT_DEF_2(16, 16),
-				eRG16Snorm = eBaseRG | RTLIB_EXT_GL_GL_FORMAT_DEF_2(16, 16) | eSnorm,
-				eR3G3B2 = eBaseRGB | RTLIB_EXT_GL_GL_FORMAT_DEF_3(3, 3, 2),
-				eRGB4 = eBaseRGB | RTLIB_EXT_GL_GL_FORMAT_DEF_3(4, 4, 4),
-				eRGB5 = eBaseRGB | RTLIB_EXT_GL_GL_FORMAT_DEF_3(5, 5, 5),
-				eRGB8 = eBaseRGB | RTLIB_EXT_GL_GL_FORMAT_DEF_3(8, 8, 8),
-				eRGB8Snorm = eBaseRGB | RTLIB_EXT_GL_GL_FORMAT_DEF_3(8, 8, 8) | eSnorm,
-				eRGB10 = eBaseRGB | RTLIB_EXT_GL_GL_FORMAT_DEF_3(10, 10, 10),
-				eRGB12 = eBaseRGB | RTLIB_EXT_GL_GL_FORMAT_DEF_3(12, 12, 12),
-				eRGB16 = eBaseRGB | RTLIB_EXT_GL_GL_FORMAT_DEF_3(16, 16, 16),
-				eRGB16Snorm = eBaseRGB | RTLIB_EXT_GL_GL_FORMAT_DEF_3(16, 16, 16) | eSnorm,
-				eRGBA2 = eBaseRGBA | RTLIB_EXT_GL_GL_FORMAT_DEF_4(2, 2, 2, 2),
-				eRGBA4 = eBaseRGBA | RTLIB_EXT_GL_GL_FORMAT_DEF_4(4, 4, 4, 4),
-				eRGB5A1 = eBaseRGBA | RTLIB_EXT_GL_GL_FORMAT_DEF_4(5, 5, 5, 1),
-				eRGBA8 = eBaseRGBA | RTLIB_EXT_GL_GL_FORMAT_DEF_4(8, 8, 8, 8),
-				eRGBA8Snorm = eBaseRGBA | RTLIB_EXT_GL_GL_FORMAT_DEF_4(8, 8, 8, 8) | eSnorm,
-				eRGB10A2 = eBaseRGBA | RTLIB_EXT_GL_GL_FORMAT_DEF_4(10, 10, 10, 2),
-				eRGB10A2UI = eBaseRGBA | RTLIB_EXT_GL_GL_FORMAT_DEF_4(10 | eUnsigned, 10 | eUnsigned, 10 | eUnsigned, 2 | eUnsigned),
-				eRGBA12 = eBaseRGBA | RTLIB_EXT_GL_GL_FORMAT_DEF_4(12, 12, 12, 12),
-				eRGBA16 = eBaseRGBA | RTLIB_EXT_GL_GL_FORMAT_DEF_4(16, 16, 16, 16),
-				eRGBA16Snorm = eBaseRGBA | RTLIB_EXT_GL_GL_FORMAT_DEF_4(16, 16, 16, 16) | eSnorm,
-				eSRGB8 = eSRGB | RTLIB_EXT_GL_GL_FORMAT_DEF_3(8, 8, 8),
-				eSRGBA8 = eSRGBA | RTLIB_EXT_GL_GL_FORMAT_DEF_4(8, 8, 8, 8),
-				eRGB565 = eBaseRGB | RTLIB_EXT_GL_GL_FORMAT_DEF_3(5, 6, 5),
-				eR16F = eBaseRed | RTLIB_EXT_GL_GL_FORMAT_DEF_1(16 | eFloat),
-				eRG16F = eBaseRG | RTLIB_EXT_GL_GL_FORMAT_DEF_2(16 | eFloat, 16 | eFloat),
-				eRGB16F = eBaseRGB | RTLIB_EXT_GL_GL_FORMAT_DEF_3(16 | eFloat, 16 | eFloat, 16 | eFloat),
-				eRGBA16F = eBaseRGBA | RTLIB_EXT_GL_GL_FORMAT_DEF_4(16 | eFloat, 16 | eFloat, 16 | eFloat, 16 | eFloat),
-				eR32F = eBaseRed | RTLIB_EXT_GL_GL_FORMAT_DEF_1(32 | eFloat),
-				eRG32F = eBaseRG | RTLIB_EXT_GL_GL_FORMAT_DEF_2(32 | eFloat, 32 | eFloat),
-				eRGB32F = eBaseRGB | RTLIB_EXT_GL_GL_FORMAT_DEF_3(32 | eFloat, 32 | eFloat, 32 | eFloat),
-				eRGBA32F = eBaseRGBA | RTLIB_EXT_GL_GL_FORMAT_DEF_4(32 | eFloat, 32 | eFloat, 32 | eFloat, 32 | eFloat),
-				eR11FG11FB10F = eBaseRGB | RTLIB_EXT_GL_GL_FORMAT_DEF_3(11 | eFloat, 11 | eFloat, 10 | eFloat),
-				eRGB9E5 = eBaseRGB | eSharedbit | RTLIB_EXT_GL_GL_FORMAT_DEF_4(9, 9, 9, 5),
-				eR8UI = eBaseIntegerRed | RTLIB_EXT_GL_GL_FORMAT_DEF_1(8 | eUnsigned),
-				eRG8UI = eBaseIntegerRG | RTLIB_EXT_GL_GL_FORMAT_DEF_2(8 | eUnsigned, 8 | eUnsigned),
-				eRGB8UI = eBaseIntegerRGB | RTLIB_EXT_GL_GL_FORMAT_DEF_3(8 | eUnsigned, 8 | eUnsigned, 8 | eUnsigned),
-				eRGBA8UI = eBaseIntegerRGBA | RTLIB_EXT_GL_GL_FORMAT_DEF_4(8 | eUnsigned, 8 | eUnsigned, 8 | eUnsigned, 8 | eUnsigned),
-				eR8I = eBaseIntegerRed | RTLIB_EXT_GL_GL_FORMAT_DEF_1(8 | eInteger),
-				eRG8I = eBaseIntegerRG | RTLIB_EXT_GL_GL_FORMAT_DEF_2(8 | eInteger, 8 | eInteger),
-				eRGB8I = eBaseIntegerRGB | RTLIB_EXT_GL_GL_FORMAT_DEF_3(8 | eInteger, 8 | eInteger, 8 | eInteger),
-				eRGBA8I = eBaseIntegerRGBA | RTLIB_EXT_GL_GL_FORMAT_DEF_4(8 | eInteger, 8 | eInteger, 8 | eInteger, 8 | eInteger),
-				eR16I = eBaseIntegerRed | RTLIB_EXT_GL_GL_FORMAT_DEF_1(16 | eInteger),
-				eRG16I = eBaseIntegerRG | RTLIB_EXT_GL_GL_FORMAT_DEF_2(16 | eInteger, 16 | eInteger),
-				eRGB16I = eBaseIntegerRGB | RTLIB_EXT_GL_GL_FORMAT_DEF_3(16 | eInteger, 16 | eInteger, 16 | eInteger),
-				eRGBA16I = eBaseIntegerRGBA | RTLIB_EXT_GL_GL_FORMAT_DEF_4(16 | eInteger, 16 | eInteger, 16 | eInteger, 16 | eInteger),
-				eR16UI = eBaseIntegerRed | RTLIB_EXT_GL_GL_FORMAT_DEF_1(16 | eUnsigned),
-				eRG16UI = eBaseIntegerRG | RTLIB_EXT_GL_GL_FORMAT_DEF_2(16 | eUnsigned, 16 | eUnsigned),
-				eRGB16UI = eBaseIntegerRGB | RTLIB_EXT_GL_GL_FORMAT_DEF_3(16 | eUnsigned, 16 | eUnsigned, 16 | eUnsigned),
-				eRGBA16UI = eBaseIntegerRGBA | RTLIB_EXT_GL_GL_FORMAT_DEF_4(16 | eUnsigned, 16 | eUnsigned, 16 | eUnsigned, 16 | eUnsigned),
-				eR32I = eBaseIntegerRed | RTLIB_EXT_GL_GL_FORMAT_DEF_1(32 | eInteger),
-				eRG32I = eBaseIntegerRG | RTLIB_EXT_GL_GL_FORMAT_DEF_2(32 | eInteger, 32 | eInteger),
-				eRGB32I = eBaseIntegerRGB | RTLIB_EXT_GL_GL_FORMAT_DEF_3(32 | eInteger, 32 | eInteger, 32 | eInteger),
-				eRGBA32I = eBaseIntegerRGBA | RTLIB_EXT_GL_GL_FORMAT_DEF_4(32 | eInteger, 32 | eInteger, 32 | eInteger, 32 | eInteger),
-				eR32UI = eBaseIntegerRed | RTLIB_EXT_GL_GL_FORMAT_DEF_1(32 | eUnsigned),
-				eRG32UI = eBaseIntegerRG | RTLIB_EXT_GL_GL_FORMAT_DEF_2(32 | eUnsigned, 32 | eUnsigned),
-				eRGB32UI = eBaseIntegerRGB | RTLIB_EXT_GL_GL_FORMAT_DEF_3(32 | eUnsigned, 32 | eUnsigned, 32 | eUnsigned),
-				eRGBA32UI = eBaseIntegerRGBA | RTLIB_EXT_GL_GL_FORMAT_DEF_4(32 | eUnsigned, 32 | eUnsigned, 32 | eUnsigned, 32 | eUnsigned),
+				eR8          = static_cast<uint64_t>(GLBaseFormat::eBaseRed) | RTLIB_EXT_GL_GL_FORMAT_DEF_1(8),
+				eR8Snorm     = static_cast<uint64_t>(GLBaseFormat::eBaseRed) | RTLIB_EXT_GL_GL_FORMAT_DEF_1(8) | static_cast<uint64_t>(GLAttachmentComponentExt::eSnorm),
+				eR16         = static_cast<uint64_t>(GLBaseFormat::eBaseRed) | RTLIB_EXT_GL_GL_FORMAT_DEF_1(16),
+				eR16Snorm    = static_cast<uint64_t>(GLBaseFormat::eBaseRed) | RTLIB_EXT_GL_GL_FORMAT_DEF_1(16) | static_cast<uint64_t>(GLAttachmentComponentExt::eSnorm),
+				eRG8         = static_cast<uint64_t>(GLBaseFormat::eBaseRG)  | RTLIB_EXT_GL_GL_FORMAT_DEF_2(8, 8),
+				eRG8Snorm    = static_cast<uint64_t>(GLBaseFormat::eBaseRG)  | RTLIB_EXT_GL_GL_FORMAT_DEF_2(8, 8) | static_cast<uint64_t>(GLAttachmentComponentExt::eSnorm),
+				eRG16        = static_cast<uint64_t>(GLBaseFormat::eBaseRG)  | RTLIB_EXT_GL_GL_FORMAT_DEF_2(16, 16),
+				eRG16Snorm   = static_cast<uint64_t>(GLBaseFormat::eBaseRG)  | RTLIB_EXT_GL_GL_FORMAT_DEF_2(16, 16) | static_cast<uint64_t>(GLAttachmentComponentExt::eSnorm),
+				eR3G3B2      = static_cast<uint64_t>(GLBaseFormat::eBaseRGB) | RTLIB_EXT_GL_GL_FORMAT_DEF_3(3, 3, 2),
+				eRGB4        = static_cast<uint64_t>(GLBaseFormat::eBaseRGB) | RTLIB_EXT_GL_GL_FORMAT_DEF_3(4, 4, 4),
+				eRGB5        = static_cast<uint64_t>(GLBaseFormat::eBaseRGB) | RTLIB_EXT_GL_GL_FORMAT_DEF_3(5, 5, 5),
+				eRGB8        = static_cast<uint64_t>(GLBaseFormat::eBaseRGB) | RTLIB_EXT_GL_GL_FORMAT_DEF_3(8, 8, 8),
+				eRGB8Snorm   = static_cast<uint64_t>(GLBaseFormat::eBaseRGB) | RTLIB_EXT_GL_GL_FORMAT_DEF_3(8, 8, 8) | static_cast<uint64_t>(GLAttachmentComponentExt::eSnorm),
+				eRGB10       = static_cast<uint64_t>(GLBaseFormat::eBaseRGB) | RTLIB_EXT_GL_GL_FORMAT_DEF_3(10, 10, 10),
+				eRGB12       = static_cast<uint64_t>(GLBaseFormat::eBaseRGB) | RTLIB_EXT_GL_GL_FORMAT_DEF_3(12, 12, 12),
+				eRGB16       = static_cast<uint64_t>(GLBaseFormat::eBaseRGB) | RTLIB_EXT_GL_GL_FORMAT_DEF_3(16, 16, 16),
+				eRGB16Snorm  = static_cast<uint64_t>(GLBaseFormat::eBaseRGB) | RTLIB_EXT_GL_GL_FORMAT_DEF_3(16, 16, 16) | static_cast<uint64_t>(GLAttachmentComponentExt::eSnorm),
+				eRGBA2		 = static_cast<uint64_t>(GLBaseFormat::eBaseRGBA) | RTLIB_EXT_GL_GL_FORMAT_DEF_4(2, 2, 2, 2),
+				eRGBA4		 = static_cast<uint64_t>(GLBaseFormat::eBaseRGBA) | RTLIB_EXT_GL_GL_FORMAT_DEF_4(4, 4, 4, 4),
+				eRGB5A1		 = static_cast<uint64_t>(GLBaseFormat::eBaseRGBA) | RTLIB_EXT_GL_GL_FORMAT_DEF_4(5, 5, 5, 1),
+				eRGBA8		 = static_cast<uint64_t>(GLBaseFormat::eBaseRGBA) | RTLIB_EXT_GL_GL_FORMAT_DEF_4(8, 8, 8, 8),
+				eRGBA8Snorm  = static_cast<uint64_t>(GLBaseFormat::eBaseRGBA) | RTLIB_EXT_GL_GL_FORMAT_DEF_4(8, 8, 8, 8) | static_cast<uint64_t>(GLAttachmentComponentExt::eSnorm),
+				eRGB10A2	 = static_cast<uint64_t>(GLBaseFormat::eBaseRGBA) | RTLIB_EXT_GL_GL_FORMAT_DEF_4(10, 10, 10, 2),
+				eRGB10A2UI   = static_cast<uint64_t>(GLBaseFormat::eBaseRGBA) | RTLIB_EXT_GL_GL_FORMAT_DEF_4(10 | static_cast<uint64_t>(Core::BaseTypeFlagBits::eUnsigned), 10 | static_cast<uint64_t>(Core::BaseTypeFlagBits::eUnsigned), 10 | static_cast<uint64_t>(Core::BaseTypeFlagBits::eUnsigned), 2 | static_cast<uint64_t>(Core::BaseTypeFlagBits::eUnsigned)),
+				eRGBA12		 = static_cast<uint64_t>(GLBaseFormat::eBaseRGBA) | RTLIB_EXT_GL_GL_FORMAT_DEF_4(12, 12, 12, 12),
+				eRGBA16		 = static_cast<uint64_t>(GLBaseFormat::eBaseRGBA) | RTLIB_EXT_GL_GL_FORMAT_DEF_4(16, 16, 16, 16),
+				eRGBA16Snorm = static_cast<uint64_t>(GLBaseFormat::eBaseRGBA) | RTLIB_EXT_GL_GL_FORMAT_DEF_4(16, 16, 16, 16) | static_cast<uint64_t>(GLAttachmentComponentExt::eSnorm),
+				eSRGB8       = eSRGB | RTLIB_EXT_GL_GL_FORMAT_DEF_3(8, 8, 8),
+				eSRGBA8      = eSRGBA | RTLIB_EXT_GL_GL_FORMAT_DEF_4(8, 8, 8, 8),
+				eRGB565      = static_cast<uint64_t>(GLBaseFormat::eBaseRGB)  | RTLIB_EXT_GL_GL_FORMAT_DEF_3(5, 6, 5),
+				eR16F        = static_cast<uint64_t>(GLBaseFormat::eBaseRed)  | RTLIB_EXT_GL_GL_FORMAT_DEF_1(static_cast<uint64_t>(Core::SizedTypeFlagBits::eFloat16)),
+				eRG16F       = static_cast<uint64_t>(GLBaseFormat::eBaseRG)   | RTLIB_EXT_GL_GL_FORMAT_DEF_2(static_cast<uint64_t>(Core::SizedTypeFlagBits::eFloat16), static_cast<uint64_t>(Core::SizedTypeFlagBits::eFloat16)),
+				eRGB16F      = static_cast<uint64_t>(GLBaseFormat::eBaseRGB)  | RTLIB_EXT_GL_GL_FORMAT_DEF_3(static_cast<uint64_t>(Core::SizedTypeFlagBits::eFloat16), static_cast<uint64_t>(Core::SizedTypeFlagBits::eFloat16), static_cast<uint64_t>(Core::SizedTypeFlagBits::eFloat16)),
+				eRGBA16F     = static_cast<uint64_t>(GLBaseFormat::eBaseRGBA) | RTLIB_EXT_GL_GL_FORMAT_DEF_4(static_cast<uint64_t>(Core::SizedTypeFlagBits::eFloat16), static_cast<uint64_t>(Core::SizedTypeFlagBits::eFloat16), static_cast<uint64_t>(Core::SizedTypeFlagBits::eFloat16), static_cast<uint64_t>(Core::SizedTypeFlagBits::eFloat16)),
+				eR32F        = static_cast<uint64_t>(GLBaseFormat::eBaseRed)  | RTLIB_EXT_GL_GL_FORMAT_DEF_1(static_cast<uint64_t>(Core::SizedTypeFlagBits::eFloat32)),
+				eRG32F       = static_cast<uint64_t>(GLBaseFormat::eBaseRG)   | RTLIB_EXT_GL_GL_FORMAT_DEF_2(static_cast<uint64_t>(Core::SizedTypeFlagBits::eFloat32), static_cast<uint64_t>(Core::SizedTypeFlagBits::eFloat32)),
+				eRGB32F      = static_cast<uint64_t>(GLBaseFormat::eBaseRGB)  | RTLIB_EXT_GL_GL_FORMAT_DEF_3(static_cast<uint64_t>(Core::SizedTypeFlagBits::eFloat32), static_cast<uint64_t>(Core::SizedTypeFlagBits::eFloat32), static_cast<uint64_t>(Core::SizedTypeFlagBits::eFloat32)),
+				eRGBA32F     = static_cast<uint64_t>(GLBaseFormat::eBaseRGBA) | RTLIB_EXT_GL_GL_FORMAT_DEF_4(static_cast<uint64_t>(Core::SizedTypeFlagBits::eFloat32), static_cast<uint64_t>(Core::SizedTypeFlagBits::eFloat32), static_cast<uint64_t>(Core::SizedTypeFlagBits::eFloat32), static_cast<uint64_t>(Core::SizedTypeFlagBits::eFloat32)),
+				eR11FG11FB10F= static_cast<uint64_t>(GLBaseFormat::eBaseRGB)  | RTLIB_EXT_GL_GL_FORMAT_DEF_3(11 | static_cast<uint64_t>(Core::BaseTypeFlagBits::eFloat), 11 | static_cast<uint64_t>(Core::BaseTypeFlagBits::eFloat), 10 | static_cast<uint64_t>(Core::BaseTypeFlagBits::eFloat)),
+				eRGB9E5      = static_cast<uint64_t>(GLBaseFormat::eBaseRGB)  | RTLIB_EXT_GL_GL_FORMAT_DEF_4(9, 9, 9, 5) | static_cast<uint64_t>(GLAttachmentComponentExt::eSharedbit),
+				eR8UI        = static_cast<uint64_t>(GLBaseFormat::eBaseIntegerRed) | RTLIB_EXT_GL_GL_FORMAT_DEF_1(static_cast<uint64_t>(Core::SizedTypeFlagBits::eUInt8)),
+				eRG8UI       = static_cast<uint64_t>(GLBaseFormat::eBaseIntegerRG)  | RTLIB_EXT_GL_GL_FORMAT_DEF_2(static_cast<uint64_t>(Core::SizedTypeFlagBits::eUInt8), static_cast<uint64_t>(Core::SizedTypeFlagBits::eUInt8)),
+				eRGB8UI      = static_cast<uint64_t>(GLBaseFormat::eBaseIntegerRGB) | RTLIB_EXT_GL_GL_FORMAT_DEF_3(static_cast<uint64_t>(Core::SizedTypeFlagBits::eUInt8), static_cast<uint64_t>(Core::SizedTypeFlagBits::eUInt8), static_cast<uint64_t>(Core::SizedTypeFlagBits::eUInt8)),
+				eRGBA8UI     = static_cast<uint64_t>(GLBaseFormat::eBaseIntegerRGBA)| RTLIB_EXT_GL_GL_FORMAT_DEF_4(static_cast<uint64_t>(Core::SizedTypeFlagBits::eUInt8), static_cast<uint64_t>(Core::SizedTypeFlagBits::eUInt8), static_cast<uint64_t>(Core::SizedTypeFlagBits::eUInt8), static_cast<uint64_t>(Core::SizedTypeFlagBits::eUInt8)),
+				eR8I      = static_cast<uint64_t>(GLBaseFormat::eBaseIntegerRed) | RTLIB_EXT_GL_GL_FORMAT_DEF_1(static_cast<uint64_t>(Core::SizedTypeFlagBits::eInt8)),
+				eRG8I     = static_cast<uint64_t>(GLBaseFormat::eBaseIntegerRG)  | RTLIB_EXT_GL_GL_FORMAT_DEF_2(static_cast<uint64_t>(Core::SizedTypeFlagBits::eInt8) , static_cast<uint64_t>(Core::SizedTypeFlagBits::eInt8)),
+				eRGB8I    = static_cast<uint64_t>(GLBaseFormat::eBaseIntegerRGB) | RTLIB_EXT_GL_GL_FORMAT_DEF_3(static_cast<uint64_t>(Core::SizedTypeFlagBits::eInt8) , static_cast<uint64_t>(Core::SizedTypeFlagBits::eInt8), static_cast<uint64_t>(Core::SizedTypeFlagBits::eInt8)),
+				eRGBA8I   = static_cast<uint64_t>(GLBaseFormat::eBaseIntegerRGBA)| RTLIB_EXT_GL_GL_FORMAT_DEF_4(static_cast<uint64_t>(Core::SizedTypeFlagBits::eInt8) , static_cast<uint64_t>(Core::SizedTypeFlagBits::eInt8), static_cast<uint64_t>(Core::SizedTypeFlagBits::eInt8) , static_cast<uint64_t>(Core::SizedTypeFlagBits::eInt8)),
+				eR16UI        = static_cast<uint64_t>(GLBaseFormat::eBaseIntegerRed) | RTLIB_EXT_GL_GL_FORMAT_DEF_1(static_cast<uint64_t>(Core::SizedTypeFlagBits::eUInt16)),
+				eRG16UI       = static_cast<uint64_t>(GLBaseFormat::eBaseIntegerRG)  | RTLIB_EXT_GL_GL_FORMAT_DEF_2(static_cast<uint64_t>(Core::SizedTypeFlagBits::eUInt16), static_cast<uint64_t>(Core::SizedTypeFlagBits::eUInt16)),
+				eRGB16UI      = static_cast<uint64_t>(GLBaseFormat::eBaseIntegerRGB) | RTLIB_EXT_GL_GL_FORMAT_DEF_3(static_cast<uint64_t>(Core::SizedTypeFlagBits::eUInt16), static_cast<uint64_t>(Core::SizedTypeFlagBits::eUInt16), static_cast<uint64_t>(Core::SizedTypeFlagBits::eUInt16)),
+				eRGBA16UI     = static_cast<uint64_t>(GLBaseFormat::eBaseIntegerRGBA)| RTLIB_EXT_GL_GL_FORMAT_DEF_4(static_cast<uint64_t>(Core::SizedTypeFlagBits::eUInt16), static_cast<uint64_t>(Core::SizedTypeFlagBits::eUInt16), static_cast<uint64_t>(Core::SizedTypeFlagBits::eUInt16), static_cast<uint64_t>(Core::SizedTypeFlagBits::eUInt16)),
+				eR16I      = static_cast<uint64_t>(GLBaseFormat::eBaseIntegerRed) | RTLIB_EXT_GL_GL_FORMAT_DEF_1(static_cast<uint64_t>(Core::SizedTypeFlagBits::eInt16)),
+				eRG16I     = static_cast<uint64_t>(GLBaseFormat::eBaseIntegerRG)  | RTLIB_EXT_GL_GL_FORMAT_DEF_2(static_cast<uint64_t>(Core::SizedTypeFlagBits::eInt16) , static_cast<uint64_t>(Core::SizedTypeFlagBits::eInt16)),
+				eRGB16I    = static_cast<uint64_t>(GLBaseFormat::eBaseIntegerRGB) | RTLIB_EXT_GL_GL_FORMAT_DEF_3(static_cast<uint64_t>(Core::SizedTypeFlagBits::eInt16) , static_cast<uint64_t>(Core::SizedTypeFlagBits::eInt16), static_cast<uint64_t>(Core::SizedTypeFlagBits::eInt16)),
+				eRGBA16I   = static_cast<uint64_t>(GLBaseFormat::eBaseIntegerRGBA)| RTLIB_EXT_GL_GL_FORMAT_DEF_4(static_cast<uint64_t>(Core::SizedTypeFlagBits::eInt16) , static_cast<uint64_t>(Core::SizedTypeFlagBits::eInt16), static_cast<uint64_t>(Core::SizedTypeFlagBits::eInt16) , static_cast<uint64_t>(Core::SizedTypeFlagBits::eInt16)),
+				eR32UI        = static_cast<uint64_t>(GLBaseFormat::eBaseIntegerRed) | RTLIB_EXT_GL_GL_FORMAT_DEF_1(static_cast<uint64_t>(Core::SizedTypeFlagBits::eUInt32)),
+				eRG32UI       = static_cast<uint64_t>(GLBaseFormat::eBaseIntegerRG)  | RTLIB_EXT_GL_GL_FORMAT_DEF_2(static_cast<uint64_t>(Core::SizedTypeFlagBits::eUInt32), static_cast<uint64_t>(Core::SizedTypeFlagBits::eUInt32)),
+				eRGB32UI      = static_cast<uint64_t>(GLBaseFormat::eBaseIntegerRGB) | RTLIB_EXT_GL_GL_FORMAT_DEF_3(static_cast<uint64_t>(Core::SizedTypeFlagBits::eUInt32), static_cast<uint64_t>(Core::SizedTypeFlagBits::eUInt32), static_cast<uint64_t>(Core::SizedTypeFlagBits::eUInt32)),
+				eRGBA32UI     = static_cast<uint64_t>(GLBaseFormat::eBaseIntegerRGBA)| RTLIB_EXT_GL_GL_FORMAT_DEF_4(static_cast<uint64_t>(Core::SizedTypeFlagBits::eUInt32), static_cast<uint64_t>(Core::SizedTypeFlagBits::eUInt32), static_cast<uint64_t>(Core::SizedTypeFlagBits::eUInt32), static_cast<uint64_t>(Core::SizedTypeFlagBits::eUInt32)),
+				eR32I      = static_cast<uint64_t>(GLBaseFormat::eBaseIntegerRed) | RTLIB_EXT_GL_GL_FORMAT_DEF_1(static_cast<uint64_t>(Core::SizedTypeFlagBits::eInt32)),
+				eRG32I     = static_cast<uint64_t>(GLBaseFormat::eBaseIntegerRG)  | RTLIB_EXT_GL_GL_FORMAT_DEF_2(static_cast<uint64_t>(Core::SizedTypeFlagBits::eInt32) , static_cast<uint64_t>(Core::SizedTypeFlagBits::eInt32)),
+				eRGB32I    = static_cast<uint64_t>(GLBaseFormat::eBaseIntegerRGB) | RTLIB_EXT_GL_GL_FORMAT_DEF_3(static_cast<uint64_t>(Core::SizedTypeFlagBits::eInt32) , static_cast<uint64_t>(Core::SizedTypeFlagBits::eInt32), static_cast<uint64_t>(Core::SizedTypeFlagBits::eInt32)),
+				eRGBA32I   = static_cast<uint64_t>(GLBaseFormat::eBaseIntegerRGBA)| RTLIB_EXT_GL_GL_FORMAT_DEF_4(static_cast<uint64_t>(Core::SizedTypeFlagBits::eInt32) , static_cast<uint64_t>(Core::SizedTypeFlagBits::eInt32), static_cast<uint64_t>(Core::SizedTypeFlagBits::eInt32) , static_cast<uint64_t>(Core::SizedTypeFlagBits::eInt32)),
 				// Depth
-				eDepth16 = eBaseDepth | RTLIB_EXT_GL_GL_FORMAT_DEF_1(16),
-				eDepth24 = eBaseDepth | RTLIB_EXT_GL_GL_FORMAT_DEF_1(24),
-				eDepth32F = eBaseDepth | RTLIB_EXT_GL_GL_FORMAT_DEF_1(32 | eFloat),
+				eDepth16  = static_cast<uint64_t>(GLBaseFormat::eBaseDepth) | RTLIB_EXT_GL_GL_FORMAT_DEF_1(16),
+				eDepth24  = static_cast<uint64_t>(GLBaseFormat::eBaseDepth) | RTLIB_EXT_GL_GL_FORMAT_DEF_1(24),
+				eDepth32F = static_cast<uint64_t>(GLBaseFormat::eBaseDepth) | RTLIB_EXT_GL_GL_FORMAT_DEF_1(static_cast<uint64_t>(Core::SizedTypeFlagBits::eFloat32)),
 				// DepthStencil
-				eDepth24Stencil8 = eBaseDepthStencil | RTLIB_EXT_GL_GL_FORMAT_DEF_2(24, 8),
-				eDepth32FStencil8 = eBaseDepthStencil | RTLIB_EXT_GL_GL_FORMAT_DEF_2(32 | eFloat, 8),
+				eDepth24Stencil8  = static_cast<uint64_t>(GLBaseFormat::eBaseDepthStencil) | RTLIB_EXT_GL_GL_FORMAT_DEF_2(24, 8),
+				eDepth32FStencil8 = static_cast<uint64_t>(GLBaseFormat::eBaseDepthStencil) | RTLIB_EXT_GL_GL_FORMAT_DEF_2(static_cast<uint64_t>(Core::SizedTypeFlagBits::eFloat32), 8),
 			};
 
 			inline constexpr auto GetGLenumGLFormat(GLenum glEnum) -> GLFormat
@@ -606,9 +639,9 @@ namespace RTLib
 				}
 			}
 
-			inline constexpr auto GetGLFormatBaseFormat(GLFormat format) -> GLFormat
+			inline constexpr auto GetGLFormatBaseFormat(GLFormat format) -> GLBaseFormat
 			{
-				return static_cast<GLFormat>(static_cast<uint64_t>(format) & (static_cast<uint64_t>(GLFormat::eBaseRGBA) | static_cast<uint64_t>(GLFormat::eBaseDepthStencil) | static_cast<uint64_t>(GLFormat::eBaseInteger)));
+				return static_cast<GLBaseFormat>(static_cast<uint64_t>(format) & (static_cast<uint64_t>(GLBaseFormat::eBaseIntegerRGBA) | static_cast<uint64_t>(GLBaseFormat::eBaseDepthStencil)));
 			}
 
 			inline constexpr auto GetGLFormatChannelSize(GLFormat format, uint32_t channel) -> uint32_t

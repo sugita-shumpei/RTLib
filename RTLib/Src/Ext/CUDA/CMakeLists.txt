@@ -10,8 +10,8 @@ set(RTLIB_EXT_CUDA_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/CUDA/CUDATexture.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/CUDATexture.cpp   
 
-    ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/CUDA/CUDAArray.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/Src/CUDAArray.cpp   
+    ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/CUDA/CUDAImage.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Src/CUDAImage.cpp   
 
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/CUDA/CUDAProgram.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/CUDAProgram.cpp  
@@ -27,5 +27,15 @@ add_library(RTLib-Ext-CUDA
     ${RTLIB_EXT_CUDA_SOURCES}
 )
 target_include_directories(RTLib-Ext-CUDA PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Include)
-target_link_libraries(RTLib-Ext-CUDA PUBLIC RTLib-Core CUDA::cudart CUDA::cuda_driver)
+target_link_libraries(RTLib-Ext-CUDA PUBLIC RTLib-Core CUDA::cuda_driver)
 set_target_properties(RTLib-Ext-CUDA PROPERTIES FOLDER RTLib/RTLib/Ext/CUDA)
+
+add_executable(RTLib-Ext-CUDA-Test 
+    ${CMAKE_CURRENT_SOURCE_DIR}/Test/Include/RTLibExtCUDATest.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Test/Src/RTLibExtCUDATest.cpp
+)
+
+target_include_directories(RTLib-Ext-CUDA-Test PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Test/Include)
+target_link_libraries(RTLib-Ext-CUDA-Test PUBLIC RTLib-Ext-CUDA)
+
+set_target_properties(RTLib-Ext-CUDA-Test PROPERTIES FOLDER RTLib/RTLib/Ext/CUDA)
