@@ -34,8 +34,7 @@ namespace RTLib {
 
 				bool CopyImageToMemory(CUDAImage* image, const std::vector<CUDAImageMemoryCopy>& regions);
 
-				bool CopyMemoryToImage(CUDAImage* image, const std::vector<CUDAImageMemoryCopy>& regions);
-			p
+				bool CopyMemoryToImage(CUDAImage* image, const std::vector<CUDAMemoryImageCopy>& regions);
 			private:
 				CUcontext m_CtxCU = nullptr;
 				CUdevice  m_DevCU = 0;

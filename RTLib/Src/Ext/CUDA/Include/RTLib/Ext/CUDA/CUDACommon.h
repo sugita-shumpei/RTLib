@@ -82,6 +82,7 @@ namespace RTLib {
 			using CUDAMemoryBufferCopy = Core::MemoryBufferCopy;
 			using CUDABufferMemoryCopy = Core::BufferMemoryCopy;
 			using CUDAImageMemoryCopy  = Core::ImageMemoryCopy;
+			using CUDAMemoryImageCopy  = Core::MemoryImageCopy;
 			using CUDAImageCopy        = Core::ImageCopy;
 
 			enum class CUDAMemoryFlags {

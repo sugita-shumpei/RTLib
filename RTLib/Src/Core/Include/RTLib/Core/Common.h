@@ -115,20 +115,21 @@ namespace RTLib {
 			Extent3D               imageExtent;
 		};
 
+
 		struct MemoryImageCopy
 		{
 			const void*            srcData;
-			ImageSubresourceLayers srcImageSubresources;
-			Offset3D               srcImageOffset;
-			Extent3D               srcImageExtent;
+			ImageSubresourceLayers dstImageSubresources;
+			Offset3D               dstImageOffset;
+			Extent3D               dstImageExtent;
 		};
 
 		struct ImageMemoryCopy
 		{
-			void*				   srcData;
-			ImageSubresourceLayers dstImageSubresources;
-			Offset3D               dstImageOffset;
-			Extent3D               dstImageExtent;
+			void*				   dstData;
+			ImageSubresourceLayers srcImageSubresources;
+			Offset3D               srcImageOffset;
+			Extent3D               srcImageExtent;
 		};
 
 		struct ImageCopy
