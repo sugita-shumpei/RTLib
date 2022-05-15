@@ -103,82 +103,18 @@ namespace RTLib
 				eUnbinded
 			};
 
-			struct GLExtent2D
-			{
-				uint32_t width;
-				uint32_t height;
-			};
-			struct GLExtent3D
-			{
-				uint32_t width;
-				uint32_t height;
-				uint32_t depth;
-			};
+			using GLExtent2D = Core::Extent2D;
+			using GLExtent3D = Core::Extent3D;
 
-			struct GLOffset2D
-			{
-				int32_t x;
-				int32_t y;
-			};
-			struct GLOffset3D
-			{
-				int32_t x;
-				int32_t y;
-				int32_t z;
-			};
+			using GLOffset2D = Core::Offset2D;
+			using GLOffset3D = Core::Offset3D;
 
-			struct GLImageSubresourceLayers
-			{
-				uint32_t mipLevels;
-				uint32_t baseArrayLayer;
-				uint32_t layerCount;
-			};
-
-			struct GLBufferCopy
-			{
-				size_t srcOffset;
-				size_t dstOffset;
-				size_t size;
-			};
-
-			struct GLMemoryBufferCopy
-			{
-				const void *srcData;
-				size_t dstOffset;
-				size_t size;
-			};
-
-			struct GLBufferMemoryCopy
-			{
-				void *dstData;
-				size_t srcOffset;
-				size_t size;
-			};
-
-			struct GLBufferImageCopy
-			{
-				size_t bufferOffset;
-				size_t bufferSize;
-				GLImageSubresourceLayers imageSubresources;
-				GLOffset3D imageOffset;
-				GLExtent3D imageExtent;
-			};
-
-			struct GLMemoryImageCopy
-			{
-				const void *srcData;
-				GLImageSubresourceLayers srcImageSubresources;
-				GLOffset3D srcImageOffset;
-				GLExtent3D srcImageExtent;
-			};
-
-			struct GLImageMemoryCopy
-			{
-				void *srcData;
-				GLImageSubresourceLayers dstImageSubresources;
-				GLOffset3D dstImageOffset;
-				GLExtent3D dstImageExtent;
-			};
+			using GLImageSubresourceLayers = Core::ImageSubresourceLayers;
+			using GLBufferCopy       = Core::BufferCopy;
+			using GLBufferImageCopy  = Core::BufferImageCopy;
+			using GLMemoryBufferCopy = Core::MemoryBufferCopy;
+			using GLBufferMemoryCopy = Core::BufferMemoryCopy;
+			using GLImageMemoryCopy  = Core::ImageMemoryCopy;
 
 			enum GLBufferUsageFlagBits : unsigned int
 			{

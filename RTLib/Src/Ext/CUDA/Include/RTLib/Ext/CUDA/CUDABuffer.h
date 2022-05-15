@@ -9,6 +9,7 @@ namespace RTLib {
 		{
 			class CUDAContext;
 			class CUDABuffer {
+				friend class CUDAContext;
 			public:
 				static auto Allocate(CUDAContext* ctx, const CUDABufferDesc& desc)->CUDABuffer*;
 				void Destroy()noexcept;
@@ -16,6 +17,10 @@ namespace RTLib {
 				virtual ~CUDABuffer()noexcept;
 			private:
 				CUDABuffer(CUDAContext* ctx, const CUDABufferDesc& desc, CUdeviceptr deviceptr, void* hostptr) noexcept;
+				auto GetSizeInBytes()const noexcept -> size_t { return m_SizeInBytes; }
+			private:
+				auto GetDeviceAddress() noexcept -> CUdeviceptr { return m_Deviceptr; }
+				auto GetHostptr() noexcept -> void* { return m_Hostptr; }
 			private:
 				CUDAContext*    m_Context;
 				size_t          m_SizeInBytes;

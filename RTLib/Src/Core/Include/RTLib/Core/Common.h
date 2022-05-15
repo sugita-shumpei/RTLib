@@ -51,6 +51,94 @@ namespace RTLib {
 								static_cast<uint64_t>(AttachmentCompponent::eStencil),
 
 		};
+
+
+		struct Extent2D
+		{
+			uint32_t width;
+			uint32_t height;
+		};
+		struct Extent3D
+		{
+			uint32_t width;
+			uint32_t height;
+			uint32_t depth;
+		};
+
+		struct Offset2D
+		{
+			int32_t x;
+			int32_t y;
+		};
+		struct Offset3D
+		{
+			int32_t x;
+			int32_t y;
+			int32_t z;
+		};
+
+		struct ImageSubresourceLayers
+		{
+			uint32_t mipLevels;
+			uint32_t baseArrayLayer;
+			uint32_t layerCount;
+		};
+
+		struct BufferCopy
+		{
+			size_t srcOffset;
+			size_t dstOffset;
+			size_t size;
+		};
+
+		struct MemoryBufferCopy
+		{
+			const void* srcData;
+			size_t      dstOffset;
+			size_t      size;
+		};
+
+		struct BufferMemoryCopy
+		{
+			void*  dstData;
+			size_t srcOffset;
+			size_t size;
+		};
+
+		struct BufferImageCopy
+		{
+			size_t				   bufferOffset;
+			size_t                 bufferRowLength;
+			size_t                 bufferImageHeight;
+			ImageSubresourceLayers imageSubresources;
+			Offset3D               imageOffset;
+			Extent3D               imageExtent;
+		};
+
+		struct MemoryImageCopy
+		{
+			const void*            srcData;
+			ImageSubresourceLayers srcImageSubresources;
+			Offset3D               srcImageOffset;
+			Extent3D               srcImageExtent;
+		};
+
+		struct ImageMemoryCopy
+		{
+			void*				   srcData;
+			ImageSubresourceLayers dstImageSubresources;
+			Offset3D               dstImageOffset;
+			Extent3D               dstImageExtent;
+		};
+
+		struct ImageCopy
+		{
+			ImageSubresourceLayers srcImageSubresources;
+			Offset3D               srcImageOffset;
+			ImageSubresourceLayers dstImageSubresources;
+			Offset3D               dstImageOffset;
+			Extent3D               extent;
+		};
 	}
 }
 #endif

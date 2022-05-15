@@ -2,6 +2,7 @@
 #define RTLIB_EXT_CUDA_CUDA_CONTEXT_H
 #include <RTLib/Ext/CUDA/CUDACommon.h>
 #include <RTLib/Core/Context.h>
+#include <vector>
 namespace RTLib {
 	namespace Ext
 	{
@@ -18,7 +19,23 @@ namespace RTLib {
 				virtual void Terminate() override;
 
 				auto CreateBuffer(const CUDABufferDesc& desc)->CUDABuffer*;
-				auto CreateImage (const CUDAImageDesc&  desc)->CUDAImage *;
+				auto CreateImage (const  CUDAImageDesc& desc)->CUDAImage *;
+
+				/*Copy*/
+				bool CopyBuffer(CUDABuffer* srcBuffer, CUDABuffer* dstBuffer, const std::vector<CUDABufferCopy>& regions);
+
+				bool CopyMemoryToBuffer(CUDABuffer* buffer, const std::vector<CUDAMemoryBufferCopy>& regions);
+
+				bool CopyBufferToMemory(CUDABuffer* buffer, const std::vector<CUDABufferMemoryCopy>& regions);
+
+				bool CopyImageToBuffer(CUDAImage * srcImage, CUDABuffer* dstBuffer, const std::vector<CUDABufferImageCopy>& regions);
+
+				bool CopyBufferToImage(CUDABuffer* srcBuffer,CUDAImage* dstImage, const std::vector<CUDABufferImageCopy>& regions);
+
+				bool CopyImageToMemory(CUDAImage* image, const std::vector<CUDAImageMemoryCopy>& regions);
+
+				bool CopyMemoryToImage(CUDAImage* image, const std::vector<CUDAImageMemoryCopy>& regions);
+			p
 			private:
 				CUcontext m_CtxCU = nullptr;
 				CUdevice  m_DevCU = 0;
