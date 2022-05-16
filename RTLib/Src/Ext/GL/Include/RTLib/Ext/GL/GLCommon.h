@@ -377,7 +377,7 @@ namespace RTLib
 				eUndefined = 0,
 				eSRGB  = static_cast<uint64_t>(GLBaseFormat::eBaseRGB) | static_cast<uint64_t>(GLAttachmentComponentExt::eSrgbNonlinear),
 				eSRGBA = static_cast<uint64_t>(GLBaseFormat::eBaseRGBA)| static_cast<uint64_t>(GLAttachmentComponentExt::eSrgbNonlinear),
-
+				
 				eCompressedRed   = static_cast<uint64_t>(GLBaseFormat::eBaseRed)  | static_cast<uint64_t>(GLAttachmentComponentExt::eCompressed),
 				eCompressedRG    = static_cast<uint64_t>(GLBaseFormat::eBaseRG)   | static_cast<uint64_t>(GLAttachmentComponentExt::eCompressed),
 				eCompressedRGB   = static_cast<uint64_t>(GLBaseFormat::eBaseRGB)  | static_cast<uint64_t>(GLAttachmentComponentExt::eCompressed),

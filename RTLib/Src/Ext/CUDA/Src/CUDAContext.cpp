@@ -1,6 +1,7 @@
 #include <RTLib/Ext/CUDA/CUDAContext.h>
 #include <RTLib/Ext/CUDA/CUDABuffer.h>
 #include <RTLib/Ext/CUDA/CUDAImage.h>
+#include <RTLib/Ext/CUDA/CUDATexture.h>
 #include <RTLib/Core/Context.h>
 #include <iostream>
 RTLib::Ext::CUDA::CUDAContext::~CUDAContext() noexcept
@@ -61,6 +62,11 @@ auto RTLib::Ext::CUDA::CUDAContext::CreateBuffer(const CUDABufferDesc& desc) -> 
 auto RTLib::Ext::CUDA::CUDAContext::CreateImage(const CUDAImageDesc& desc) -> CUDAImage*
 {
     return CUDAImage::Allocate(this,desc);
+}
+
+auto RTLib::Ext::CUDA::CUDAContext::CreateTexture(const CUDATextureImageDesc& desc) -> CUDATexture*
+{
+    return CUDATexture::Allocate(this, desc);
 }
 
 bool RTLib::Ext::CUDA::CUDAContext::CopyBuffer(CUDABuffer* srcBuffer, CUDABuffer* dstBuffer, const std::vector<CUDABufferCopy>& regions)

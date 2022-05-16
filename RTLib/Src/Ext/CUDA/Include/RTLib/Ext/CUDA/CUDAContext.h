@@ -8,8 +8,9 @@ namespace RTLib {
 	{
 		namespace CUDA
 		{
-			class CUDABuffer;
-			class CUDAImage;
+			class CUDABuffer ;
+			class CUDAImage  ;
+			class CUDATexture;
 			class CUDAContext : public RTLib::Core::Context
 			{
 			public:
@@ -18,8 +19,9 @@ namespace RTLib {
 				virtual bool Initialize() override;
 				virtual void Terminate() override;
 
-				auto CreateBuffer(const CUDABufferDesc& desc)->CUDABuffer*;
-				auto CreateImage (const  CUDAImageDesc& desc)->CUDAImage *;
+				auto CreateBuffer (const CUDABufferDesc      & desc)->CUDABuffer *;
+				auto CreateImage  (const CUDAImageDesc       & desc)->CUDAImage  *;
+				auto CreateTexture(const CUDATextureImageDesc& desc)->CUDATexture*;
 
 				/*Copy*/
 				bool CopyBuffer(CUDABuffer* srcBuffer, CUDABuffer* dstBuffer, const std::vector<CUDABufferCopy>& regions);

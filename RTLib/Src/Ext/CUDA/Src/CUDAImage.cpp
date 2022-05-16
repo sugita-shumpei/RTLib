@@ -78,8 +78,8 @@ void RTLib::Ext::CUDA::CUDAImage::Destroy() noexcept
 	m_Layers	     = 0;
 	m_Levels         = 0;
 	m_Format         = CUDAImageDataType::eUndefined;
-	m_ImageType           = CUDAImageType::e1D;
-	m_Channels    = 0;
+	m_ImageType      = CUDAImageType::e1D;
+	m_Channels       = 0;
 	m_Flags          = 0;
 	m_Arrays         = {};
 	m_ArrayMipmapped = nullptr;

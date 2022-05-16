@@ -1,5 +1,9 @@
 #ifndef RTLIB_CORE_COMMON_H
 #define RTLIB_CORE_COMMON_H
+#define RTLIB_CORE_CORE_FORMAT_DEF_1(VAL1) ((uint64_t)VAL1)
+#define RTLIB_CORE_CORE_FORMAT_DEF_2(VAL1, VAL2) ((uint64_t)VAL1) | (((uint64_t)VAL2) << 9)
+#define RTLIB_CORE_CORE_FORMAT_DEF_3(VAL1, VAL2, VAL3) ((uint64_t)VAL1) | (((uint64_t)VAL2) << 9) | (((uint64_t)VAL3) << 18)
+#define RTLIB_CORE_CORE_FORMAT_DEF_4(VAL1, VAL2, VAL3, VAL4) ((uint64_t)VAL1) | (((uint64_t)VAL2) << 9) | (((uint64_t)VAL3) << 18) | (((uint64_t)VAL4) << 27)
 #include <cstdint>
 namespace RTLib {
 	namespace Core {
@@ -22,6 +26,38 @@ namespace RTLib {
 			eUInt32    = static_cast<uint64_t>(BaseTypeFlagBits::eUnsigned)|32,
 			eFloat16   = static_cast<uint64_t>(BaseTypeFlagBits::eFloat)   |16,
 			eFloat32   = static_cast<uint64_t>(BaseTypeFlagBits::eFloat)   |32,
+			eInt8X1    = RTLIB_CORE_CORE_FORMAT_DEF_1(eInt8),
+			eInt8X2    = RTLIB_CORE_CORE_FORMAT_DEF_2(eInt8,eInt8),
+			eInt8X3    = RTLIB_CORE_CORE_FORMAT_DEF_3(eInt8,eInt8,eInt8),
+			eInt8X4    = RTLIB_CORE_CORE_FORMAT_DEF_4(eInt8,eInt8,eInt8,eInt8),
+			eUInt8X1   = RTLIB_CORE_CORE_FORMAT_DEF_1(eUInt8),
+			eUInt8X2   = RTLIB_CORE_CORE_FORMAT_DEF_2(eUInt8, eUInt8),
+			eUInt8X3   = RTLIB_CORE_CORE_FORMAT_DEF_3(eUInt8, eUInt8, eUInt8),
+			eUInt8X4   = RTLIB_CORE_CORE_FORMAT_DEF_4(eUInt8, eUInt8, eUInt8, eUInt8),
+			eInt16X1   = RTLIB_CORE_CORE_FORMAT_DEF_1(eInt16),
+			eInt16X2   = RTLIB_CORE_CORE_FORMAT_DEF_2(eInt16,eInt16),
+			eInt16X3   = RTLIB_CORE_CORE_FORMAT_DEF_3(eInt16,eInt16,eInt16),
+			eInt16X4   = RTLIB_CORE_CORE_FORMAT_DEF_4(eInt16,eInt16,eInt16,eInt16),
+			eUInt16X1  = RTLIB_CORE_CORE_FORMAT_DEF_1(eUInt16),
+			eUInt16X2  = RTLIB_CORE_CORE_FORMAT_DEF_2(eUInt16, eUInt16),
+			eUInt16X3  = RTLIB_CORE_CORE_FORMAT_DEF_3(eUInt16, eUInt16, eUInt16),
+			eUInt16X4  = RTLIB_CORE_CORE_FORMAT_DEF_4(eUInt16, eUInt16, eUInt16, eUInt16),
+			eInt32X1   = RTLIB_CORE_CORE_FORMAT_DEF_1(eInt32),
+			eInt32X2   = RTLIB_CORE_CORE_FORMAT_DEF_2(eInt32,eInt32),
+			eInt32X3   = RTLIB_CORE_CORE_FORMAT_DEF_3(eInt32,eInt32,eInt32),
+			eInt32X4   = RTLIB_CORE_CORE_FORMAT_DEF_4(eInt32,eInt32,eInt32,eInt32),
+			eUInt32X1  = RTLIB_CORE_CORE_FORMAT_DEF_1(eUInt32),
+			eUInt32X2  = RTLIB_CORE_CORE_FORMAT_DEF_2(eUInt32, eUInt32),
+			eUInt32X3  = RTLIB_CORE_CORE_FORMAT_DEF_3(eUInt32, eUInt32, eUInt32),
+			eUInt32X4  = RTLIB_CORE_CORE_FORMAT_DEF_4(eUInt32, eUInt32, eUInt32, eUInt32),
+			eFloat16X1 = RTLIB_CORE_CORE_FORMAT_DEF_1(eFloat16),
+			eFloat16X2 = RTLIB_CORE_CORE_FORMAT_DEF_2(eFloat16, eFloat16),
+			eFloat16X3 = RTLIB_CORE_CORE_FORMAT_DEF_3(eFloat16, eFloat16, eFloat16),
+			eFloat16X4 = RTLIB_CORE_CORE_FORMAT_DEF_4(eFloat16, eFloat16, eFloat16, eFloat16),
+			eFloat32X1 = RTLIB_CORE_CORE_FORMAT_DEF_1(eFloat32),
+			eFloat32X2 = RTLIB_CORE_CORE_FORMAT_DEF_2(eFloat32, eFloat32),
+			eFloat32X3 = RTLIB_CORE_CORE_FORMAT_DEF_3(eFloat32, eFloat32, eFloat32),
+			eFloat32X4 = RTLIB_CORE_CORE_FORMAT_DEF_4(eFloat32, eFloat32, eFloat32, eFloat32),
 		};
 		enum class AttachmentCompponent :uint64_t
 		{
@@ -49,9 +85,38 @@ namespace RTLib {
 			eBaseStencil      = static_cast<uint64_t>(AttachmentCompponent::eStencil),
 			eBaseDepthStencil = static_cast<uint64_t>(AttachmentCompponent::eDepth)|
 								static_cast<uint64_t>(AttachmentCompponent::eStencil),
-
+		};
+		enum class FilterMode
+		{
+			eNearest,
+			eLinear,
+		};
+		enum class SamplerMipmapMode
+		{
+			eNearest,
+			eLinear,
 		};
 
+		enum class SamplerAddressMode
+		{
+			eRepeat,
+			eMirroredRepeat,
+			eClampToEdge,
+			eClampToBorder,
+			eMirrorClampToEdge,
+		};
+
+		enum class CompareOp
+		{
+			eNever = 0,
+			eLess  = 1,
+			eEqual = 2,
+			eLessOrEqual = 3,
+			eGreater  = 4,
+			eNotEqual = 5,
+			eGreaterOrEqual = 6,
+			eAlways = 7,
+		};
 
 		struct Extent2D
 		{
@@ -140,6 +205,29 @@ namespace RTLib {
 			Offset3D               dstImageOffset;
 			Extent3D               extent;
 		};
+
+		struct SamplerDesc
+		{
+			FilterMode              magFilter;
+			FilterMode              minFilter;
+			SamplerMipmapMode       mipmapMode;
+		    SamplerAddressMode      addressModeU;
+			SamplerAddressMode      addressModeV;
+			SamplerAddressMode      addressModeW;
+			float                   mipLodBias;
+			bool                    anisotropyEnable;
+			float                   maxAnisotropy;
+			bool                    compareEnable;
+			CompareOp               compareOp;
+			float                   minLod;
+			float                   maxLod;
+			float                   borderColor[4];
+			bool                    unnormalizedCoordinates;
+		};
 	}
 }
+#undef RTLIB_CORE_CORE_FORMAT_DEF_1
+#undef RTLIB_CORE_CORE_FORMAT_DEF_2
+#undef RTLIB_CORE_CORE_FORMAT_DEF_3
+#undef RTLIB_CORE_CORE_FORMAT_DEF_4
 #endif

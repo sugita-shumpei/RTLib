@@ -1,6 +1,7 @@
 #include <RTLib/Ext/CUDA/CUDAContext.h>
 #include <RTLib/Ext/CUDA/CUDABuffer.h>
 #include <RTLib/Ext/CUDA/CUDAImage.h>
+#include <RTLib/Ext/CUDA/CUDATexture.h>
 #include <memory>
 #include <cassert>
 #include <iostream>
@@ -79,6 +80,35 @@ int main(int argc, const char* argv)
 			Show(dstData1);
 			Show(dstData2);
 		}
+		auto texDesc = RTLib::Ext::CUDA::CUDATextureImageDesc();
+		{
+			texDesc.image                       = img.get();
+			texDesc.view.format                 = RTLib::Ext::CUDA::CUDAResourceViewFormat::eFloat32X1;
+			texDesc.view.width                  = 4;
+			texDesc.view.height                 = 4;
+			texDesc.view.depth                  = 0;
+			texDesc.view.baseLevel              = 0;
+			texDesc.view.numLevels              = 1;
+			texDesc.view.baseLayer              = 0;
+			texDesc.view.numLayers              = 1;
+			texDesc.sampler.addressMode[0]      = RTLib::Ext::CUDA::CUDATextureAddressMode::eClamp;
+			texDesc.sampler.addressMode[1]      = RTLib::Ext::CUDA::CUDATextureAddressMode::eClamp;
+			texDesc.sampler.addressMode[2]      = RTLib::Ext::CUDA::CUDATextureAddressMode::eClamp;
+			texDesc.sampler.borderColor[0]      = 0.0f;
+			texDesc.sampler.borderColor[1]      = 0.0f;
+			texDesc.sampler.borderColor[2]      = 0.0f;
+			texDesc.sampler.borderColor[3]      = 0.0f;
+			texDesc.sampler.filterMode          = RTLib::Ext::CUDA::CUDATextureFilterMode::eLinear;
+			texDesc.sampler.mipmapFilterMode    = RTLib::Ext::CUDA::CUDATextureFilterMode::eLinear;
+			texDesc.sampler.mipmapLevelBias     = 0.0f;
+			texDesc.sampler.maxMipmapLevelClamp = 0.0f;
+			texDesc.sampler.minMipmapLevelClamp = 0.0f;
+			texDesc.sampler.maxAnisotropy       = 0;
+			texDesc.sampler.flags               = 0;
+		}
+		auto tex = std::unique_ptr<RTLib::Ext::CUDA::CUDATexture>(ctx.CreateTexture(texDesc));
+
+		 tex->Destroy();
 		bff1->Destroy();
 		bff2->Destroy();
 		img->Destroy();
