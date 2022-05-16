@@ -26,21 +26,32 @@ int main(int argc, const char* argv)
 		}
 		auto bff1 = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(ctx.CreateBuffer(bffDesc));
 		auto bff2 = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(ctx.CreateBuffer(bffDesc));
-		auto imgDesc = RTLib::Ext::CUDA::CUDAImageDesc();
+		auto imgDesc0 = RTLib::Ext::CUDA::CUDAImageDesc();
 		{
-			imgDesc.imageType= RTLib::Ext::CUDA::CUDAImageType::e2D;
-			imgDesc.width    = 16;
-			imgDesc.height   = 16;
-			imgDesc.layers   = 4;
-			imgDesc.levels   = 4;
-			imgDesc.format   = RTLib::Ext::CUDA::CUDAImageDataType::eFloat32;
-			imgDesc.channels = 1;
+			imgDesc0.imageType= RTLib::Ext::CUDA::CUDAImageType::e2D;
+			imgDesc0.width    = 16;
+			imgDesc0.height   = 16;
+			imgDesc0.layers   = 4;
+			imgDesc0.levels   = 4;
+			imgDesc0.format   = RTLib::Ext::CUDA::CUDAImageDataType::eFloat32;
+			imgDesc0.channels = 1;
 		}
-		auto img     = std::unique_ptr<RTLib::Ext::CUDA::CUDAImage>(ctx.CreateImage(imgDesc));
-		auto mipImg0 = std::unique_ptr<RTLib::Ext::CUDA::CUDAImage>(img->GetMipImage(0));
-		auto mipImg1 = std::unique_ptr<RTLib::Ext::CUDA::CUDAImage>(img->GetMipImage(1));
-		auto mipImg2 = std::unique_ptr<RTLib::Ext::CUDA::CUDAImage>(img->GetMipImage(2));
-		auto mipImg3 = std::unique_ptr<RTLib::Ext::CUDA::CUDAImage>(img->GetMipImage(3));
+		auto imgDesc1 = RTLib::Ext::CUDA::CUDAImageDesc();
+		{
+			imgDesc1.imageType = RTLib::Ext::CUDA::CUDAImageType::e2D;
+			imgDesc1.width     = 16;
+			imgDesc1.height    = 16;
+			imgDesc1.layers    = 2;
+			imgDesc1.levels    = 1;
+			imgDesc1.format    = RTLib::Ext::CUDA::CUDAImageDataType::eUInt16;
+			imgDesc1.channels  = 2;
+		}
+		auto img0    = std::unique_ptr<RTLib::Ext::CUDA::CUDAImage>(ctx.CreateImage(imgDesc0));
+		auto mipImg0 = std::unique_ptr<RTLib::Ext::CUDA::CUDAImage>(img0->GetMipImage(0));
+		auto mipImg1 = std::unique_ptr<RTLib::Ext::CUDA::CUDAImage>(img0->GetMipImage(1));
+		auto mipImg2 = std::unique_ptr<RTLib::Ext::CUDA::CUDAImage>(img0->GetMipImage(2));
+		auto mipImg3 = std::unique_ptr<RTLib::Ext::CUDA::CUDAImage>(img0->GetMipImage(3));
+		auto img1    = std::unique_ptr<RTLib::Ext::CUDA::CUDAImage>(ctx.CreateImage(imgDesc1));
 		{
 			std::vector<float> srcData0(16 * 16);
 			for (auto i = 0; i < srcData0.size(); ++i) {
@@ -67,14 +78,14 @@ int main(int argc, const char* argv)
 			assert(ctx.CopyMemoryToBuffer(bff1.get(), { {srcData0.data(),0,sizeof(srcData0[0]) * std::size(srcData0)}}));
 			assert(ctx.CopyBuffer(bff1.get(), bff2.get(), { {0,0,16 *sizeof(float)}}));
 			assert(ctx.CopyBufferToMemory(bff2.get(), { {dstData0.data(),0,sizeof(dstData0[0]) * std::size(dstData0)} }));
-			assert(ctx.CopyMemoryToImage(  img.get(), { {srcData0.data() ,{0,0,1},{0,0,0},{16,16,0} } }));
-			assert(ctx.CopyImageToMemory(  img.get(), { {dstData0.data() ,{0,0,1},{0,0,0},{16,16,0} } }));
-			assert(ctx.CopyMemoryToImage(  img.get(), { {srcData1.data() ,{0,1,1},{0,0,0},{16,16,0} } }));
-			assert(ctx.CopyImageToMemory(  img.get(), { {dstData1.data() ,{0,1,1},{0,0,0},{16,16,0} } }));
-			assert(ctx.CopyMemoryToImage(  img.get(), { {srcData2.data() ,{0,2,1},{0,0,0},{16,16,0} } }));
-			assert(ctx.CopyImageToMemory(  img.get(), { {dstData2.data() ,{0,2,1},{0,0,0},{16,16,0} } }));
-			assert(ctx.CopyMemoryToImage(  img.get(), { {srcData3.data() ,{0,3,1},{0,0,0},{16,16,0} } }));
-			assert(ctx.CopyImageToMemory(  img.get(), { {dstData3.data() ,{0,3,1},{0,0,0},{16,16,0} } }));
+			assert(ctx.CopyMemoryToImage(  img0.get(), { {srcData0.data() ,{0,0,1},{0,0,0},{16,16,0} } }));
+			assert(ctx.CopyImageToMemory(  img0.get(), { {dstData0.data() ,{0,0,1},{0,0,0},{16,16,0} } }));
+			assert(ctx.CopyMemoryToImage(  img0.get(), { {srcData1.data() ,{0,1,1},{0,0,0},{16,16,0} } }));
+			assert(ctx.CopyImageToMemory(  img0.get(), { {dstData1.data() ,{0,1,1},{0,0,0},{16,16,0} } }));
+			assert(ctx.CopyMemoryToImage(  img0.get(), { {srcData2.data() ,{0,2,1},{0,0,0},{16,16,0} } }));
+			assert(ctx.CopyImageToMemory(  img0.get(), { {dstData2.data() ,{0,2,1},{0,0,0},{16,16,0} } }));
+			assert(ctx.CopyMemoryToImage(  img0.get(), { {srcData3.data() ,{0,3,1},{0,0,0},{16,16,0} } }));
+			assert(ctx.CopyImageToMemory(  img0.get(), { {dstData3.data() ,{0,3,1},{0,0,0},{16,16,0} } }));
 
 			Show(dstData0);
 			Show(dstData1);
@@ -82,10 +93,10 @@ int main(int argc, const char* argv)
 		}
 		auto texDesc = RTLib::Ext::CUDA::CUDATextureImageDesc();
 		{
-			texDesc.image                       = img.get();
-			texDesc.view.format                 = RTLib::Ext::CUDA::CUDAResourceViewFormat::eFloat32X1;
-			texDesc.view.width                  = 4;
-			texDesc.view.height                 = 4;
+			texDesc.image                       = img1.get();
+			texDesc.view.format                 = RTLib::Ext::CUDA::CUDAResourceViewFormat::eUnsignedBC1;
+			texDesc.view.width                  = img1->GetWidth()  * 4;
+			texDesc.view.height                 = img1->GetHeight() * 4;
 			texDesc.view.depth                  = 0;
 			texDesc.view.baseLevel              = 0;
 			texDesc.view.numLevels              = 1;
@@ -111,7 +122,8 @@ int main(int argc, const char* argv)
 		 tex->Destroy();
 		bff1->Destroy();
 		bff2->Destroy();
-		img->Destroy();
+		img0->Destroy();
+		img1->Destroy();
 	}
 	ctx.Terminate();
 }

@@ -18,35 +18,25 @@ auto RTLib::Ext::CUDA::CUDATexture::Allocate(CUDAContext* context, const CUDATex
         resDesc.res.mipmap.hMipmappedArray = hMipmapped;
     }
     resDesc.flags = 0;
+
     CUDA_RESOURCE_VIEW_DESC resViewDesc = {};
-    resViewDesc.width  = desc.view.width;
-    resViewDesc.height = desc.view.height;
-    resViewDesc.depth  = desc.view.depth;
-    resViewDesc.format = GetCUDAResourceViewFormatCUResourceViewFormat(desc.view.format);
-    if (numLayers != 0) {
-        resViewDesc.firstLayer = desc.view.baseLayer;
-        resViewDesc.lastLayer  = std::max<size_t>(desc.view.baseLayer + desc.view.numLayers, 1) - 1;
-    }
-    else {
-        resViewDesc.firstLayer = 0;
-        resViewDesc.lastLayer  = 0;
-    }
-    if (numLevels != 0) {
-        resViewDesc.firstMipmapLevel = desc.view.baseLevel;
-        resViewDesc.lastMipmapLevel  = std::max<size_t>(desc.view.baseLevel + desc.view.numLevels, 1) - 1;
-    }
-    else {
-        resViewDesc.firstMipmapLevel = 0;
-        resViewDesc.lastMipmapLevel  = 0;
-    }
-    CUDA_TEXTURE_DESC texDesc = {};
-    texDesc.addressMode[0] = GetCUDATextureAddressModeCUAddressMode(desc.sampler.addressMode[0]);
-    texDesc.addressMode[1] = GetCUDATextureAddressModeCUAddressMode(desc.sampler.addressMode[1]);
-    texDesc.addressMode[2] = GetCUDATextureAddressModeCUAddressMode(desc.sampler.addressMode[2]);
-    texDesc.borderColor[0] = desc.sampler.borderColor[0];
-    texDesc.borderColor[1] = desc.sampler.borderColor[1];
-    texDesc.borderColor[2] = desc.sampler.borderColor[2];
-    texDesc.borderColor[3] = desc.sampler.borderColor[3];
+    resViewDesc.width                   = desc.view.width;
+    resViewDesc.height                  = desc.view.height;
+    resViewDesc.depth                   = desc.view.depth;
+    resViewDesc.format                  = GetCUDAResourceViewFormatCUResourceViewFormat(desc.view.format);
+    resViewDesc.firstLayer              = desc.view.baseLayer;
+    resViewDesc.lastLayer               = std::max<size_t>(desc.view.baseLayer + desc.view.numLayers, 1) - 1;
+    resViewDesc.firstMipmapLevel        = desc.view.baseLevel;
+    resViewDesc.lastMipmapLevel         = std::max<size_t>(desc.view.baseLevel + desc.view.numLevels, 1) - 1;
+
+    CUDA_TEXTURE_DESC texDesc   = {};
+    texDesc.addressMode[0]      = GetCUDATextureAddressModeCUAddressMode(desc.sampler.addressMode[0]);
+    texDesc.addressMode[1]      = GetCUDATextureAddressModeCUAddressMode(desc.sampler.addressMode[1]);
+    texDesc.addressMode[2]      = GetCUDATextureAddressModeCUAddressMode(desc.sampler.addressMode[2]);
+    texDesc.borderColor[0]      = desc.sampler.borderColor[0];
+    texDesc.borderColor[1]      = desc.sampler.borderColor[1];
+    texDesc.borderColor[2]      = desc.sampler.borderColor[2];
+    texDesc.borderColor[3]      = desc.sampler.borderColor[3];
     texDesc.filterMode          = GetCUDATextureFilterModeCUFilterMode(desc.sampler.filterMode);
     texDesc.mipmapFilterMode    = GetCUDATextureFilterModeCUFilterMode(desc.sampler.mipmapFilterMode);
     texDesc.maxAnisotropy       = desc.sampler.maxAnisotropy;
