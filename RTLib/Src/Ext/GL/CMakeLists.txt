@@ -4,6 +4,12 @@ set(RTLIB_EXT_GL_SOURCES
 
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/GL/GLContext.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/GLContext.cpp
+    
+    ${CMAKE_CURRENT_SOURCE_DIR}/Src/GLContextState.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Src/GLContextState.cpp
+
+    ${CMAKE_CURRENT_SOURCE_DIR}/Src/GLBaseObject.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Src/GLBaseObject.cpp
 
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/GL/GLBuffer.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/GLBuffer.cpp 
@@ -40,10 +46,8 @@ set(RTLIB_EXT_GL_SOURCES
 
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/GL/GLProgramPipeline.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/GLProgramPipeline.cpp  
-
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/GL/Programs/GLGraphicsProgramPipeline.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/GLGraphicsProgramPipeline.cpp   
-
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/GL/Programs/GLComputeProgramPipeline.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/GLComputeProgramPipeline.cpp  
 

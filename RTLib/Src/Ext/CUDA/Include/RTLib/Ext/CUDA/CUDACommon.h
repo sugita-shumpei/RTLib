@@ -69,14 +69,14 @@ namespace RTLib {
 				eLinear,
 				ePitch2D
 			};
-			using CUDAImageSubresourceLayers = Core::ImageSubresourceLayers;
-			using CUDABufferCopy       = Core::BufferCopy;
-			using CUDABufferImageCopy  = Core::BufferImageCopy;
-			using CUDAMemoryBufferCopy = Core::MemoryBufferCopy;
-			using CUDABufferMemoryCopy = Core::BufferMemoryCopy;
-			using CUDAImageMemoryCopy  = Core::ImageMemoryCopy;
-			using CUDAMemoryImageCopy  = Core::MemoryImageCopy;
-			using CUDAImageCopy        = Core::ImageCopy;
+			using	   CUDAImageSubresourceLayers = Core::ImageSubresourceLayers;
+			using      CUDABufferCopy       = Core::BufferCopy;
+			using      CUDABufferImageCopy  = Core::BufferImageCopy;
+			using      CUDAMemoryBufferCopy = Core::MemoryBufferCopy;
+			using      CUDABufferMemoryCopy = Core::BufferMemoryCopy;
+			using      CUDAImageMemoryCopy  = Core::ImageMemoryCopy;
+			using      CUDAMemoryImageCopy  = Core::MemoryImageCopy;
+			using      CUDAImageCopy        = Core::ImageCopy;
 			enum class CUDAMemoryFlags {
 				eDefault,
 				ePageLocked   ,
@@ -108,7 +108,7 @@ namespace RTLib {
 				unsigned int      levels      = 0;
 				unsigned int      layers      = 0;
 				CUDAImageDataType format      = CUDAImageDataType::eUndefined;
-				unsigned int      channels = 1;
+				unsigned int      channels    = 1;
 				CUDAImageFlags    flags       = CUDAImageFlagBitsDefault;
 			};
 			enum class CUDATextureAddressMode
