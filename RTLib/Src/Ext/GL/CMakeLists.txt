@@ -1,36 +1,27 @@
 set(RTLIB_EXT_GL_SOURCES 
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/GL/GLUtility.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/GL/GLCommon.h
+
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/GL/GLContext.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/GLContext.cpp
 
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/GL/GLBuffer.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/GLBuffer.cpp 
+
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/GL/Buffers/GLVertexBuffer.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/GLVertexBuffer.cpp
+
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/GL/Buffers/GLIndexBuffer.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/GLIndexBuffer.cpp
+
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/GL/Buffers/GLUniformBuffer.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/GLUniformBuffer.cpp
+
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/GL/Buffers/GLStorageBuffer.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/GLStorageBuffer.cpp
 
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/GL/GLTexture.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/Src/GLTexture.cpp   
-    ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/GL/Textures/GLTexture1D.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/Src/GLTexture1D.cpp   
-    ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/GL/Textures/GLTexture2D.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/Src/GLTexture2D.cpp   
-    ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/GL/Textures/GLTexture3D.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/Src/GLTexture3D.cpp   
-    ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/GL/Textures/GLTexture1DArray.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/Src/GLTexture1DArray.cpp   
-    ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/GL/Textures/GLTexture2DArray.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/Src/GLTexture2DArray.cpp   
-    ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/GL/Textures/GLTextureCubemap.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/Src/GLTextureCubemap.cpp   
-    ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/GL/Textures/GLTextureCubemapArray.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/Src/GLTextureCubemapArray.cpp   
+    ${CMAKE_CURRENT_SOURCE_DIR}/Src/GLTexture.cpp 
     
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/GL/GLImage.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/GLImage.cpp
@@ -49,8 +40,10 @@ set(RTLIB_EXT_GL_SOURCES
 
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/GL/GLProgramPipeline.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/GLProgramPipeline.cpp  
+
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/GL/Programs/GLGraphicsProgramPipeline.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/GLGraphicsProgramPipeline.cpp   
+
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/GL/Programs/GLComputeProgramPipeline.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/GLComputeProgramPipeline.cpp  
 
@@ -66,19 +59,7 @@ set(RTLIB_EXT_GL_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/GL/GLMesh.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/GLMesh.cpp
 
-    ${CMAKE_CURRENT_SOURCE_DIR}/Src/Internals/GLBindingPointCommon.h
-
-    ${CMAKE_CURRENT_SOURCE_DIR}/Src/Internals/GLBufferBindingPoint.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/Src/Internals/GLBufferBindingPoint.cpp
-
-    ${CMAKE_CURRENT_SOURCE_DIR}/Src/Internals/GLTextureBindingPoint.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/Src/Internals/GLTextureBindingPoint.cpp
-
-    ${CMAKE_CURRENT_SOURCE_DIR}/Src/Internals/GLRenderbufferBindingPoint.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/Src/Internals/GLRenderbufferBindingPoint.cpp
-
-    ${CMAKE_CURRENT_SOURCE_DIR}/Src/Internals/GLFramebufferBindingPoint.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/Src/Internals/GLFramebufferBindingPoint.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Src/GLTypeConversions.h
 )
 add_library(RTLib-Ext-GL 
     ${RTLIB_EXT_GL_SOURCES}

@@ -24,6 +24,11 @@ namespace RTLib {
 
 				virtual auto CreateBuffer(const  GLBufferDesc & desc)-> GLBuffer * = 0;
 				virtual auto CreateTexture(const GLTextureDesc& desc)-> GLTexture* = 0;
+				
+				bool SupportVersion(uint32_t majorVersion, uint32_t minorVersion)const noexcept;
+
+				auto GetMajorVersion()const noexcept -> uint32_t;
+				auto GetMinorVersion()const noexcept -> uint32_t;
 				/*Copy*/
 				bool CopyBuffer(GLBuffer* srcBuffer, GLBuffer* dstBuffer, const std::vector<GLBufferCopy>& regions);
 

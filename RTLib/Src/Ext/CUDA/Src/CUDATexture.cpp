@@ -1,5 +1,6 @@
 #include <RTLib/Ext/CUDA/CUDATexture.h>
 #include <RTLib/Ext/CUDA/CUDAImage.h>
+#include "CUDATypeConversions.h"
 #include <iostream>
 auto RTLib::Ext::CUDA::CUDATexture::Allocate(CUDAContext* context, const CUDATextureImageDesc& desc) -> CUDATexture*
 {

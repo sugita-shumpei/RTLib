@@ -1,4 +1,5 @@
 #include <RTLib/Ext/CUDA/CUDAImage.h>
+#include "CUDATypeConversions.h"
 #include <iostream>
 
 RTLib::Ext::CUDA::CUDAImage::CUDAImage(CUDAContext* ctx, const CUDAImageDesc& desc, CUarray cuArray, bool ownership)noexcept
