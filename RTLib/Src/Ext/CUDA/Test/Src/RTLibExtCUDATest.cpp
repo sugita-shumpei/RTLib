@@ -5,6 +5,7 @@
 #include <RTLib/Ext/CUDA/CUDAModule.h>
 #include <RTLib/Ext/CUDA/CUDAFunction.h>
 #include <RTLib/Ext/CUDA/CUDAStream.h>
+#include <RTLibExtCUDATestConfig.h>
 #include <memory>
 #include <cassert>
 #include <iostream>
@@ -114,6 +115,10 @@ int main(int argc, const char* argv)
 			texDesc.sampler.flags               = 0;
 		}
 		auto tex = std::unique_ptr<RTLib::Ext::CUDA::CUDATexture>(ctx.CreateTexture(texDesc));
+		auto mod = std::unique_ptr<RTLib::Ext::CUDA::CUDAModule>( ctx.LoadModuleFromFile(RTLIB_EXT_CUDA_TEST_CUDA_PATH"/simpleKernel.ptx"));
+		auto fnc = std::unique_ptr<RTLib::Ext::CUDA::CUDAFunction>(mod->LoadFunction("rgbKernel"));
+		fnc->Destory();
+		mod->Destory();
 		stream->Destroy();
 		 tex->Destroy();
 		bff1->Destroy();
