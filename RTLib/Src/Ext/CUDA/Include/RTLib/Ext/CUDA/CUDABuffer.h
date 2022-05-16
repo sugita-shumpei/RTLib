@@ -10,6 +10,7 @@ namespace RTLib {
 			class CUDAContext;
 			class CUDABuffer {
 				friend class CUDAContext;
+				friend class CUDAStream ;
 			public:
 				static auto Allocate(CUDAContext* ctx, const CUDABufferDesc& desc)->CUDABuffer*;
 				void Destroy()noexcept;

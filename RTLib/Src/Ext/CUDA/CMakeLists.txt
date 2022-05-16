@@ -21,6 +21,9 @@ set(RTLIB_EXT_CUDA_SOURCES
 
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/CUDA/CUDAFunction.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/CUDAFunction.cpp 
+
+    ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/CUDA/CUDAStream.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Src/CUDAStream.cpp 
 )
 
 add_library(RTLib-Ext-CUDA 

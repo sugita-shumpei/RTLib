@@ -47,7 +47,8 @@ auto RTLib::Ext::CUDA::CUDATexture::Allocate(CUDAContext* context, const CUDATex
     CUtexObject texObject;
     auto result = CUDA_SUCCESS;
     {
-        result = cuTexObjectCreate(&texObject, &resDesc, &texDesc, &resViewDesc);
+        //result = cuTexObjectCreate(&texObject, &resDesc, &texDesc, &resViewDesc);
+        result = cuTexObjectCreate(&texObject, &resDesc, &texDesc, nullptr);
         if (result != CUDA_SUCCESS) {
             const char* errString = nullptr;
             (void)cuGetErrorString(result, &errString);

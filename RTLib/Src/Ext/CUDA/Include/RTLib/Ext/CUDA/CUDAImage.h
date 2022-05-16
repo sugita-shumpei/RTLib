@@ -11,6 +11,7 @@ namespace RTLib {
 			class CUDAContext;
 			class CUDAImage {
 				friend class CUDAContext;
+				friend class CUDAStream ;
 				friend class CUDATexture;
 			public:
 				static auto Allocate(CUDAContext* ctx, const CUDAImageDesc& desc)->CUDAImage*;

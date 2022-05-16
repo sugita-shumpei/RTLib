@@ -2,6 +2,7 @@
 #define RTLIB_EXT_CUDA_CUDA_COMMON_H
 #include <RTLib/Core/Common.h>
 #include <cuda.h>
+#include <vector>
 namespace RTLib {
 	namespace Ext {
 		namespace CUDA {
@@ -248,7 +249,6 @@ namespace RTLib {
 			using CUDAImageMemoryCopy  = Core::ImageMemoryCopy;
 			using CUDAMemoryImageCopy  = Core::MemoryImageCopy;
 			using CUDAImageCopy        = Core::ImageCopy;
-
 			enum class CUDAMemoryFlags {
 				eDefault,
 				ePageLocked   ,
@@ -351,14 +351,14 @@ namespace RTLib {
 					break;
 				}
 			}
-			enum CUDATextureSamplerFlagBits
+			enum       CUDATextureSamplerFlagBits
 			{
 				CUDATextureFlagBitsReadAsInteger                = CU_TRSF_READ_AS_INTEGER,
 				CUDATextureFlagBitsNormalizedCordinates         = CU_TRSF_NORMALIZED_COORDINATES,
 				CUDATextureFlagBitsDisableTrilinearOptimization = CU_TRSF_DISABLE_TRILINEAR_OPTIMIZATION,
 			};
-			using CUDATextureSamplerFlags = unsigned int;
-			struct CUDATextureSamplerDesc
+			using      CUDATextureSamplerFlags = unsigned int;
+			struct     CUDATextureSamplerDesc
 			{
 				CUDATextureAddressMode  addressMode[3]      = {};
 				float				    borderColor[4]      = {};
@@ -370,7 +370,7 @@ namespace RTLib {
 				float                   mipmapLevelBias     = 0.0f;
 				CUDATextureSamplerFlags flags               = 0;
 			};
-			struct CUDATextureResourceViewDesc
+			struct     CUDATextureResourceViewDesc
 			{
 				CUDAResourceViewFormat format;
 				size_t     		       width;
@@ -381,12 +381,52 @@ namespace RTLib {
 				unsigned int           numLayers;
 				unsigned int           numLevels;
 			};
-			class  CUDAImage;
-			struct CUDATextureImageDesc
+			class      CUDAImage;
+			struct     CUDATextureImageDesc
 			{
 				CUDAImage*                  image;
 				CUDATextureResourceViewDesc view;
 				CUDATextureSamplerDesc      sampler;
+			};
+			enum class CUDAJitOptionFlagBits
+			{
+				CUDAJitOptionFlagBitsMaxRegister				   = CU_JIT_MAX_REGISTERS,
+				CUDAJitOptionFlagBitsThreadPerBlock			       = CU_JIT_THREADS_PER_BLOCK,
+				CUDAJitOptionFlagBitsWallTime					   = CU_JIT_WALL_TIME,
+				CUDAJitOptionFlagBitsLogBuffer				       = CU_JIT_INFO_LOG_BUFFER,
+				CUDAJitOptionFlagBitsLogBufferSizeBytes            = CU_JIT_INFO_LOG_BUFFER_SIZE_BYTES,
+				CUDAJitOptionFlagBitsOptimizationLevel             = CU_JIT_OPTIMIZATION_LEVEL,
+				CUDAJitOptionFlagBitsTargetFromCUContext           = CU_JIT_TARGET_FROM_CUCONTEXT,
+				CUDAJitOptionFlagBitsTarget                        = CU_JIT_TARGET,
+				CUDAJitOptionFlagBitsFallbackStrategy              = CU_JIT_FALLBACK_STRATEGY,
+				CUDAJitOptionFlagBitsGenerateDebugInfo             = CU_JIT_GENERATE_DEBUG_INFO,
+				CUDAJitOptionFlagBitsLogVerbose                    = CU_JIT_LOG_VERBOSE,
+				CUDAJitOptionFlagBitsGenerateLineInfo              = CU_JIT_GENERATE_LINE_INFO,
+				CUDAJitOptionFlagBitsCacheMode                     = CU_JIT_CACHE_MODE,
+				CUDAJitOptionFlagBitsNewSM3XOpt                    = CU_JIT_NEW_SM3X_OPT,
+				CUDAJitOptionFlagBitsFastCompile                   = CU_JIT_FAST_COMPILE,
+				CUDAJitOptionFlagBitsGlobalSymbolNames             = CU_JIT_GLOBAL_SYMBOL_NAMES,
+				CUDAJitOptionFlagBitsGlobalSymbolAddresses         = CU_JIT_GLOBAL_SYMBOL_ADDRESSES,
+				CUDAJitOptionFlagBitsGlobalSymbolCount             = CU_JIT_GLOBAL_SYMBOL_COUNT,
+				CUDAJitOptionFlagBitsNumOptions				       = CU_JIT_NUM_OPTIONS,
+			};
+			struct     CUDAJitOptionValue
+			{
+				CUDAJitOptionFlagBits option;
+				void*                 value;
+			};
+			class      CUDAStream;
+			struct     CUDAKernelLaunchDesc
+			{
+				unsigned int           gridDimX;
+				unsigned int           gridDimY;
+				unsigned int           gridDimZ;
+				unsigned int          blockDimX;
+				unsigned int          blockDimY;
+				unsigned int          blockDimZ;
+				unsigned int     sharedMemBytes;
+				std::vector<void*> kernelParams;
+				CUDAStream*              stream;
 			};
 		}
 	}

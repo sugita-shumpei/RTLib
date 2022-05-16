@@ -2,6 +2,9 @@
 #include <RTLib/Ext/CUDA/CUDABuffer.h>
 #include <RTLib/Ext/CUDA/CUDAImage.h>
 #include <RTLib/Ext/CUDA/CUDATexture.h>
+#include <RTLib/Ext/CUDA/CUDAModule.h>
+#include <RTLib/Ext/CUDA/CUDAFunction.h>
+#include <RTLib/Ext/CUDA/CUDAStream.h>
 #include <memory>
 #include <cassert>
 #include <iostream>
@@ -18,14 +21,15 @@ int main(int argc, const char* argv)
 {
 	auto ctx = RTLib::Ext::CUDA::CUDAContext();
 	ctx.Initialize();
-	{
+	{;
+		auto stream  = std::unique_ptr<RTLib::Ext::CUDA::CUDAStream>(ctx.CreateStream());
 		auto bffDesc = RTLib::Ext::CUDA::CUDABufferDesc();
 		{
 			bffDesc.flags       = RTLib::Ext::CUDA::CUDAMemoryFlags::ePageLocked;
 			bffDesc.sizeInBytes = 16 * 16 * 4;
 		}
-		auto bff1 = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(ctx.CreateBuffer(bffDesc));
-		auto bff2 = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(ctx.CreateBuffer(bffDesc));
+		auto bff1     = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(ctx.CreateBuffer(bffDesc));
+		auto bff2     = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(ctx.CreateBuffer(bffDesc));
 		auto imgDesc0 = RTLib::Ext::CUDA::CUDAImageDesc();
 		{
 			imgDesc0.imageType= RTLib::Ext::CUDA::CUDAImageType::e2D;
@@ -75,17 +79,17 @@ int main(int argc, const char* argv)
 			std::vector<float> dstData2(16 * 16);
 			std::vector<float> dstData3(16 * 16);
 
-			assert(ctx.CopyMemoryToBuffer(bff1.get(), { {srcData0.data(),0,sizeof(srcData0[0]) * std::size(srcData0)}}));
-			assert(ctx.CopyBuffer(bff1.get(), bff2.get(), { {0,0,16 *sizeof(float)}}));
-			assert(ctx.CopyBufferToMemory(bff2.get(), { {dstData0.data(),0,sizeof(dstData0[0]) * std::size(dstData0)} }));
-			assert(ctx.CopyMemoryToImage(  img0.get(), { {srcData0.data() ,{0,0,1},{0,0,0},{16,16,0} } }));
-			assert(ctx.CopyImageToMemory(  img0.get(), { {dstData0.data() ,{0,0,1},{0,0,0},{16,16,0} } }));
-			assert(ctx.CopyMemoryToImage(  img0.get(), { {srcData1.data() ,{0,1,1},{0,0,0},{16,16,0} } }));
-			assert(ctx.CopyImageToMemory(  img0.get(), { {dstData1.data() ,{0,1,1},{0,0,0},{16,16,0} } }));
-			assert(ctx.CopyMemoryToImage(  img0.get(), { {srcData2.data() ,{0,2,1},{0,0,0},{16,16,0} } }));
-			assert(ctx.CopyImageToMemory(  img0.get(), { {dstData2.data() ,{0,2,1},{0,0,0},{16,16,0} } }));
-			assert(ctx.CopyMemoryToImage(  img0.get(), { {srcData3.data() ,{0,3,1},{0,0,0},{16,16,0} } }));
-			assert(ctx.CopyImageToMemory(  img0.get(), { {dstData3.data() ,{0,3,1},{0,0,0},{16,16,0} } }));
+			assert(stream->CopyMemoryToBuffer( bff1.get(), { {srcData0.data(),0,sizeof(srcData0[0]) * std::size(srcData0)}}));
+			assert(stream->CopyBuffer(         bff1.get(), bff2.get(), { {0,0,16 *sizeof(float)}}));
+			assert(stream->CopyBufferToMemory( bff2.get(), { {dstData0.data(),0,sizeof(dstData0[0]) * std::size(dstData0)} }));
+			assert(stream->CopyMemoryToImage(  img0.get(), { {srcData0.data() ,{0,0,1},{0,0,0},{16,16,0} } }));
+			assert(stream->CopyImageToMemory(  img0.get(), { {dstData0.data() ,{0,0,1},{0,0,0},{16,16,0} } }));
+			assert(stream->CopyMemoryToImage(  img0.get(), { {srcData1.data() ,{0,1,1},{0,0,0},{16,16,0} } }));
+			assert(stream->CopyImageToMemory(  img0.get(), { {dstData1.data() ,{0,1,1},{0,0,0},{16,16,0} } }));
+			assert(stream->CopyMemoryToImage(  img0.get(), { {srcData2.data() ,{0,2,1},{0,0,0},{16,16,0} } }));
+			assert(stream->CopyImageToMemory(  img0.get(), { {dstData2.data() ,{0,2,1},{0,0,0},{16,16,0} } }));
+			assert(stream->CopyMemoryToImage(  img0.get(), { {srcData3.data() ,{0,3,1},{0,0,0},{16,16,0} } }));
+			assert(stream->CopyImageToMemory(  img0.get(), { {dstData3.data() ,{0,3,1},{0,0,0},{16,16,0} } }));
 
 			Show(dstData0);
 			Show(dstData1);
@@ -94,14 +98,6 @@ int main(int argc, const char* argv)
 		auto texDesc = RTLib::Ext::CUDA::CUDATextureImageDesc();
 		{
 			texDesc.image                       = img1.get();
-			texDesc.view.format                 = RTLib::Ext::CUDA::CUDAResourceViewFormat::eUnsignedBC1;
-			texDesc.view.width                  = img1->GetWidth()  * 4;
-			texDesc.view.height                 = img1->GetHeight() * 4;
-			texDesc.view.depth                  = 0;
-			texDesc.view.baseLevel              = 0;
-			texDesc.view.numLevels              = 1;
-			texDesc.view.baseLayer              = 0;
-			texDesc.view.numLayers              = 1;
 			texDesc.sampler.addressMode[0]      = RTLib::Ext::CUDA::CUDATextureAddressMode::eClamp;
 			texDesc.sampler.addressMode[1]      = RTLib::Ext::CUDA::CUDATextureAddressMode::eClamp;
 			texDesc.sampler.addressMode[2]      = RTLib::Ext::CUDA::CUDATextureAddressMode::eClamp;
@@ -118,7 +114,7 @@ int main(int argc, const char* argv)
 			texDesc.sampler.flags               = 0;
 		}
 		auto tex = std::unique_ptr<RTLib::Ext::CUDA::CUDATexture>(ctx.CreateTexture(texDesc));
-
+		stream->Destroy();
 		 tex->Destroy();
 		bff1->Destroy();
 		bff2->Destroy();
