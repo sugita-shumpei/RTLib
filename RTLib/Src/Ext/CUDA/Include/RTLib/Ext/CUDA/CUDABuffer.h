@@ -16,11 +16,11 @@ namespace RTLib {
 				void Destroy()noexcept;
 
 				virtual ~CUDABuffer()noexcept;
-			private:
-				CUDABuffer(CUDAContext* ctx, const CUDABufferDesc& desc, CUdeviceptr deviceptr, void* hostptr) noexcept;
+				auto GetDeviceAddress() noexcept -> CUdeviceptr { return m_Deviceptr; }
 				auto GetSizeInBytes()const noexcept -> size_t { return m_SizeInBytes; }
 			private:
-				auto GetDeviceAddress() noexcept -> CUdeviceptr { return m_Deviceptr; }
+				CUDABuffer(CUDAContext* ctx, const CUDABufferDesc& desc, CUdeviceptr deviceptr, void* hostptr) noexcept;
+			private:
 				auto GetHostptr() noexcept -> void* { return m_Hostptr; }
 			private:
 				CUDAContext*    m_Context;

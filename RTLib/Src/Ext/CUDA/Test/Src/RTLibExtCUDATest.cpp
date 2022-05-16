@@ -1,3 +1,5 @@
+#define STB_IMAGE_IMPLEMENTATION
+#define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <RTLib/Ext/CUDA/CUDAContext.h>
 #include <RTLib/Ext/CUDA/CUDABuffer.h>
 #include <RTLib/Ext/CUDA/CUDAImage.h>
@@ -6,6 +8,7 @@
 #include <RTLib/Ext/CUDA/CUDAFunction.h>
 #include <RTLib/Ext/CUDA/CUDAStream.h>
 #include <RTLibExtCUDATestConfig.h>
+#include <RTLibExtCUDATest.h>
 #include <memory>
 #include <cassert>
 #include <iostream>
@@ -22,7 +25,8 @@ int main(int argc, const char* argv)
 {
 	auto ctx = RTLib::Ext::CUDA::CUDAContext();
 	ctx.Initialize();
-	{;
+	{
+
 		auto stream  = std::unique_ptr<RTLib::Ext::CUDA::CUDAStream>(ctx.CreateStream());
 		auto bffDesc = RTLib::Ext::CUDA::CUDABufferDesc();
 		{
@@ -116,7 +120,41 @@ int main(int argc, const char* argv)
 		}
 		auto tex = std::unique_ptr<RTLib::Ext::CUDA::CUDATexture>(ctx.CreateTexture(texDesc));
 		auto mod = std::unique_ptr<RTLib::Ext::CUDA::CUDAModule>( ctx.LoadModuleFromFile(RTLIB_EXT_CUDA_TEST_CUDA_PATH"/simpleKernel.ptx"));
-		auto fnc = std::unique_ptr<RTLib::Ext::CUDA::CUDAFunction>(mod->LoadFunction("rgbKernel"));
+		auto fnc = std::unique_ptr<RTLib::Ext::CUDA::CUDAFunction>(mod->LoadFunction("blurKernel"));
+		{
+			int x, y, comp;
+			auto iImgData = stbi_load(RTLIB_EXT_CUDA_TEST_DATA_PATH"/Textures/sample.png", &x, &y, &comp, 4);
+			auto ibffDesc = RTLib::Ext::CUDA::CUDABufferDesc();
+			{
+				ibffDesc.flags = RTLib::Ext::CUDA::CUDAMemoryFlags::eDefault;
+				ibffDesc.sizeInBytes = x * y * comp;
+			}
+			auto oImgData = std::vector<unsigned char>(x * y * comp);
+			auto obffDesc = RTLib::Ext::CUDA::CUDABufferDesc();
+			{
+				obffDesc.flags = RTLib::Ext::CUDA::CUDAMemoryFlags::eDefault;
+				obffDesc.sizeInBytes = x * y * comp;
+			}
+			auto ibff = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(ctx.CreateBuffer(ibffDesc));
+			assert(ctx.CopyMemoryToBuffer(ibff.get(), { {static_cast<const void*>(iImgData),static_cast<size_t>(0),static_cast<size_t>(x * y * comp)}}));
+			auto obff = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(ctx.CreateBuffer(obffDesc));
+
+			auto ipixel = ibff->GetDeviceAddress();
+			auto opixel = obff->GetDeviceAddress();
+			int width  = x;
+			int height = y;
+			fnc->Launch({ 1024,1024,1,32,32,1,0,{
+				&ipixel,
+				&opixel,
+				&x,
+				&y
+			}, nullptr});
+			assert(ctx.CopyBufferToMemory(obff.get(), { {static_cast<void*>(oImgData.data()),static_cast<size_t>(0),static_cast<size_t>(x * y * comp)} }));
+			stbi_write_png(RTLIB_EXT_CUDA_TEST_CUDA_PATH"/../Result.png", x, y, comp, oImgData.data(), 4 * x);
+
+			ibff->Destroy();
+			obff->Destroy();
+		}
 		fnc->Destory();
 		mod->Destory();
 		stream->Destroy();

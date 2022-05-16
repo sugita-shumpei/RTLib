@@ -33,6 +33,7 @@ target_include_directories(RTLib-Ext-CUDA PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Inc
 target_link_libraries(RTLib-Ext-CUDA PUBLIC RTLib-Core CUDA::cuda_driver)
 set_target_properties(RTLib-Ext-CUDA PROPERTIES FOLDER RTLib/RTLib/Ext/CUDA)
 
+set(RTLIB_EXT_CUDA_TEST_DATA_PATH "${RTLIB_TEST_DATA_PATH}")
 set(RTLIB_EXT_CUDA_TEST_CUDA_PATH "${CMAKE_CURRENT_BINARY_DIR}/Test/cuda")
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Test/RTLibExtCUDATestConfig.h.in ${CMAKE_CURRENT_BINARY_DIR}/Test/RTLibExtCUDATestConfig.h)
 
@@ -43,7 +44,7 @@ add_executable(RTLib-Ext-CUDA-Test
     ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/simpleKernel.cu
 )
 target_include_directories(RTLib-Ext-CUDA-Test PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Test/Include PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/Test)
-target_link_libraries(RTLib-Ext-CUDA-Test PUBLIC RTLib-Ext-CUDA)
+target_link_libraries(RTLib-Ext-CUDA-Test PUBLIC RTLib-Ext-CUDA stb::stb)
 
 add_custom_command(TARGET RTLib-Ext-CUDA-Test POST_BUILD 
 COMMAND ${CUDAToolkit_NVCC_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/simpleKernel.cu -arch compute_75 -use_fast_math -lineinfo -rdc true -m64 --std c++17 -ptx -I${CMAKE_CURRENT_SOURCE_DIR}/Include/ -o  ${CMAKE_CURRENT_BINARY_DIR}/Test/cuda/simpleKernel.ptx
