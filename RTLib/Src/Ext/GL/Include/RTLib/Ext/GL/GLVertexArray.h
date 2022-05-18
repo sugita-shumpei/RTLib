@@ -1,16 +1,15 @@
-#ifndef RTLIB_EXT_GL_GL_VAO_H
-#define RTLIB_EXT_GL_GL_VAO_H
+#ifndef RTLIB_EXT_GL_GL_VERTEX_ARRAY_H
+#define RTLIB_EXT_GL_GL_VERTEX_ARRAY_H
+#include <RTLib/Core/Common.h>
+#include <RTLib/Ext/GL/UuidDefinitions.h>
 namespace RTLib
 {
 	namespace Ext
 	{
 		namespace GL
 		{
-			class GLVAO
-			{
-			public:
-
-			};
+			RTLIB_CORE_TYPE_OBJECT_DECLARE_BEGIN(GLVertexArray, Core::BaseObject, RTLIB_TYPE_UUID_RTLIB_EXT_GL_GL_VERTEX_ARRAY);
+			RTLIB_CORE_TYPE_OBJECT_DECLARE_END();
 		}
 	}
 }

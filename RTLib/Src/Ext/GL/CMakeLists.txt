@@ -1,6 +1,7 @@
 set(RTLIB_EXT_GL_SOURCES 
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/GL/GLUtility.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/GL/GLCommon.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/GL/GLTypeFormat.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/GL/UuidDefinitions.h
 
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/GL/GLContext.h

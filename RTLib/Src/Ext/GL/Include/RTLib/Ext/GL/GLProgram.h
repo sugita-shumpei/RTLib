@@ -1,14 +1,15 @@
 #ifndef RTLIB_EXT_GL_GL_PROGRAM_H
 #define RTLIB_EXT_GL_GL_PROGRAM_H
+#include <RTLib/Core/BaseObject.h>
+#include <RTLib/Ext/GL/UuidDefinitions.h>
 namespace RTLib
 {
 	namespace Ext
 	{
 		namespace GL
 		{
-			class GLProgram{
-				
-			};
+			RTLIB_CORE_TYPE_OBJECT_DECLARE_BEGIN(GLProgram, Core::BaseObject, RTLIB_TYPE_UUID_RTLIB_EXT_GL_GL_PROGRAM);
+			RTLIB_CORE_TYPE_OBJECT_DECLARE_END();
 		}
 	}
 }
