@@ -120,6 +120,12 @@ namespace RTLib {
 				if (usageFlags & GLBufferUsageAtomicCounter    ) {
 					return GL_ATOMIC_COUNTER_BUFFER;
 				}
+				if (usageFlags & GLBufferUsageGenericCopyDst) {
+					return GL_COPY_WRITE_BUFFER;
+				}
+				if (usageFlags & GLBufferUsageGenericCopySrc) {
+					return GL_COPY_READ_BUFFER;
+				}
 				return GL_ARRAY_BUFFER;
 			}
 
@@ -280,21 +286,40 @@ namespace RTLib {
 				}
 			}
 
-			inline constexpr auto GetGLMemoryPropertyFlagsGLAccessFlags(GLMemoryPropertyFlags flags)->GLenum
+			inline constexpr auto GetGLBufferUsageFlagsAccessMode(const GLMemoryPropertyFlags& access)->GLenum
 			{
-				GLenum res = 0;
-				if (flags == GLMemoryPropertyDeviceLocal) {
+				if (access == GLMemoryPropertyDefault) {
 					return 0;
 				}
-				if (flags & GLMemoryPropertyHostVisible) {
-					res |= GL_CLIENT_STORAGE_BIT;
-					res |= GL_MAP_READ_BIT ;
+				GLenum res = 0;
+				if (access & GLMemoryPropertyHostRead) {
+					res |= GL_MAP_READ_BIT;
+				}
+				if (access & GLMemoryPropertyHostWrite) {
 					res |= GL_MAP_WRITE_BIT;
 				}
-				if (flags & GLMemoryPropertyHostCoherent) {
+				if (access & GLMemoryPropertyHostCoherent) {
 					res |= GL_MAP_COHERENT_BIT;
 				}
+				if (access & GLMemoryPropertyHostPaged) {
+					res |= GL_CLIENT_STORAGE_BIT;
+				}
 				return res;
+			}
+
+			inline constexpr auto GetGLBufferCreateDescBufferAccessFrequency(const GLBufferCreateDesc& desc)->GLenum {
+				if (desc.usage == GLBufferUsageGenericCopySrc){ //BufferCopySource
+					if (desc.access &  GLMemoryPropertyHostRead) {//Host‚ª“Ç‚Ý‚Æ‚é
+						//Readback
+						return GL_STATIC_READ;
+					}
+				}
+				if (desc.usage == GLBufferUsageGenericCopyDst) { //BufferCopyDest
+					if (desc.access == GLMemoryPropertyHostPaged) {
+						return GL_STATIC_COPY;
+					}
+				}
+				return GL_STATIC_DRAW;
 			}
 		}
 	}

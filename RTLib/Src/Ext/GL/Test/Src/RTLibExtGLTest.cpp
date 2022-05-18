@@ -1,4 +1,5 @@
 #include <RTLib/Ext/GL/GLContext.h>
+#include <RTLib/Ext/GL/GLBuffer.h>
 #include <RTLib/Ext/GL/GLCommon.h>
 #include <GLFW/glfw3.h>
 #include <unordered_map>
@@ -51,14 +52,6 @@ public:
 	{
 
 	}
-	virtual auto CreateBuffer(const RTLib::Ext::GL::GLBufferCreateDesc& desc)  ->  RTLib::Ext::GL::GLBuffer* override
-	{
-		return nullptr;
-	}
-	virtual auto CreateTexture(const RTLib::Ext::GL::GLTextureCreateDesc& desc)  ->  RTLib::Ext::GL::GLTexture* override
-	{
-		return nullptr;
-	}
 private:
 	GLFWwindow* m_Window = nullptr;
 };
@@ -78,12 +71,28 @@ int main(int argc, const char** argv[]) {
 			isFailedToCreateWindow = true;
 			break;
 		}
-
 		context = std::unique_ptr<RTLib::Ext::GL::GLContext >(new TestGLContext(window));
 		if (!context->Initialize()) {
 			break;
 		}
 
+		auto vertexBuffer = std::unique_ptr<RTLib::Ext::GL::GLBuffer>(context->CreateBuffer(RTLib::Ext::GL::GLBufferCreateDesc{
+			1024,
+			RTLib::Ext::GL::GLBufferUsageVertex        |
+			RTLib::Ext::GL::GLBufferUsageGenericCopyDst,
+			RTLib::Ext::GL::GLMemoryPropertyDefault,
+			nullptr
+		}));
+		auto staginBuffer = std::unique_ptr<RTLib::Ext::GL::GLBuffer>(context->CreateBuffer(RTLib::Ext::GL::GLBufferCreateDesc{
+			1024,
+			RTLib::Ext::GL::GLBufferUsageGenericCopySrc,
+			RTLib::Ext::GL::GLMemoryPropertyHostRead,
+			nullptr
+		}));
+		context->CopyBuffer(staginBuffer.get(), vertexBuffer.get(), { {0,0,1024} });
+
+		vertexBuffer->Destroy();
+		staginBuffer->Destroy();
 
 		glfwShowWindow(window);
 		while (!glfwWindowShouldClose(window)) {

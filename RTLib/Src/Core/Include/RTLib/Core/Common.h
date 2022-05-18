@@ -9,6 +9,7 @@ namespace RTLib {
 			eNearest,
 			eLinear,
 		};
+
 		enum class SamplerMipmapMode
 		{
 			eNearest,

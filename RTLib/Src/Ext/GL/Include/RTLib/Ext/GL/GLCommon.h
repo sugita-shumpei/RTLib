@@ -12,13 +12,6 @@ namespace RTLib
 	{
 		namespace GL
 		{
-			enum class GLBindingState
-			{
-				eBinded,
-				eUndefined,
-				eUnbinded
-			};
-
 			using GLExtent2D = Core::Extent2D;
 			using GLExtent3D = Core::Extent3D;
 
@@ -31,7 +24,6 @@ namespace RTLib
 			using GLMemoryBufferCopy = Core::MemoryBufferCopy;
 			using GLBufferMemoryCopy = Core::BufferMemoryCopy;
 			using GLImageMemoryCopy  = Core::ImageMemoryCopy;
-
 			enum  GLBufferUsageFlagBits : unsigned int
 			{
 				GLBufferUsageUnknown           = 0,
@@ -51,9 +43,23 @@ namespace RTLib
 				GLBufferUsageGenericCopyDst    = 1 << 13,
 			}; 
 			using GLBufferUsageFlags = unsigned int;
-
+			//GL_ARRAY_BUFFER
+			//GL_ELEMENT_ARRAY_BUFFER
+			//GL_UNIFORM_BUFFER
+			//GL_SHADER_STORAGE_BUFFER
+			//GL_COPY_READ_BUFFER
+			//GL_COPY_WRITE_BUFFER
+			//GL_PIXEL_UNPACK_BUFFER
+			//GL_PIXEL_PACK_BUFFER
+			//GL_TRANSFORM_FEEDBACK_BUFFER
+			//GL_QUERY_BUFFER
+			//GL_DRAW_INDIRECT_BUFFER
+			//GL_DISPATCH_INDIRECT_BUFFER
+			//GL_ATOMIC_COUNTER_BUFFER
 			inline constexpr auto GetGLBufferUsageCount(GLBufferUsageFlags  usageFlags)->unsigned int {
 				unsigned int count = 0;
+				if (usageFlags == GLBufferUsageGenericCopySrc) { return 1; }
+				if (usageFlags == GLBufferUsageGenericCopyDst) { return 1; }
 				if ((usageFlags & GLBufferUsageVertex)            == GLBufferUsageVertex)            { ++count; }
 				if ((usageFlags & GLBufferUsageIndex)             == GLBufferUsageIndex)             { ++count; }
 				if ((usageFlags & GLBufferUsageUniform)           == GLBufferUsageUniform)           { ++count; }
@@ -66,64 +72,83 @@ namespace RTLib
 				if ((usageFlags & GLBufferUsageTexture)           == GLBufferUsageTexture)           { ++count; }
 				if ((usageFlags & GLBufferUsageQuery)             == GLBufferUsageQuery)             { ++count; }
 				if ((usageFlags & GLBufferUsageAtomicCounter)     == GLBufferUsageAtomicCounter)     { ++count; }
-				if ((usageFlags & GLBufferUsageGenericCopySrc)    == GLBufferUsageGenericCopySrc)    { ++count; }
-				if ((usageFlags & GLBufferUsageGenericCopyDst)    == GLBufferUsageGenericCopyDst)    { ++count; }
 				return count;
 			}
 			inline constexpr auto GetGLBufferMainUsage (GLBufferUsageFlags  usageFlags)->GLBufferUsageFlagBits
 			{
-				if ((usageFlags & GLBufferUsageVertex)	          == GLBufferUsageVertex) {
+				if ((usageFlags & GLBufferUsageVertex)) {
 					return GLBufferUsageVertex;
 				}
-				if ((usageFlags & GLBufferUsageIndex)             == GLBufferUsageIndex) {
+				if ((usageFlags & GLBufferUsageIndex)) {
 					return GLBufferUsageIndex;
 				}
-				if ((usageFlags & GLBufferUsageUniform)           == GLBufferUsageUniform) {
+				if ((usageFlags & GLBufferUsageUniform)) {
 					return GLBufferUsageUniform;
 				}
-				if ((usageFlags & GLBufferUsageStorage)           == GLBufferUsageStorage) {
+				if ((usageFlags & GLBufferUsageStorage)) {
 					return GLBufferUsageStorage;
 				}
-				if ((usageFlags & GLBufferUsageImageCopySrc)      == GLBufferUsageImageCopySrc) {
-					return GLBufferUsageImageCopySrc;
-				}
-				if ((usageFlags & GLBufferUsageImageCopyDst)      == GLBufferUsageImageCopyDst) {
-					return GLBufferUsageImageCopyDst;
-				}
-				if ((usageFlags & GLBufferUsageDrawIndirect)      == GLBufferUsageDrawIndirect) {
+				if ((usageFlags & GLBufferUsageDrawIndirect)) {
 					return GLBufferUsageDrawIndirect;
 				}
-				if ((usageFlags & GLBufferUsageDispatchIndirect)  == GLBufferUsageDispatchIndirect) {
+				if ((usageFlags & GLBufferUsageDispatchIndirect)) {
 					return GLBufferUsageDispatchIndirect;
 				}
-				if ((usageFlags & GLBufferUsageTransformFeedBack) == GLBufferUsageTransformFeedBack) {
+				if ((usageFlags & GLBufferUsageTransformFeedBack)) {
 					return GLBufferUsageTransformFeedBack;
 				}
-				if ((usageFlags & GLBufferUsageTexture)           == GLBufferUsageTexture) {
+				if ((usageFlags & GLBufferUsageTexture)) {
 					return GLBufferUsageTexture;
 				}
-				if ((usageFlags & GLBufferUsageQuery)             == GLBufferUsageQuery) {
+				if ((usageFlags & GLBufferUsageQuery)) {
 					return GLBufferUsageQuery;
 				}
-				if ((usageFlags & GLBufferUsageAtomicCounter)     == GLBufferUsageAtomicCounter) {
+				if ((usageFlags & GLBufferUsageAtomicCounter)) {
 					return GLBufferUsageAtomicCounter;
+				}
+				if ((usageFlags & GLBufferUsageImageCopySrc)) {
+					return GLBufferUsageImageCopySrc;
+				}
+				if ((usageFlags & GLBufferUsageImageCopyDst)) {
+					return GLBufferUsageImageCopyDst;
+				}
+				if ((usageFlags & GLBufferUsageGenericCopySrc)){
+					return GLBufferUsageGenericCopySrc;
+				}
+				if ((usageFlags & GLBufferUsageGenericCopyDst)) {
+					return GLBufferUsageGenericCopyDst;
 				}
 				return GLBufferUsageUnknown;
 			}
-			enum  GLBufferCreateFlagBits :unsigned int
+			//GL_(*)_DRAW	   (COPY: Cpu -> Gpu, Use: Cpu)   Upload Buffer
+			//GL_(*)_READ      (COPY: Gpu -> Cpu, Use: Cpu) Readback Buffer
+			//GL_(*)_COPY      (COPY: Gpu -> Gpu, Use: Gpu)
+			//GL_DYNAMIC_STORAGE_BIT: (Enable BufferSubData)
+			//GL_MAP_READ_BIT  (Map:  ReadOnly(Cpu->Gpu))
+			//GL_MAP_WRITE_BIT (Map: WriteOnly(Gpu->Cpu))
+			//GL_MAP_PERSISTENT_BIT: MAP中でもGPU側で読み出し、書き込み処理を実行可能, CPU側のポインターはMAP中常に有効
+			//GL_MAP_COHERENT_BIT  : MAP結果が即座に反映、次のGLコマンド以降に反映される.
+			//GL_CLIENT_STORAGE_BIT:  (CPU PAGED なメモリに確保)
+			//
+			//VK_DEVICE_LOCAL
+			//VK_HOST_VISIBLE =GL_CLIENT_STORAGE_BIT|GL_MAP_READ_BIT|GL_MAP_WRITE_BIT
+			//VK_HOST_COHERENT=GL_MAP_COHERENT_BIT  
+			enum  GLMemoryPropertyFlagBits :unsigned int
 			{
-				GLMemoryPropertyDeviceLocal = 1<<0,
-				GLMemoryPropertyHostVisible = 1<<1,
+				GLMemoryPropertyDefault     = 0,
+				GLMemoryPropertyHostWrite   = 1<<0,
+				GLMemoryPropertyHostRead    = 1<<1,
 				GLMemoryPropertyHostCoherent= 1<<2,
-				GLMemoryPropertyHostCache   = 1<<3,
+				GLMemoryPropertyHostPaged   = 1<<3,
 			};
 			using GLMemoryPropertyFlags = unsigned int;
 
 			struct GLBufferCreateDesc
 			{
-				size_t                 size;
-				GLBufferUsageFlags    usage;
-				const void*           pData;
+				size_t                size    = 0;
+				GLBufferUsageFlags    usage   = GLBufferUsageGenericCopySrc;
+				GLMemoryPropertyFlags access  = GLMemoryPropertyHostPaged;
+				const void*           pData   = nullptr;
 			};
 
 			enum class GLImageType
@@ -132,51 +157,15 @@ namespace RTLib
 				e2D,
 				e3D
 			};
-			///                    1
-			//                     Snorm
-			namespace Test {
-				struct GLTypeTestCase
-				{
-					static inline constexpr auto v1 = GetGLTypeBaseType(GLTypeFlagBits::eFloat32);
-					static_assert(v1 == GLTypeFlagBits::eFloat32);
-					static inline constexpr auto v2 = GetGLTypeBaseType(GLTypeFlagBits::eUInt16_4_4_4_4);
-					static_assert(v2 == GLTypeFlagBits::eUInt16);
-					static inline constexpr auto v3 = GetGLTypeBaseType(GLTypeFlagBits::eUInt32_2_10_10_10_Rev);
-					static_assert(v3 == GLTypeFlagBits::eUInt32);
-					static inline constexpr auto v4 = GetGLTypeChannelSize(GLTypeFlagBits::eUInt32_2_10_10_10_Rev, 0);
-					static_assert(v4 == 2);
-					static inline constexpr auto v5 = GetGLTypeChannelSize(GLTypeFlagBits::eUInt32_2_10_10_10_Rev, 1);
-					static_assert(v5 == 10);
-				};
-			}
-
-			namespace Test {
-				struct GLFormatTestCase
-				{
-					static inline constexpr auto v1 = GetGLFormatBaseFormat(GLFormat::eRG8UI);
-					static inline constexpr auto v2 = GetGLFormatChannelType(GLFormat::eRG8UI, 0);
-					static inline constexpr auto v3 = GetGLFormatChannelSize(GLFormat::eRG8UI, 0);
-					static inline constexpr auto v4 = GetGLFormatChannelType(GLFormat::eRG8UI, 2);
-					static inline constexpr auto v5 = GetGLFormatChannelSize(GLFormat::eRG8UI, 2);
-				};
-			}
-
 			struct GLTextureCreateDesc
 			{
-				GLImageType imageType;
-				GLFormat    format;
-				GLExtent3D  extent;
-				uint32_t    mipLevels;
-				uint32_t    arrayLayers;
+				GLImageType imageType   = GLImageType::e1D;
+				GLFormat    format      = GLFormat::eRGBA8;
+				GLExtent3D  extent      = GLExtent3D();
+				uint32_t    mipLevels   = 1;
+				uint32_t    arrayLayers = 1;
 			};
 		}
 	}
 }
-
-#undef RTLIB_EXT_GL_GL_TYPE_DEF_4
-#undef RTLIB_EXT_GL_GL_TYPE_DEF_3
-#undef RTLIB_EXT_GL_GL_FORMAT_DEF_1
-#undef RTLIB_EXT_GL_GL_FORMAT_DEF_2
-#undef RTLIB_EXT_GL_GL_FORMAT_DEF_3
-#undef RTLIB_EXT_GL_GL_FORMAT_DEF_4
 #endif

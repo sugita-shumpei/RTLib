@@ -25,8 +25,8 @@ namespace RTLib {
 				virtual bool InitLoader() = 0;
 				virtual void FreeLoader() = 0;
 
-				virtual auto CreateBuffer(const  GLBufferCreateDesc & desc)-> GLBuffer * = 0;
-				virtual auto CreateTexture(const GLTextureCreateDesc& desc)-> GLTexture* = 0;
+				auto CreateBuffer(const  GLBufferCreateDesc & desc)-> GLBuffer * ;
+				auto CreateTexture(const GLTextureCreateDesc& desc)-> GLTexture*;
 				
 				bool SupportVersion(uint32_t majorVersion, uint32_t minorVersion)const noexcept;
 
