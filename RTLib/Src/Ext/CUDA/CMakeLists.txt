@@ -1,6 +1,9 @@
 set(RTLIB_EXT_CUDA_SOURCES 
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/CUDA/CUDAUtility.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/CUDA/CUDACommon.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/CUDA/UuidDefinitions.h
+
+
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/CUDA/CUDAContext.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/CUDAContext.cpp
 

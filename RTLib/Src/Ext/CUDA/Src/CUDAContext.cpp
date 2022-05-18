@@ -69,17 +69,17 @@ bool RTLib::Ext::CUDA::CUDAContext::MakeContextCurrent()
     return true;
 }
 
-auto RTLib::Ext::CUDA::CUDAContext::CreateBuffer(const CUDABufferDesc& desc) -> CUDABuffer*
+auto RTLib::Ext::CUDA::CUDAContext::CreateBuffer(const CUDABufferCreateDesc& desc) -> CUDABuffer*
 {
     return CUDABuffer::Allocate(this,desc);
 }
 
-auto RTLib::Ext::CUDA::CUDAContext::CreateImage(const CUDAImageDesc& desc) -> CUDAImage*
+auto RTLib::Ext::CUDA::CUDAContext::CreateImage(const CUDAImageCreateDesc& desc) -> CUDAImage*
 {
     return CUDAImage::Allocate(this,desc);
 }
 
-auto RTLib::Ext::CUDA::CUDAContext::CreateTexture(const CUDATextureImageDesc& desc) -> CUDATexture*
+auto RTLib::Ext::CUDA::CUDAContext::CreateTexture(const CUDATextureImageCreateDesc& desc) -> CUDATexture*
 {
     return CUDATexture::Allocate(this, desc);
 }

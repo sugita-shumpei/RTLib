@@ -1,7 +1,7 @@
 #include <RTLib/Ext/CUDA/CUDABuffer.h>
 #include <iostream>
 #include <string>
-auto RTLib::Ext::CUDA::CUDABuffer::Allocate(CUDAContext* ctx, const CUDABufferDesc& desc) -> CUDABuffer*
+auto RTLib::Ext::CUDA::CUDABuffer::Allocate(CUDAContext* ctx, const CUDABufferCreateDesc& desc) -> CUDABuffer*
 {
 	if (desc.sizeInBytes == 0) { return nullptr; }
 	CUdeviceptr deviceptr = 0;
@@ -96,7 +96,7 @@ RTLib::Ext::CUDA::CUDABuffer::~CUDABuffer() noexcept
 	
 }
 
-RTLib::Ext::CUDA::CUDABuffer::CUDABuffer(CUDAContext* ctx, const CUDABufferDesc& desc, CUdeviceptr deviceptr, void* hostptr) noexcept
+RTLib::Ext::CUDA::CUDABuffer::CUDABuffer(CUDAContext* ctx, const CUDABufferCreateDesc& desc, CUdeviceptr deviceptr, void* hostptr) noexcept
 {
 	m_Context = ctx;
 	m_flags = desc.flags;

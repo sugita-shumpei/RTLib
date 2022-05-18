@@ -1,6 +1,7 @@
 #ifndef RTLIB_EXT_CUDA_CUDA_CONTEXT_H
 #define RTLIB_EXT_CUDA_CUDA_CONTEXT_H
 #include <RTLib/Ext/CUDA/CUDACommon.h>
+#include <RTLib/Ext/CUDA/UuidDefinitions.h>
 #include <RTLib/Core/Context.h>
 #include <vector>
 namespace RTLib {
@@ -13,19 +14,17 @@ namespace RTLib {
 			class CUDATexture;
 			class CUDAModule;
 			class CUDAStream;
-			class CUDAContext : public RTLib::Core::Context
-			{
-			public:
-				virtual ~CUDAContext()noexcept;
+
+			RTLIB_CORE_TYPE_OBJECT_DECLARE_BEGIN(CUDAContext, Core::Context, RTLIB_TYPE_UUID_RTLIB_EXT_CUDA_CUDA_CONTEXT);
 				// Context ‚ð‰î‚µ‚ÄŒp³‚³‚ê‚Ü‚µ‚½
 				virtual bool Initialize() override;
 				virtual void Terminate() override;
 
 				bool MakeContextCurrent();
 
-				auto CreateBuffer (const CUDABufferDesc      & desc)->CUDABuffer *;
-				auto CreateImage  (const CUDAImageDesc       & desc)->CUDAImage  *;
-				auto CreateTexture(const CUDATextureImageDesc& desc)->CUDATexture*;
+				auto CreateBuffer (const CUDABufferCreateDesc      & desc)->CUDABuffer *;
+				auto CreateImage  (const CUDAImageCreateDesc       & desc)->CUDAImage  *;
+				auto CreateTexture(const CUDATextureImageCreateDesc& desc)->CUDATexture*;
 				auto CreateStream ()->CUDAStream*;
 
 				auto LoadModuleFromFile(const char* filename)->CUDAModule*;
@@ -41,7 +40,7 @@ namespace RTLib {
 			private:
 				CUcontext m_CtxCU = nullptr;
 				CUdevice  m_DevCU = 0;
-			};
+			RTLIB_CORE_TYPE_OBJECT_DECLARE_END();
 		}
 	}
 }

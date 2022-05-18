@@ -82,42 +82,42 @@ namespace RTLib {
 	namespace Ext {
 		namespace GL
 		{
-			inline constexpr auto GetGLBufferMainUsageTarget(GLBufferUsageFlagBits usageFlags)->GLenum
+			inline constexpr auto GetGLBufferMainUsageTarget(GLBufferUsageFlags usageFlags)->GLenum
 			{
-				if (usageFlags & GLBufferUsageFlagBitsVertex) {
+				if (usageFlags & GLBufferUsageVertex           ) {
 					return GL_ARRAY_BUFFER;
 				}
-				if (usageFlags & GLBufferUsageFlagBitsIndex) {
+				if (usageFlags & GLBufferUsageIndex            ) {
 					return GL_ELEMENT_ARRAY_BUFFER;
 				}
-				if (usageFlags & GLBufferUsageFlagBitsUniform) {
+				if (usageFlags & GLBufferUsageUniform          ) {
 					return GL_UNIFORM_BUFFER;
 				}
-				if (usageFlags & GLBufferUsageFlagBitsStorage) {
+				if (usageFlags & GLBufferUsageStorage          ) {
 					return GL_SHADER_STORAGE_BUFFER;
 				}
-				if (usageFlags & GLBufferUsageFlagBitsImageCopySrc) {
+				if (usageFlags & GLBufferUsageImageCopySrc     ) {
 					return GL_PIXEL_UNPACK_BUFFER;
 				}
-				if (usageFlags & GLBufferUsageFlagBitsImageCopyDst) {
+				if (usageFlags & GLBufferUsageImageCopyDst     ) {
 					return GL_PIXEL_PACK_BUFFER;
 				}
-				if (usageFlags & GLBufferUsageFlagBitsDrawIndirect) {
+				if (usageFlags & GLBufferUsageDrawIndirect     ) {
 					return GL_DRAW_INDIRECT_BUFFER;
 				}
-				if (usageFlags & GLBufferUsageFlagBitsDispatchIndirect) {
+				if (usageFlags & GLBufferUsageDispatchIndirect ) {
 					return GL_DISPATCH_INDIRECT_BUFFER;
 				}
-				if (usageFlags & GLBufferUsageFlagBitsTransformFeedBack) {
+				if (usageFlags & GLBufferUsageTransformFeedBack) {
 					return GL_TRANSFORM_FEEDBACK_BUFFER;
 				}
-				if (usageFlags & GLBufferUsageFlagBitsTexture) {
+				if (usageFlags & GLBufferUsageTexture          ) {
 					return GL_TEXTURE_BUFFER;
 				}
-				if (usageFlags & GLBufferUsageFlagBitsQuery) {
+				if (usageFlags & GLBufferUsageQuery            ) {
 					return GL_QUERY_BUFFER;
 				}
-				if (usageFlags & GLBufferUsageFlagBitsAtomicCounter) {
+				if (usageFlags & GLBufferUsageAtomicCounter    ) {
 					return GL_ATOMIC_COUNTER_BUFFER;
 				}
 				return GL_ARRAY_BUFFER;
@@ -278,6 +278,23 @@ namespace RTLib {
 				default:
 					return 0;
 				}
+			}
+
+			inline constexpr auto GetGLMemoryPropertyFlagsGLAccessFlags(GLMemoryPropertyFlags flags)->GLenum
+			{
+				GLenum res = 0;
+				if (flags == GLMemoryPropertyDeviceLocal) {
+					return 0;
+				}
+				if (flags & GLMemoryPropertyHostVisible) {
+					res |= GL_CLIENT_STORAGE_BIT;
+					res |= GL_MAP_READ_BIT ;
+					res |= GL_MAP_WRITE_BIT;
+				}
+				if (flags & GLMemoryPropertyHostCoherent) {
+					res |= GL_MAP_COHERENT_BIT;
+				}
+				return res;
 			}
 		}
 	}

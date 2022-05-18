@@ -81,7 +81,7 @@ namespace RTLib {
 				eDefault,
 				ePageLocked   ,
 			};
-			struct     CUDABufferDesc {
+			struct     CUDABufferCreateDesc {
 				CUDAMemoryFlags flags = CUDAMemoryFlags::eDefault;
 				size_t sizeInBytes = 0;
 			};
@@ -90,26 +90,26 @@ namespace RTLib {
 				e2D,
 				e3D
 			};
-			enum       CUDAImageFlagBits
+			enum       CUDAImageCreateFlagBits
 			{
-				CUDAImageFlagBitsDefault         = 0,
-				CUDAImageFlagBitsSurfaceLDST     = CUDA_ARRAY3D_SURFACE_LDST,
-				CUDAImageFlagBitsCubemap         = CUDA_ARRAY3D_CUBEMAP,
-				CUDAImageFlagBitsDepthTexture    = CUDA_ARRAY3D_DEPTH_TEXTURE,
-				CUDAImageFlagBitsTextureGather   = CUDA_ARRAY3D_TEXTURE_GATHER,
-				CUDAImageFlagBitsColorAttachment = CUDA_ARRAY3D_COLOR_ATTACHMENT,
+				CUDAImageCreateFlagBitsDefault         = 0,
+				CUDAImageCreateFlagBitsSurfaceLDST     = CUDA_ARRAY3D_SURFACE_LDST,
+				CUDAImageCreateFlagBitsCubemap         = CUDA_ARRAY3D_CUBEMAP,
+				CUDAImageCreateFlagBitsDepthTexture    = CUDA_ARRAY3D_DEPTH_TEXTURE,
+				CUDAImageCreateFlagBitsTextureGather   = CUDA_ARRAY3D_TEXTURE_GATHER,
+				CUDAImageCreateFlagBitsColorAttachment = CUDA_ARRAY3D_COLOR_ATTACHMENT,
 			};
-			using      CUDAImageFlags = unsigned int;
-			struct     CUDAImageDesc {
-				CUDAImageType     imageType   = CUDAImageType::e1D;
-				unsigned int      width       = 1;
-				unsigned int      height      = 0;
-				unsigned int      depth       = 0;
-				unsigned int      levels      = 0;
-				unsigned int      layers      = 0;
-				CUDAImageDataType format      = CUDAImageDataType::eUndefined;
-				unsigned int      channels    = 1;
-				CUDAImageFlags    flags       = CUDAImageFlagBitsDefault;
+			using      CUDAImageCreateFlags = unsigned int;
+			struct     CUDAImageCreateDesc {
+				CUDAImageType			imageType   = CUDAImageType::e1D;
+				unsigned int	  	    width       = 1;
+				unsigned int			height      = 0;
+				unsigned int			depth       = 0;
+				unsigned int			levels      = 0;
+				unsigned int			layers      = 0;
+				CUDAImageDataType		format      = CUDAImageDataType::eUndefined;
+				unsigned int			channels    = 1;
+				CUDAImageCreateFlags    flags       = CUDAImageCreateFlagBitsDefault;
 			};
 			enum class CUDATextureAddressMode
 			{
@@ -154,38 +154,38 @@ namespace RTLib {
 				unsigned int           numLevels;
 			};
 			class      CUDAImage;
-			struct     CUDATextureImageDesc
+			struct     CUDATextureImageCreateDesc
 			{
 				CUDAImage*                  image;
 				CUDATextureResourceViewDesc view;
 				CUDATextureSamplerDesc      sampler;
 			};
-			enum class CUDAJitOptionFlagBits
+			enum class CUDAJitOptionFlags
 			{
-				CUDAJitOptionFlagBitsMaxRegister				   = CU_JIT_MAX_REGISTERS,
-				CUDAJitOptionFlagBitsThreadPerBlock			       = CU_JIT_THREADS_PER_BLOCK,
-				CUDAJitOptionFlagBitsWallTime					   = CU_JIT_WALL_TIME,
-				CUDAJitOptionFlagBitsLogBuffer				       = CU_JIT_INFO_LOG_BUFFER,
-				CUDAJitOptionFlagBitsLogBufferSizeBytes            = CU_JIT_INFO_LOG_BUFFER_SIZE_BYTES,
-				CUDAJitOptionFlagBitsOptimizationLevel             = CU_JIT_OPTIMIZATION_LEVEL,
-				CUDAJitOptionFlagBitsTargetFromCUContext           = CU_JIT_TARGET_FROM_CUCONTEXT,
-				CUDAJitOptionFlagBitsTarget                        = CU_JIT_TARGET,
-				CUDAJitOptionFlagBitsFallbackStrategy              = CU_JIT_FALLBACK_STRATEGY,
-				CUDAJitOptionFlagBitsGenerateDebugInfo             = CU_JIT_GENERATE_DEBUG_INFO,
-				CUDAJitOptionFlagBitsLogVerbose                    = CU_JIT_LOG_VERBOSE,
-				CUDAJitOptionFlagBitsGenerateLineInfo              = CU_JIT_GENERATE_LINE_INFO,
-				CUDAJitOptionFlagBitsCacheMode                     = CU_JIT_CACHE_MODE,
-				CUDAJitOptionFlagBitsNewSM3XOpt                    = CU_JIT_NEW_SM3X_OPT,
-				CUDAJitOptionFlagBitsFastCompile                   = CU_JIT_FAST_COMPILE,
-				CUDAJitOptionFlagBitsGlobalSymbolNames             = CU_JIT_GLOBAL_SYMBOL_NAMES,
-				CUDAJitOptionFlagBitsGlobalSymbolAddresses         = CU_JIT_GLOBAL_SYMBOL_ADDRESSES,
-				CUDAJitOptionFlagBitsGlobalSymbolCount             = CU_JIT_GLOBAL_SYMBOL_COUNT,
-				CUDAJitOptionFlagBitsNumOptions				       = CU_JIT_NUM_OPTIONS,
+				eMaxRegister				   = CU_JIT_MAX_REGISTERS,
+				eThreadPerBlock			       = CU_JIT_THREADS_PER_BLOCK,
+				eWallTime					   = CU_JIT_WALL_TIME,
+				eLogBuffer				       = CU_JIT_INFO_LOG_BUFFER,
+				eLogBufferSizeBytes            = CU_JIT_INFO_LOG_BUFFER_SIZE_BYTES,
+				eOptimizationLevel             = CU_JIT_OPTIMIZATION_LEVEL,
+				eTargetFromCUContext           = CU_JIT_TARGET_FROM_CUCONTEXT,
+				eTarget                        = CU_JIT_TARGET,
+				eFallbackStrategy              = CU_JIT_FALLBACK_STRATEGY,
+				eGenerateDebugInfo             = CU_JIT_GENERATE_DEBUG_INFO,
+				eLogVerbose                    = CU_JIT_LOG_VERBOSE,
+				eGenerateLineInfo              = CU_JIT_GENERATE_LINE_INFO,
+				eCacheMode                     = CU_JIT_CACHE_MODE,
+				eNewSM3XOpt                    = CU_JIT_NEW_SM3X_OPT,
+				eFastCompile                   = CU_JIT_FAST_COMPILE,
+				eGlobalSymbolNames             = CU_JIT_GLOBAL_SYMBOL_NAMES,
+				eGlobalSymbolAddresses         = CU_JIT_GLOBAL_SYMBOL_ADDRESSES,
+				eGlobalSymbolCount             = CU_JIT_GLOBAL_SYMBOL_COUNT,
+				eNumOptions				       = CU_JIT_NUM_OPTIONS,
 			};
 			struct     CUDAJitOptionValue
 			{
-				CUDAJitOptionFlagBits option;
-				void*                 value;
+				CUDAJitOptionFlags option;
+				void*               value;
 			};
 			class      CUDAStream;
 			struct     CUDAKernelLaunchDesc

@@ -1,23 +1,4 @@
-#include <RTLib/Ext/GL/GLContext.h>
-#include <RTLib/Ext/GL/GLBuffer.h>
-struct RTLib::Ext::GL::GLContext::Impl
-{
-	GLint m_GLMajorVersion  = 0;
-	GLint m_GLMinorVersion  = 0;
-	GLint m_GLProfileMask   = 0;
-	GLint m_GLMaxImageUnits = 0;
-	bool  m_IsInitialized = false;
-	bool SupportVersion(uint32_t versionMajor, uint32_t versionMinor)const noexcept
-	{
-		if (m_GLMajorVersion > versionMajor) {
-			return true;
-		}
-		else if (m_GLMajorVersion < versionMajor) {
-			return false;
-		}
-		return m_GLMinorVersion >= versionMinor;
-	}
-};
+#include "GLContextImpl.h"
 RTLib::Ext::GL::GLContext:: GLContext() noexcept {
 	m_Impl = std::unique_ptr<Impl>(new Impl());
 }

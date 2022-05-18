@@ -1,6 +1,8 @@
 #ifndef RTLIB_EXT_GL_GL_BUFFER_H
 #define RTLIB_EXT_GL_GL_BUFFER_H
+#include <RTLib/Core/Buffer.h>
 #include <RTLib/Ext/GL/GLCommon.h>
+#include <RTLib/Ext/GL/UuidDefinitions.h>
 namespace RTLib
 {
 	namespace Ext
@@ -8,21 +10,18 @@ namespace RTLib
 		namespace GL
 		{
 			class GLContext;
-			class GLBuffer {
+			RTLIB_CORE_TYPE_OBJECT_DECLARE_BEGIN(GLBuffer, Core::Buffer, RTLIB_TYPE_UUID_RTLIB_EXT_GL_GL_BUFFER);
 			public:
-				static auto Allocate(GLContext* context,const GLBufferDesc& desc)->GLBuffer*;
-				virtual ~GLBuffer()noexcept{}
-
-				void Destroy();
-				auto GetBufferUsage   ()const noexcept -> GLBufferUsageFlags          { return m_Usage;    }
+				static auto Allocate(GLContext* context,const GLBufferCreateDesc& desc)->GLBuffer*;
+				virtual void Destroy()override;
+				auto GetBufferUsage()const noexcept -> GLBufferUsageFlags;
 			private:
-				GLBuffer(GLuint resId, GLBufferUsageFlags usage)noexcept;
-				auto GetResId()const noexcept -> GLuint { return m_ResId; }
+				GLBuffer(GLContext* context, GLuint resId, const GLBufferCreateDesc& desc)noexcept;
+				auto GetResId()const noexcept -> GLuint;
 			private:
-				GLContext*                  m_Context ;
-				GLuint                      m_ResId   ;
-				GLBufferUsageFlags          m_Usage   ;
-			};
+				struct Impl;
+				std::unique_ptr<Impl> m_Impl;
+			RTLIB_CORE_TYPE_OBJECT_DECLARE_END();
 		}
 	}
 }

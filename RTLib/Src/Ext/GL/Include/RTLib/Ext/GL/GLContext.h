@@ -2,19 +2,22 @@
 #define RTLIB_EXT_GL_GL_CONTEXT_H
 #include <RTLib/Core/Context.h>
 #include <RTLib/Ext/GL/GLCommon.h>
+#include <RTLib/Ext/GL/UuidDefinitions.h>
 #include <vector>
 #include <memory>
 namespace RTLib {
 	namespace Ext {
 		namespace GL {
-			class GLBuffer  ;
-			class GLImage   ;
-			class GLTexture ;
-			class GLContext : public Core::Context
-			{
+			class GLBuffer;
+			class GLImage;
+			class GLTexture;
+			class GLContextState;
+			RTLIB_CORE_TYPE_OBJECT_DECLARE_BEGIN(GLContext, Core::Context, RTLIB_TYPE_UUID_RTLIB_EXT_GL_GL_CONTEXT);
+				friend class GLBuffer;
+				friend class GLImage;
+				friend class GLTexture;
 			public:
 				GLContext()noexcept;
-				virtual ~GLContext()noexcept;
 
 				virtual bool Initialize() override;
 				virtual void Terminate () override;
@@ -22,8 +25,8 @@ namespace RTLib {
 				virtual bool InitLoader() = 0;
 				virtual void FreeLoader() = 0;
 
-				virtual auto CreateBuffer(const  GLBufferDesc & desc)-> GLBuffer * = 0;
-				virtual auto CreateTexture(const GLTextureDesc& desc)-> GLTexture* = 0;
+				virtual auto CreateBuffer(const  GLBufferCreateDesc & desc)-> GLBuffer * = 0;
+				virtual auto CreateTexture(const GLTextureCreateDesc& desc)-> GLTexture* = 0;
 				
 				bool SupportVersion(uint32_t majorVersion, uint32_t minorVersion)const noexcept;
 
@@ -44,9 +47,12 @@ namespace RTLib {
 
 				bool CopyMemoryToImage(GLImage* image, const std::vector<GLImageMemoryCopy>& regions);
 			private:
+				auto GetContextState()const noexcept -> const GLContextState*;
+				auto GetContextState()      noexcept ->       GLContextState*;
+			private:
 				struct Impl;
 				std::unique_ptr<Impl> m_Impl;
-			};
+			RTLIB_CORE_TYPE_OBJECT_DECLARE_END();
 		}
 	}
 }

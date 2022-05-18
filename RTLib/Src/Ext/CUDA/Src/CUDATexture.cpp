@@ -2,7 +2,7 @@
 #include <RTLib/Ext/CUDA/CUDAImage.h>
 #include "CUDATypeConversions.h"
 #include <iostream>
-auto RTLib::Ext::CUDA::CUDATexture::Allocate(CUDAContext* context, const CUDATextureImageDesc& desc) -> CUDATexture*
+auto RTLib::Ext::CUDA::CUDATexture::Allocate(CUDAContext* context, const CUDATextureImageCreateDesc& desc) -> CUDATexture*
 {
     if (!context || !desc.image) { return nullptr; }
     auto numLevels  = desc.image->GetLevels();

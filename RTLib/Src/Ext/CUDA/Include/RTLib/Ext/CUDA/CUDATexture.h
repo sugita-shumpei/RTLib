@@ -11,7 +11,7 @@ namespace RTLib
 			class CUDATexture
 			{
 			public:
-				static auto Allocate(CUDAContext* context, const CUDATextureImageDesc& desc)->CUDATexture*;
+				static auto Allocate(CUDAContext* context, const CUDATextureImageCreateDesc& desc)->CUDATexture*;
 				virtual ~CUDATexture()noexcept;
 
 				void Destroy();

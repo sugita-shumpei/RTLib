@@ -51,11 +51,11 @@ public:
 	{
 
 	}
-	virtual auto CreateBuffer(const RTLib::Ext::GL::GLBufferDesc& desc)  ->  RTLib::Ext::GL::GLBuffer* override
+	virtual auto CreateBuffer(const RTLib::Ext::GL::GLBufferCreateDesc& desc)  ->  RTLib::Ext::GL::GLBuffer* override
 	{
 		return nullptr;
 	}
-	virtual auto CreateTexture(const RTLib::Ext::GL::GLTextureDesc& desc)  ->  RTLib::Ext::GL::GLTexture* override
+	virtual auto CreateTexture(const RTLib::Ext::GL::GLTextureCreateDesc& desc)  ->  RTLib::Ext::GL::GLTexture* override
 	{
 		return nullptr;
 	}

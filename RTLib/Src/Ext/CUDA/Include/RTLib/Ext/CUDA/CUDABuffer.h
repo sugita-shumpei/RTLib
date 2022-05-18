@@ -12,14 +12,14 @@ namespace RTLib {
 				friend class CUDAContext;
 				friend class CUDAStream ;
 			public:
-				static auto Allocate(CUDAContext* ctx, const CUDABufferDesc& desc)->CUDABuffer*;
+				static auto Allocate(CUDAContext* ctx, const CUDABufferCreateDesc& desc)->CUDABuffer*;
 				void Destroy()noexcept;
 
 				virtual ~CUDABuffer()noexcept;
 				auto GetDeviceAddress() noexcept -> CUdeviceptr { return m_Deviceptr; }
 				auto GetSizeInBytes()const noexcept -> size_t { return m_SizeInBytes; }
 			private:
-				CUDABuffer(CUDAContext* ctx, const CUDABufferDesc& desc, CUdeviceptr deviceptr, void* hostptr) noexcept;
+				CUDABuffer(CUDAContext* ctx, const CUDABufferCreateDesc& desc, CUdeviceptr deviceptr, void* hostptr) noexcept;
 			private:
 				auto GetHostptr() noexcept -> void* { return m_Hostptr; }
 			private:

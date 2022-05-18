@@ -40,106 +40,116 @@ namespace RTLib
 
 			enum  GLBufferUsageFlagBits : unsigned int
 			{
-				GLBufferUsageFlagBitsUnknown= 0,
-				GLBufferUsageFlagBitsVertex = 1 << 0,
-				GLBufferUsageFlagBitsAtomicCounter = 1 << 1,
-				GLBufferUsageFlagBitsDispatchIndirect = 1 << 2,
-				GLBufferUsageFlagBitsDrawIndirect = 1 << 3,
-				GLBufferUsageFlagBitsIndex = 1 << 4,
-				GLBufferUsageFlagBitsImageCopySrc = 1 << 5,
-				GLBufferUsageFlagBitsImageCopyDst = 1 << 6,
-				GLBufferUsageFlagBitsQuery = 1 << 7,
-				GLBufferUsageFlagBitsStorage = 1 << 8,
-				GLBufferUsageFlagBitsTexture = 1 << 9,
-				GLBufferUsageFlagBitsTransformFeedBack = 1 << 10,
-				GLBufferUsageFlagBitsUniform = 1 << 11,
-			};
-			using GLBufferUsageFlags = GLBufferUsageFlagBits;
-			inline constexpr auto GetGLBufferUsageCount(unsigned int usageFlags)->unsigned int {
+				GLBufferUsageUnknown           = 0,
+				GLBufferUsageVertex            = 1 << 0,
+				GLBufferUsageAtomicCounter     = 1 << 1,
+				GLBufferUsageDispatchIndirect  = 1 << 2,
+				GLBufferUsageDrawIndirect      = 1 << 3,
+				GLBufferUsageIndex             = 1 << 4,
+				GLBufferUsageQuery             = 1 << 5,
+				GLBufferUsageStorage           = 1 << 6,
+				GLBufferUsageTexture           = 1 << 7,
+				GLBufferUsageTransformFeedBack = 1 << 8,
+				GLBufferUsageUniform           = 1 << 9,
+				GLBufferUsageImageCopySrc	   = 1 << 10,
+				GLBufferUsageImageCopyDst      = 1 << 11,
+			}; 
+			using GLBufferUsageFlags = unsigned int;
+			inline constexpr auto GetGLBufferUsageCount(GLBufferUsageFlags  usageFlags)->unsigned int {
 				unsigned int count = 0;
-				if ((usageFlags & GLBufferUsageFlagBitsVertex) == GLBufferUsageFlagBitsVertex) {
+				if ((usageFlags & GLBufferUsageVertex)            == GLBufferUsageVertex) {
 					++count;
 				}
-				if ((usageFlags & GLBufferUsageFlagBitsIndex) == GLBufferUsageFlagBitsIndex) {
+				if ((usageFlags & GLBufferUsageIndex)             == GLBufferUsageIndex) {
 					++count;
 				}
-				if ((usageFlags & GLBufferUsageFlagBitsUniform) == GLBufferUsageFlagBitsUniform) {
+				if ((usageFlags & GLBufferUsageUniform)           == GLBufferUsageUniform) {
 					++count;
 				}
-				if ((usageFlags & GLBufferUsageFlagBitsStorage) == GLBufferUsageFlagBitsStorage) {
+				if ((usageFlags & GLBufferUsageStorage)           == GLBufferUsageStorage) {
 					++count;
 				}
-				if ((usageFlags & GLBufferUsageFlagBitsImageCopySrc) == GLBufferUsageFlagBitsImageCopySrc) {
+				if ((usageFlags & GLBufferUsageImageCopySrc)      == GLBufferUsageImageCopySrc) {
 					++count;
 				}
-				if ((usageFlags & GLBufferUsageFlagBitsImageCopyDst) == GLBufferUsageFlagBitsImageCopyDst) {
+				if ((usageFlags & GLBufferUsageImageCopyDst)      == GLBufferUsageImageCopyDst) {
 					++count;
 				}
-				if ((usageFlags & GLBufferUsageFlagBitsDrawIndirect) == GLBufferUsageFlagBitsDrawIndirect) {
+				if ((usageFlags & GLBufferUsageDrawIndirect)      == GLBufferUsageDrawIndirect) {
 					++count;
 				}
-				if ((usageFlags & GLBufferUsageFlagBitsDispatchIndirect) == GLBufferUsageFlagBitsDispatchIndirect) {
+				if ((usageFlags & GLBufferUsageDispatchIndirect)  == GLBufferUsageDispatchIndirect) {
 					++count;
 				}
-				if ((usageFlags & GLBufferUsageFlagBitsTransformFeedBack) == GLBufferUsageFlagBitsTransformFeedBack) {
+				if ((usageFlags & GLBufferUsageTransformFeedBack) == GLBufferUsageTransformFeedBack) {
 					++count;
 				}
-				if ((usageFlags & GLBufferUsageFlagBitsTexture) == GLBufferUsageFlagBitsTexture) {
+				if ((usageFlags & GLBufferUsageTexture)           == GLBufferUsageTexture) {
 					++count;
 				}
-				if ((usageFlags & GLBufferUsageFlagBitsQuery) == GLBufferUsageFlagBitsQuery) {
+				if ((usageFlags & GLBufferUsageQuery)             == GLBufferUsageQuery) {
 					++count;
 				}
-				if ((usageFlags & GLBufferUsageFlagBitsAtomicCounter) == GLBufferUsageFlagBitsAtomicCounter) {
+				if ((usageFlags & GLBufferUsageAtomicCounter)     == GLBufferUsageAtomicCounter) {
 					++count;
 				}
 				return count;
 			}
-			inline constexpr auto GetGLBufferMainUsage(unsigned int usageFlags)->GLBufferUsageFlagBits
+			inline constexpr auto GetGLBufferMainUsage( GLBufferUsageFlags  usageFlags)->GLBufferUsageFlagBits
 			{
-				if ((usageFlags & GLBufferUsageFlagBitsVertex)	          == GLBufferUsageFlagBitsVertex) {
-					return GLBufferUsageFlagBitsVertex;
+				if ((usageFlags & GLBufferUsageVertex)	          == GLBufferUsageVertex) {
+					return GLBufferUsageVertex;
 				}
-				if ((usageFlags & GLBufferUsageFlagBitsIndex)             == GLBufferUsageFlagBitsIndex) {
-					return GLBufferUsageFlagBitsIndex;
+				if ((usageFlags & GLBufferUsageIndex)             == GLBufferUsageIndex) {
+					return GLBufferUsageIndex;
 				}
-				if ((usageFlags & GLBufferUsageFlagBitsUniform)           == GLBufferUsageFlagBitsUniform) {
-					return GLBufferUsageFlagBitsUniform;
+				if ((usageFlags & GLBufferUsageUniform)           == GLBufferUsageUniform) {
+					return GLBufferUsageUniform;
 				}
-				if ((usageFlags & GLBufferUsageFlagBitsStorage)           == GLBufferUsageFlagBitsStorage) {
-					return GLBufferUsageFlagBitsStorage;
+				if ((usageFlags & GLBufferUsageStorage)           == GLBufferUsageStorage) {
+					return GLBufferUsageStorage;
 				}
-				if ((usageFlags & GLBufferUsageFlagBitsImageCopySrc)      == GLBufferUsageFlagBitsImageCopySrc) {
-					return GLBufferUsageFlagBitsImageCopySrc;
+				if ((usageFlags & GLBufferUsageImageCopySrc)      == GLBufferUsageImageCopySrc) {
+					return GLBufferUsageImageCopySrc;
 				}
-				if ((usageFlags & GLBufferUsageFlagBitsImageCopyDst)      == GLBufferUsageFlagBitsImageCopyDst) {
-					return GLBufferUsageFlagBitsImageCopyDst;
+				if ((usageFlags & GLBufferUsageImageCopyDst)      == GLBufferUsageImageCopyDst) {
+					return GLBufferUsageImageCopyDst;
 				}
-				if ((usageFlags & GLBufferUsageFlagBitsDrawIndirect)      == GLBufferUsageFlagBitsDrawIndirect) {
-					return GLBufferUsageFlagBitsDrawIndirect;
+				if ((usageFlags & GLBufferUsageDrawIndirect)      == GLBufferUsageDrawIndirect) {
+					return GLBufferUsageDrawIndirect;
 				}
-				if ((usageFlags & GLBufferUsageFlagBitsDispatchIndirect)  == GLBufferUsageFlagBitsDispatchIndirect) {
-					return GLBufferUsageFlagBitsDispatchIndirect;
+				if ((usageFlags & GLBufferUsageDispatchIndirect)  == GLBufferUsageDispatchIndirect) {
+					return GLBufferUsageDispatchIndirect;
 				}
-				if ((usageFlags & GLBufferUsageFlagBitsTransformFeedBack) == GLBufferUsageFlagBitsTransformFeedBack) {
-					return GLBufferUsageFlagBitsTransformFeedBack;
+				if ((usageFlags & GLBufferUsageTransformFeedBack) == GLBufferUsageTransformFeedBack) {
+					return GLBufferUsageTransformFeedBack;
 				}
-				if ((usageFlags & GLBufferUsageFlagBitsTexture)           == GLBufferUsageFlagBitsTexture) {
-					return GLBufferUsageFlagBitsTexture;
+				if ((usageFlags & GLBufferUsageTexture)           == GLBufferUsageTexture) {
+					return GLBufferUsageTexture;
 				}
-				if ((usageFlags & GLBufferUsageFlagBitsQuery)             == GLBufferUsageFlagBitsQuery) {
-					return GLBufferUsageFlagBitsQuery;
+				if ((usageFlags & GLBufferUsageQuery)             == GLBufferUsageQuery) {
+					return GLBufferUsageQuery;
 				}
-				if ((usageFlags & GLBufferUsageFlagBitsAtomicCounter)     == GLBufferUsageFlagBitsAtomicCounter) {
-					return GLBufferUsageFlagBitsAtomicCounter;
+				if ((usageFlags & GLBufferUsageAtomicCounter)     == GLBufferUsageAtomicCounter) {
+					return GLBufferUsageAtomicCounter;
 				}
-				return GLBufferUsageFlagBitsUnknown;
+				return GLBufferUsageUnknown;
 			}
-			struct GLBufferDesc
+			enum  GLMemoryPropertyFlagBits :unsigned int
 			{
-				size_t                         size;
-				GLBufferUsageFlags            usage;
-				const void*                   pData;
+				GLMemoryPropertyDeviceLocal,
+				GLMemoryPropertyHostVisible,
+				GLMemoryPropertyHostCoherent,
+				GLMemoryPropertyHostCache,
+			};
+			using GLMemoryPropertyFlags = unsigned int;
+
+			struct GLBufferCreateDesc
+			{
+				size_t                 size;
+				GLBufferUsageFlags    usage;
+				GLMemoryPropertyFlags props;
+				const void*           pData;
 			};
 
 			enum class GLImageType
@@ -406,13 +416,13 @@ namespace RTLib
 				};
 			}
 
-			struct GLTextureDesc
+			struct GLTextureCreateDesc
 			{
 				GLImageType imageType;
-				GLFormat format;
-				GLExtent3D extent;
-				uint32_t mipLevels;
-				uint32_t arrayLayers;
+				GLFormat    format;
+				GLExtent3D  extent;
+				uint32_t    mipLevels;
+				uint32_t    arrayLayers;
 			};
 		}
 	}

@@ -14,7 +14,7 @@ namespace RTLib {
 				friend class CUDAStream ;
 				friend class CUDATexture;
 			public:
-				static auto Allocate(CUDAContext* ctx, const CUDAImageDesc& desc)->CUDAImage*;
+				static auto Allocate(CUDAContext* ctx, const CUDAImageCreateDesc& desc)->CUDAImage*;
 				virtual ~CUDAImage()noexcept;
 				void Destroy()noexcept;
 
@@ -34,11 +34,11 @@ namespace RTLib {
 				auto GetMipHeight(unsigned int level)const noexcept -> size_t;
 				auto GetMipDepth( unsigned int level)const noexcept -> size_t;
 			private:
-				CUDAImage(CUDAContext* ctx, const CUDAImageDesc& desc, CUarray          cuArray, bool ownership = true)noexcept;
-				CUDAImage(CUDAContext* ctx, const CUDAImageDesc& desc, CUmipmappedArray cuArray, const std::vector<CUarray>& cuArrayRefs)noexcept;
-				static auto AllocateArray(CUDAContext* ctx, const CUDAImageDesc& desc)->CUDAImage*;
-				static auto AllocateArray3D(CUDAContext* ctx, const CUDAImageDesc& desc)->CUDAImage*;
-				static auto AllocateMipmappedArray(CUDAContext* ctx, const CUDAImageDesc& desc)->CUDAImage*;
+				CUDAImage(CUDAContext* ctx, const CUDAImageCreateDesc& desc, CUarray          cuArray, bool ownership = true)noexcept;
+				CUDAImage(CUDAContext* ctx, const CUDAImageCreateDesc& desc, CUmipmappedArray cuArray, const std::vector<CUarray>& cuArrayRefs)noexcept;
+				static auto AllocateArray(CUDAContext* ctx, const CUDAImageCreateDesc& desc)->CUDAImage*;
+				static auto AllocateArray3D(CUDAContext* ctx, const CUDAImageCreateDesc& desc)->CUDAImage*;
+				static auto AllocateMipmappedArray(CUDAContext* ctx, const CUDAImageCreateDesc& desc)->CUDAImage*;
 				auto GetArray()noexcept -> CUarray { return m_Arrays[0]; }
 				auto GetArrays(unsigned int level)noexcept -> CUarray {
 					if (level >= m_Arrays.size()) { return nullptr; }

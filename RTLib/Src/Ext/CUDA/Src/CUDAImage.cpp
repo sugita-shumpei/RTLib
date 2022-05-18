@@ -2,7 +2,7 @@
 #include "CUDATypeConversions.h"
 #include <iostream>
 
-RTLib::Ext::CUDA::CUDAImage::CUDAImage(CUDAContext* ctx, const CUDAImageDesc& desc, CUarray cuArray, bool ownership)noexcept
+RTLib::Ext::CUDA::CUDAImage::CUDAImage(CUDAContext* ctx, const CUDAImageCreateDesc& desc, CUarray cuArray, bool ownership)noexcept
 {
 	m_Context     = ctx;
 	m_Width		  = desc.width;
@@ -19,7 +19,7 @@ RTLib::Ext::CUDA::CUDAImage::CUDAImage(CUDAContext* ctx, const CUDAImageDesc& de
 	m_Ownership = ownership;
 }
 
-RTLib::Ext::CUDA::CUDAImage::CUDAImage(CUDAContext* ctx, const CUDAImageDesc& desc, CUmipmappedArray cuArray, const std::vector<CUarray>& cuArrayRefs)noexcept
+RTLib::Ext::CUDA::CUDAImage::CUDAImage(CUDAContext* ctx, const CUDAImageCreateDesc& desc, CUmipmappedArray cuArray, const std::vector<CUarray>& cuArrayRefs)noexcept
 {
 
 	m_Context = ctx;
@@ -37,14 +37,14 @@ RTLib::Ext::CUDA::CUDAImage::CUDAImage(CUDAContext* ctx, const CUDAImageDesc& de
 	m_Ownership = true;
 }
 
-auto RTLib::Ext::CUDA::CUDAImage::Allocate(CUDAContext* ctx, const CUDAImageDesc& desc)->CUDAImage*
+auto RTLib::Ext::CUDA::CUDAImage::Allocate(CUDAContext* ctx, const CUDAImageCreateDesc& desc)->CUDAImage*
 {
 	if (desc.width == 0) { return nullptr; }
 	bool isMippedArray = desc.levels > 0;
 	if (isMippedArray) {
 		return AllocateMipmappedArray(ctx, desc);
 	}
-	else if ((desc.flags&CUDAImageFlagBitsCubemap)||(desc.layers>0)) {
+	else if ((desc.flags&CUDAImageCreateFlagBitsCubemap)||(desc.layers>0)) {
 		return AllocateArray3D(ctx, desc);
 	}
 	else {
@@ -91,7 +91,7 @@ auto RTLib::Ext::CUDA::CUDAImage::GetMipImage(unsigned int level) -> CUDAImage*
 {
 	auto cuArray = GetArrays(level);
 	if (!cuArray) { return nullptr; }
-	CUDAImageDesc desc = {};
+	CUDAImageCreateDesc desc = {};
 	desc.imageType = this->m_ImageType;
 	desc.width = m_Width;
 	desc.height = m_Height;
@@ -134,7 +134,7 @@ RTLib::Ext::CUDA::CUDAImage::~CUDAImage() noexcept
 {
 }
 
-auto RTLib::Ext::CUDA::CUDAImage::AllocateArray(CUDAContext* ctx, const CUDAImageDesc& desc) -> CUDAImage*
+auto RTLib::Ext::CUDA::CUDAImage::AllocateArray(CUDAContext* ctx, const CUDAImageCreateDesc& desc) -> CUDAImage*
 {
 	CUDA_ARRAY_DESCRIPTOR arrDesc = {};
 	switch (desc.imageType) {
@@ -167,13 +167,13 @@ auto RTLib::Ext::CUDA::CUDAImage::AllocateArray(CUDAContext* ctx, const CUDAImag
 	return new CUDAImage(ctx,desc,nullptr,arr);
 }
 
-auto RTLib::Ext::CUDA::CUDAImage::AllocateArray3D(CUDAContext* ctx, const CUDAImageDesc& desc) -> CUDAImage*
+auto RTLib::Ext::CUDA::CUDAImage::AllocateArray3D(CUDAContext* ctx, const CUDAImageCreateDesc& desc) -> CUDAImage*
 {
 	CUDA_ARRAY3D_DESCRIPTOR arrDesc = {};
 	arrDesc.Flags = static_cast<uint32_t>(desc.flags);
 	switch (desc.imageType) {
 	case CUDAImageType::e1D:
-		if (arrDesc.Flags & CUDAImageFlagBitsCubemap) {
+		if (arrDesc.Flags & CUDAImageCreateFlagBitsCubemap) {
 			return nullptr;
 		}
 		arrDesc.Width  = desc.width;
@@ -181,7 +181,7 @@ auto RTLib::Ext::CUDA::CUDAImage::AllocateArray3D(CUDAContext* ctx, const CUDAIm
 		arrDesc.Depth  = desc.layers;
 		break;
 	case CUDAImageType::e2D:
-		if (arrDesc.Flags & CUDAImageFlagBitsCubemap) {
+		if (arrDesc.Flags & CUDAImageCreateFlagBitsCubemap) {
 			if (desc.depth > 0) { return nullptr; }
 			if (desc.layers == 0) {
 				if (desc.width != desc.height) { return nullptr; }
@@ -206,7 +206,7 @@ auto RTLib::Ext::CUDA::CUDAImage::AllocateArray3D(CUDAContext* ctx, const CUDAIm
 		}
 		break;
 	case CUDAImageType::e3D:
-		if (arrDesc.Flags & CUDAImageFlagBitsCubemap) {
+		if (arrDesc.Flags & CUDAImageCreateFlagBitsCubemap) {
 			return nullptr;
 		}
 		if (desc.depth  == 0) { return nullptr; }
@@ -233,13 +233,13 @@ auto RTLib::Ext::CUDA::CUDAImage::AllocateArray3D(CUDAContext* ctx, const CUDAIm
 	return new CUDAImage(ctx, desc, nullptr, arr);
 }
 
-auto RTLib::Ext::CUDA::CUDAImage::AllocateMipmappedArray(CUDAContext* ctx, const CUDAImageDesc& desc) -> CUDAImage*
+auto RTLib::Ext::CUDA::CUDAImage::AllocateMipmappedArray(CUDAContext* ctx, const CUDAImageCreateDesc& desc) -> CUDAImage*
 {
 	CUDA_ARRAY3D_DESCRIPTOR arrDesc = {};
 	arrDesc.Flags = static_cast<uint32_t>(desc.flags);
 	switch (desc.imageType) {
 	case CUDAImageType::e1D:
-		if (arrDesc.Flags & CUDAImageFlagBitsCubemap) {
+		if (arrDesc.Flags & CUDAImageCreateFlagBitsCubemap) {
 			return nullptr;
 		}
 		arrDesc.Width  = desc.width;
@@ -247,7 +247,7 @@ auto RTLib::Ext::CUDA::CUDAImage::AllocateMipmappedArray(CUDAContext* ctx, const
 		arrDesc.Depth  = desc.layers;
 		break;
 	case CUDAImageType::e2D:
-		if (arrDesc.Flags & CUDAImageFlagBitsCubemap) {
+		if (arrDesc.Flags & CUDAImageCreateFlagBitsCubemap) {
 			if (desc.layers == 0) {
 				if (desc.width != desc.height) { return nullptr; }
 				arrDesc.Width  = desc.width;
@@ -276,7 +276,7 @@ auto RTLib::Ext::CUDA::CUDAImage::AllocateMipmappedArray(CUDAContext* ctx, const
 		}
 		break;
 	case CUDAImageType::e3D:
-		if (arrDesc.Flags & CUDAImageFlagBitsCubemap) {
+		if (arrDesc.Flags & CUDAImageCreateFlagBitsCubemap) {
 			return nullptr;
 		}
 		if (desc.depth == 0) { return nullptr; }

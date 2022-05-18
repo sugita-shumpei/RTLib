@@ -1,10 +1,10 @@
 #ifndef RTLIB_CORE_COMMON_H
 #define RTLIB_CORE_COMMON_H
+#include <cstdint>
 #define RTLIB_CORE_CORE_FORMAT_DEF_1(VAL1) ((uint64_t)VAL1)
 #define RTLIB_CORE_CORE_FORMAT_DEF_2(VAL1, VAL2) ((uint64_t)VAL1) | (((uint64_t)VAL2) << 9)
 #define RTLIB_CORE_CORE_FORMAT_DEF_3(VAL1, VAL2, VAL3) ((uint64_t)VAL1) | (((uint64_t)VAL2) << 9) | (((uint64_t)VAL3) << 18)
 #define RTLIB_CORE_CORE_FORMAT_DEF_4(VAL1, VAL2, VAL3, VAL4) ((uint64_t)VAL1) | (((uint64_t)VAL2) << 9) | (((uint64_t)VAL3) << 18) | (((uint64_t)VAL4) << 27)
-#include <cstdint>
 namespace RTLib {
 	namespace Core {
 		enum class BaseTypeFlagBits
@@ -206,7 +206,7 @@ namespace RTLib {
 			Extent3D               extent;
 		};
 
-		struct SamplerDesc
+		struct SamplerCreateDesc
 		{
 			FilterMode              magFilter;
 			FilterMode              minFilter;

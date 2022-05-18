@@ -6,6 +6,7 @@ tinyobjloader/1.0.6
 stb/cci.20210910
 imgui/cci.20220207+1.87.docking
 openexr/3.1.5
+stduuid/1.2.2
 [generators]
 CMakeDeps
 CMakeToolchain

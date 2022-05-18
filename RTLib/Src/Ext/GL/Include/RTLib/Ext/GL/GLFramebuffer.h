@@ -1,3 +1,15 @@
-#ifndef RTLIB_EXT_GL_GL_FRAME_BUFFER_H
-#define RTLIB_EXT_GL_GL_FRAME_BUFFER_H
+#ifndef RTLIB_EXT_GL_GL_FBO_H
+#define RTLIB_EXT_GL_GL_FBO_H
+namespace RTLib
+{
+	namespace Ext
+	{
+		namespace GL
+		{
+			class GLFBO {
+
+			};
+		}
+	}
+}
 #endif

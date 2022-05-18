@@ -26,16 +26,18 @@ int main(int argc, const char* argv)
 	auto ctx = RTLib::Ext::CUDA::CUDAContext();
 	ctx.Initialize();
 	{
+		std::cout << "ThisTypeId: " << ctx.GetTypeIdString()     << std::endl;
+		std::cout << "BaseTypeId: " << ctx.GetBaseTypeIdString() << std::endl;
 
 		auto stream  = std::unique_ptr<RTLib::Ext::CUDA::CUDAStream>(ctx.CreateStream());
-		auto bffDesc = RTLib::Ext::CUDA::CUDABufferDesc();
+		auto bffDesc = RTLib::Ext::CUDA::CUDABufferCreateDesc();
 		{
 			bffDesc.flags       = RTLib::Ext::CUDA::CUDAMemoryFlags::ePageLocked;
 			bffDesc.sizeInBytes = 16 * 16 * 4;
 		}
 		auto bff1     = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(ctx.CreateBuffer(bffDesc));
 		auto bff2     = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(ctx.CreateBuffer(bffDesc));
-		auto imgDesc0 = RTLib::Ext::CUDA::CUDAImageDesc();
+		auto imgDesc0 = RTLib::Ext::CUDA::CUDAImageCreateDesc();
 		{
 			imgDesc0.imageType= RTLib::Ext::CUDA::CUDAImageType::e2D;
 			imgDesc0.width    = 16;
@@ -45,7 +47,7 @@ int main(int argc, const char* argv)
 			imgDesc0.format   = RTLib::Ext::CUDA::CUDAImageDataType::eFloat32;
 			imgDesc0.channels = 1;
 		}
-		auto imgDesc1 = RTLib::Ext::CUDA::CUDAImageDesc();
+		auto imgDesc1 = RTLib::Ext::CUDA::CUDAImageCreateDesc();
 		{
 			imgDesc1.imageType = RTLib::Ext::CUDA::CUDAImageType::e2D;
 			imgDesc1.width     = 16;
@@ -100,7 +102,7 @@ int main(int argc, const char* argv)
 			Show(dstData1);
 			Show(dstData2);
 		}
-		auto texDesc = RTLib::Ext::CUDA::CUDATextureImageDesc();
+		auto texDesc = RTLib::Ext::CUDA::CUDATextureImageCreateDesc();
 		{
 			texDesc.image                       = img1.get();
 			texDesc.sampler.addressMode[0]      = RTLib::Ext::CUDA::CUDATextureAddressMode::eClamp;
@@ -124,13 +126,13 @@ int main(int argc, const char* argv)
 		{
 			int x, y, comp;
 			auto iImgData = stbi_load(RTLIB_EXT_CUDA_TEST_DATA_PATH"/Textures/sample.png", &x, &y, &comp, 4);
-			auto ibffDesc = RTLib::Ext::CUDA::CUDABufferDesc();
+			auto ibffDesc = RTLib::Ext::CUDA::CUDABufferCreateDesc();
 			{
 				ibffDesc.flags = RTLib::Ext::CUDA::CUDAMemoryFlags::eDefault;
 				ibffDesc.sizeInBytes = x * y * comp;
 			}
 			auto oImgData = std::vector<unsigned char>(x * y * comp);
-			auto obffDesc = RTLib::Ext::CUDA::CUDABufferDesc();
+			auto obffDesc = RTLib::Ext::CUDA::CUDABufferCreateDesc();
 			{
 				obffDesc.flags = RTLib::Ext::CUDA::CUDAMemoryFlags::eDefault;
 				obffDesc.sizeInBytes = x * y * comp;
