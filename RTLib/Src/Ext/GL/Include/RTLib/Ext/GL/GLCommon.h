@@ -47,6 +47,8 @@ namespace RTLib
 				GLBufferUsageUniform           = 1 << 9,
 				GLBufferUsageImageCopySrc	   = 1 << 10,
 				GLBufferUsageImageCopyDst      = 1 << 11,
+				GLBufferUsageGenericCopySrc    = 1 << 12,
+				GLBufferUsageGenericCopyDst    = 1 << 13,
 			}; 
 			using GLBufferUsageFlags = unsigned int;
 
@@ -64,6 +66,8 @@ namespace RTLib
 				if ((usageFlags & GLBufferUsageTexture)           == GLBufferUsageTexture)           { ++count; }
 				if ((usageFlags & GLBufferUsageQuery)             == GLBufferUsageQuery)             { ++count; }
 				if ((usageFlags & GLBufferUsageAtomicCounter)     == GLBufferUsageAtomicCounter)     { ++count; }
+				if ((usageFlags & GLBufferUsageGenericCopySrc)    == GLBufferUsageGenericCopySrc)    { ++count; }
+				if ((usageFlags & GLBufferUsageGenericCopyDst)    == GLBufferUsageGenericCopyDst)    { ++count; }
 				return count;
 			}
 			inline constexpr auto GetGLBufferMainUsage (GLBufferUsageFlags  usageFlags)->GLBufferUsageFlagBits
@@ -106,7 +110,7 @@ namespace RTLib
 				}
 				return GLBufferUsageUnknown;
 			}
-			enum  GLMemoryPropertyFlagBits :unsigned int
+			enum  GLBufferCreateFlagBits :unsigned int
 			{
 				GLMemoryPropertyDeviceLocal = 1<<0,
 				GLMemoryPropertyHostVisible = 1<<1,
@@ -119,7 +123,6 @@ namespace RTLib
 			{
 				size_t                 size;
 				GLBufferUsageFlags    usage;
-				GLMemoryPropertyFlags props;
 				const void*           pData;
 			};
 
