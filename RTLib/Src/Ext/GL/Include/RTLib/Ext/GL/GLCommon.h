@@ -43,19 +43,6 @@ namespace RTLib
 				GLBufferUsageGenericCopyDst    = 1 << 13,
 			}; 
 			using GLBufferUsageFlags = unsigned int;
-			//GL_ARRAY_BUFFER
-			//GL_ELEMENT_ARRAY_BUFFER
-			//GL_UNIFORM_BUFFER
-			//GL_SHADER_STORAGE_BUFFER
-			//GL_COPY_READ_BUFFER
-			//GL_COPY_WRITE_BUFFER
-			//GL_PIXEL_UNPACK_BUFFER
-			//GL_PIXEL_PACK_BUFFER
-			//GL_TRANSFORM_FEEDBACK_BUFFER
-			//GL_QUERY_BUFFER
-			//GL_DRAW_INDIRECT_BUFFER
-			//GL_DISPATCH_INDIRECT_BUFFER
-			//GL_ATOMIC_COUNTER_BUFFER
 			inline constexpr auto GetGLBufferUsageCount(GLBufferUsageFlags  usageFlags)->unsigned int {
 				unsigned int count = 0;
 				if (usageFlags == GLBufferUsageGenericCopySrc) { return 1; }
@@ -120,6 +107,15 @@ namespace RTLib
 				}
 				return GLBufferUsageUnknown;
 			}
+			enum  GLShaderStageFlagBits {
+				GLShaderStageVertex        = Core::ShaderStageVertex,
+				GLShaderStageGeometry      = Core::ShaderStageGeometry,
+				GLShaderStageTessControl     = Core::ShaderStageTessControl,
+				GLShaderStageTessEvaluation  = Core::ShaderStageTessEvalauation,
+				GLShaderStageFragment        = Core::ShaderStageFragment,
+				GLShaderStageCompute         = Core::ShaderStageCompute,
+			};
+			using GLShaderStageFlags = unsigned int;
 			//GL_(*)_DRAW	   (COPY: Cpu -> Gpu, Use: Cpu)   Upload Buffer
 			//GL_(*)_READ      (COPY: Gpu -> Cpu, Use: Cpu) Readback Buffer
 			//GL_(*)_COPY      (COPY: Gpu -> Gpu, Use: Gpu)

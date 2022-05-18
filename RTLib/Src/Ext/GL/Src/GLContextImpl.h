@@ -2,6 +2,8 @@
 #define RTLIB_EXT_GL_GL_CONTEXT_IMPL_H
 #include <RTLib/Ext/GL/GLContext.h>
 #include <RTLib/Ext/GL/GLBuffer.h>
+#include <RTLib/Ext/GL/GLShader.h>
+#include <RTLib/Ext/GL/GLProgram.h>
 struct RTLib::Ext::GL::GLContext::Impl
 {
 	GLint m_GLMajorVersion  = 0;

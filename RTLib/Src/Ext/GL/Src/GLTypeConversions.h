@@ -321,6 +321,30 @@ namespace RTLib {
 				}
 				return GL_STATIC_DRAW;
 			}
+
+			inline constexpr auto GetGLShaderStagesShaderType(const GLShaderStageFlagBits shaderStage)->GLenum {
+				switch (shaderStage) {
+				case GLShaderStageVertex: return GL_VERTEX_SHADER;
+				case GLShaderStageGeometry: return GL_GEOMETRY_SHADER;
+				case GLShaderStageTessControl: return GL_TESS_CONTROL_SHADER;
+				case GLShaderStageTessEvaluation: return GL_TESS_EVALUATION_SHADER;
+				case GLShaderStageFragment: return GL_FRAGMENT_SHADER;
+				case GLShaderStageCompute: return GL_COMPUTE_SHADER;
+				default: return GL_VERTEX_SHADER;
+				}
+			}
+			inline constexpr auto GetGLShaderStagesShaderGLenum(const GLShaderStageFlagBits shaderStage)->GLenum {
+				switch (shaderStage) {
+					GLenum res = 0;
+					if (shaderStage & GLShaderStageVertex) { res |= GL_VERTEX_SHADER_BIT; }
+					if (shaderStage & GLShaderStageGeometry) { res |= GL_GEOMETRY_SHADER; }
+					if (shaderStage & GLShaderStageTessControl) { res |= GL_TESS_CONTROL_SHADER; }
+					if (shaderStage & GLShaderStageTessEvaluation) { res |= GL_TESS_EVALUATION_SHADER; }
+					if (shaderStage & GLShaderStageFragment) { res |= GL_FRAGMENT_SHADER; }
+					if (shaderStage & GLShaderStageCompute) { res |= GL_COMPUTE_SHADER; }
+					return res;
+				}
+			}
 		}
 	}
 }

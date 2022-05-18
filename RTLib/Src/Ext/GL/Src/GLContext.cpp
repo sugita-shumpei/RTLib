@@ -164,3 +164,13 @@ auto RTLib::Ext::GL::GLContext::CreateTexture(const GLTextureCreateDesc& desc) -
 {
 	return nullptr;
 }
+
+auto RTLib::Ext::GL::GLContext::CreateShader(GLShaderStageFlagBits shaderType) -> GLShader*
+{
+	return GLShader::New(this,shaderType,this->SupportVersion(4,6));
+}
+
+auto RTLib::Ext::GL::GLContext::CreateProgram() -> GLProgram*
+{
+	return GLProgram::New(this);
+}

@@ -1,13 +1,45 @@
 #include <RTLib/Ext/GL/GLContext.h>
 #include <RTLib/Ext/GL/GLBuffer.h>
+#include <RTLib/Ext/GL/GLShader.h>
+#include <RTLib/Ext/GL/GLProgram.h>
 #include <RTLib/Ext/GL/GLCommon.h>
+#include <RTLibExtGLTestConfig.h>
 #include <GLFW/glfw3.h>
 #include <unordered_map>
+#include <fstream>
 static auto CreateGLFWWindowWithHints(int width, int height, const char* title, const std::unordered_map<int, int>& windowHint)->GLFWwindow* {
 	for (auto& [key, value] : windowHint) {
 		glfwWindowHint(key, value);
 	}
 	return glfwCreateWindow(width, height, title,nullptr,nullptr);
+}
+auto LoadShaderSource(const char* filename)->std::vector<GLchar>
+{
+	auto shaderSource = std::vector<GLchar>();
+	auto sourceFile = std::ifstream(filename, std::ios::binary);
+	if (sourceFile.is_open()) {
+		sourceFile.seekg(0, std::ios::end);
+		auto size = static_cast<size_t>(sourceFile.tellg());
+		shaderSource.resize(size / sizeof(shaderSource[0]));
+		sourceFile.seekg(0, std::ios::beg);
+		sourceFile.read((char*)shaderSource.data(), size);
+		sourceFile.close();
+	}
+	return shaderSource;
+}
+auto LoadShaderBinary(const char* filename)->std::vector<uint32_t>
+{
+	auto shaderBinary = std::vector<uint32_t>();
+	auto sourceFile = std::ifstream(filename, std::ios::binary);
+	if (sourceFile.is_open()) {
+		sourceFile.seekg(0, std::ios::end);
+		auto size = static_cast<size_t>(sourceFile.tellg());
+		shaderBinary.resize(size / sizeof(shaderBinary[0]));
+		sourceFile.seekg(0, std::ios::beg);
+		sourceFile.read((char*)shaderBinary.data(), size);
+		sourceFile.close();
+	}
+	return shaderBinary;
 }
 static auto CreateGLFWWindow(int width, int height, const char* title) -> GLFWwindow* {
 	GLFWwindow* window = nullptr;
@@ -75,30 +107,57 @@ int main(int argc, const char** argv[]) {
 		if (!context->Initialize()) {
 			break;
 		}
+		std::vector<float>    vertexData = { -1.0f,0.0f,0.0f,1.0f,0.0f,0.0f,0.0f,1.0f,0.0f };
+		std::vector<float>     colorData = {  1.0f,0.0f,0.0f,0.0f,1.0f,0.0f,0.0f,0.0f,1.0f };
+		std::vector<uint32_t> indexData  = {0,1,2};
 
 		auto vertexBuffer = std::unique_ptr<RTLib::Ext::GL::GLBuffer>(context->CreateBuffer(RTLib::Ext::GL::GLBufferCreateDesc{
-			1024,
-			RTLib::Ext::GL::GLBufferUsageVertex        |
+			sizeof(vertexData[0])*std::size(vertexData),
+			RTLib::Ext::GL::GLBufferUsageVertex     |
 			RTLib::Ext::GL::GLBufferUsageGenericCopyDst,
 			RTLib::Ext::GL::GLMemoryPropertyDefault,
-			nullptr
+			vertexData.data()
 		}));
-		auto staginBuffer = std::unique_ptr<RTLib::Ext::GL::GLBuffer>(context->CreateBuffer(RTLib::Ext::GL::GLBufferCreateDesc{
-			1024,
-			RTLib::Ext::GL::GLBufferUsageGenericCopySrc,
-			RTLib::Ext::GL::GLMemoryPropertyHostRead,
-			nullptr
+		auto  colorBuffer = std::unique_ptr<RTLib::Ext::GL::GLBuffer>(context->CreateBuffer(RTLib::Ext::GL::GLBufferCreateDesc{
+			sizeof(colorData[0]) * std::size(colorData),
+			RTLib::Ext::GL::GLBufferUsageVertex |
+			RTLib::Ext::GL::GLBufferUsageGenericCopyDst,
+			RTLib::Ext::GL::GLMemoryPropertyDefault,
+			colorData.data()
 		}));
-		context->CopyBuffer(staginBuffer.get(), vertexBuffer.get(), { {0,0,1024} });
+		auto indexBuffer  = std::unique_ptr<RTLib::Ext::GL::GLBuffer>(context->CreateBuffer(RTLib::Ext::GL::GLBufferCreateDesc{
+			sizeof(indexData[0])* std::size(indexData),
+			RTLib::Ext::GL::GLBufferUsageIndex |
+			RTLib::Ext::GL::GLBufferUsageGenericCopyDst,
+			RTLib::Ext::GL::GLMemoryPropertyDefault,
+			indexData.data()
+		}));
 
-		vertexBuffer->Destroy();
-		staginBuffer->Destroy();
+		auto   vertexShader = std::unique_ptr<RTLib::Ext::GL::GLShader>(context->CreateShader(RTLib::Ext::GL::GLShaderStageVertex));
+		vertexShader->ResetBinarySPV(LoadShaderBinary(RTLIB_EXT_GL_TEST_CONFIG_SHADER_DIR"/Test460.vert.spv"));
+		vertexShader->Specialize("main");
+
+		auto fragmentShader = std::unique_ptr<RTLib::Ext::GL::GLShader>(context->CreateShader(RTLib::Ext::GL::GLShaderStageFragment));
+		fragmentShader->ResetBinarySPV(LoadShaderBinary(RTLIB_EXT_GL_TEST_CONFIG_SHADER_DIR"/Test460.frag.spv"));
+		fragmentShader->Specialize("main");
+
+		auto graphicsProgram = std::unique_ptr < RTLib::Ext::GL::GLProgram>(context->CreateProgram());
+		graphicsProgram->AttachShader(vertexShader.get());
+		graphicsProgram->AttachShader(fragmentShader.get());
+		graphicsProgram->Link();
 
 		glfwShowWindow(window);
 		while (!glfwWindowShouldClose(window)) {
+			glClear(GL_COLOR_BUFFER_BIT);
+			glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 			glfwSwapBuffers(window);
 			glfwPollEvents();
 		}
+		graphicsProgram->Destroy();
+		fragmentShader->Destroy();
+		vertexShader->Destroy();
+		vertexBuffer->Destroy();
+		indexBuffer->Destroy();
 	} while (false);
 
 	context->Terminate();

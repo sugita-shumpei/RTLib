@@ -50,12 +50,40 @@ target_link_libraries(RTLib-Ext-GL PUBLIC RTLib-Core glad::glad)
 
 set_target_properties(RTLib-Ext-GL PROPERTIES FOLDER RTLib/RTLib/Ext/GL)
 
+set(RTLIB_EXT_GL_TEST_CONFIG_SHADER_DIR ${CMAKE_CURRENT_BINARY_DIR}/Test/shaders)
+
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Test/RTLibExtGLTestConfig.h.in ${CMAKE_CURRENT_BINARY_DIR}/Test/RTLibExtGLTestConfig.h)
+
 add_executable(RTLib-Ext-GL-Test 
     ${CMAKE_CURRENT_SOURCE_DIR}/Test/Include/RTLibExtGLTest.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Test/Src/RTLibExtGLTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Test/RTLibExtGLTestConfig.h.in
+    ${CMAKE_CURRENT_SOURCE_DIR}/Test/shaders/Test460.vert
+    ${CMAKE_CURRENT_SOURCE_DIR}/Test/shaders/Test460.frag
+    ${CMAKE_CURRENT_SOURCE_DIR}/Test/shaders/Test420.vert
+    ${CMAKE_CURRENT_SOURCE_DIR}/Test/shaders/Test420.frag
+    ${CMAKE_CURRENT_SOURCE_DIR}/Test/shaders/Test410.vert
+    ${CMAKE_CURRENT_SOURCE_DIR}/Test/shaders/Test410.frag
+    ${CMAKE_CURRENT_SOURCE_DIR}/Test/shaders/Test330.vert
+    ${CMAKE_CURRENT_SOURCE_DIR}/Test/shaders/Test330.frag
 )
 
-target_include_directories(RTLib-Ext-GL-Test PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Test/Include)
+target_include_directories(RTLib-Ext-GL-Test PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Test/Include PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/Test)
 target_link_libraries(RTLib-Ext-GL-Test PUBLIC RTLib-Ext-GL glfw)
 
 set_target_properties(RTLib-Ext-GL-Test PROPERTIES FOLDER RTLib/RTLib/Ext/GL)
+if (Vulkan_FOUND)
+    add_custom_command(TARGET RTLib-Ext-GL-Test POST_BUILD 
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/Test/shaders/Test460.vert ${CMAKE_CURRENT_BINARY_DIR}/Test/shaders/Test460.vert
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/Test/shaders/Test460.frag ${CMAKE_CURRENT_BINARY_DIR}/Test/shaders/Test460.frag
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/Test/shaders/Test420.vert ${CMAKE_CURRENT_BINARY_DIR}/Test/shaders/Test420.vert
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/Test/shaders/Test420.frag ${CMAKE_CURRENT_BINARY_DIR}/Test/shaders/Test420.frag
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/Test/shaders/Test410.vert ${CMAKE_CURRENT_BINARY_DIR}/Test/shaders/Test410.vert
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/Test/shaders/Test410.frag ${CMAKE_CURRENT_BINARY_DIR}/Test/shaders/Test410.frag
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/Test/shaders/Test330.vert ${CMAKE_CURRENT_BINARY_DIR}/Test/shaders/Test330.vert
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/Test/shaders/Test330.frag ${CMAKE_CURRENT_BINARY_DIR}/Test/shaders/Test330.frag
+
+        COMMAND ${Vulkan_GLSLC_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/Test/shaders/Test460.vert -o ${CMAKE_CURRENT_BINARY_DIR}/Test/shaders/Test460.vert.spv > ${CMAKE_CURRENT_BINARY_DIR}/Test/shaders/Test460.vert.log 2>&1
+        COMMAND ${Vulkan_GLSLC_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/Test/shaders/Test460.frag -o ${CMAKE_CURRENT_BINARY_DIR}/Test/shaders/Test460.frag.spv > ${CMAKE_CURRENT_BINARY_DIR}/Test/shaders/Test460.frag.log 2>&1
+    )
+endif()

@@ -143,6 +143,23 @@ namespace RTLib {
 			float                   borderColor[4];
 			bool                    unnormalizedCoordinates;
 		};
+
+		enum ShaderStageFlagBits {
+			ShaderStageVertex          = 1 << 0,
+			ShaderStageGeometry        = 1 << 1,
+			ShaderStageTessControl     = 1 << 2,
+			ShaderStageTessEvalauation = 1 << 3,
+			ShaderStageFragment        = 1 << 4,
+			ShaderStageCompute         = 1 << 5,
+			ShaderStageRayGen          = 1 << 6,
+			ShaderStageMiss            = 1 << 7,
+			ShaderStageClosesthit      = 1 << 8,
+			ShaderStageAnyhit          = 1 << 9,
+			ShaderStageIntersection    = 1 <<10,
+			ShaderStageMesh            = 1 <<11,
+		};
+
+		using ShaderStageFlags = unsigned int;
 	}
 }
 #endif
