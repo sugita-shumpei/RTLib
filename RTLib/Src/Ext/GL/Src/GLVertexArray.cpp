@@ -89,9 +89,7 @@ bool RTLib::Ext::GL::GLVertexArray::Enable()
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_IndexBuffer->GetResId());
     }
     else {
-#ifdef NDEBUG
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-#endif
     }
     for (auto& [bindingIndex, bindingInfo] : m_VertexBindings) {
         std::vector<GLuint> tVertexAttribIndices = {};
@@ -113,11 +111,9 @@ bool RTLib::Ext::GL::GLVertexArray::Enable()
         glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
     glBindVertexArray(0);
-#ifndef NDEBUG
     if (m_IndexBuffer) {
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     }
-#endif
     m_IsEnabled = true;
     return true;
 }
@@ -143,3 +139,8 @@ bool RTLib::Ext::GL::GLVertexArray::DrawElements(GLenum mode, GLenum type, GLsiz
 }
 
 RTLib::Ext::GL::GLVertexArray::GLVertexArray(GLContext* context, GLuint resId)noexcept:m_Context(context),m_ResId(resId){}
+
+bool RTLib::Ext::GL::GLVertexArray::IsEnabled() const noexcept
+{
+    return m_IsEnabled;
+}

@@ -10,7 +10,7 @@ bool RTLib::Ext::GL::GLProgram::AttachShader(GLShader* shader) {
 		return false;
 	}
 
-	GLenum programType = shader->GetShaderType();
+	GLShaderStageFlagBits programType = shader->GetShaderStage();
 	if (!IsAttachable(programType)) {
 		return false;
 	}
@@ -63,7 +63,7 @@ bool RTLib::Ext::GL::GLProgram::IsLinkable() const noexcept {
 	return true;
 }
 
-bool RTLib::Ext::GL::GLProgram::IsAttachable(GLenum programType) const noexcept {
+bool RTLib::Ext::GL::GLProgram::IsAttachable(GLShaderStageFlagBits programType) const noexcept {
 
 	if (IsLinked()) { return false; }
 	if (m_AttachedStages.count(programType) == 0) {
@@ -99,7 +99,7 @@ void RTLib::Ext::GL::GLProgram::Disable()
 
 bool RTLib::Ext::GL::GLProgram::IsEnabled() const noexcept { return m_IsEnabled; }
 
-bool RTLib::Ext::GL::GLProgram::HasShaderType(GLenum shaderType) const noexcept
+bool RTLib::Ext::GL::GLProgram::HasShaderType(GLShaderStageFlagBits shaderType) const noexcept
 {
 	if (m_AttachedStages.count(shaderType) == 0) {
 		return false;
@@ -110,30 +110,30 @@ bool RTLib::Ext::GL::GLProgram::HasShaderType(GLenum shaderType) const noexcept
 auto RTLib::Ext::GL::GLProgram::GetShaderStages() const noexcept -> GLbitfield
 {
 	GLbitfield stages = 0;
-	if (HasShaderType(GL_VERTEX_SHADER_BIT)) {
-		stages |= GL_VERTEX_SHADER_BIT;
+	if (HasShaderType(GLShaderStageVertex)) {
+		stages |= GLShaderStageVertex;
 	}
-	if (HasShaderType(GL_FRAGMENT_SHADER_BIT)) {
-		stages |= GL_FRAGMENT_SHADER_BIT;
+	if (HasShaderType(GLShaderStageGeometry)) {
+		stages |= GLShaderStageGeometry;
 	}
-	if (HasShaderType(GL_GEOMETRY_SHADER_BIT)) {
-		stages |= GL_GEOMETRY_SHADER_BIT;
+	if (HasShaderType(GLShaderStageTessControl)) {
+		stages |= GLShaderStageTessControl;
 	}
-	if (HasShaderType(GL_TESS_CONTROL_SHADER_BIT)) {
-		stages |= GL_TESS_CONTROL_SHADER_BIT;
+	if (HasShaderType(GLShaderStageTessEvaluation)) {
+		stages |= GLShaderStageTessEvaluation;
 	}
-	if (HasShaderType(GL_TESS_EVALUATION_SHADER_BIT)) {
-		stages |= GL_TESS_EVALUATION_SHADER_BIT;
+	if (HasShaderType(GLShaderStageFragment)) {
+		stages |= GLShaderStageFragment;
 	}
-	if (HasShaderType(GL_COMPUTE_SHADER_BIT)) {
-		stages |= GL_COMPUTE_SHADER_BIT;
+	if (HasShaderType(GLShaderStageCompute)) {
+		stages |= GLShaderStageCompute;
 	}
 	return stages;
 }
 
 RTLib::Ext::GL::GLProgram::GLProgram(GLContext* context) noexcept :m_Context{ context } {}
 
-void RTLib::Ext::GL::GLProgram::AddShaderType(GLenum shaderType, bool isRequired) noexcept {
+void RTLib::Ext::GL::GLProgram::AddShaderType(GLShaderStageFlagBits shaderType, bool isRequired) noexcept {
 	if (IsLinked()) {
 		return;
 	}
@@ -164,6 +164,12 @@ auto RTLib::Ext::GL::GLProgram::New(GLContext* context) -> GLProgram*
 	if (!context) { return nullptr; }
 	auto program = new GLProgram(context);
 	program->m_ResId = glCreateProgram();
+	program->m_AttachedStages[GLShaderStageVertex        ] = {};
+	program->m_AttachedStages[GLShaderStageGeometry      ] = {};
+	program->m_AttachedStages[GLShaderStageTessControl   ] = {};
+	program->m_AttachedStages[GLShaderStageTessEvaluation] = {};
+	program->m_AttachedStages[GLShaderStageFragment      ] = {};
+	program->m_AttachedStages[GLShaderStageCompute       ] = {};
 	return program;
 }
 

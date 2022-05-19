@@ -8,6 +8,7 @@
 #include <GLFW/glfw3.h>
 #include <unordered_map>
 #include <fstream>
+#include <cassert>
 static auto CreateGLFWWindowWithHints(int width, int height, const char* title, const std::unordered_map<int, int>& windowHint)->GLFWwindow* {
 	for (auto& [key, value] : windowHint) {
 		glfwWindowHint(key, value);
@@ -108,7 +109,7 @@ int main(int argc, const char* argv[]) {
 		if (!context->Initialize()) {
 			break;
 		}
-		std::vector<float>    vertexData = { -1.0f,0.0f,0.0f,1.0f,0.0f,0.0f,0.0f,1.0f,0.0f };
+		std::vector<float>    vertexData = { -1.0f,0.0f,1.0f,1.0f,0.0f,1.0f,0.0f,1.0f,1.0f };
 		std::vector<float>     colorData = {  1.0f,0.0f,0.0f,0.0f,1.0f,0.0f,0.0f,0.0f,1.0f };
 		std::vector<uint32_t> indexData  = {0,1,2};
 
@@ -138,6 +139,7 @@ int main(int argc, const char* argv[]) {
             vertexShader->Specialize("main");
         }else{
             vertexShader->ResetSourceGLSL(LoadShaderSource(RTLIB_EXT_GL_TEST_CONFIG_SHADER_DIR"/Test330.vert"));
+			vertexShader->Compile();
         }
 
 		auto fragmentShader = std::unique_ptr<RTLib::Ext::GL::GLShader>(context->CreateShader(RTLib::Ext::GL::GLShaderStageFragment));
@@ -145,6 +147,7 @@ int main(int argc, const char* argv[]) {
             fragmentShader->Specialize("main");
         }else{
             fragmentShader->ResetSourceGLSL(LoadShaderSource(RTLIB_EXT_GL_TEST_CONFIG_SHADER_DIR"/Test330.frag"));
+			fragmentShader->Compile();
         }
         
         auto   VAO = std::unique_ptr<RTLib::Ext::GL::GLVertexArray>(context->CreateVertexArray());
@@ -155,6 +158,7 @@ int main(int argc, const char* argv[]) {
         VAO->SetVertexBuffer(1,  colorBuffer.get(), sizeof(float)*3,0);
         VAO->SetVertexAttribFormat( 1, 3, GL_FLOAT, GL_FALSE);
         VAO->SetVertexAttribBinding(1, 1);
+		assert(VAO->Enable());
         
 		auto graphicsProgram = std::unique_ptr < RTLib::Ext::GL::GLProgram>(context->CreateProgram());
 		graphicsProgram->AttachShader(vertexShader.get());
@@ -164,7 +168,9 @@ int main(int argc, const char* argv[]) {
 		glfwShowWindow(window);
 		while (!glfwWindowShouldClose(window)) {
 			glClear(GL_COLOR_BUFFER_BIT);
-			glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+			glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+			graphicsProgram->Enable();
+			VAO->DrawArrays(GL_TRIANGLES,3,0);
 			glfwSwapBuffers(window);
 			glfwPollEvents();
 		}

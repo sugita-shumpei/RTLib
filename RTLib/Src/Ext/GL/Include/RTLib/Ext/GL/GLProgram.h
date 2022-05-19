@@ -27,13 +27,13 @@ namespace RTLib
 
 			bool IsLinked() const noexcept;
 			bool IsLinkable() const noexcept;
-			bool IsAttachable(GLenum shaderType) const noexcept;
+			bool IsAttachable(GLShaderStageFlagBits shaderType) const noexcept;
 			// USE
 			bool Enable();
 			void Disable();
 			bool IsEnabled() const noexcept;
 			//
-			bool HasShaderType(GLenum shaderType) const noexcept;
+			bool HasShaderType(GLShaderStageFlagBits shaderType) const noexcept;
 			auto GetShaderStages() const noexcept -> GLbitfield;
 
 			auto GetUniformBlockIndex(const char *name) -> GLuint;
@@ -41,7 +41,7 @@ namespace RTLib
 
 		protected:
 			GLProgram(GLContext* context) noexcept;
-			void AddShaderType(GLenum shaderType, bool isRequired = false) noexcept;
+			void AddShaderType(GLShaderStageFlagBits shaderType, bool isRequired = false) noexcept;
 			auto GetResId()const noexcept ->GLuint;
 		private:
 			struct AttachState
