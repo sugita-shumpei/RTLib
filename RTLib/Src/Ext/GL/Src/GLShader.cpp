@@ -1,4 +1,5 @@
-﻿#include <RTLib/Ext/GL/GLShader.h>
+#include <RTLib/Ext/GL/GLShader.h>
+#include <RTLib/Ext/GL/GLContext.h>
 #include "GLTypeConversions.h"
 RTLib::Ext::GL::GLShader::~GLShader() noexcept {}
 

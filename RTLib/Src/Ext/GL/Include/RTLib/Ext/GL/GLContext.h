@@ -8,13 +8,20 @@
 namespace RTLib {
 	namespace Ext {
 		namespace GL {
+            class GLBuffer;
+            class GLTexture;
+            class GLImage;
+            class GLProgram;
+            class GLShader;
 			class GLContextState;
+            class GLVertexArray;
 			RTLIB_CORE_TYPE_OBJECT_DECLARE_BEGIN(GLContext, Core::Context, RTLIB_TYPE_UUID_RTLIB_EXT_GL_GL_CONTEXT);
 				friend class GLBuffer;
 				friend class GLImage;
 				friend class GLTexture;
 				friend class GLShader;
 				friend class GLProgram;
+                friend class GLVertexArray;
 			public:
 				GLContext()noexcept;
 
@@ -28,6 +35,7 @@ namespace RTLib {
 				auto CreateTexture(const GLTextureCreateDesc& desc)-> GLTexture*;
 				auto CreateShader(GLShaderStageFlagBits shaderType)-> GLShader *;
 				auto CreateProgram()->GLProgram*;
+                auto CreateVertexArray()->GLVertexArray*;
 				
 				bool SupportVersion(uint32_t majorVersion, uint32_t minorVersion)const noexcept;
 

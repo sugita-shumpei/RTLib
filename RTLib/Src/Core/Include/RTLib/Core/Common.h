@@ -2,6 +2,7 @@
 #define RTLIB_CORE_COMMON_H
 #include <RTLib/Core/TypeFormat.h>
 #include <cstdint>
+#include <cstddef>
 namespace RTLib {
 	namespace Core {
 		enum class FilterMode

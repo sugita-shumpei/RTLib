@@ -174,3 +174,7 @@ auto RTLib::Ext::GL::GLContext::CreateProgram() -> GLProgram*
 {
 	return GLProgram::New(this);
 }
+
+auto RTLib::Ext::GL::GLContext::CreateVertexArray()->GLVertexArray*{
+    return nullptr;
+}

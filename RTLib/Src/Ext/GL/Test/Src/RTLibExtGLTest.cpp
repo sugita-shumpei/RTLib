@@ -1,4 +1,5 @@
 #include <RTLib/Ext/GL/GLContext.h>
+#include <RTLib/Ext/GL/GLVertexArray.h>
 #include <RTLib/Ext/GL/GLBuffer.h>
 #include <RTLib/Ext/GL/GLShader.h>
 #include <RTLib/Ext/GL/GLProgram.h>
@@ -87,7 +88,7 @@ public:
 private:
 	GLFWwindow* m_Window = nullptr;
 };
-int main(int argc, const char** argv[]) {
+int main(int argc, const char* argv[]) {
 	if (!glfwInit()) {
 		return -1;
 	}
@@ -132,19 +133,33 @@ int main(int argc, const char** argv[]) {
 			RTLib::Ext::GL::GLMemoryPropertyDefault,
 			indexData.data()
 		}));
-
 		auto   vertexShader = std::unique_ptr<RTLib::Ext::GL::GLShader>(context->CreateShader(RTLib::Ext::GL::GLShaderStageVertex));
-		vertexShader->ResetBinarySPV(LoadShaderBinary(RTLIB_EXT_GL_TEST_CONFIG_SHADER_DIR"/Test460.vert.spv"));
-		vertexShader->Specialize("main");
+        if (vertexShader->ResetBinarySPV(LoadShaderBinary(RTLIB_EXT_GL_TEST_CONFIG_SHADER_DIR"/Test460.vert.spv"))){
+            vertexShader->Specialize("main");
+        }else{
+            vertexShader->ResetSourceGLSL(LoadShaderSource(RTLIB_EXT_GL_TEST_CONFIG_SHADER_DIR"/Test330.vert"));
+        }
 
 		auto fragmentShader = std::unique_ptr<RTLib::Ext::GL::GLShader>(context->CreateShader(RTLib::Ext::GL::GLShaderStageFragment));
-		fragmentShader->ResetBinarySPV(LoadShaderBinary(RTLIB_EXT_GL_TEST_CONFIG_SHADER_DIR"/Test460.frag.spv"));
-		fragmentShader->Specialize("main");
-
+        if (fragmentShader->ResetBinarySPV(LoadShaderBinary( RTLIB_EXT_GL_TEST_CONFIG_SHADER_DIR"/Test460.frag.spv"))){
+            fragmentShader->Specialize("main");
+        }else{
+            fragmentShader->ResetSourceGLSL(LoadShaderSource(RTLIB_EXT_GL_TEST_CONFIG_SHADER_DIR"/Test330.frag"));
+        }
+        
+        auto   VAO = std::unique_ptr<RTLib::Ext::GL::GLVertexArray>(context->CreateVertexArray());
+        VAO->SetIndexBuffer(indexBuffer.get());
+        VAO->SetVertexBuffer(0, vertexBuffer.get(), sizeof(float)*3,0);
+        VAO->SetVertexAttribFormat( 0, 3, GL_FLOAT, GL_FALSE);
+        VAO->SetVertexAttribBinding(0, 0);
+        VAO->SetVertexBuffer(1,  colorBuffer.get(), sizeof(float)*3,0);
+        VAO->SetVertexAttribFormat( 1, 3, GL_FLOAT, GL_FALSE);
+        VAO->SetVertexAttribBinding(1, 1);
+        
 		auto graphicsProgram = std::unique_ptr < RTLib::Ext::GL::GLProgram>(context->CreateProgram());
 		graphicsProgram->AttachShader(vertexShader.get());
 		graphicsProgram->AttachShader(fragmentShader.get());
-		graphicsProgram->Link();
+		assert(graphicsProgram->Link());
 
 		glfwShowWindow(window);
 		while (!glfwWindowShouldClose(window)) {
@@ -153,6 +168,7 @@ int main(int argc, const char** argv[]) {
 			glfwSwapBuffers(window);
 			glfwPollEvents();
 		}
+        
 		graphicsProgram->Destroy();
 		fragmentShader->Destroy();
 		vertexShader->Destroy();

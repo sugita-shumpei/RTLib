@@ -1,4 +1,4 @@
-﻿#ifndef RTLIB_EXT_GL_GL_SHADER_H
+#ifndef RTLIB_EXT_GL_GL_SHADER_H
 #define RTLIB_EXT_GL_GL_SHADER_H
 #include <RTLib/Core/BaseObject.h>
 #include <RTLib/Ext/GL/UuidDefinitions.h>
@@ -11,6 +11,7 @@ namespace RTLib
 	{
 		namespace GL
 		{
+        class GLContext;
 			RTLIB_CORE_TYPE_OBJECT_DECLARE_BEGIN(GLShader, Core::BaseObject, RTLIB_TYPE_UUID_RTLIB_EXT_GL_GL_SHADER);
 		public:
 			friend class GLContext;

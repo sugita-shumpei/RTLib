@@ -10,6 +10,8 @@ namespace RTLib
 	{
 		namespace GL
 		{
+            class GLContext;
+            class GLShader;
 			RTLIB_CORE_TYPE_OBJECT_DECLARE_BEGIN(GLProgram, Core::BaseObject, RTLIB_TYPE_UUID_RTLIB_EXT_GL_GL_PROGRAM);
 
 		public:
