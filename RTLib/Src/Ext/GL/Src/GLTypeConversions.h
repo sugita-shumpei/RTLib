@@ -154,6 +154,31 @@ namespace RTLib {
 				default: return GLTypeFlagBits::eUndefined;
 				}
 			}
+			inline constexpr auto GetGLTypeGLEnum(GLTypeFlagBits glType)->GLenum
+			{
+				switch (glType)
+				{
+					RTLIB_EXT_GL_GET_GL_TYPE_GL_ENUM_CASE_2_INV(HALF_FLOAT, Float16);
+					RTLIB_EXT_GL_GET_GL_TYPE_GL_ENUM_CASE_2_INV(FLOAT, Float32);
+					RTLIB_EXT_GL_GET_GL_TYPE_GL_ENUM_CASE_2_INV(UNSIGNED_SHORT, UInt16);
+					RTLIB_EXT_GL_GET_GL_TYPE_GL_ENUM_CASE_2_INV(UNSIGNED_BYTE, UInt8);
+					RTLIB_EXT_GL_GET_GL_TYPE_GL_ENUM_CASE_2_INV(UNSIGNED_INT, UInt32);
+					RTLIB_EXT_GL_GET_GL_TYPE_GL_ENUM_CASE_2_INV(BYTE, Int8);
+					RTLIB_EXT_GL_GET_GL_TYPE_GL_ENUM_CASE_2_INV(SHORT, Int16);
+					RTLIB_EXT_GL_GET_GL_TYPE_GL_ENUM_CASE_2_INV(INT, Int32);
+					RTLIB_EXT_GL_GET_GL_TYPE_GL_ENUM_CASE_2_INV(UNSIGNED_BYTE_3_3_2, UInt8_3_3_2);
+					RTLIB_EXT_GL_GET_GL_TYPE_GL_ENUM_CASE_2_INV(UNSIGNED_BYTE_2_3_3_REV, UInt8_2_3_3_Rev);
+					RTLIB_EXT_GL_GET_GL_TYPE_GL_ENUM_CASE_2_INV(UNSIGNED_SHORT_4_4_4_4, UInt16_4_4_4_4);
+					RTLIB_EXT_GL_GET_GL_TYPE_GL_ENUM_CASE_2_INV(UNSIGNED_SHORT_4_4_4_4_REV, UInt16_4_4_4_4_Rev);
+					RTLIB_EXT_GL_GET_GL_TYPE_GL_ENUM_CASE_2_INV(UNSIGNED_SHORT_5_5_5_1, UInt16_5_5_5_1);
+					RTLIB_EXT_GL_GET_GL_TYPE_GL_ENUM_CASE_2_INV(UNSIGNED_SHORT_1_5_5_5_REV, UInt16_1_5_5_5_Rev);
+					RTLIB_EXT_GL_GET_GL_TYPE_GL_ENUM_CASE_2_INV(UNSIGNED_INT_8_8_8_8, UInt32_8_8_8_8);
+					RTLIB_EXT_GL_GET_GL_TYPE_GL_ENUM_CASE_2_INV(UNSIGNED_INT_8_8_8_8_REV, UInt32_8_8_8_8_Rev);
+					RTLIB_EXT_GL_GET_GL_TYPE_GL_ENUM_CASE_2_INV(UNSIGNED_INT_10_10_10_2, UInt32_10_10_10_2);
+					RTLIB_EXT_GL_GET_GL_TYPE_GL_ENUM_CASE_2_INV(UNSIGNED_INT_2_10_10_10_REV, UInt32_2_10_10_10_Rev);
+				default: return GL_FLOAT;
+				};
+			}
 
 			inline constexpr auto GetGLFormatGLenum(GLTypeFlagBits glType) -> GLenum
 			{
@@ -322,7 +347,7 @@ namespace RTLib {
 				return GL_STATIC_DRAW;
 			}
 
-			inline constexpr auto GetGLShaderStagesShaderType(const GLShaderStageFlagBits shaderStage)->GLenum {
+			inline constexpr auto GetGLShaderStagesGLShaderType(const GLShaderStageFlagBits shaderStage)->GLenum {
 				switch (shaderStage) {
 				case GLShaderStageVertex: return GL_VERTEX_SHADER;
 				case GLShaderStageGeometry: return GL_GEOMETRY_SHADER;
@@ -333,7 +358,7 @@ namespace RTLib {
 				default: return GL_VERTEX_SHADER;
 				}
 			}
-			inline constexpr auto GetGLShaderStagesShaderGLenum(const GLShaderStageFlagBits shaderStage)->GLenum {
+			inline constexpr auto GetGLShaderStagesGLShaderBits(const GLShaderStageFlagBits shaderStage)->GLenum {
 				switch (shaderStage) {
 					GLenum res = 0;
 					if (shaderStage & GLShaderStageVertex) { res |= GL_VERTEX_SHADER_BIT; }
@@ -343,6 +368,26 @@ namespace RTLib {
 					if (shaderStage & GLShaderStageFragment) { res |= GL_FRAGMENT_SHADER; }
 					if (shaderStage & GLShaderStageCompute) { res |= GL_COMPUTE_SHADER; }
 					return res;
+				}
+			}
+
+			inline constexpr auto GetGLDrawModeGLenum(const GLDrawMode drawMode)->GLenum
+			{
+				switch (drawMode)
+				{
+				case GLDrawMode::eLines: return GL_LINES;
+				case GLDrawMode::eLinesAdjacency: return GL_LINE_STRIP_ADJACENCY;
+				case GLDrawMode::eLineStrip: return GL_LINE_STRIP;
+				case GLDrawMode::eLineStripAdjacency: return GL_LINE_STRIP_ADJACENCY;
+				case GLDrawMode::eLineLoop: return GL_LINE_LOOP;
+				case GLDrawMode::ePoints: return GL_POINTS;
+				case GLDrawMode::eTriangleFan: return GL_TRIANGLE_FAN;
+				case GLDrawMode::eTriangles: return GL_TRIANGLES;
+				case GLDrawMode::eTrianglesAdjacency: return GL_TRIANGLES_ADJACENCY;
+				case GLDrawMode::eTriangleStrip: return GL_TRIANGLE_STRIP;
+				case GLDrawMode::eTriangleStripAdjacency: return GL_TRIANGLE_STRIP_ADJACENCY;
+				default:return GL_LINES;
+					break;
 				}
 			}
 		}

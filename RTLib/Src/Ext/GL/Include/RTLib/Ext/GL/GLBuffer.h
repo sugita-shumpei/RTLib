@@ -10,13 +10,15 @@ namespace RTLib
 	{
 		namespace GL
 		{
-            class GLContext;
-            class GLVertexArray;
-			RTLIB_CORE_TYPE_OBJECT_DECLARE_BEGIN(GLBuffer, Core::Buffer, RTLIB_TYPE_UUID_RTLIB_EXT_GL_GL_BUFFER);
+			class GLContext;
+			class GLVertexArray;
+			class GLBuffer: public Core::Buffer{
+				RTLIB_CORE_TYPE_OBJECT_DECLARE_DERIVED_METHOD(GLBuffer, Core::Buffer, RTLIB_TYPE_UUID_RTLIB_EXT_GL_GL_BUFFER);
+
 				friend class GLContext;
-                friend class GLVertexArray;
+				friend class GLVertexArray;
 			public:
-				static auto Allocate(GLContext* context,const GLBufferCreateDesc& desc)->GLBuffer*;
+				static auto Allocate(GLContext* context, const GLBufferCreateDesc& desc)->GLBuffer*;
 				virtual void Destroy()override;
 				auto GetBufferUsage()const noexcept -> GLBufferUsageFlags;
 			private:
@@ -27,7 +29,7 @@ namespace RTLib
 			private:
 				struct Impl;
 				std::unique_ptr<Impl> m_Impl;
-			RTLIB_CORE_TYPE_OBJECT_DECLARE_END();
+			};
 		}
 	}
 }

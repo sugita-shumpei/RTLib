@@ -4,13 +4,16 @@
 #include <memory>
 #include <string>
 #include <array>
-#define RTLIB_CORE_TYPE_OBJECT_DECLARE_BEGIN(OBJECT, BASE_OBJECT, UUID_LIST) \
-class OBJECT: public BASE_OBJECT { \
-public: \
+#define RTLIB_CORE_TYPE_OBJECT_DECLARE_DERIVED_METHOD(OBJECT,BASE_OBJECT, UUID_LIST) \
 	static inline constexpr auto ThisTypeId()noexcept -> RTLib::Core::TypeId { return RTLib::Core::TypeId{UUID_LIST};} \
 	static inline constexpr auto BaseTypeId()noexcept -> RTLib::Core::TypeId { return BASE_OBJECT::ThisTypeId(); } \
 	virtual auto GetBaseTypeId()const noexcept -> RTLib::Core::TypeId override { return BaseTypeId(); } \
-	virtual auto GetTypeId()const noexcept -> RTLib::Core::TypeId override { return ThisTypeId(); } \
+	virtual auto GetTypeId()const noexcept -> RTLib::Core::TypeId override { return ThisTypeId(); }
+
+#define RTLIB_CORE_TYPE_OBJECT_DECLARE_BEGIN(OBJECT, BASE_OBJECT, UUID_LIST) \
+class OBJECT: public BASE_OBJECT { \
+public: \
+	RTLIB_CORE_TYPE_OBJECT_DECLARE_DERIVED_METHOD(OBJECT, BASE_OBJECT, UUID_LIST) \
     virtual ~OBJECT()noexcept
 
 #define RTLIB_CORE_TYPE_OBJECT_DECLARE_END() }

@@ -133,7 +133,7 @@ void RTLib::Ext::GL::GLShader::Destroy()
 auto RTLib::Ext::GL::GLShader::New(GLContext *context, GLShaderStageFlagBits shaderStage, bool isSpirvSupport) -> GLShader *
 {
 	auto shader = new GLShader(context, shaderStage, isSpirvSupport);
-	GLuint resId = glCreateShader(GetGLShaderStagesShaderType(shader->GetShaderStage()));
+	GLuint resId = glCreateShader(GetGLShaderStagesGLShaderType(shader->GetShaderStage()));
 	shader->m_ResId = resId;
 	return shader;
 }

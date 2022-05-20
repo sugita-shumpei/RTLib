@@ -1,4 +1,5 @@
 #include "GLContextImpl.h"
+#include "GLTypeConversions.h"
 #include <cassert>
 RTLib::Ext::GL::GLContext:: GLContext() noexcept {
 	m_Impl = std::unique_ptr<Impl>(new Impl());
@@ -153,6 +154,16 @@ bool RTLib::Ext::GL::GLContext::CopyImageToMemory(GLImage* image, const std::vec
 bool RTLib::Ext::GL::GLContext::CopyMemoryToImage(GLImage* image, const std::vector<GLImageMemoryCopy>& regions)
 {
 	return false;
+}
+
+void RTLib::Ext::GL::GLContext::DrawArrays(GLDrawMode drawMode, size_t first, int32_t count)
+{
+	glDrawArrays(GetGLDrawModeGLenum(drawMode), first, count);
+}
+
+void RTLib::Ext::GL::GLContext::DrawElements(GLDrawMode drawMode, GLIndexType indexType, size_t count, intptr_t indexOffsetInBytes)
+{
+	glDrawElements(GetGLDrawModeGLenum(drawMode), count, GetGLTypeGLEnum(static_cast<GLTypeFlagBits>(indexType)), reinterpret_cast<void*>(indexOffsetInBytes));
 }
 
 auto RTLib::Ext::GL::GLContext::CreateBuffer(const GLBufferCreateDesc& desc) -> GLBuffer*

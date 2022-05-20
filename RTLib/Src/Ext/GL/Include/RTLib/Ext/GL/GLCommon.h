@@ -153,6 +153,26 @@ namespace RTLib
 				e2D,
 				e3D
 			};
+			enum class GLDrawMode
+			{
+				ePoints,
+				eLineStrip,
+				eLineLoop,
+				eLines,
+				eLineStripAdjacency,
+				eLinesAdjacency,
+				eTriangleStrip,
+				eTriangleFan,
+				eTriangles,
+				eTriangleStripAdjacency,
+				eTrianglesAdjacency
+			};
+			enum class GLIndexType:uint64_t
+			{
+				eUInt8  = static_cast<uint64_t>(Core::SizedTypeFlagBits::eUInt8 ),
+				eUInt16 = static_cast<uint64_t>(Core::SizedTypeFlagBits::eUInt16),
+				eUInt32 = static_cast<uint64_t>(Core::SizedTypeFlagBits::eUInt32),
+			};
 			struct GLTextureCreateDesc
 			{
 				GLImageType imageType   = GLImageType::e1D;
