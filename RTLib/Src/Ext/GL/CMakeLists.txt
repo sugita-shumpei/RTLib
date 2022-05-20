@@ -6,7 +6,12 @@ set(RTLIB_EXT_GL_SOURCES
 
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/GL/GLContext.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/GLContextImpl.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Src/GLContextState.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Src/GLContextState.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/GLContext.cpp
+
+    ${CMAKE_CURRENT_SOURCE_DIR}/Src/GLUniqueIdentifier.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Src/GLObjectBase.h
 
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/GL/GLBuffer.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/GLBuffer.cpp 

@@ -23,7 +23,7 @@ namespace RTLib
 				virtual void Destroy()override;
 				auto GetBufferUsage()const noexcept -> GLBufferUsageFlags;
 			private:
-				GLBuffer(GLContext* context, GLuint resId, const GLBufferCreateDesc& desc)noexcept;
+				GLBuffer(GLContext* context, const GLBufferCreateDesc& desc)noexcept;
 				auto GetResId()const noexcept -> GLuint;
 				auto GetCurrentTarget() const noexcept -> std::optional<GLenum>;
 				auto GetMemoryProperty()const noexcept-> GLMemoryPropertyFlags;

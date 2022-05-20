@@ -2,7 +2,7 @@
 #define RTLIB_EXT_GL_GL_OBJECT_BASE_H
 #include <RTLib/Ext/GL/GLCommon.h>
 #include <cstdint>
-#include "GLUniqueID.h"
+#include "GLUniqueIdentifier.h"
 namespace RTLib { 
 	namespace Ext {
 		namespace GL {
@@ -43,10 +43,12 @@ namespace RTLib {
 				}
 				void Destroy()noexcept {
 					if (m_ObjectID == 0) { return; }
-					m_CreateDeleter.Destroy();
+					m_CreateDeleter.Destroy(m_ObjectID);
 					m_ObjectID = 0;
 				}
-
+                operator bool()const noexcept {
+                    return m_ObjectID;
+                }
 				explicit operator GLuint ()const noexcept { return m_ObjectID; }
 
 				auto GetObjectID()const noexcept -> GLuint     { return m_ObjectID; }
