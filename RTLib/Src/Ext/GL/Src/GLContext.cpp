@@ -158,11 +158,13 @@ bool RTLib::Ext::GL::GLContext::CopyMemoryToImage(GLImage* image, const std::vec
 
 void RTLib::Ext::GL::GLContext::DrawArrays(GLDrawMode drawMode, size_t first, int32_t count)
 {
+    if (!m_Impl->m_VAO){ return;}
 	glDrawArrays(GetGLDrawModeGLenum(drawMode), first, count);
 }
 
 void RTLib::Ext::GL::GLContext::DrawElements(GLDrawMode drawMode, GLIndexType indexType, size_t count, intptr_t indexOffsetInBytes)
 {
+    if (!m_Impl->m_VAO){ return;}
 	glDrawElements(GetGLDrawModeGLenum(drawMode), count, GetGLTypeGLEnum(static_cast<GLTypeFlagBits>(indexType)), reinterpret_cast<void*>(indexOffsetInBytes));
 }
 
@@ -188,4 +190,23 @@ auto RTLib::Ext::GL::GLContext::CreateProgram() -> GLProgram*
 
 auto RTLib::Ext::GL::GLContext::CreateVertexArray()->GLVertexArray*{
     return GLVertexArray::New(this);
+}
+
+void RTLib::Ext::GL::GLContext::SetProgram(GLProgram* program){
+    if (!program){ return; }
+    if (m_Impl->m_Program == program){
+        return;
+    }
+    m_Impl->m_Program = program;
+    m_Impl->m_Program->Enable();
+}
+
+void RTLib::Ext::GL::GLContext::SetVertexArrayState(GLVertexArray* vao)
+{
+    if (!vao){ return;}
+    if (m_Impl->m_VAO == vao){
+        return;
+    }
+    m_Impl->m_VAO = vao;
+    m_Impl->m_VAO->Bind();
 }

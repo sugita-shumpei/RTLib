@@ -6,10 +6,12 @@
 namespace RTLib
 {
 	namespace Core {
-		RTLIB_CORE_TYPE_OBJECT_DECLARE_BEGIN(Buffer, BaseObject, RTLIB_TYPE_UUID_RTLIB_CORE_BUFFER);
+        class Buffer:public BaseObject{
+		RTLIB_CORE_TYPE_OBJECT_DECLARE_DERIVED_METHOD(Buffer, BaseObject, RTLIB_TYPE_UUID_RTLIB_CORE_BUFFER);
 		public:
+            virtual ~Buffer()noexcept;
 			virtual void Destroy() = 0;
-		RTLIB_CORE_TYPE_OBJECT_DECLARE_END();
+        };
 	}
 }
 #endif

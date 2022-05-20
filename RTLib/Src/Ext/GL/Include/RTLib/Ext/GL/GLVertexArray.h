@@ -15,9 +15,12 @@ namespace RTLib
             class GLBuffer;
             class GLVertexArray : public Core::BaseObject
             {
+                friend class GLContext;
                 RTLIB_CORE_TYPE_OBJECT_DECLARE_DERIVED_METHOD(GLVertexArray, Core::BaseObject, RTLIB_TYPE_UUID_RTLIB_EXT_GL_GL_VERTEX_ARRAY);
             public:
                 static auto New(GLContext *context) -> GLVertexArray *;
+                virtual ~GLVertexArray()noexcept;
+                
                 void Destroy() noexcept;
                 bool IsBindable() const noexcept;
                 bool SetVertexAttribBinding(GLuint attribIndex, GLuint bindIndex);
@@ -26,10 +29,6 @@ namespace RTLib
                 bool SetIndexBuffer(GLBuffer *indexBuffer);
                 bool Enable();
                 bool IsEnabled() const noexcept;
-
-                bool DrawArrays(GLenum mode, GLsizei count, GLint first = 0);
-                bool DrawElements(GLenum mode, GLenum type, GLsizei count, uintptr_t indexOffset = 0);
-
             protected:
                 GLVertexArray(GLContext *context, GLuint resId) noexcept;
                 static inline constexpr bool IsValidMode(GLenum mode)
@@ -73,6 +72,9 @@ namespace RTLib
                 }
                 auto GetResId() const noexcept -> GLuint { return m_ResId; }
             private:
+                void Bind();
+            private:
+                
                 struct VertexAttribFormatInfo
                 {
                     GLuint attribIndex;
@@ -96,6 +98,7 @@ namespace RTLib
                 GLBuffer *m_IndexBuffer = nullptr;
                 GLuint m_ResId = 0;
                 bool m_IsEnabled = false;
+                bool m_IsBinded  = false;
             };
         }
     }

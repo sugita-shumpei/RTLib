@@ -30,10 +30,11 @@ namespace RTLib
 				friend class GLVertexArray;
 			public:
 				GLContext() noexcept;
+                virtual ~GLContext()noexcept;
 
 				virtual bool Initialize() override;
 				virtual void Terminate() override;
-				// Context ����Čp������܂���
+				// Context
 				virtual bool InitLoader() = 0;
 				virtual void FreeLoader() = 0;
 				/*Version*/
@@ -54,13 +55,15 @@ namespace RTLib
 				bool CopyBufferToImage(GLBuffer *srcBuffer, GLImage *dstImage, const std::vector<GLBufferImageCopy> &regions);
 				bool CopyImageToMemory(GLImage *image, const std::vector<GLImageMemoryCopy> &regions);
 				bool CopyMemoryToImage(GLImage *image, const std::vector<GLImageMemoryCopy> &regions);
+                /*PipelineState*/
+                void SetProgram(GLProgram* program);
+                void SetVertexArrayState(GLVertexArray* vao);
 				/*Draw*/
 				void DrawArrays(  GLDrawMode drawMode, size_t first, int32_t count);
 				void DrawElements(GLDrawMode drawMode, GLIndexType indexType, size_t count, intptr_t indexOffsetInBytes);
 			private:
 				auto GetContextState() const noexcept -> const GLContextState *;
-				auto GetContextState() noexcept -> GLContextState *;
-
+				auto GetContextState() noexcept -> GLContextState*;
 			private:
 				struct Impl;
 				std::unique_ptr<Impl> m_Impl;

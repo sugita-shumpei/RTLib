@@ -169,8 +169,9 @@ int main(int argc, const char* argv[]) {
 		while (!glfwWindowShouldClose(window)) {
 			glClear(GL_COLOR_BUFFER_BIT);
 			glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-			graphicsProgram->Enable();
-			VAO->DrawArrays(GL_TRIANGLES,3,0);
+            context->SetProgram(graphicsProgram.get());
+            context->SetVertexArrayState(VAO.get());
+            context->DrawArrays(RTLib::Ext::GL::GLDrawMode::eTriangles, 0, 3);
 			glfwSwapBuffers(window);
 			glfwPollEvents();
 		}

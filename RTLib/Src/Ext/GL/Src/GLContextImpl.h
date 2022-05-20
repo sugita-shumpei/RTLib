@@ -12,6 +12,8 @@ struct RTLib::Ext::GL::GLContext::Impl
 	GLint m_GLProfileMask   = 0;
 	GLint m_GLMaxImageUnits = 0;
 	bool  m_IsInitialized   = false;
+    GLVertexArray* m_VAO = nullptr;
+    GLProgram* m_Program = nullptr;
 	bool SupportVersion(uint32_t versionMajor, uint32_t versionMinor)const noexcept
 	{
 		if (m_GLMajorVersion > versionMajor) {

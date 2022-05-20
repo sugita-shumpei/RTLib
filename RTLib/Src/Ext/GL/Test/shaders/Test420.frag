@@ -7,5 +7,6 @@ layout(binding = 0,std140) uniform UBO
     vec4 color;
 } ubo;
 void main(){
-    fragColor = ubo.color;
+    //fragColor = ubo.color;
+    fragColor = vec4(vertexOutColor,1.0f);
 }

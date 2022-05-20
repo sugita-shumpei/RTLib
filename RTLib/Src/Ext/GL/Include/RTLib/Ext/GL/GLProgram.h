@@ -21,6 +21,8 @@ namespace RTLib
 				friend class GLProgramPipeline;
 				friend class GLShader;
 				static auto New(GLContext *context) -> GLProgram *;
+                virtual ~GLProgram()noexcept;
+                
 				void Destroy();
 				bool AttachShader(GLShader *shader);
 

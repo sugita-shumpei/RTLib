@@ -14,11 +14,12 @@ namespace RTLib
 			class GLVertexArray;
 			class GLBuffer: public Core::Buffer{
 				RTLIB_CORE_TYPE_OBJECT_DECLARE_DERIVED_METHOD(GLBuffer, Core::Buffer, RTLIB_TYPE_UUID_RTLIB_EXT_GL_GL_BUFFER);
-
 				friend class GLContext;
 				friend class GLVertexArray;
 			public:
 				static auto Allocate(GLContext* context, const GLBufferCreateDesc& desc)->GLBuffer*;
+                virtual ~GLBuffer()noexcept;
+                
 				virtual void Destroy()override;
 				auto GetBufferUsage()const noexcept -> GLBufferUsageFlags;
 			private:

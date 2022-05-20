@@ -118,29 +118,17 @@ bool RTLib::Ext::GL::GLVertexArray::Enable()
     return true;
 }
 
-bool RTLib::Ext::GL::GLVertexArray::DrawArrays(GLenum mode, GLsizei count, GLint first) {
-    if (!IsValidMode(mode)) {
-        return false;
-    }
-    bool isBindForDraw = false;
-    glBindVertexArray(GetResId());
-    glDrawArrays(mode, first, count);
-    return true;
-}
-
-bool RTLib::Ext::GL::GLVertexArray::DrawElements(GLenum mode, GLenum type, GLsizei count, uintptr_t indexOffset)
-{
-    if (!IsValidMode(mode) || !IsValidType(type)|| !IsEnabled() || count == 0) {
-        return false;
-    }
-    glBindVertexArray(GetResId());
-    glDrawElements(mode, count, type, reinterpret_cast<void*>(indexOffset));
-    return true;
-}
-
 RTLib::Ext::GL::GLVertexArray::GLVertexArray(GLContext* context, GLuint resId)noexcept:m_Context(context),m_ResId(resId){}
 
 bool RTLib::Ext::GL::GLVertexArray::IsEnabled() const noexcept
 {
     return m_IsEnabled;
+}
+
+void RTLib::Ext::GL::GLVertexArray::Bind(){
+    if(m_IsBinded||!m_ResId){
+        return;
+    }
+    glBindVertexArray(m_ResId);
+    m_IsBinded = true;
 }
