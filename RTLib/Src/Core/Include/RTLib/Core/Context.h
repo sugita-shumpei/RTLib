@@ -7,7 +7,7 @@ namespace RTLib
 {
 	namespace Core
 	{
-        class Context : Core::BaseObject
+        class Context : public Core::BaseObject
         {
             RTLIB_CORE_TYPE_OBJECT_DECLARE_DERIVED_METHOD(Context, BaseObject, RTLIB_TYPE_UUID_RTLIB_CORE_CONTEXT);
             public:

@@ -1,4 +1,4 @@
-#ifndef RTLIB_EXT_GL_GL_SHADER_H
+﻿#ifndef RTLIB_EXT_GL_GL_SHADER_H
 #define RTLIB_EXT_GL_GL_SHADER_H
 #include <RTLib/Core/BaseObject.h>
 #include <RTLib/Ext/GL/UuidDefinitions.h>
