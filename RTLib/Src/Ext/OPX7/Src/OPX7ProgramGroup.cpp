@@ -9,6 +9,7 @@ struct RTLib::Ext::OPX7::OPX7ProgramGroup::Impl
     OPX7Context*      context = nullptr;
     OptixProgramGroup programGroup   = nullptr;
     OPX7ProgramGroupKind kind = OPX7ProgramGroupKind::eRayGen;
+    char shaderRecordHeader[OPTIX_SBT_RECORD_HEADER_SIZE] = {};
 };
 auto RTLib::Ext::OPX7::OPX7ProgramGroup::Enumerate(OPX7Context *context, const std::vector<OPX7ProgramGroupCreateDesc> &descs, const OPX7ProgramGroupOptions& options) -> std::vector<OPX7ProgramGroup *>
 {
@@ -85,6 +86,9 @@ auto RTLib::Ext::OPX7::OPX7ProgramGroup::Enumerate(OPX7Context *context, const s
         programGroups[i]->m_Impl->context = context;
         programGroups[i]->m_Impl->programGroup  = opxProgramGroups[i];
         programGroups[i]->m_Impl->kind          = descs[i].kind;
+        RTLIB_EXT_OPX7_THROW_IF_FAILED(optixSbtRecordPackHeader(
+            opxProgramGroups[i], programGroups[i]->m_Impl->shaderRecordHeader
+        ));
     }
     return programGroups;
 }
@@ -105,6 +109,7 @@ void RTLib::Ext::OPX7::OPX7ProgramGroup::Destroy()
         std::cerr << err.what() << std::endl;
     }
     m_Impl->programGroup = nullptr;
+    std::memset(m_Impl->shaderRecordHeader, 0, OPTIX_SBT_RECORD_HEADER_SIZE);
 }
 
 auto RTLib::Ext::OPX7::OPX7ProgramGroup::GetKind() const noexcept -> OPX7ProgramGroupKind
@@ -121,4 +126,10 @@ auto RTLib::Ext::OPX7::OPX7ProgramGroup::GetOptixProgramGroup() const noexcept -
 {
     assert(m_Impl != nullptr);
     return m_Impl->programGroup;
+}
+
+void RTLib::Ext::OPX7::OPX7ProgramGroup::GetHeader(void* shaderRecordHeader) const noexcept
+{
+    assert(m_Impl != nullptr);
+    std::memcpy(shaderRecordHeader, m_Impl->shaderRecordHeader, OPTIX_SBT_RECORD_HEADER_SIZE);
 }

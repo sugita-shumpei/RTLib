@@ -2,6 +2,7 @@
 #define RTLIB_EXT_OPX7_OPX7_PROGRAM_GROUP_H
 #include <RTLib/Core/BaseObject.h>
 #include <RTLib/Ext/OPX7/OPX7Common.h>
+#include <RTLib/Ext/OPX7/OPX7ShaderRecord.h>
 #include <RTLib/Ext/OPX7/UuidDefinitions.h>
 #include <vector>
 #include <memory>
@@ -22,6 +23,15 @@ namespace RTLib {
 				virtual void Destroy();
 
 				auto GetKind()const noexcept -> OPX7ProgramGroupKind;
+				void GetHeader(void* shaderRecordHeader)const noexcept;
+				template<typename T>
+				auto GetRecord(const T& v = T{})const noexcept -> OPX7ShaderRecord<T>
+				{
+					OPX7ShaderRecord<T> record;
+					GetHeader(record.header);
+					record.data = v;
+					return record;
+				}
 			private:
 				OPX7ProgramGroup()noexcept;
 				auto GetOptixProgramGroup()const noexcept -> OptixProgramGroup;

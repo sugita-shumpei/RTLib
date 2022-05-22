@@ -37,6 +37,7 @@ namespace RTLib
 				auto CreateOPXProgramGroups(const std::vector<OPX7ProgramGroupCreateDesc>& desc, const OPX7ProgramGroupOptions& options = {})->std::vector<OPX7ProgramGroup*>;
 				auto CreateOPXProgramGroup(const OPX7ProgramGroupCreateDesc& desc, const OPX7ProgramGroupOptions& options = {})->OPX7ProgramGroup*;
 				auto CreateOPXPipeline(const OPX7PipelineCreateDesc& desc)->OPX7Pipeline*;
+				auto CreateOPXShaderTable(const OPX7ShaderTableCreateDesc& desc)->OPX7ShaderTable*;
 			private:
 				auto GetOptixDeviceContext() noexcept -> OptixDeviceContext;
 			private:

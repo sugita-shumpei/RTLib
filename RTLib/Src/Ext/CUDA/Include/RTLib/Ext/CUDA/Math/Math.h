@@ -1,6 +1,6 @@
 #ifndef RTLIB_RTLIB_EXT_CUDA_MATH_RTLIB_MATH_H
 #define RTLIB_RTLIB_EXT_CUDA_MATH_RTLIB_MATH_H
-#include <cuda_runtime_api.h>
+#include <cuda.h>
 #if defined(__cplusplus) && !defined(__CUDA_ARCH__)
 #include <bitset>
 #include <algorithm>

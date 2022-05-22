@@ -6,6 +6,7 @@ enum   SimpleKernelRayType
 {
 	SimpleKernelRayTypeTrace,
 	SimpleKernelRayTypeOcclude,
+	SimpleKernelRayTypeCount
 };
 struct SimpleKernelParams
 {

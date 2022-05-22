@@ -63,7 +63,7 @@ struct RTLib::Ext::OPX7::OPX7ShaderTable::Impl
 	size_t                            callablesRecordOffsetInBytes = 0;
 };
 
-auto RTLib::Ext::OPX7::OPX7ShaderTable::New(OPX7Context* context, const OPX7ShaderTableCreateDesc& desc) -> OPX7ShaderTable*
+auto RTLib::Ext::OPX7::OPX7ShaderTable::Allocate(OPX7Context* context, const OPX7ShaderTableCreateDesc& desc) -> OPX7ShaderTable*
 {
 	auto shaderTable = new OPX7ShaderTable(context, desc);
 	shaderTable->m_Impl->Allocate();
@@ -102,6 +102,123 @@ auto RTLib::Ext::OPX7::OPX7ShaderTable::GetBufferSize() const noexcept -> size_t
 {
 	assert(m_Impl != nullptr);
 	return m_Impl->shaderBindingTableSizeInBytes;
+}
+
+auto RTLib::Ext::OPX7::OPX7ShaderTable::GetHostData() noexcept -> void*
+{
+	return m_Impl?m_Impl->pHostData:nullptr;
+}
+
+auto RTLib::Ext::OPX7::OPX7ShaderTable::GetHostData() const noexcept -> const void*
+{
+	return m_Impl ? m_Impl->pHostData : nullptr;
+}
+
+auto RTLib::Ext::OPX7::OPX7ShaderTable::GetHostRaygenRecordData() noexcept -> void*
+{
+	return ((char*)GetHostData()) + GetRaygenRecordOffsetInBytes();
+}
+
+auto RTLib::Ext::OPX7::OPX7ShaderTable::GetHostRaygenRecordData() const noexcept -> const void*
+{
+	if (!HasRaygenRecord()) { return nullptr; }
+	return ((char*)GetHostData()) + GetRaygenRecordOffsetInBytes();
+}
+
+auto RTLib::Ext::OPX7::OPX7ShaderTable::GetHostExceptionRecordData() noexcept -> void*
+{
+	if (!HasExceptionRecord()) { return nullptr; }
+	return ((char*)GetHostData()) + GetExceptionRecordOffsetInBytes();
+}
+
+auto RTLib::Ext::OPX7::OPX7ShaderTable::GetHostExceptionRecordData() const noexcept -> const void*
+{
+	if (!HasExceptionRecord()) { return nullptr; }
+	return ((char*)GetHostData()) + GetExceptionRecordOffsetInBytes();
+}
+
+auto RTLib::Ext::OPX7::OPX7ShaderTable::GetHostMissRecordBase() noexcept -> void*
+{
+	if (!HasMissRecord()) { return nullptr; }
+	return ((char*)GetHostData()) + GetMissRecordOffsetInBytes();
+}
+
+auto RTLib::Ext::OPX7::OPX7ShaderTable::GetHostMissRecordBase() const noexcept -> const void*
+{
+	if (!HasMissRecord()) { return nullptr; }
+	return ((char*)GetHostData()) + GetMissRecordOffsetInBytes();
+}
+
+auto RTLib::Ext::OPX7::OPX7ShaderTable::GetHostMissRecordData(size_t index) noexcept -> void*
+{
+	auto baseData = GetHostMissRecordBase();
+	if (!baseData) { return nullptr; }
+	if (index >= GetMissRecordCount()) { return nullptr; }
+	return ((char*)baseData)+index * GetMissRecordSizeInBytes();
+}
+
+auto RTLib::Ext::OPX7::OPX7ShaderTable::GetHostMissRecordData(size_t index) const noexcept -> const void*
+{
+	auto baseData = GetHostMissRecordBase();
+	if (!baseData) { return nullptr; }
+	if (index >= GetMissRecordCount()) { return nullptr; }
+	return ((char*)baseData) + index * GetMissRecordSizeInBytes();
+}
+
+auto RTLib::Ext::OPX7::OPX7ShaderTable::GetHostHitgroupRecordBase() noexcept -> void*
+{
+	if (!HasHitgroupRecord()) { return nullptr; }
+	return ((char*)GetHostData()) + GetHitgroupRecordOffsetInBytes();
+}
+
+auto RTLib::Ext::OPX7::OPX7ShaderTable::GetHostHitgroupRecordBase() const noexcept -> const void*
+{
+	if (!HasHitgroupRecord()) { return nullptr; }
+	return ((char*)GetHostData()) + GetHitgroupRecordOffsetInBytes();
+}
+
+auto RTLib::Ext::OPX7::OPX7ShaderTable::GetHostHitgroupRecordData(size_t index) noexcept -> void*
+{
+	auto baseData = GetHostHitgroupRecordBase();
+	if (!baseData) { return nullptr; }
+	if (index >= GetHitgroupRecordCount()) { return nullptr; }
+	return ((char*)baseData) + index * GetHitgroupRecordSizeInBytes();
+}
+
+auto RTLib::Ext::OPX7::OPX7ShaderTable::GetHostHitgroupRecordData(size_t index) const noexcept -> const void*
+{
+	auto baseData = GetHostHitgroupRecordBase();
+	if (!baseData) { return nullptr; }
+	if (index >= GetHitgroupRecordCount()) { return nullptr; }
+	return ((char*)baseData) + index * GetHitgroupRecordSizeInBytes();
+}
+
+auto RTLib::Ext::OPX7::OPX7ShaderTable::GetHostCallablesRecordBase() noexcept -> void*
+{
+	if (!HasCallablesRecord()) { return nullptr; }
+	return ((char*)GetHostData()) + GetCallablesRecordOffsetInBytes();
+}
+
+auto RTLib::Ext::OPX7::OPX7ShaderTable::GetHostCallablesRecordBase() const noexcept -> const void*
+{
+	if (!HasCallablesRecord()) { return nullptr; }
+	return ((char*)GetHostData()) + GetCallablesRecordOffsetInBytes();
+}
+
+auto RTLib::Ext::OPX7::OPX7ShaderTable::GetHostCallablesRecordData(size_t index) noexcept -> void*
+{
+	auto baseData = GetHostCallablesRecordBase();
+	if (!baseData) { return nullptr; }
+	if (index >= GetCallablesRecordCount()) { return nullptr; }
+	return ((char*)baseData) + index * GetCallablesRecordSizeInBytes();
+}
+
+auto RTLib::Ext::OPX7::OPX7ShaderTable::GetHostCallablesRecordData(size_t index) const noexcept -> const void*
+{
+	auto baseData = GetHostCallablesRecordBase();
+	if (!baseData) { return nullptr; }
+	if (index >= GetCallablesRecordCount()) { return nullptr; }
+	return ((char*)baseData) + index * GetCallablesRecordSizeInBytes();
 }
 
 void RTLib::Ext::OPX7::OPX7ShaderTable::Upload()

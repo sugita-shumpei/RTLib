@@ -3,6 +3,7 @@
 #include <RTLib/Ext/OPX7/OPX7Module.h>
 #include <RTLib/Ext/OPX7/OPX7ProgramGroup.h>
 #include <RTLib/Ext/OPX7/OPX7Pipeline.h>
+#include <RTLib/Ext/OPX7/OPX7ShaderTable.h>
 #include <optix.h>
 #include <optix_stubs.h>
 #include <optix_function_table.h>
@@ -75,6 +76,11 @@ auto RTLib::Ext::OPX7::OPX7Context::CreateOPXProgramGroup(const OPX7ProgramGroup
 auto RTLib::Ext::OPX7::OPX7Context::CreateOPXPipeline(const OPX7PipelineCreateDesc& desc) -> OPX7Pipeline*
 {
     return OPX7Pipeline::New(this,desc);
+}
+
+auto RTLib::Ext::OPX7::OPX7Context::CreateOPXShaderTable(const OPX7ShaderTableCreateDesc& desc) -> OPX7ShaderTable*
+{
+    return OPX7ShaderTable::Allocate(this,desc);
 }
 
 auto RTLib::Ext::OPX7::OPX7Context::GetOptixDeviceContext() noexcept -> OptixDeviceContext

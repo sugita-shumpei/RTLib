@@ -2,7 +2,10 @@
 #include <RTLib/Ext/OPX7/OPX7Module.h>
 #include <RTLib/Ext/OPX7/OPX7ProgramGroup.h>
 #include <RTLib/Ext/OPX7/OPX7Pipeline.h>
+#include <RTLib/Ext/OPX7/OPX7ShaderTable.h>
+#include <RTLib/Ext/OPX7/OPX7ShaderRecord.h>
 #include <RTLibExtOPX7TestConfig.h>
+#include <cuda/SimpleKernel.h>
 #include <memory>
 #include <vector>
 #include <fstream>
@@ -82,7 +85,32 @@ int main() {
 			pipeDesc.programGroups             = opxProgramGroups;
 		}
 		auto opxPipeline = std::unique_ptr<RTLib::Ext::OPX7::OPX7Pipeline>(context.CreateOPXPipeline(pipeDesc));
-
+		auto sbtDesc = RTLib::Ext::OPX7::OPX7ShaderTableCreateDesc();
+		{
+			sbtDesc.raygenRecordSizeInBytes      = sizeof(RTLib::Ext::OPX7::OPX7ShaderRecord<SimpleKernelSBTRaygenData>);
+			sbtDesc.exceptionRecordSizeInBytes   = 0;
+			sbtDesc.missRecordStrideInBytes      = sizeof(RTLib::Ext::OPX7::OPX7ShaderRecord<SimpleKernelSBTMissData>);
+			sbtDesc.missRecordCount              = SimpleKernelRayTypeCount;
+			sbtDesc.hitgroupRecordStrideInBytes  = sizeof(RTLib::Ext::OPX7::OPX7ShaderRecord<SimpleKernelSBTHitgroupData>);
+			sbtDesc.hitgroupRecordCount          = SimpleKernelRayTypeCount * 1;
+			sbtDesc.exceptionRecordSizeInBytes   = 0;
+			sbtDesc.callablesRecordStrideInBytes = 0;
+			sbtDesc.callablesRecordCount         = 0;
+		}
+		auto opxShaderTable = std::unique_ptr<RTLib::Ext::OPX7::OPX7ShaderTable>(context.CreateOPXShaderTable(sbtDesc));
+		{
+			//RAYGEN
+			opxShaderTable->SetHostRaygenRecordTypeData(opxProgramGroupRG->GetRecord(SimpleKernelSBTRaygenData()));
+			//MISS
+			opxShaderTable->SetHostMissRecordTypeData(SimpleKernelRayTypeTrace  , opxProgramGroupMS->GetRecord(SimpleKernelSBTMissData()));
+			opxShaderTable->SetHostMissRecordTypeData(SimpleKernelRayTypeOcclude, opxProgramGroupMS->GetRecord(SimpleKernelSBTMissData()));
+			//HITGROUP
+			opxShaderTable->SetHostHitgroupRecordTypeData(SimpleKernelRayTypeTrace  , opxProgramGroupHG->GetRecord(SimpleKernelSBTHitgroupData()));
+			opxShaderTable->SetHostHitgroupRecordTypeData(SimpleKernelRayTypeOcclude, opxProgramGroupHG->GetRecord(SimpleKernelSBTHitgroupData()));
+			//UPLOAD
+			opxShaderTable->Upload();
+		}
+		opxShaderTable->Destroy();
 		opxPipeline->Destroy();
 		opxProgramGroupRG->Destroy();
 		opxProgramGroupMS->Destroy();
