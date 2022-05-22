@@ -240,7 +240,6 @@ namespace RTLib
 				unsigned int  callablesRecordStrideInBytes = 0;
 				unsigned int  callablesRecordCount         = 0;
 			};
-			
 		}
 	}
 }

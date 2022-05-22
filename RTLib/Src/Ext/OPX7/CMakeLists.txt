@@ -24,6 +24,9 @@ set(RTLIB_EXT_OPX7_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/OPX7/OPX7AccelerationStructureInstance.h  
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/OPX7AccelerationStructureInstance.cpp   
 
+    ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/OPX7/OPX7AccelerationStructureBuildInput.h  
+    ${CMAKE_CURRENT_SOURCE_DIR}/Src/OPX7AccelerationStructureBuildInput.cpp   
+
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/OPX7/OPX7ShaderTable.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/OPX7ShaderTable.cpp 
 )
