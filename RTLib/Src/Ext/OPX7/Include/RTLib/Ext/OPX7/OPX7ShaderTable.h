@@ -20,21 +20,46 @@ namespace RTLib {
 			public:
 				static auto New(OPX7Context* context, const OPX7ShaderTableCreateDesc& desc)->OPX7ShaderTable*;
 				virtual ~OPX7ShaderTable()noexcept;
+				void Destroy()noexcept;
 				//shaderTable
-				auto GetBufferData()noexcept -> CUDA::CUDABuffer*;
+				auto GetBuffer()noexcept -> CUDA::CUDABuffer*;
 				auto GetBufferSize()const noexcept -> size_t;
+				//Upload
+				void Upload();
+				void UploadRaygenRecord();
+				void UploadExceptionRecord();
+				void UploadMissRecord();
+				void UploadHitgroupRecord();
+				void UploadCallablesRecord();
+				//Download
+				void Download();
+				void DownloadRaygenRecord();
+				void DownloadExceptionRecord();
+				void DownloadMissRecord();
+				void DownloadHitgroupRecord();
+				void DownloadCallablesRecord();
+				//Raygen
+				bool HasRaygenRecord()const noexcept;
 				auto GetRaygenRecordSizeInBytes()const noexcept -> unsigned int;
 				auto GetRaygenRecordOffsetInBytes()const noexcept -> size_t;
+				//Exception
+				bool HasExceptionRecord()const noexcept;
 				auto GetExceptionRecordSizeInBytes()const noexcept -> unsigned int;
 				auto GetExceptionRecordOffsetInBytes()const noexcept -> size_t;
+				//Miss
+				bool HasMissRecord()const noexcept;
 				auto GetMissRecordOffsetInBytes()const noexcept -> size_t;
 				auto GetMissRecordSizeInBytes()const noexcept   -> size_t;
 				auto GetMissRecordStrideInBytes()const noexcept -> unsigned int;
 				auto GetMissRecordCount()const noexcept -> unsigned int;
+				//Hitgroup
+				bool HasHitgroupRecord()const noexcept;
 				auto GetHitgroupRecordOffsetInBytes()const noexcept -> size_t;
 				auto GetHitgroupRecordSizeInBytes()const noexcept -> size_t;
 				auto GetHitgroupRecordStrideInBytes()const noexcept -> unsigned int;
 				auto GetHitgroupRecordCount()const noexcept -> unsigned int;
+				//Callables
+				bool HasCallablesRecord()const noexcept;
 				auto GetCallablesRecordOffsetInBytes()const noexcept -> size_t;
 				auto GetCallablesRecordSizeInBytes()const noexcept   -> size_t;
 				auto GetCallablesRecordStrideInBytes()const noexcept -> unsigned int;

@@ -2,8 +2,10 @@
 #include <RTLib/Ext/OPX7/OPX7Context.h>
 #include <RTLib/Ext/CUDA/CUDABuffer.h>
 #include <RTLib/Ext/CUDA/CUDACommon.h>
+#include <RTLib/Ext/CUDA/CUDAExceptions.h>
+#include <cuda.h>
 #include <cassert>
-
+#include <iostream>
 struct RTLib::Ext::OPX7::OPX7ShaderTable::Impl
 {
 	Impl(OPX7Context* ctx, const OPX7ShaderTableCreateDesc& desc)noexcept
@@ -43,10 +45,12 @@ struct RTLib::Ext::OPX7::OPX7ShaderTable::Impl
 		buffDesc.sizeInBytes = shaderBindingTableSizeInBytes;
 		buffDesc.flags	     = CUDA::CUDAMemoryFlags::eDefault;
 		buffer               = std::unique_ptr<CUDA::CUDABuffer>(context->CreateBuffer(buffDesc));
+		RTLIB_EXT_CUDA_THROW_IF_FAILED(cuMemHostAlloc(&pHostData, shaderBindingTableSizeInBytes, 0));
 	}
 	OPX7Context*					  context                      = nullptr;
 	std::unique_ptr<CUDA::CUDABuffer> buffer                       = nullptr;
 	OptixShaderBindingTable           shaderBindingTable           = {};
+	void*                             pHostData                    = nullptr;
 	size_t                            shaderBindingTableSizeInBytes= 0;
 	size_t                            raygenRecordSizeInBytes      = 0;
 	size_t                            exceptionRecordSizeInBytes   = 0;
@@ -62,8 +66,8 @@ struct RTLib::Ext::OPX7::OPX7ShaderTable::Impl
 auto RTLib::Ext::OPX7::OPX7ShaderTable::New(OPX7Context* context, const OPX7ShaderTableCreateDesc& desc) -> OPX7ShaderTable*
 {
 	auto shaderTable = new OPX7ShaderTable(context, desc);
-
-	return nullptr;
+	shaderTable->m_Impl->Allocate();
+	return shaderTable;
 }
 
 RTLib::Ext::OPX7::OPX7ShaderTable::~OPX7ShaderTable() noexcept
@@ -71,7 +75,24 @@ RTLib::Ext::OPX7::OPX7ShaderTable::~OPX7ShaderTable() noexcept
 	m_Impl.reset();
 }
 
-auto RTLib::Ext::OPX7::OPX7ShaderTable::GetBufferData() noexcept -> CUDA::CUDABuffer*
+void RTLib::Ext::OPX7::OPX7ShaderTable::Destroy() noexcept
+{
+	if (!m_Impl) { return; }
+	if (!m_Impl->buffer) { return; }
+	m_Impl->buffer->Destroy();
+	m_Impl->buffer.reset();
+	if (m_Impl->pHostData) {
+		try {
+			RTLIB_EXT_CUDA_THROW_IF_FAILED(cuMemFreeHost(m_Impl->pHostData));
+		}
+		catch (CUDA::CUDAException& err) {
+			std::cerr << err.what() << std::endl;
+		}
+	}
+	m_Impl->pHostData = nullptr;
+}
+
+auto RTLib::Ext::OPX7::OPX7ShaderTable::GetBuffer() noexcept -> CUDA::CUDABuffer*
 {
 	assert(m_Impl != nullptr);
 	return m_Impl->buffer.get();
@@ -81,6 +102,138 @@ auto RTLib::Ext::OPX7::OPX7ShaderTable::GetBufferSize() const noexcept -> size_t
 {
 	assert(m_Impl != nullptr);
 	return m_Impl->shaderBindingTableSizeInBytes;
+}
+
+void RTLib::Ext::OPX7::OPX7ShaderTable::Upload()
+{
+	assert(m_Impl != nullptr);
+	assert(m_Impl->context->CopyMemoryToBuffer(m_Impl->buffer.get(), {
+		{m_Impl->pHostData, 0, m_Impl->shaderBindingTableSizeInBytes}
+	}));
+}
+
+void RTLib::Ext::OPX7::OPX7ShaderTable::UploadRaygenRecord()
+{
+	assert(m_Impl != nullptr);
+	if (m_Impl->raygenRecordSizeInBytes == 0) { return; }
+	auto offsetSizeInBytes = GetRaygenRecordOffsetInBytes();
+	auto sizeInBytes = GetRaygenRecordSizeInBytes();
+	assert(m_Impl->context->CopyMemoryToBuffer(m_Impl->buffer.get(), {
+		{(char*)m_Impl->pHostData, offsetSizeInBytes,sizeInBytes}
+	}));
+}
+
+void RTLib::Ext::OPX7::OPX7ShaderTable::UploadExceptionRecord()
+{
+	assert(m_Impl != nullptr);
+	if (m_Impl->exceptionRecordOffsetInBytes == 0) { return; }
+	auto offsetSizeInBytes = GetExceptionRecordOffsetInBytes();
+	auto sizeInBytes = GetExceptionRecordSizeInBytes();
+	assert(m_Impl->context->CopyMemoryToBuffer(m_Impl->buffer.get(), {
+		{(char*)m_Impl->pHostData, offsetSizeInBytes,sizeInBytes}
+	}));
+}
+
+void RTLib::Ext::OPX7::OPX7ShaderTable::UploadMissRecord()
+{
+	assert(m_Impl != nullptr);
+	if (m_Impl->exceptionRecordOffsetInBytes == 0) { return; }
+	auto offsetSizeInBytes = GetMissRecordOffsetInBytes();
+	auto sizeInBytes = GetMissRecordSizeInBytes();
+	assert(m_Impl->context->CopyMemoryToBuffer(m_Impl->buffer.get(), {
+		{(char*)m_Impl->pHostData, offsetSizeInBytes,sizeInBytes}
+	}));
+}
+
+void RTLib::Ext::OPX7::OPX7ShaderTable::UploadHitgroupRecord()
+{
+	assert(m_Impl != nullptr);
+	if (m_Impl->exceptionRecordOffsetInBytes == 0) { return; }
+	auto offsetSizeInBytes = GetHitgroupRecordOffsetInBytes();
+	auto sizeInBytes = GetHitgroupRecordSizeInBytes();
+	assert(m_Impl->context->CopyMemoryToBuffer(m_Impl->buffer.get(), {
+		{(char*)m_Impl->pHostData, offsetSizeInBytes,sizeInBytes}
+	}));
+}
+
+void RTLib::Ext::OPX7::OPX7ShaderTable::UploadCallablesRecord()
+{	
+	assert(m_Impl != nullptr);
+	if (m_Impl->exceptionRecordOffsetInBytes == 0) { return; }
+	auto offsetSizeInBytes = GetCallablesRecordOffsetInBytes();
+	auto sizeInBytes = GetCallablesRecordSizeInBytes();
+	assert(m_Impl->context->CopyMemoryToBuffer(m_Impl->buffer.get(), {
+		{(char*)m_Impl->pHostData, offsetSizeInBytes,sizeInBytes}
+	}));
+}
+
+void RTLib::Ext::OPX7::OPX7ShaderTable::Download()
+{
+	assert(m_Impl != nullptr);
+	assert(m_Impl->context->CopyBufferToMemory(m_Impl->buffer.get(), {
+		{m_Impl->pHostData, 0, m_Impl->shaderBindingTableSizeInBytes}
+		}));
+}
+
+void RTLib::Ext::OPX7::OPX7ShaderTable::DownloadRaygenRecord()
+{
+	assert(m_Impl != nullptr);
+	if (m_Impl->raygenRecordSizeInBytes == 0) { return; }
+	auto offsetSizeInBytes = GetRaygenRecordOffsetInBytes();
+	auto sizeInBytes = GetRaygenRecordSizeInBytes();
+	assert(m_Impl->context->CopyBufferToMemory(m_Impl->buffer.get(), {
+		{(char*)m_Impl->pHostData, offsetSizeInBytes,sizeInBytes}
+		}));
+}
+
+void RTLib::Ext::OPX7::OPX7ShaderTable::DownloadExceptionRecord()
+{
+	assert(m_Impl != nullptr);
+	if (m_Impl->exceptionRecordOffsetInBytes == 0) { return; }
+	auto offsetSizeInBytes = GetExceptionRecordOffsetInBytes();
+	auto sizeInBytes = GetExceptionRecordSizeInBytes();
+	assert(m_Impl->context->CopyBufferToMemory(m_Impl->buffer.get(), {
+		{(char*)m_Impl->pHostData, offsetSizeInBytes,sizeInBytes}
+		}));
+}
+
+void RTLib::Ext::OPX7::OPX7ShaderTable::DownloadMissRecord()
+{
+	assert(m_Impl != nullptr);
+	if (m_Impl->exceptionRecordOffsetInBytes == 0) { return; }
+	auto offsetSizeInBytes = GetMissRecordOffsetInBytes();
+	auto sizeInBytes = GetMissRecordSizeInBytes();
+	assert(m_Impl->context->CopyBufferToMemory(m_Impl->buffer.get(), {
+		{(char*)m_Impl->pHostData, offsetSizeInBytes,sizeInBytes}
+		}));
+}
+
+void RTLib::Ext::OPX7::OPX7ShaderTable::DownloadHitgroupRecord()
+{
+	assert(m_Impl != nullptr);
+	if (m_Impl->exceptionRecordOffsetInBytes == 0) { return; }
+	auto offsetSizeInBytes = GetHitgroupRecordOffsetInBytes();
+	auto sizeInBytes = GetHitgroupRecordSizeInBytes();
+	assert(m_Impl->context->CopyBufferToMemory(m_Impl->buffer.get(), {
+		{(char*)m_Impl->pHostData, offsetSizeInBytes,sizeInBytes}
+		}));
+}
+
+void RTLib::Ext::OPX7::OPX7ShaderTable::DownloadCallablesRecord()
+{
+	assert(m_Impl != nullptr);
+	if (m_Impl->exceptionRecordOffsetInBytes == 0) { return; }
+	auto offsetSizeInBytes = GetCallablesRecordOffsetInBytes();
+	auto sizeInBytes = GetCallablesRecordSizeInBytes();
+	assert(m_Impl->context->CopyBufferToMemory(m_Impl->buffer.get(), {
+		{(char*)m_Impl->pHostData, offsetSizeInBytes,sizeInBytes}
+		}));
+}
+
+bool RTLib::Ext::OPX7::OPX7ShaderTable::HasRaygenRecord() const noexcept
+{
+	assert(m_Impl != nullptr);
+	return m_Impl->raygenRecordSizeInBytes > 0;
 }
 
 auto RTLib::Ext::OPX7::OPX7ShaderTable::GetRaygenRecordSizeInBytes() const noexcept -> unsigned int
@@ -95,6 +248,12 @@ auto RTLib::Ext::OPX7::OPX7ShaderTable::GetRaygenRecordOffsetInBytes() const noe
 	return 0;
 }
 
+bool RTLib::Ext::OPX7::OPX7ShaderTable::HasExceptionRecord() const noexcept
+{
+	assert(m_Impl != nullptr);
+	return m_Impl->exceptionRecordSizeInBytes > 0;
+}
+
 auto RTLib::Ext::OPX7::OPX7ShaderTable::GetExceptionRecordSizeInBytes() const noexcept -> unsigned int
 {
 	assert(m_Impl != nullptr);
@@ -105,6 +264,12 @@ auto RTLib::Ext::OPX7::OPX7ShaderTable::GetExceptionRecordOffsetInBytes() const 
 {
 	assert(m_Impl != nullptr);
 	return m_Impl->exceptionRecordOffsetInBytes;
+}
+
+bool RTLib::Ext::OPX7::OPX7ShaderTable::HasMissRecord() const noexcept
+{
+	assert(m_Impl != nullptr);
+	return m_Impl->missRecordSizeInBytes > 0;
 }
 
 auto RTLib::Ext::OPX7::OPX7ShaderTable::GetMissRecordOffsetInBytes() const noexcept -> size_t
@@ -131,6 +296,12 @@ auto RTLib::Ext::OPX7::OPX7ShaderTable::GetMissRecordCount() const noexcept -> u
 	return m_Impl->shaderBindingTable.missRecordCount;
 }
 
+bool RTLib::Ext::OPX7::OPX7ShaderTable::HasHitgroupRecord() const noexcept
+{
+	assert(m_Impl != nullptr);
+	return m_Impl->hitgroupRecordSizeInBytes > 0;
+}
+
 auto RTLib::Ext::OPX7::OPX7ShaderTable::GetHitgroupRecordOffsetInBytes() const noexcept -> size_t
 {
 	assert(m_Impl != nullptr);
@@ -153,6 +324,12 @@ auto RTLib::Ext::OPX7::OPX7ShaderTable::GetHitgroupRecordCount() const noexcept 
 {
 	assert(m_Impl != nullptr);
 	return m_Impl->shaderBindingTable.hitgroupRecordCount;
+}
+
+bool RTLib::Ext::OPX7::OPX7ShaderTable::HasCallablesRecord() const noexcept
+{
+	assert(m_Impl != nullptr);
+	return m_Impl->callablesRecordSizeInBytes > 0;
 }
 
 auto RTLib::Ext::OPX7::OPX7ShaderTable::GetCallablesRecordOffsetInBytes() const noexcept -> size_t
