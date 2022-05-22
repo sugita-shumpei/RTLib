@@ -20,7 +20,7 @@ namespace RTLib
 				static auto Allocate(GLContext* context, const GLBufferCreateDesc& desc)->GLBuffer*;
                 virtual ~GLBuffer()noexcept;
                 
-				virtual void Destroy()override;
+				virtual void Destroy()noexcept override;
 				auto GetBufferUsage()const noexcept -> GLBufferUsageFlags;
 			private:
 				GLBuffer(GLContext* context, const GLBufferCreateDesc& desc)noexcept;

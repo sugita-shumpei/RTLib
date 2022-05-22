@@ -1,106 +1,58 @@
 #include <RTLib/Ext/CUDA/CUDABuffer.h>
+#include <RTLib/Ext/CUDA/CUDAExceptions.h>
 #include <iostream>
 #include <string>
+#include <cassert>
+struct RTLib::Ext::CUDA::CUDABuffer ::Impl{
+
+	CUDAContext*    context     = nullptr;
+	size_t          sizeInBytes = 0;
+	CUDAMemoryFlags flags       = CUDAMemoryFlags::eDefault;
+	CUdeviceptr     deviceptr   = 0;
+};
 auto RTLib::Ext::CUDA::CUDABuffer::Allocate(CUDAContext* ctx, const CUDABufferCreateDesc& desc) -> CUDABuffer*
 {
 	if (desc.sizeInBytes == 0) { return nullptr; }
 	CUdeviceptr deviceptr = 0;
-	void* hostptr = nullptr;
 	if (desc.flags == CUDAMemoryFlags::eDefault) {
-		bool isSuccess = true;
-		do {
-			auto res = cuMemAlloc(&deviceptr, desc.sizeInBytes);
-			if (res != CUDA_SUCCESS) {
-				const char* errString = nullptr;
-				(void)cuGetErrorString(res, &errString);
-				std::cout << __FILE__ << ":" << __LINE__ << ":" << std::string(errString) << "\n";
-				isSuccess = false;
-				break;
-			}
-		} while (0);
-		if (!isSuccess) {
-			if (deviceptr) {
-				cuMemFree(deviceptr);
-				deviceptr = 0;
-			}
-			return nullptr;
-		}
+		RTLIB_EXT_CUDA_THROW_IF_FAILED(cuMemAlloc(&deviceptr, desc.sizeInBytes));
 	}
-	if (desc.flags == CUDAMemoryFlags::ePageLocked) {
-		bool isSuccess = true;
-		do{
-			{
-				auto res = cuMemAlloc(&deviceptr, desc.sizeInBytes);
-				if (res != CUDA_SUCCESS) {
-					const char* errString = nullptr;
-					(void)cuGetErrorString(res, &errString);
-					std::cout << __FILE__ << ":" << __LINE__ << ":" << std::string(errString) << "\n";
-					isSuccess = false;
-					break;
-				}
-			}
-			{
-				auto res = cuMemAllocHost((void**)&hostptr, desc.sizeInBytes);
-				if (res != CUDA_SUCCESS) {
-					const char* errString = nullptr;
-					(void)cuGetErrorString(res, &errString);
-					std::cout << __FILE__ << ":" << __LINE__ << ":" << std::string(errString) << "\n";
-					isSuccess = false;
-					break;
-				}
-			}
-		} while (0);
-		if (!isSuccess) {
-			if (deviceptr) {
-				cuMemFree(deviceptr);
-				deviceptr = 0;
-			}
-			if (hostptr) {
-				cuMemFreeHost(hostptr);
-				hostptr = nullptr;
-			}
-			return nullptr;
-		}
-	}
-	auto buffer = new CUDABuffer(ctx, desc,deviceptr,hostptr);
+	auto buffer = new CUDABuffer(ctx, desc,deviceptr);
 	return buffer;
 }
 
 void RTLib::Ext::CUDA::CUDABuffer::Destroy() noexcept
 {
-	m_Context = nullptr;
-	m_flags = CUDAMemoryFlags::eDefault;
-	m_SizeInBytes = 0;
-	if (m_Deviceptr) {
-		auto res = cuMemFree(m_Deviceptr);
-		if (res != CUDA_SUCCESS) {
-			const char* errString = nullptr;
-			(void)cuGetErrorString(res, &errString);
-			std::cout << __FILE__ << ":" << __FILE__ << ":" << std::string(errString) << "\n";
-		}
-		m_Deviceptr = 0;
+	assert(m_Impl != nullptr);
+	m_Impl->context = nullptr;
+	m_Impl->flags = CUDAMemoryFlags::eDefault;
+	m_Impl->sizeInBytes = 0;
+	if (!m_Impl->deviceptr) {
+		return;
 	}
-	if (m_Hostptr) {
-		auto res = cuMemFreeHost(m_Hostptr);
-		if (res != CUDA_SUCCESS) {
-			const char* errString = nullptr;
-			(void)cuGetErrorString(res, &errString);
-			std::cout << __FILE__ << ":" << __LINE__ << ":" << std::string(errString) << "\n";
-		}
-		m_Hostptr = nullptr;
+	try {
+		RTLIB_EXT_CUDA_THROW_IF_FAILED(cuMemFree(m_Impl->deviceptr));
 	}
+	catch (CUDAException& err) {
+		std::cerr << err.what() << std::endl;
+	}
+	m_Impl->deviceptr = 0;
 }
 
 RTLib::Ext::CUDA::CUDABuffer::~CUDABuffer() noexcept
 {
-	
+	m_Impl.reset();
 }
 
-RTLib::Ext::CUDA::CUDABuffer::CUDABuffer(CUDAContext* ctx, const CUDABufferCreateDesc& desc, CUdeviceptr deviceptr, void* hostptr) noexcept
+auto RTLib::Ext::CUDA::CUDABuffer::GetDeviceAddress() noexcept -> CUdeviceptr { return m_Impl->deviceptr; }
+
+auto RTLib::Ext::CUDA::CUDABuffer::GetSizeInBytes() const noexcept -> size_t { return m_Impl->sizeInBytes; }
+
+RTLib::Ext::CUDA::CUDABuffer::CUDABuffer(CUDAContext* ctx, const CUDABufferCreateDesc& desc, CUdeviceptr deviceptr) noexcept:m_Impl{new Impl()}
 {
-	m_Context = ctx;
-	m_flags = desc.flags;
-	m_SizeInBytes = desc.sizeInBytes;
-	m_Deviceptr = deviceptr;
-	m_Hostptr = hostptr;
+	m_Impl->context     = ctx;
+	m_Impl->flags       = desc.flags;
+	m_Impl->sizeInBytes = desc.sizeInBytes;
+	m_Impl->deviceptr   = deviceptr;
 }
+

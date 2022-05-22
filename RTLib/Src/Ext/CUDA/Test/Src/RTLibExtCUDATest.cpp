@@ -32,7 +32,7 @@ int main(int argc, const char* argv)
 		auto stream  = std::unique_ptr<RTLib::Ext::CUDA::CUDAStream>(ctx.CreateStream());
 		auto bffDesc = RTLib::Ext::CUDA::CUDABufferCreateDesc();
 		{
-			bffDesc.flags       = RTLib::Ext::CUDA::CUDAMemoryFlags::ePageLocked;
+			bffDesc.flags       = RTLib::Ext::CUDA::CUDAMemoryFlags::eDefault;
 			bffDesc.sizeInBytes = 16 * 16 * 4;
 		}
 		auto bff1     = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(ctx.CreateBuffer(bffDesc));

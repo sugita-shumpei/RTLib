@@ -35,6 +35,10 @@ set(RTLIB_CORE_SOURCES
     
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Core/BaseObject.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/BaseObject.cpp
+
+    ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Core/Exceptions.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Src/Exceptions.cpp
+
 )
 
 add_library(RTLib-Core ${RTLIB_CORE_SOURCES}

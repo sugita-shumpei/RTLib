@@ -10,7 +10,7 @@ namespace RTLib
 		RTLIB_CORE_TYPE_OBJECT_DECLARE_DERIVED_METHOD(Buffer, BaseObject, RTLIB_TYPE_UUID_RTLIB_CORE_BUFFER);
 		public:
             virtual ~Buffer()noexcept;
-			virtual void Destroy() = 0;
+			virtual void Destroy()noexcept = 0;
         };
 	}
 }

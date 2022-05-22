@@ -1,33 +1,31 @@
 #ifndef RTLIB_EXT_CUDA_CUDA_BUFFER_H
 #define RTLIB_EXT_CUDA_CUDA_BUFFER_H
+#include <RTLib/Core/Buffer.h>
 #include <RTLib/Ext/CUDA/CUDAContext.h>
 #include <RTLib/Ext/CUDA/CUDACommon.h>
+#include <RTLib/Ext/CUDA/UuidDefinitions.h>
 namespace RTLib {
 	namespace Ext
 	{
 		namespace CUDA
 		{
 			class CUDAContext;
-			class CUDABuffer {
+			class CUDABuffer : public Core::Buffer{
 				friend class CUDAContext;
 				friend class CUDAStream ;
 			public:
+				RTLIB_CORE_TYPE_OBJECT_DECLARE_DERIVED_METHOD(CUDABuffer, Core::Buffer, RTLIB_TYPE_UUID_RTLIB_EXT_CUDA_CUDA_BUFFER);
 				static auto Allocate(CUDAContext* ctx, const CUDABufferCreateDesc& desc)->CUDABuffer*;
-				void Destroy()noexcept;
+				virtual void Destroy()noexcept override;
 
 				virtual ~CUDABuffer()noexcept;
-				auto GetDeviceAddress() noexcept -> CUdeviceptr { return m_Deviceptr; }
-				auto GetSizeInBytes()const noexcept -> size_t { return m_SizeInBytes; }
+				auto GetDeviceAddress() noexcept -> CUdeviceptr;
+				auto GetSizeInBytes()const noexcept -> size_t;
 			private:
-				CUDABuffer(CUDAContext* ctx, const CUDABufferCreateDesc& desc, CUdeviceptr deviceptr, void* hostptr) noexcept;
+				CUDABuffer(CUDAContext* ctx, const CUDABufferCreateDesc& desc, CUdeviceptr deviceptr) noexcept;
 			private:
-				auto GetHostptr() noexcept -> void* { return m_Hostptr; }
-			private:
-				CUDAContext*    m_Context;
-				size_t          m_SizeInBytes;
-				CUDAMemoryFlags m_flags;
-				CUdeviceptr     m_Deviceptr;
-				void*			m_Hostptr;
+				struct Impl;
+				std::unique_ptr<Impl> m_Impl;
 			};
 		}
 	}

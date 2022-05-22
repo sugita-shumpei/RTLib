@@ -29,7 +29,7 @@ auto LoadShaderSource(const char* filename)->std::vector<GLchar>
 	}
 	return shaderSource;
 }
-auto LoadShaderBinary(const char* filename)->std::vector<uint32_t>
+auto LoadBinary(const char* filename)->std::vector<uint32_t>
 {
 	auto shaderBinary = std::vector<uint32_t>();
 	auto sourceFile = std::ifstream(filename, std::ios::binary);
@@ -73,7 +73,7 @@ public:
 	virtual ~TestGLContext()noexcept {
 
 	}
-	// GLContext ‚ğ‰î‚µ‚ÄŒp³‚³‚ê‚Ü‚µ‚½
+	// GLContext ã‚’ä»‹ã—ã¦ç¶™æ‰¿ã•ã‚Œã¾ã—ãŸ
 	virtual bool InitLoader() override
 	{
 		glfwMakeContextCurrent(m_Window);
@@ -135,7 +135,7 @@ int main(int argc, const char* argv[]) {
 			indexData.data()
 		}));
 		auto   vertexShader = std::unique_ptr<RTLib::Ext::GL::GLShader>(context->CreateShader(RTLib::Ext::GL::GLShaderStageVertex));
-        if (vertexShader->ResetBinarySPV(LoadShaderBinary(RTLIB_EXT_GL_TEST_CONFIG_SHADER_DIR"/Test460.vert.spv"))){
+        if (vertexShader->ResetBinarySPV(LoadBinary(RTLIB_EXT_GL_TEST_CONFIG_SHADER_DIR"/Test460.vert.spv"))){
             vertexShader->Specialize("main");
         }else{
             vertexShader->ResetSourceGLSL(LoadShaderSource(RTLIB_EXT_GL_TEST_CONFIG_SHADER_DIR"/Test330.vert"));
@@ -143,7 +143,7 @@ int main(int argc, const char* argv[]) {
         }
 
 		auto fragmentShader = std::unique_ptr<RTLib::Ext::GL::GLShader>(context->CreateShader(RTLib::Ext::GL::GLShaderStageFragment));
-        if (fragmentShader->ResetBinarySPV(LoadShaderBinary( RTLIB_EXT_GL_TEST_CONFIG_SHADER_DIR"/Test460.frag.spv"))){
+        if (fragmentShader->ResetBinarySPV(LoadBinary( RTLIB_EXT_GL_TEST_CONFIG_SHADER_DIR"/Test460.frag.spv"))){
             fragmentShader->Specialize("main");
         }else{
             fragmentShader->ResetSourceGLSL(LoadShaderSource(RTLIB_EXT_GL_TEST_CONFIG_SHADER_DIR"/Test330.frag"));

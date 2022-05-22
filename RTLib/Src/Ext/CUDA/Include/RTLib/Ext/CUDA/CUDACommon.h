@@ -23,8 +23,7 @@ namespace RTLib {
 			using      CUDAMemoryImageCopy  = Core::MemoryImageCopy;
 			using      CUDAImageCopy        = Core::ImageCopy;
 			enum class CUDAMemoryFlags {
-				eDefault,
-				ePageLocked   ,
+				eDefault
 			};
 			struct     CUDABufferCreateDesc {
 				CUDAMemoryFlags flags = CUDAMemoryFlags::eDefault;

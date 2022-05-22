@@ -24,7 +24,6 @@ namespace RTLib
 	namespace Core
 	{
 		using TypeId = std::array<uint8_t, 16>;
-		using InstID = uint64_t;
 
 		auto TypeId2String(const TypeId& typeId)->std::string;
 		class BaseObject

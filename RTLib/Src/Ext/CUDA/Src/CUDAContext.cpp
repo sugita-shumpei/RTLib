@@ -4,6 +4,7 @@
 #include <RTLib/Ext/CUDA/CUDATexture.h>
 #include <RTLib/Ext/CUDA/CUDAModule.h>
 #include <RTLib/Ext/CUDA/CUDAStream.h>
+#include <RTLib/Ext/CUDA/CUDAExceptions.h>
 #include <RTLib/Core/Context.h>
 #include <iostream>
 RTLib::Ext::CUDA::CUDAContext::~CUDAContext() noexcept
@@ -13,44 +14,20 @@ RTLib::Ext::CUDA::CUDAContext::~CUDAContext() noexcept
 
 bool RTLib::Ext::CUDA::CUDAContext::Initialize()
 {
-    {
-        auto res = cuInit(0);
-        if (res != CUDA_SUCCESS) {
-            const char* errString = nullptr;
-            (void)cuGetErrorString(res,&errString);
-            std::cout << __FILE__ << ":" << __LINE__<< ":" << std::string(errString) << "\n";
-            return false;
-        }
-    }
-    {
-        auto res = cuDeviceGet(&m_DevCU, 0);
-        if (res != CUDA_SUCCESS) {
-            const char* errString = nullptr;
-            (void)cuGetErrorString(res, &errString);
-            std::cout << __FILE__ << ":" << __LINE__<< ":" << std::string(errString) << "\n";
-            return false;
-        }
-    }
-    {
-        auto res = cuCtxCreate(&m_CtxCU, 0,m_DevCU);
-        if (res != CUDA_SUCCESS) {
-            const char* errString = nullptr;
-            (void)cuGetErrorString(res, &errString);
-            std::cout << __FILE__ << ":" << __LINE__<< ":" << std::string(errString) << "\n";
-            return false;
-        }
-    }
+    RTLIB_EXT_CUDA_THROW_IF_FAILED(cuInit(0));
+    RTLIB_EXT_CUDA_THROW_IF_FAILED(cuDeviceGet(&m_DevCU, 0));
+    RTLIB_EXT_CUDA_THROW_IF_FAILED(cuCtxCreate(&m_CtxCU, 0, m_DevCU));
     return true;
 }
 
 void RTLib::Ext::CUDA::CUDAContext::Terminate()
 {
     if (m_CtxCU) {
-        auto res = cuCtxDestroy(m_CtxCU);
-        if (res != CUDA_SUCCESS) {
-            const char* errString = nullptr;
-            (void)cuGetErrorString(res, &errString);
-            std::cout << __FILE__ << ":" << __LINE__<< ":" << std::string(errString) << "\n";
+        try {
+            RTLIB_EXT_CUDA_THROW_IF_FAILED(cuCtxDestroy(m_CtxCU));
+        }
+        catch (CUDAException& err) {
+            std::cerr << err.what() << std::endl;
         }
         m_CtxCU = nullptr;
     }
@@ -59,13 +36,7 @@ void RTLib::Ext::CUDA::CUDAContext::Terminate()
 bool RTLib::Ext::CUDA::CUDAContext::MakeContextCurrent()
 {
     if (!m_CtxCU) { return false; }
-    auto res = cuCtxPushCurrent(m_CtxCU);
-    if (res != CUDA_SUCCESS) {
-        const char* errString = nullptr;
-        (void)cuGetErrorString(res, &errString);
-        std::cout << __FILE__ << ":" << __LINE__ << ":" << std::string(errString) << "\n";
-        return false;
-    }
+    RTLIB_EXT_CUDA_THROW_IF_FAILED(cuCtxPushCurrent(m_CtxCU));
     return true;
 }
 

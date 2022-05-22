@@ -31,7 +31,7 @@ auto RTLib::Ext::GL::GLBuffer::Allocate(GLContext* context, const GLBufferCreate
 }
     RTLib::Ext::GL::GLBuffer::~GLBuffer()noexcept {
 }
-void RTLib::Ext::GL::GLBuffer::Destroy() {
+void RTLib::Ext::GL::GLBuffer::Destroy() noexcept{
 	if (!m_Impl) {
 		return;
 	}

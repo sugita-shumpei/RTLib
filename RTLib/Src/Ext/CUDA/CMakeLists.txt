@@ -3,7 +3,10 @@ set(RTLIB_EXT_CUDA_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/CUDA/CUDATypeFormat.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/CUDA/CUDACommon.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/CUDA/UuidDefinitions.h
+    
 
+    ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/CUDA/CUDAExceptions.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Src/CUDAExceptions.cpp
 
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/CUDA/CUDAContext.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/CUDAContext.cpp
@@ -58,5 +61,6 @@ COMMAND ${CUDAToolkit_NVCC_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/sim
 COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/simpleKernel.cu  ${CMAKE_CURRENT_BINARY_DIR}/Test/cuda/simpleKernel.cu
 )
 
+set(RTLIB_EXT_CUDA_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Include"  CACHE STRING "RTLIB EXT CUDA Include Directory")
 
 set_target_properties(RTLib-Ext-CUDA-Test PROPERTIES FOLDER RTLib/RTLib/Ext/CUDA)
