@@ -158,21 +158,25 @@ int main(int argc, const char* argv[]) {
 			assert(context->CopyMemoryToImage(tex->GetImage(), { {(void*)pixels,{(uint32_t)0,(uint32_t)0,(uint32_t)1},{(uint32_t)0,(uint32_t)0,(uint32_t)0},{(uint32_t)tWid,(uint32_t)tHei,(uint32_t)0}} }));
 			stbi_image_free(pixels);
 
-			auto pixelData   = std::vector<unsigned int>(tWid * tHei, UINT32_MAX);
+			auto pixelData   = std::vector<unsigned char>(tWid * tHei*4, 255);
 			auto pixelBuffer = std::unique_ptr<RTLib::Ext::GL::GLBuffer>(context->CreateBuffer(RTLib::Ext::GL::GLBufferCreateDesc{
 				sizeof(pixelData[0]) * std::size(pixelData),
-				RTLib::Ext::GL::GLBufferUsageImageCopySrc  |
-				RTLib::Ext::GL::GLBufferUsageGenericCopyDst,
+				RTLib::Ext::GL::GLBufferUsageImageCopySrc ,
 				RTLib::Ext::GL::GLMemoryPropertyDefault,
 				pixelData.data()
 			}));
-
-			auto res = context->CopyBufferToImage(pixelBuffer.get(), tex->GetImage(), {
-					{static_cast<size_t>(0)    ,static_cast<size_t>(0)      ,static_cast<size_t>(0) ,
-					{static_cast<int32_t>(0)   ,static_cast<int32_t>(0)     ,static_cast<int32_t>(0)},
-					{static_cast<int32_t>(tWid),static_cast<int32_t>(tHei)  ,static_cast<int32_t>(0)}
-				}
-			});
+			auto bufferImageCopy = RTLib::Ext::GL::GLBufferImageCopy();
+			bufferImageCopy.bufferOffset = 0;
+			bufferImageCopy.bufferRowLength   = 0;
+			bufferImageCopy.bufferImageHeight = 0;
+			bufferImageCopy.imageOffset = {};
+			bufferImageCopy.imageExtent.width  = tWid;
+			bufferImageCopy.imageExtent.height = tHei;
+			bufferImageCopy.imageExtent.depth  = 0;
+			bufferImageCopy.imageSubresources.mipLevel = 0;
+			bufferImageCopy.imageSubresources.baseArrayLayer = 0;
+			bufferImageCopy.imageSubresources.layerCount     = 1;
+			//auto res = context->CopyBufferToImage(pixelBuffer.get(), tex->GetImage(), { bufferImageCopy});
 			pixelBuffer->Destroy();
 		}
 		
@@ -211,7 +215,7 @@ int main(int argc, const char* argv[]) {
 		glfwShowWindow(window);
 		while (!glfwWindowShouldClose(window)) {
 			context->SetClearBuffer(RTLib::Ext::GL::GLClearBufferFlagsColor);
-			context->SetClearColor (0.0f, 0.0f, 0.0f, 0.0f);
+			context->SetClearColor (0.0f, 1.0f, 0.0f, 0.0f);
 			context->SetProgram(graphicsProgram.get());
 			context->SetTexture(0, tex.get());
             context->SetVertexArrayState(vao.get());

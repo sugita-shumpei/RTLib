@@ -186,6 +186,7 @@ bool RTLib::Ext::GL::GLContext::CopyBufferToImage(GLBuffer* srcBuffer, GLImage* 
 			break;
 		case RTLib::Ext::GL::GLImageViewType::e2D:
 			for (const auto& region : regions) {
+				std::cout << reinterpret_cast<const void*>(region.bufferOffset) << std::endl;
 				glTextureSubImage2D(resId, region.imageSubresources.mipLevel, region.imageOffset.x, region.imageOffset.y, region.imageExtent.width, region.imageExtent.height, baseEnum, typeEnum,  reinterpret_cast<const void*>(region.bufferOffset));
 			}
 			break;
