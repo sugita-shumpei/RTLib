@@ -40,13 +40,18 @@ namespace RTLib
 				bool HasShaderType(GLShaderStageFlagBits shaderType) const noexcept;
 				auto GetShaderStages() const noexcept -> GLbitfield;
 
+				auto GetUniformLocation(const char* name)->GLint;
+
 				auto GetUniformBlockIndex(const char *name) -> GLuint;
 				bool SetUniformBlockBinding(GLuint blockIndex, GLuint bindingIndex);
+
+				bool SetUniformImageUnit(GLint location, GLuint imageUnit);
 			protected:
 				GLProgram(GLContext *context) noexcept;
 				void AddShaderType(GLShaderStageFlagBits shaderType, bool isRequired = false) noexcept;
 				auto GetResId() const noexcept -> GLuint;
-
+			private:
+				void SetImageUnit(GLint location, GLint imageUnit)noexcept;
 			private:
 				struct AttachState
 				{
@@ -55,6 +60,7 @@ namespace RTLib
 				};
 				GLContext *m_Context = nullptr;
 				std::unordered_map<GLenum, AttachState> m_AttachedStages = {};
+				std::unordered_map<GLint , GLint>       m_ImageUnits     = {};
 				bool m_IsEnabled = false;
 				bool m_IsLinked = false;
 				GLuint m_ResId = 0;

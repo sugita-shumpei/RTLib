@@ -8,8 +8,7 @@ namespace RTLib
 	namespace Core {
 		RTLIB_CORE_TYPE_OBJECT_DECLARE_BEGIN(Texture, BaseObject, RTLIB_TYPE_UUID_RTLIB_CORE_TEXTURE);
 		public:
-			Texture()noexcept;
-
+			virtual void Destroy()noexcept = 0;
 		RTLIB_CORE_TYPE_OBJECT_DECLARE_END();
 	}
 }

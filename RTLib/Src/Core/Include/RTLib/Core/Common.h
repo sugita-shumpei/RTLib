@@ -64,7 +64,13 @@ namespace RTLib {
 
 		struct ImageSubresourceLayers
 		{
-			uint32_t mipLevels;
+			uint32_t mipLevel;
+			uint32_t baseArrayLayer;
+			uint32_t layerCount;
+		};
+		struct ImageSubresourceRange {
+			uint32_t baseMipLevels;
+			uint32_t levelCount;
 			uint32_t baseArrayLayer;
 			uint32_t layerCount;
 		};
@@ -128,21 +134,21 @@ namespace RTLib {
 
 		struct SamplerCreateDesc
 		{
-			FilterMode              magFilter;
-			FilterMode              minFilter;
-			SamplerMipmapMode       mipmapMode;
-		    SamplerAddressMode      addressModeU;
-			SamplerAddressMode      addressModeV;
-			SamplerAddressMode      addressModeW;
-			float                   mipLodBias;
-			bool                    anisotropyEnable;
-			float                   maxAnisotropy;
-			bool                    compareEnable;
-			CompareOp               compareOp;
-			float                   minLod;
-			float                   maxLod;
-			float                   borderColor[4];
-			bool                    unnormalizedCoordinates;
+			FilterMode              magFilter        = FilterMode::eLinear;
+			FilterMode              minFilter        = FilterMode::eNearest;
+			SamplerMipmapMode       mipmapMode       = SamplerMipmapMode::eLinear;
+			SamplerAddressMode      addressModeU     = SamplerAddressMode::eRepeat;
+			SamplerAddressMode      addressModeV     = SamplerAddressMode::eRepeat;
+			SamplerAddressMode      addressModeW     = SamplerAddressMode::eRepeat;
+			float                   mipLodBias       = 0.0f;
+			bool                    anisotropyEnable = false;
+			float                   maxAnisotropy    = 1.0f;
+			bool                    compareEnable    = false;
+			CompareOp               compareOp        = CompareOp::eNever;
+			float                   minLod           = -1000.0f;
+			float                   maxLod           =  1000.0f;
+			float                   borderColor[4]   = {};
+			bool                    unnormalizedCoordinates = false;
 		};
 
 		enum ShaderStageFlagBits {

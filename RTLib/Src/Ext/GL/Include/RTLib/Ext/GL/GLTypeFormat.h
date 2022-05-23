@@ -239,6 +239,10 @@ namespace RTLib {
 				eDepth32FStencil8 = static_cast<uint64_t>(GLBaseFormat::eBaseDepthStencil) | RTLIB_EXT_GL_GL_FORMAT_DEF_2(static_cast<uint64_t>(Core::SizedTypeFlagBits::eFloat32), 8),
 			};
 
+			inline constexpr bool IsComressedGLFormat(GLFormat format) {
+				return static_cast<uint64_t>(format) & static_cast<uint64_t>(GLAttachmentComponentExt::eCompressed);
+			}
+
 			inline constexpr auto GetGLFormatBaseFormat(GLFormat format) -> GLBaseFormat
 			{
 				return static_cast<GLBaseFormat>(static_cast<uint64_t>(format) & (static_cast<uint64_t>(GLBaseFormat::eBaseIntegerRGBA) | static_cast<uint64_t>(GLBaseFormat::eBaseDepthStencil)));
@@ -247,10 +251,21 @@ namespace RTLib {
 			{
 				return (static_cast<uint64_t>(format) >> (9 * channel)) & ((1 << 6) - 1);
 			}
-			inline constexpr auto GetGLFormatChannelType(GLFormat format, uint32_t channel) -> GLFormat
+			inline constexpr auto GetGLFormatChannelType(GLFormat format, uint32_t channel) -> Core::BaseTypeFlagBits
 			{
-				return static_cast<GLFormat>((static_cast<uint64_t>(format) >> (9 * channel)) & (((1 << 3) - 1) << 6));
+				//9bit
+				return static_cast<Core::BaseTypeFlagBits>((static_cast<uint64_t>(format) >> (9 * channel)) & (((1 << 3) - 1) << 6));
 			}
+
+			struct TestGLFormat
+			{
+				static inline constexpr auto v1 = GetGLFormatChannelType(GLFormat::eRGBA8, 0);
+				static inline constexpr auto v2 = GetGLFormatChannelType(GLFormat::eRGBA8, 1);
+				static inline constexpr auto v3 = GetGLFormatChannelType(GLFormat::eRGBA8, 2);
+				static inline constexpr auto v4 = GetGLFormatChannelSize(GLFormat::eR11FG11FB10F, 0);
+				static inline constexpr auto v5 = GetGLFormatChannelSize(GLFormat::eR11FG11FB10F, 1);
+				static inline constexpr auto v6 = GetGLFormatChannelSize(GLFormat::eR11FG11FB10F, 2);
+			};
 
 			enum class GLVertexFormat : uint64_t
 			{

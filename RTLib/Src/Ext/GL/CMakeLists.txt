@@ -56,6 +56,7 @@ target_link_libraries(RTLib-Ext-GL PUBLIC RTLib-Core glad::glad)
 set_target_properties(RTLib-Ext-GL PROPERTIES FOLDER RTLib/RTLib/Ext/GL)
 
 set(RTLIB_EXT_GL_TEST_CONFIG_SHADER_DIR ${CMAKE_CURRENT_BINARY_DIR}/Test/shaders)
+set(RTLIB_EXT_GL_TEST_CONFIG_DATA_PATH "${RTLIB_TEST_DATA_PATH}")
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Test/RTLibExtGLTestConfig.h.in ${CMAKE_CURRENT_BINARY_DIR}/Test/RTLibExtGLTestConfig.h)
 
@@ -74,7 +75,7 @@ add_executable(RTLib-Ext-GL-Test
 )
 
 target_include_directories(RTLib-Ext-GL-Test PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Test/Include PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/Test)
-target_link_libraries(RTLib-Ext-GL-Test PUBLIC RTLib-Ext-GL glfw)
+target_link_libraries(RTLib-Ext-GL-Test PUBLIC RTLib-Ext-GL glfw stb::stb)
 
 set_target_properties(RTLib-Ext-GL-Test PROPERTIES FOLDER RTLib/RTLib/Ext/GL)
 if (Vulkan_FOUND)

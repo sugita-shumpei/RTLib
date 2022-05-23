@@ -1,10 +1,14 @@
+#define STB_IMAGE_IMPLEMENTATION
 #include <RTLib/Ext/GL/GLContext.h>
 #include <RTLib/Ext/GL/GLVertexArray.h>
 #include <RTLib/Ext/GL/GLBuffer.h>
+#include <RTLib/Ext/GL/GLImage.h>
+#include <RTLib/Ext/GL/GLTexture.h>
 #include <RTLib/Ext/GL/GLShader.h>
 #include <RTLib/Ext/GL/GLProgram.h>
 #include <RTLib/Ext/GL/GLCommon.h>
 #include <RTLibExtGLTestConfig.h>
+#include <stb_image.h>
 #include <GLFW/glfw3.h>
 #include <unordered_map>
 #include <fstream>
@@ -134,6 +138,44 @@ int main(int argc, const char* argv[]) {
 			RTLib::Ext::GL::GLMemoryPropertyDefault,
 			indexData.data()
 		}));
+		auto tex = std::unique_ptr<RTLib::Ext::GL::GLTexture>(nullptr);
+		auto texDesc = RTLib::Ext::GL::GLTextureCreateDesc();
+		{
+			int tWid, tHei, tCmp;
+			auto pixels = stbi_load(RTLIB_EXT_GL_TEST_CONFIG_DATA_PATH"/Textures/sample.png", &tWid, &tHei, &tCmp, 4);
+
+		    texDesc.image.imageType      = RTLib::Ext::GL::GLImageType::e2D;
+			texDesc.image.extent.width   = tWid;
+			texDesc.image.extent.height  = tHei;
+			texDesc.image.extent.depth   = 0;
+			texDesc.image.arrayLayers    = 0;
+			texDesc.image.mipLevels      = 1;
+			texDesc.image.format         = RTLib::Ext::GL::GLFormat::eRGBA8;
+			texDesc.sampler.magFilter    = RTLib::Core::FilterMode::eLinear;
+			texDesc.sampler.minFilter    = RTLib::Core::FilterMode::eLinear;
+
+			tex = std::unique_ptr<RTLib::Ext::GL::GLTexture>(context->CreateTexture(texDesc));
+			assert(context->CopyMemoryToImage(tex->GetImage(), { {(void*)pixels,{(uint32_t)0,(uint32_t)0,(uint32_t)1},{(uint32_t)0,(uint32_t)0,(uint32_t)0},{(uint32_t)tWid,(uint32_t)tHei,(uint32_t)0}} }));
+			stbi_image_free(pixels);
+
+			auto pixelData   = std::vector<unsigned int>(tWid * tHei, UINT32_MAX);
+			auto pixelBuffer = std::unique_ptr<RTLib::Ext::GL::GLBuffer>(context->CreateBuffer(RTLib::Ext::GL::GLBufferCreateDesc{
+				sizeof(pixelData[0]) * std::size(pixelData),
+				RTLib::Ext::GL::GLBufferUsageImageCopySrc  |
+				RTLib::Ext::GL::GLBufferUsageGenericCopyDst,
+				RTLib::Ext::GL::GLMemoryPropertyDefault,
+				pixelData.data()
+			}));
+
+			auto res = context->CopyBufferToImage(pixelBuffer.get(), tex->GetImage(), {
+					{static_cast<size_t>(0)    ,static_cast<size_t>(0)      ,static_cast<size_t>(0) ,
+					{static_cast<int32_t>(0)   ,static_cast<int32_t>(0)     ,static_cast<int32_t>(0)},
+					{static_cast<int32_t>(tWid),static_cast<int32_t>(tHei)  ,static_cast<int32_t>(0)}
+				}
+			});
+			pixelBuffer->Destroy();
+		}
+		
 		auto   vertexShader = std::unique_ptr<RTLib::Ext::GL::GLShader>(context->CreateShader(RTLib::Ext::GL::GLShaderStageVertex));
         if (vertexShader->ResetBinarySPV(LoadBinary(RTLIB_EXT_GL_TEST_CONFIG_SHADER_DIR"/Test460.vert.spv"))){
             vertexShader->Specialize("main");
@@ -164,25 +206,26 @@ int main(int argc, const char* argv[]) {
 		graphicsProgram->AttachShader(vertexShader.get());
 		graphicsProgram->AttachShader(fragmentShader.get());
 		assert(graphicsProgram->Link());
+		auto smpLoc = graphicsProgram->GetUniformLocation("smp");
 
 		glfwShowWindow(window);
 		while (!glfwWindowShouldClose(window)) {
 			context->SetClearBuffer(RTLib::Ext::GL::GLClearBufferFlagsColor);
-			context->SetClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-            context->SetProgram(graphicsProgram.get());
+			context->SetClearColor (0.0f, 0.0f, 0.0f, 0.0f);
+			context->SetProgram(graphicsProgram.get());
+			context->SetTexture(0, tex.get());
             context->SetVertexArrayState(vao.get());
             context->DrawArrays(RTLib::Ext::GL::GLDrawMode::eTriangles, 0, 3);
 			glfwSwapBuffers(window);
 			glfwPollEvents();
 		}
-        
+		tex->Destroy();
 		graphicsProgram->Destroy();
 		fragmentShader->Destroy();
 		vertexShader->Destroy();
 		vertexBuffer->Destroy();
 		indexBuffer->Destroy();
 	} while (false);
-
 	context->Terminate();
 	context.reset();
 	if (!isFailedToCreateWindow) {
@@ -190,6 +233,5 @@ int main(int argc, const char* argv[]) {
 		window = nullptr;
 	}
 	glfwTerminate();
-
 	return 0;
 }

@@ -1,5 +1,6 @@
 #include <RTLib/Ext/GL/GLProgram.h>
 #include <RTLib/Ext/GL/GLShader.h>
+#include <RTLib/Ext/GL/GLContext.h>
 RTLib::Ext::GL::GLProgram::~GLProgram() noexcept {}
 bool RTLib::Ext::GL::GLProgram::AttachShader(GLShader* shader) {
 	auto resId = GetResId();
@@ -131,6 +132,14 @@ auto RTLib::Ext::GL::GLProgram::GetShaderStages() const noexcept -> GLbitfield
 	return stages;
 }
 
+auto RTLib::Ext::GL::GLProgram::GetUniformLocation(const char* name) -> GLint
+{
+	if (IsLinked()) {
+		return -1;
+	}
+	return glGetUniformLocation(m_ResId, name);
+}
+
 RTLib::Ext::GL::GLProgram::GLProgram(GLContext* context) noexcept :m_Context{ context } {}
 
 void RTLib::Ext::GL::GLProgram::AddShaderType(GLShaderStageFlagBits shaderType, bool isRequired) noexcept {
@@ -159,6 +168,28 @@ bool RTLib::Ext::GL::GLProgram::SetUniformBlockBinding(GLuint blockIndex, GLuint
 	return true;
 }
 
+bool RTLib::Ext::GL::GLProgram::SetUniformImageUnit(GLint location, GLuint imageUnit)
+{
+	auto resId = GetResId();
+	if (resId == 0 || !IsLinked() || imageUnit == GL_INVALID_INDEX) {
+		return false;
+	}
+	if (m_Context->SupportVersion(4, 1)) {
+		if (m_ImageUnits.count(location) > 0) {
+			if (m_ImageUnits.at(location) == imageUnit) {
+				return true;
+			}
+		}
+		glProgramUniform1i(resId, location, imageUnit);
+		SetImageUnit(location, imageUnit);
+	}
+	else {
+		m_Context->SetProgram(this);
+		m_Context->SetUniformImageUnit(location, imageUnit);
+	}
+	return true;
+}
+
 auto RTLib::Ext::GL::GLProgram::New(GLContext* context) -> GLProgram*
 {
 	if (!context) { return nullptr; }
@@ -181,4 +212,9 @@ void RTLib::Ext::GL::GLProgram::Destroy()
 auto RTLib::Ext::GL::GLProgram::GetResId() const noexcept -> GLuint
 {
 	return m_ResId;
+}
+
+void RTLib::Ext::GL::GLProgram::SetImageUnit(GLint location, GLint imageUnit) noexcept
+{
+	m_ImageUnits[location] = imageUnit;
 }

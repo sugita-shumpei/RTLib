@@ -43,6 +43,7 @@ namespace RTLib
 				auto GetMinorVersion() const noexcept -> uint32_t;
 				/*Create*/
 				auto CreateBuffer(const GLBufferCreateDesc &desc) -> GLBuffer *;
+				auto CreateImage (const GLImageCreateDesc  &desc) -> GLImage  *;
 				auto CreateTexture(const GLTextureCreateDesc &desc) -> GLTexture *;
 				auto CreateShader(GLShaderStageFlagBits shaderType) -> GLShader *;
 				auto CreateProgram() -> GLProgram *;
@@ -52,9 +53,15 @@ namespace RTLib
 				bool CopyMemoryToBuffer(GLBuffer *buffer, const std::vector<GLMemoryBufferCopy> &regions);
 				bool CopyBufferToMemory(GLBuffer *buffer, const std::vector<GLBufferMemoryCopy> &regions);
 				bool CopyImageToBuffer(GLImage *srcImage  , GLBuffer*dstBuffer, const std::vector<GLBufferImageCopy> &regions);
-				bool CopyBufferToImage(GLBuffer *srcBuffer, GLImage *dstImage, const std::vector<GLBufferImageCopy> &regions);
+				bool CopyBufferToImage(GLBuffer*srcBuffer, GLImage *dstImage, const std::vector<GLBufferImageCopy> &regions);
 				bool CopyImageToMemory(GLImage *image, const std::vector<GLImageMemoryCopy> &regions);
-				bool CopyMemoryToImage(GLImage *image, const std::vector<GLImageMemoryCopy> &regions);
+				bool CopyMemoryToImage(GLImage* image, const std::vector<GLMemoryImageCopy>& regions);
+				/*Uniform*/
+				void SetUniformImageUnit(int loc , int index);
+				void SetProgramUniformImageUnit(GLProgram* program, int loc, int index);
+				/*ActivateTexture*/
+				void SetActiveTexture(int index);
+				void SetTexture(int index, GLTexture* texture);
                 /*PipelineState*/
                 void SetProgram(GLProgram* program);
                 void SetVertexArrayState(GLVertexArray* vao);

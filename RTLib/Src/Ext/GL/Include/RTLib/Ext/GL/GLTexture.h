@@ -19,9 +19,18 @@ namespace RTLib
 				virtual ~GLTexture()noexcept;
 
 				virtual void Destroy()noexcept override;
-				auto GetBufferUsage()const noexcept -> GLBufferUsageFlags;
+
+				auto GetImage()      noexcept ->       GLImage*;
+				auto GetImage()const noexcept -> const GLImage*;
+				auto GetType() const noexcept -> GLImageViewType;
+				auto GetFormat()const noexcept -> GLFormat;
+				auto GetExtent()const noexcept -> GLExtent3D;
+				auto GetMipExtent(uint32_t level)const noexcept -> GLExtent3D;
+				auto GetMipLevels()const noexcept -> uint32_t;
+				auto GetArrayLayers()const noexcept -> uint32_t;
+				auto GetFlags()const noexcept  -> GLImageCreateFlags;
 			private:
-				GLTexture(GLContext* context, const GLTextureCreateDesc& desc)noexcept;
+				GLTexture()noexcept;
 				auto GetResId()const noexcept -> GLuint;
 			private:
 				struct Impl;
