@@ -151,6 +151,7 @@ namespace RTLib {
 					RTLIB_EXT_GL_GET_GL_ENUM_GL_TYPE_CASE_2(UNSIGNED_INT_8_8_8_8_REV, UInt32_8_8_8_8_Rev);
 					RTLIB_EXT_GL_GET_GL_ENUM_GL_TYPE_CASE_2(UNSIGNED_INT_10_10_10_2, UInt32_10_10_10_2);
 					RTLIB_EXT_GL_GET_GL_ENUM_GL_TYPE_CASE_2(UNSIGNED_INT_2_10_10_10_REV, UInt32_2_10_10_10_Rev);
+					RTLIB_EXT_GL_GET_GL_ENUM_GL_TYPE_CASE_2(UNSIGNED_INT_10F_11F_11F_REV, UInt32_10F_11F_11F_Rev);
 				default: return GLTypeFlagBits::eUndefined;
 				}
 			}
@@ -176,6 +177,7 @@ namespace RTLib {
 					RTLIB_EXT_GL_GET_GL_TYPE_GL_ENUM_CASE_2_INV(UNSIGNED_INT_8_8_8_8_REV, UInt32_8_8_8_8_Rev);
 					RTLIB_EXT_GL_GET_GL_TYPE_GL_ENUM_CASE_2_INV(UNSIGNED_INT_10_10_10_2, UInt32_10_10_10_2);
 					RTLIB_EXT_GL_GET_GL_TYPE_GL_ENUM_CASE_2_INV(UNSIGNED_INT_2_10_10_10_REV, UInt32_2_10_10_10_Rev);
+					RTLIB_EXT_GL_GET_GL_TYPE_GL_ENUM_CASE_2_INV(UNSIGNED_INT_10F_11F_11F_REV, UInt32_10F_11F_11F_Rev);
 				default: return GL_FLOAT;
 				};
 			}
@@ -311,6 +313,164 @@ namespace RTLib {
 				}
 			}
 
+			inline constexpr auto GetGLVertexFormatGLenum(GLVertexFormat format)->GLenum
+			{
+				switch (format)
+				{
+				case RTLib::Ext::GL::GLVertexFormat::eInt8x1: return GL_BYTE;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eInt8x2: return GL_BYTE;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eInt8x3: return GL_BYTE;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eInt8x4: return GL_BYTE;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eUInt8x1:return GL_UNSIGNED_BYTE;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eUInt8x2:return GL_UNSIGNED_BYTE;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eUInt8x3:return GL_UNSIGNED_BYTE;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eUInt8x4:return GL_UNSIGNED_BYTE;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eInt16x1:return GL_SHORT;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eInt16x2:return GL_SHORT;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eInt16x3:return GL_SHORT;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eInt16x4:return GL_SHORT;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eUInt16x1:return GL_UNSIGNED_SHORT;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eUInt16x2:return GL_UNSIGNED_SHORT;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eUInt16x3:return GL_UNSIGNED_SHORT;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eUInt16x4:return GL_UNSIGNED_SHORT;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eInt32x1:return GL_INT;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eInt32x2:return GL_INT;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eInt32x3:return GL_INT;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eInt32x4:return GL_INT;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eUInt32x1:return GL_UNSIGNED_INT;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eUInt32x2:return GL_UNSIGNED_INT;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eUInt32x3:return GL_UNSIGNED_INT;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eUInt32x4:return GL_UNSIGNED_INT;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eFloat16x1:return GL_HALF_FLOAT;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eFloat16x2:return GL_HALF_FLOAT;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eFloat16x3:return GL_HALF_FLOAT;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eFloat16x4:return GL_HALF_FLOAT;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eFloat32x1:return GL_FLOAT;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eFloat32x2:return GL_FLOAT;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eFloat32x3:return GL_FLOAT;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eFloat32x4:return GL_FLOAT;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eUInt32_2_10_10_10_Rev:return GL_UNSIGNED_INT_2_10_10_10_REV;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eUInt32_10_10_10_2:return GL_UNSIGNED_INT_10_10_10_2;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eUInt32_10F_11F_11F_Rev:return GL_UNSIGNED_INT_10F_11F_11F_REV;
+					break;
+				default:return GL_BYTE;
+					break;
+				}
+			}
+
+			inline constexpr auto GetGLVertexFormatNumChannels(GLVertexFormat format)->uint32_t
+			{
+				switch (format)
+				{
+				case RTLib::Ext::GL::GLVertexFormat::eInt8x1: return 1;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eInt8x2: return 2;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eInt8x3: return 3;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eInt8x4: return 4;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eUInt8x1:return 1;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eUInt8x2:return 2;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eUInt8x3:return 3;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eUInt8x4:return 4;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eInt16x1:return 1;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eInt16x2:return 2;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eInt16x3:return 3;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eInt16x4:return 4;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eUInt16x1:return 1;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eUInt16x2:return 2;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eUInt16x3:return 3;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eUInt16x4:return 4;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eInt32x1:return 1;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eInt32x2:return 2;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eInt32x3:return 3;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eInt32x4:return 4;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eUInt32x1:return 1;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eUInt32x2:return 2;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eUInt32x3:return 3;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eUInt32x4:return 4;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eFloat16x1:return 1;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eFloat16x2:return 2;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eFloat16x3:return 3;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eFloat16x4:return 4;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eFloat32x1:return 1;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eFloat32x2:return 2;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eFloat32x3:return 3;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eFloat32x4:return 4;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eUInt32_2_10_10_10_Rev:return 4;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eUInt32_10_10_10_2:return 4;
+					break;
+				case RTLib::Ext::GL::GLVertexFormat::eUInt32_10F_11F_11F_Rev:return 3;
+					break;
+				default:return 1;
+					break;
+				}
+			}
+
 			inline constexpr auto GetGLBufferUsageFlagsAccessMode(const GLMemoryPropertyFlags& access)->GLenum
 			{
 				if (access == GLMemoryPropertyDefault) {
@@ -334,7 +494,7 @@ namespace RTLib {
 
 			inline constexpr auto GetGLBufferCreateDescBufferAccessFrequency(const GLBufferCreateDesc& desc)->GLenum {
 				if (desc.usage == GLBufferUsageGenericCopySrc){ //BufferCopySource
-					if (desc.access &  GLMemoryPropertyHostRead) {//Host���ǂ݂Ƃ�
+					if (desc.access &  GLMemoryPropertyHostRead) {//Hostが読みとる
 						//Readback
 						return GL_STATIC_READ;
 					}
@@ -358,6 +518,7 @@ namespace RTLib {
 				default: return GL_VERTEX_SHADER;
 				}
 			}
+
 			inline constexpr auto GetGLShaderStagesGLShaderBits(const GLShaderStageFlagBits shaderStage)->GLenum {
 				switch (shaderStage) {
 					GLenum res = 0;

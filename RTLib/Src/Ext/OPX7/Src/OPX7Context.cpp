@@ -4,6 +4,9 @@
 #include <RTLib/Ext/OPX7/OPX7ProgramGroup.h>
 #include <RTLib/Ext/OPX7/OPX7Pipeline.h>
 #include <RTLib/Ext/OPX7/OPX7ShaderTable.h>
+#include <RTLib/Ext/OPX7/OPX7Pipeline.h>
+#include <RTLib/Ext/CUDA/CUDABuffer.h>
+#include <RTLib/Ext/CUDA/CUDAStream.h>
 #include <optix.h>
 #include <optix_stubs.h>
 #include <optix_function_table.h>
@@ -81,6 +84,20 @@ auto RTLib::Ext::OPX7::OPX7Context::CreateOPXPipeline(const OPX7PipelineCreateDe
 auto RTLib::Ext::OPX7::OPX7Context::CreateOPXShaderTable(const OPX7ShaderTableCreateDesc& desc) -> OPX7ShaderTable*
 {
     return OPX7ShaderTable::Allocate(this,desc);
+}
+
+void RTLib::Ext::OPX7::OPX7Context::Launch(OPX7Pipeline* pipeline, CUDA::CUDAStream* stream, CUDA::CUDABufferView paramsBufferView, OPX7ShaderTable* shaderTable, unsigned int width, unsigned int height, unsigned int depth)
+{
+    assert(pipeline);
+    auto sbt = shaderTable->GetOptixShaderBindingTable();
+    RTLIB_EXT_OPX7_THROW_IF_FAILED(
+        optixLaunch(pipeline->GetOptixPipeline(), GetCUstream(stream), paramsBufferView.GetDeviceAddress(), paramsBufferView.GetSizeInBytes(), &sbt, width, height, depth
+    ));
+}
+
+void RTLib::Ext::OPX7::OPX7Context::Launch(OPX7Pipeline* pipeline, CUDA::CUDABufferView paramsBufferView, OPX7ShaderTable* shaderTable, unsigned int width, unsigned int height, unsigned int depth)
+{
+    Launch(pipeline, nullptr, paramsBufferView, shaderTable, width, height, depth);
 }
 
 auto RTLib::Ext::OPX7::OPX7Context::GetOptixDeviceContext() noexcept -> OptixDeviceContext

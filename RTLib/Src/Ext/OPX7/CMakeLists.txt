@@ -1,6 +1,7 @@
 set(RTLIB_EXT_OPX7_SOURCES 
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/OPX7/OPX7Utility.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/OPX7/OPX7Common.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Src/OPX7Common.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/OPX7/UuidDefinitions.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/OPX7/OPX7ShaderRecord.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/OPX7/OPX7Context.h

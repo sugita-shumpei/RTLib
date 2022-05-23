@@ -44,7 +44,7 @@ namespace RTLib
 			protected:
 				auto GetCUContext() const noexcept -> CUcontext { return m_CtxCU; }
 				auto GetCUDevice() const noexcept -> CUdevice { return m_DevCU; }
-
+				static auto GetCUstream(CUDAStream* stream)noexcept->CUstream;
 			private:
 				CUcontext m_CtxCU = nullptr;
 				CUdevice m_DevCU = 0;

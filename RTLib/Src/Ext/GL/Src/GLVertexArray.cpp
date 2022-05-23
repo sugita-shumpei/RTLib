@@ -1,6 +1,7 @@
 #include <RTLib/Ext/GL/GLVertexArray.h>
 #include <RTLib/Ext/GL/GLBuffer.h>
 #include <RTLib/Ext/GL/GLContext.h>
+#include "GLTypeConversions.h"
 auto RTLib::Ext::GL::GLVertexArray::New(GLContext* context) -> GLVertexArray*
 {
     if (!context)
@@ -29,13 +30,13 @@ bool RTLib::Ext::GL::GLVertexArray::SetVertexAttribBinding(GLuint attribIndex, G
     return true;
 }
 
-bool RTLib::Ext::GL::GLVertexArray::SetVertexAttribFormat(GLuint attribIndex, GLint size, GLenum type, GLboolean normalized, GLuint relativeOffset)
-{
-    auto resId = GetResId();
+bool RTLib::Ext::GL::GLVertexArray::SetVertexAttribFormat(GLuint attribIndex, GLVertexFormat format, GLboolean normalized, GLuint relativeOffset)
+{auto resId = GetResId();
     if (!resId || IsEnabled()) { return false; }
+    
     m_VertexAttributes[attribIndex].attribIndex    = attribIndex;
-    m_VertexAttributes[attribIndex].size           = size;
-    m_VertexAttributes[attribIndex].type           = type;
+    m_VertexAttributes[attribIndex].size           = GetGLVertexFormatNumChannels(format);
+    m_VertexAttributes[attribIndex].type           = GetGLVertexFormatGLenum(format);
     m_VertexAttributes[attribIndex].normalized     = normalized;
     m_VertexAttributes[attribIndex].relativeOffset = relativeOffset;
     return true;

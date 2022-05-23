@@ -97,8 +97,8 @@ int main(int argc, const char* argv[]) {
 	bool isFailedToLoadGLADLibrary = false;
 	auto context = std::unique_ptr<RTLib::Ext::GL::GLContext >();
 	GLFWwindow* window = nullptr;
-	int width  = 1024;
-	int height = 1024;
+	int width  = 512;
+	int height = 512;
 	do {
 		window  = CreateGLFWWindow(width, height, "title");
 		if (!window) {
@@ -109,7 +109,7 @@ int main(int argc, const char* argv[]) {
 		if (!context->Initialize()) {
 			break;
 		}
-		std::vector<float>    vertexData = { -1.0f,0.0f,1.0f,1.0f,0.0f,1.0f,0.0f,1.0f,1.0f };
+		std::vector<float>    vertexData = { -1.0f,-1.0f,1.0f,1.0f,-1.0f,1.0f,0.0f,1.0f,1.0f };
 		std::vector<float>     colorData = {  1.0f,0.0f,0.0f,0.0f,1.0f,0.0f,0.0f,0.0f,1.0f };
 		std::vector<uint32_t> indexData  = {0,1,2};
 
@@ -150,15 +150,15 @@ int main(int argc, const char* argv[]) {
 			fragmentShader->Compile();
         }
         
-        auto   VAO = std::unique_ptr<RTLib::Ext::GL::GLVertexArray>(context->CreateVertexArray());
-        VAO->SetIndexBuffer(indexBuffer.get());
-        VAO->SetVertexBuffer(0, vertexBuffer.get(), sizeof(float)*3,0);
-        VAO->SetVertexAttribFormat( 0, 3, GL_FLOAT, GL_FALSE);
-        VAO->SetVertexAttribBinding(0, 0);
-        VAO->SetVertexBuffer(1,  colorBuffer.get(), sizeof(float)*3,0);
-        VAO->SetVertexAttribFormat( 1, 3, GL_FLOAT, GL_FALSE);
-        VAO->SetVertexAttribBinding(1, 1);
-		assert(VAO->Enable());
+        auto   vao = std::unique_ptr<RTLib::Ext::GL::GLVertexArray>(context->CreateVertexArray());
+        vao->SetIndexBuffer(indexBuffer.get());
+        vao->SetVertexBuffer(0, vertexBuffer.get(), 0,0);
+        vao->SetVertexAttribFormat( 0, RTLib::Ext::GL::GLVertexFormat::eFloat32x3, false);
+        vao->SetVertexAttribBinding(0, 0);
+        vao->SetVertexBuffer(1,  colorBuffer.get(), 0,0);
+        vao->SetVertexAttribFormat( 1, RTLib::Ext::GL::GLVertexFormat::eFloat32x3, false);
+        vao->SetVertexAttribBinding(1, 1);
+		assert(vao->Enable());
         
 		auto graphicsProgram = std::unique_ptr < RTLib::Ext::GL::GLProgram>(context->CreateProgram());
 		graphicsProgram->AttachShader(vertexShader.get());
@@ -167,10 +167,10 @@ int main(int argc, const char* argv[]) {
 
 		glfwShowWindow(window);
 		while (!glfwWindowShouldClose(window)) {
-			glClear(GL_COLOR_BUFFER_BIT);
-			glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+			context->SetClearBuffer(RTLib::Ext::GL::GLClearBufferFlagsColor);
+			context->SetClearColor(0.0f, 0.0f, 0.0f, 0.0f);
             context->SetProgram(graphicsProgram.get());
-            context->SetVertexArrayState(VAO.get());
+            context->SetVertexArrayState(vao.get());
             context->DrawArrays(RTLib::Ext::GL::GLDrawMode::eTriangles, 0, 3);
 			glfwSwapBuffers(window);
 			glfwPollEvents();

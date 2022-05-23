@@ -16,6 +16,7 @@ namespace RTLib {
 			class OPX7ShaderTable : public RTLib::Core::BaseObject
 			{
 			private:
+				friend class OPX7Context;
 				friend class OPX7ProgramGroup;
 				RTLIB_CORE_TYPE_OBJECT_DECLARE_DERIVED_METHOD(OPX7ShaderTable, Core::BaseObject, RTLIB_TYPE_UUID_RTLIB_EXT_OPX7_OPX7_SHADER_TABLE);
 			public:

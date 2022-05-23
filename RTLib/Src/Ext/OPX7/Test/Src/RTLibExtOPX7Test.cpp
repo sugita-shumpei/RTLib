@@ -1,11 +1,14 @@
+#define  STB_IMAGE_WRITE_IMPLEMENTATION
 #include <RTLib/Ext/OPX7/OPX7Context.h>
 #include <RTLib/Ext/OPX7/OPX7Module.h>
 #include <RTLib/Ext/OPX7/OPX7ProgramGroup.h>
 #include <RTLib/Ext/OPX7/OPX7Pipeline.h>
 #include <RTLib/Ext/OPX7/OPX7ShaderTable.h>
 #include <RTLib/Ext/OPX7/OPX7ShaderRecord.h>
+#include <RTLib/Ext/CUDA/CUDAStream.h>
 #include <RTLibExtOPX7TestConfig.h>
 #include <cuda/SimpleKernel.h>
+#include <stb_image_write.h>
 #include <memory>
 #include <vector>
 #include <fstream>
@@ -30,7 +33,6 @@ int main() {
 	ctxDesc.pCallbackData  = nullptr;
 	ctxDesc.validationMode = RTLib::Ext::OPX7::OPX7ContextValidationMode::eALL;
 	auto context           = RTLib::Ext::OPX7::OPX7Context(ctxDesc);
-	context.SetName("Opx7Context");
 	context.Initialize();
 	{
 		RTLib::Ext::OPX7::OPX7PipelineCompileOptions pipeCompileOps = {};
@@ -76,13 +78,12 @@ int main() {
 		auto opxProgramGroupRG = std::unique_ptr<RTLib::Ext::OPX7::OPX7ProgramGroup>(opxProgramGroups[0]);
 		auto opxProgramGroupMS = std::unique_ptr<RTLib::Ext::OPX7::OPX7ProgramGroup>(opxProgramGroups[1]);
 		auto opxProgramGroupHG = std::unique_ptr<RTLib::Ext::OPX7::OPX7ProgramGroup>(opxProgramGroups[2]);
-
 		auto pipeDesc = RTLib::Ext::OPX7::OPX7PipelineCreateDesc();
 		{
-			pipeDesc.compileOptions = pipeCompileOps;
-			pipeDesc.linkOptions.debugLevel    = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-			pipeDesc.linkOptions.maxTraceDepth = 1;
-			pipeDesc.programGroups             = opxProgramGroups;
+			pipeDesc.compileOptions               = pipeCompileOps;
+			pipeDesc.linkOptions.debugLevel       = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
+			pipeDesc.linkOptions.maxTraceDepth    = 1;
+			pipeDesc.programGroups                = opxProgramGroups;
 		}
 		auto opxPipeline = std::unique_ptr<RTLib::Ext::OPX7::OPX7Pipeline>(context.CreateOPXPipeline(pipeDesc));
 		auto sbtDesc = RTLib::Ext::OPX7::OPX7ShaderTableCreateDesc();
@@ -100,16 +101,44 @@ int main() {
 		auto opxShaderTable = std::unique_ptr<RTLib::Ext::OPX7::OPX7ShaderTable>(context.CreateOPXShaderTable(sbtDesc));
 		{
 			//RAYGEN
-			opxShaderTable->SetHostRaygenRecordTypeData(opxProgramGroupRG->GetRecord(SimpleKernelSBTRaygenData()));
+			auto raygenData = SimpleKernelSBTRaygenData();
+			opxShaderTable->SetHostRaygenRecordTypeData(opxProgramGroupRG->GetRecord(raygenData));
 			//MISS
-			opxShaderTable->SetHostMissRecordTypeData(SimpleKernelRayTypeTrace  , opxProgramGroupMS->GetRecord(SimpleKernelSBTMissData()));
-			opxShaderTable->SetHostMissRecordTypeData(SimpleKernelRayTypeOcclude, opxProgramGroupMS->GetRecord(SimpleKernelSBTMissData()));
+			auto missData   = SimpleKernelSBTMissData();
+			opxShaderTable->SetHostMissRecordTypeData(SimpleKernelRayTypeTrace  , opxProgramGroupMS->GetRecord(missData));
+			opxShaderTable->SetHostMissRecordTypeData(SimpleKernelRayTypeOcclude, opxProgramGroupMS->GetRecord(missData));
 			//HITGROUP
-			opxShaderTable->SetHostHitgroupRecordTypeData(SimpleKernelRayTypeTrace  , opxProgramGroupHG->GetRecord(SimpleKernelSBTHitgroupData()));
-			opxShaderTable->SetHostHitgroupRecordTypeData(SimpleKernelRayTypeOcclude, opxProgramGroupHG->GetRecord(SimpleKernelSBTHitgroupData()));
+			auto hitgroupData = SimpleKernelSBTHitgroupData();
+			opxShaderTable->SetHostHitgroupRecordTypeData(SimpleKernelRayTypeTrace  , opxProgramGroupHG->GetRecord(hitgroupData));
+			opxShaderTable->SetHostHitgroupRecordTypeData(SimpleKernelRayTypeOcclude, opxProgramGroupHG->GetRecord(hitgroupData));
 			//UPLOAD
 			opxShaderTable->Upload();
 		}
+		auto frameBufferForG = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(context.CreateBuffer({ RTLib::Ext::CUDA::CUDAMemoryFlags::eDefault, sizeof(uchar4) * 1024 * 1024 }));
+		auto frameBufferForC = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(context.CreateBuffer({ RTLib::Ext::CUDA::CUDAMemoryFlags::eDefault, sizeof(float3) * 1024 * 1024 }));
+		auto accumBuffer     = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(context.CreateBuffer({ RTLib::Ext::CUDA::CUDAMemoryFlags::eDefault, sizeof(float3) * 1024 * 1024 }));
+		auto paramsBuffer    = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(context.CreateBuffer({ RTLib::Ext::CUDA::CUDAMemoryFlags::eDefault, sizeof(SimpleKernelParams)}));
+		auto stream          = std::unique_ptr<RTLib::Ext::CUDA::CUDAStream>(context.CreateStream());
+		{
+			SimpleKernelParams params    = {};
+			params.frameBufferForGraphics= reinterpret_cast<uchar4*>(frameBufferForG->GetDeviceAddress());
+			params.frameBufferForCompute = reinterpret_cast<float3*>(frameBufferForC->GetDeviceAddress());
+			params.accumBuffer           = reinterpret_cast<float3*>(    accumBuffer->GetDeviceAddress());;
+			params.fbWidth               = 1024;
+			params.fbHeight              = 1024;
+			params.sampleForAccum        = 0;
+			params.samplePerLaunch       = 1;
+			stream->CopyMemoryToBuffer(paramsBuffer.get()  , { {&params,0,sizeof(SimpleKernelParams)}});
+			opxPipeline->Launch(stream.get(), paramsBuffer.get(), opxShaderTable.get(), 1024, 1024, 1);
+			std::vector<uchar4> resultPixels(1024 * 1024);
+			stream->CopyBufferToMemory(frameBufferForG.get(), { {resultPixels.data(),0,sizeof(uchar4) * 1024 * 1024} });
+			stbi_write_png(RTLIB_EXT_OPX7_TEST_CUDA_PATH"/../result.png", 1024, 1024, 4, resultPixels.data(), 1024 * 4);
+		}
+		stream->Destroy();
+		frameBufferForC->Destroy();
+		frameBufferForG->Destroy();
+		accumBuffer->Destroy();
+		paramsBuffer->Destroy();
 		opxShaderTable->Destroy();
 		opxPipeline->Destroy();
 		opxProgramGroupRG->Destroy();

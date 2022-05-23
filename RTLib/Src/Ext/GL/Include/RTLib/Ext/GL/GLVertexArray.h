@@ -24,7 +24,7 @@ namespace RTLib
                 void Destroy() noexcept;
                 bool IsBindable() const noexcept;
                 bool SetVertexAttribBinding(GLuint attribIndex, GLuint bindIndex);
-                bool SetVertexAttribFormat(GLuint attribIndex, GLint size, GLenum type, GLboolean normalized, GLuint relativeOffset = 0);
+                bool SetVertexAttribFormat(GLuint attribIndex , GLVertexFormat format, GLboolean normalized, GLuint relativeOffset = 0);
                 bool SetVertexBuffer(GLuint bindIndex, GLBuffer *vertexBuffer, GLsizei stride, GLintptr offset = 0);
                 bool SetIndexBuffer(GLBuffer *indexBuffer);
                 bool Enable();

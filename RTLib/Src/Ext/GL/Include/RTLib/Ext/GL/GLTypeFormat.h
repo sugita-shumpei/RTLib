@@ -1,13 +1,15 @@
 #ifndef RTLIB_EXT_GL_GL_TYPE_FORMAT_H
 #define RTLIB_EXT_GL_GL_TYPE_FORMAT_H
 #include <half.h>
+#define RTLIB_EXT_GL_GL_TYPE_REV_FLAGS (((uint64_t)1)<<9)
+//OK
 #define RTLIB_EXT_GL_GL_FORMAT_DEF_1(VAL1) ((uint64_t)VAL1)
 #define RTLIB_EXT_GL_GL_FORMAT_DEF_2(VAL1, VAL2) ((uint64_t)VAL1) | (((uint64_t)VAL2) << 9)
 #define RTLIB_EXT_GL_GL_FORMAT_DEF_3(VAL1, VAL2, VAL3) ((uint64_t)VAL1) | (((uint64_t)VAL2) << 9) | (((uint64_t)VAL3) << 18)
 #define RTLIB_EXT_GL_GL_FORMAT_DEF_4(VAL1, VAL2, VAL3, VAL4) ((uint64_t)VAL1) | (((uint64_t)VAL2) << 9) | (((uint64_t)VAL3) << 18) | (((uint64_t)VAL4) << 27)
 
-#define RTLIB_EXT_GL_GL_TYPE_DEF_3(VAL1, VAL2, VAL3) ((uint64_t)VAL1 << 10) | (((uint64_t)VAL2) << 16) | (((uint64_t)VAL3) << 32)
-#define RTLIB_EXT_GL_GL_TYPE_DEF_4(VAL1, VAL2, VAL3, VAL4) ((uint64_t)VAL1 << 10) | (((uint64_t)VAL2) << 16) | (((uint64_t)VAL3) << 32) | (((uint64_t)VAL4) << 38)
+#define RTLIB_EXT_GL_GL_TYPE_DEF_3(VAL1, VAL2, VAL3) ((uint64_t)VAL1 << 10) | (((uint64_t)VAL2) << 16) | (((uint64_t)VAL3) << 22)
+#define RTLIB_EXT_GL_GL_TYPE_DEF_4(VAL1, VAL2, VAL3, VAL4) ((uint64_t)VAL1 << 10) | (((uint64_t)VAL2) << 16) | (((uint64_t)VAL3) << 22) | (((uint64_t)VAL4) << 28)
 #include <RTLib/Core/TypeFormat.h>
 namespace RTLib {
 	namespace Ext {
@@ -27,16 +29,17 @@ namespace RTLib {
 				eFloat16 = static_cast<uint64_t>(Core::SizedTypeFlagBits::eFloat16),
 				eFloat32 = static_cast<uint64_t>(Core::SizedTypeFlagBits::eFloat32),
 
-				eUInt8_3_3_2 = eUInt8 | RTLIB_EXT_GL_GL_TYPE_DEF_3(3, 3, 2),
-				eUInt8_2_3_3_Rev = eUInt8 | RTLIB_EXT_GL_GL_TYPE_DEF_3(2, 3, 3) | (1 << 9),
-				eUInt16_4_4_4_4 = eUInt16 | RTLIB_EXT_GL_GL_TYPE_DEF_4(4, 4, 4, 4) | (1 << 9),
-				eUInt16_4_4_4_4_Rev = eUInt16 | RTLIB_EXT_GL_GL_TYPE_DEF_4(4, 4, 4, 4),
-				eUInt16_5_5_5_1 = eUInt16 | RTLIB_EXT_GL_GL_TYPE_DEF_4(5, 5, 5, 1),
-				eUInt16_1_5_5_5_Rev = eUInt16 | RTLIB_EXT_GL_GL_TYPE_DEF_4(1, 5, 5, 5) | (1 << 9),
-				eUInt32_8_8_8_8 = eUInt32 | RTLIB_EXT_GL_GL_TYPE_DEF_4(8, 8, 8, 8),
-				eUInt32_8_8_8_8_Rev = eUInt32 | RTLIB_EXT_GL_GL_TYPE_DEF_4(8, 8, 8, 8) | (1 << 9),
-				eUInt32_10_10_10_2 = eUInt32 | RTLIB_EXT_GL_GL_TYPE_DEF_4(10, 10, 10, 2),
+				eUInt8_3_3_2           = eUInt8  | RTLIB_EXT_GL_GL_TYPE_DEF_3(3, 3, 2),
+				eUInt8_2_3_3_Rev       = eUInt8  | RTLIB_EXT_GL_GL_TYPE_DEF_3(2, 3, 3)    | RTLIB_EXT_GL_GL_TYPE_REV_FLAGS,
+				eUInt16_4_4_4_4        = eUInt16 | RTLIB_EXT_GL_GL_TYPE_DEF_4(4, 4, 4, 4) | RTLIB_EXT_GL_GL_TYPE_REV_FLAGS,
+				eUInt16_4_4_4_4_Rev    = eUInt16 | RTLIB_EXT_GL_GL_TYPE_DEF_4(4, 4, 4, 4),
+				eUInt16_5_5_5_1        = eUInt16 | RTLIB_EXT_GL_GL_TYPE_DEF_4(5, 5, 5, 1),
+				eUInt16_1_5_5_5_Rev    = eUInt16 | RTLIB_EXT_GL_GL_TYPE_DEF_4(1, 5, 5, 5) | RTLIB_EXT_GL_GL_TYPE_REV_FLAGS,
+				eUInt32_8_8_8_8        = eUInt32 | RTLIB_EXT_GL_GL_TYPE_DEF_4(8, 8, 8, 8),
+				eUInt32_8_8_8_8_Rev    = eUInt32 | RTLIB_EXT_GL_GL_TYPE_DEF_4(8, 8, 8, 8) | RTLIB_EXT_GL_GL_TYPE_REV_FLAGS,
+				eUInt32_10_10_10_2     = eUInt32 | RTLIB_EXT_GL_GL_TYPE_DEF_4(10, 10, 10, 2),
 				eUInt32_2_10_10_10_Rev = eUInt32 | RTLIB_EXT_GL_GL_TYPE_DEF_4(2, 10, 10, 10) | (1 << 9),
+				eUInt32_10F_11F_11F_Rev= eUInt32 | RTLIB_EXT_GL_GL_TYPE_DEF_3(10, 11, 11) | (1 << 9),
 			};
 
 			inline constexpr auto GetGLTypeBaseType(GLTypeFlagBits glType) -> GLTypeFlagBits
@@ -51,7 +54,16 @@ namespace RTLib {
 			{
 				return (static_cast<uint64_t>(glType) >> (6 * channel + 10)) & ((1 << 6) - 1);
 			}
-
+			struct GLTypeFlagBitsTest {
+				static inline constexpr auto v1 = GetGLTypeChannelSize(GLTypeFlagBits::eUInt32_10_10_10_2, 0);
+				static inline constexpr auto v2 = GetGLTypeChannelSize(GLTypeFlagBits::eUInt32_10_10_10_2, 1);
+				static inline constexpr auto v3 = GetGLTypeChannelSize(GLTypeFlagBits::eUInt32_10_10_10_2, 2);
+				static inline constexpr auto v4 = GetGLTypeChannelSize(GLTypeFlagBits::eUInt32_10_10_10_2, 3);
+				static inline constexpr auto v5 = GetGLTypeChannelSize(GLTypeFlagBits::eUInt32_10F_11F_11F_Rev, 0);
+				static inline constexpr auto v6 = GetGLTypeChannelSize(GLTypeFlagBits::eUInt32_10F_11F_11F_Rev, 1);
+				static inline constexpr auto v7 = GetGLTypeChannelSize(GLTypeFlagBits::eUInt32_10F_11F_11F_Rev, 2);
+				static inline constexpr auto v8 = GetGLTypeChannelSize(GLTypeFlagBits::eUInt32_10F_11F_11F_Rev, 3);
+			};
 			template<GLTypeFlagBits typeFlags, bool Cond = GetGLTypeChannelSize(typeFlags, 0) == 0>
 			struct GLTypeTraits;
 
@@ -239,6 +251,60 @@ namespace RTLib {
 			{
 				return static_cast<GLFormat>((static_cast<uint64_t>(format) >> (9 * channel)) & (((1 << 3) - 1) << 6));
 			}
+
+			enum class GLVertexFormat : uint64_t
+			{
+				//GL_BYTE
+				eInt8x1 = static_cast<uint64_t>(Core::SizedTypeFlagBits::eInt8X1),
+				eInt8x2 = static_cast<uint64_t>(Core::SizedTypeFlagBits::eInt8X2),
+				eInt8x3 = static_cast<uint64_t>(Core::SizedTypeFlagBits::eInt8X3),
+				eInt8x4 = static_cast<uint64_t>(Core::SizedTypeFlagBits::eInt8X4),
+				//GL_UNSIGNED_BYTE
+				eUInt8x1 = static_cast<uint64_t>(Core::SizedTypeFlagBits::eUInt8X1),
+				eUInt8x2 = static_cast<uint64_t>(Core::SizedTypeFlagBits::eUInt8X2),
+				eUInt8x3 = static_cast<uint64_t>(Core::SizedTypeFlagBits::eUInt8X3),
+				eUInt8x4 = static_cast<uint64_t>(Core::SizedTypeFlagBits::eUInt8X4),
+				//GL_SHORT
+				eInt16x1 = static_cast<uint64_t>(Core::SizedTypeFlagBits::eInt16X1),
+				eInt16x2 = static_cast<uint64_t>(Core::SizedTypeFlagBits::eInt16X2),
+				eInt16x3 = static_cast<uint64_t>(Core::SizedTypeFlagBits::eInt16X3),
+				eInt16x4 = static_cast<uint64_t>(Core::SizedTypeFlagBits::eInt16X4),
+				//GL_UNSIGNED_SHORT
+				eUInt16x1 = static_cast<uint64_t>(Core::SizedTypeFlagBits::eUInt16X1),
+				eUInt16x2 = static_cast<uint64_t>(Core::SizedTypeFlagBits::eUInt16X2),
+				eUInt16x3 = static_cast<uint64_t>(Core::SizedTypeFlagBits::eUInt16X3),
+				eUInt16x4 = static_cast<uint64_t>(Core::SizedTypeFlagBits::eUInt16X4),
+				//GL_INT
+				eInt32x1 = static_cast<uint64_t>(Core::SizedTypeFlagBits::eInt32X1),
+				eInt32x2 = static_cast<uint64_t>(Core::SizedTypeFlagBits::eInt32X2),
+				eInt32x3 = static_cast<uint64_t>(Core::SizedTypeFlagBits::eInt32X3),
+				eInt32x4 = static_cast<uint64_t>(Core::SizedTypeFlagBits::eInt32X4),
+				//GL_UNSIGNED_INT
+				eUInt32x1 = static_cast<uint64_t>(Core::SizedTypeFlagBits::eUInt32X1),
+				eUInt32x2 = static_cast<uint64_t>(Core::SizedTypeFlagBits::eUInt32X2),
+				eUInt32x3 = static_cast<uint64_t>(Core::SizedTypeFlagBits::eUInt32X3),
+				eUInt32x4 = static_cast<uint64_t>(Core::SizedTypeFlagBits::eUInt32X4),
+				//GL_INT
+				eFloat16x1 = static_cast<uint64_t>(Core::SizedTypeFlagBits::eFloat16X1),
+				eFloat16x2 = static_cast<uint64_t>(Core::SizedTypeFlagBits::eFloat16X2),
+				eFloat16x3 = static_cast<uint64_t>(Core::SizedTypeFlagBits::eFloat16X3),
+				eFloat16x4 = static_cast<uint64_t>(Core::SizedTypeFlagBits::eFloat16X4),
+				//GL_UNSIGNED_INT
+				eFloat32x1 = static_cast<uint64_t>(Core::SizedTypeFlagBits::eFloat32X1),
+				eFloat32x2 = static_cast<uint64_t>(Core::SizedTypeFlagBits::eFloat32X2),
+				eFloat32x3 = static_cast<uint64_t>(Core::SizedTypeFlagBits::eFloat32X3),
+				eFloat32x4 = static_cast<uint64_t>(Core::SizedTypeFlagBits::eFloat32X4),
+				//
+				eUInt32_2_10_10_10_Rev = static_cast<uint64_t>(GL::GLTypeFlagBits::eUInt32_2_10_10_10_Rev),
+				eUInt32_10_10_10_2     = static_cast<uint64_t>(GL::GLTypeFlagBits::eUInt32_10_10_10_2),
+				eUInt32_10F_11F_11F_Rev= static_cast<uint64_t>(GL::GLTypeFlagBits::eUInt32_10F_11F_11F_Rev),
+			};
+			enum class GLIndexFormat :uint64_t
+			{
+				eUInt8 = static_cast<uint64_t>(Core::SizedTypeFlagBits::eUInt8),
+				eUInt16 = static_cast<uint64_t>(Core::SizedTypeFlagBits::eUInt16),
+				eUInt32 = static_cast<uint64_t>(Core::SizedTypeFlagBits::eUInt32),
+			};
 		}
 	}
 }

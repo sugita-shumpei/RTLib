@@ -162,10 +162,30 @@ void RTLib::Ext::GL::GLContext::DrawArrays(GLDrawMode drawMode, size_t first, in
 	glDrawArrays(GetGLDrawModeGLenum(drawMode), first, count);
 }
 
-void RTLib::Ext::GL::GLContext::DrawElements(GLDrawMode drawMode, GLIndexType indexType, size_t count, intptr_t indexOffsetInBytes)
+void RTLib::Ext::GL::GLContext::DrawElements(GLDrawMode drawMode, GLIndexFormat indexType, size_t count, intptr_t indexOffsetInBytes)
 {
     if (!m_Impl->m_VAO){ return;}
 	glDrawElements(GetGLDrawModeGLenum(drawMode), count, GetGLTypeGLEnum(static_cast<GLTypeFlagBits>(indexType)), reinterpret_cast<void*>(indexOffsetInBytes));
+}
+
+void RTLib::Ext::GL::GLContext::SetClearBuffer(GLClearBufferFlags flags)
+{
+	GLbitfield mask = 0;
+	if ((flags & GLClearBufferFlagsColor)  == GLClearBufferFlagsColor) {
+		mask |= GL_COLOR_BUFFER_BIT;
+	}
+	if ((flags & GLClearBufferFlagsDepth)  == GLClearBufferFlagsDepth) {
+		mask |= GL_DEPTH_BUFFER_BIT;
+	}
+	if ((flags & GLClearBufferFlagsStencil)== GLClearBufferFlagsStencil) {
+		mask |= GL_STENCIL_BUFFER_BIT;
+	}
+	glClear(mask);
+}
+
+void RTLib::Ext::GL::GLContext::SetClearColor(float r, float g, float b, float a)
+{
+	glClearColor(r, g, b, a);
 }
 
 auto RTLib::Ext::GL::GLContext::CreateBuffer(const GLBufferCreateDesc& desc) -> GLBuffer*

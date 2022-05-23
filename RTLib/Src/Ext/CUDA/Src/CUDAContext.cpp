@@ -664,3 +664,5 @@ bool RTLib::Ext::CUDA::CUDAContext::CopyMemoryToImage(CUDAImage* image, const st
     return true;
 }
 
+auto RTLib::Ext::CUDA::CUDAContext::GetCUstream(CUDAStream* stream) noexcept -> CUstream { return stream ? stream->GetCUStream() : nullptr; }
+

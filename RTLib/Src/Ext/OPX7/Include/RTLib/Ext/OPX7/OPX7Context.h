@@ -23,6 +23,7 @@ namespace RTLib
 				friend class OPX7Pipeline;
 				friend class OPX7ProgramGroup;
 				friend class OPX7ShaderTable;
+				friend class OPX7Pipeline;
 				friend class OPX7AccelerationStructure;
 				friend class OPX7AccelerationStructureInstance;
 			public:
@@ -40,6 +41,23 @@ namespace RTLib
 				auto CreateOPXShaderTable(const OPX7ShaderTableCreateDesc& desc)->OPX7ShaderTable*;
 			private:
 				auto GetOptixDeviceContext() noexcept -> OptixDeviceContext;
+				static void Launch(
+					OPX7Pipeline* pipeline,
+					CUDA::CUDAStream* stream,
+					CUDA::CUDABufferView paramsBufferView,
+					OPX7ShaderTable* shaderTable,
+					unsigned int          width,
+					unsigned int          height,
+					unsigned int          depth
+				);
+				static void Launch(
+					OPX7Pipeline*         pipeline,
+					CUDA::CUDABufferView  paramsBufferView,
+					OPX7ShaderTable*      shaderTable,
+					unsigned int          width,
+					unsigned int          height,
+					unsigned int          depth
+				);
 			private:
 				struct Impl;
 				std::unique_ptr<Impl> m_Impl;

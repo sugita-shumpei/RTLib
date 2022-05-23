@@ -83,6 +83,16 @@ auto RTLib::Ext::OPX7::OPX7Pipeline::GetLinkOptions() const noexcept -> const OP
     return m_Impl->linkOptions;
 }
 
+void RTLib::Ext::OPX7::OPX7Pipeline::Launch(CUDA::CUDAStream* stream, CUDA::CUDABufferView paramsBufferView, OPX7ShaderTable* shaderTable, unsigned int width, unsigned int height, unsigned int depth)
+{
+    OPX7::OPX7Context::Launch(this, stream, paramsBufferView, shaderTable, width, height, depth);
+}
+
+void RTLib::Ext::OPX7::OPX7Pipeline::Launch(CUDA::CUDABufferView paramsBufferView, OPX7ShaderTable* shaderTable, unsigned int width, unsigned int height, unsigned int depth)
+{
+    OPX7::OPX7Context::Launch(this, paramsBufferView, shaderTable, width, height, depth);
+}
+
 RTLib::Ext::OPX7::OPX7Pipeline::OPX7Pipeline(const OPX7PipelineCreateDesc& desc) noexcept:m_Impl{new Impl(desc)}
 {
 }

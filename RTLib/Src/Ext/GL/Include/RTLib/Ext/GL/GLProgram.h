@@ -42,7 +42,6 @@ namespace RTLib
 
 				auto GetUniformBlockIndex(const char *name) -> GLuint;
 				bool SetUniformBlockBinding(GLuint blockIndex, GLuint bindingIndex);
-
 			protected:
 				GLProgram(GLContext *context) noexcept;
 				void AddShaderType(GLShaderStageFlagBits shaderType, bool isRequired = false) noexcept;

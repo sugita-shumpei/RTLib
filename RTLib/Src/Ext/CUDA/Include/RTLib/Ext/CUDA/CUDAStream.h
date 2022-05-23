@@ -15,6 +15,7 @@ namespace RTLib {
 			class CUDAModule;
 			class CUDAStream
 			{
+				friend class CUDAContext;
 				friend class CUDAFunction;
 			public:
 				static auto New(CUDAContext* context)->CUDAStream*;

@@ -122,9 +122,9 @@ namespace RTLib
 			//GL_DYNAMIC_STORAGE_BIT: (Enable BufferSubData)
 			//GL_MAP_READ_BIT  (Map:  ReadOnly(Cpu->Gpu))
 			//GL_MAP_WRITE_BIT (Map: WriteOnly(Gpu->Cpu))
-			//GL_MAP_PERSISTENT_BIT: MAP’†‚Å‚àGPU‘¤‚Å“Ç‚İo‚µA‘‚«‚İˆ—‚ğÀs‰Â”\, CPU‘¤‚Ìƒ|ƒCƒ“ƒ^[‚ÍMAP’†í‚É—LŒø
-			//GL_MAP_COHERENT_BIT  : MAPŒ‹‰Ê‚ª‘¦À‚É”½‰fAŸ‚ÌGLƒRƒ}ƒ“ƒhˆÈ~‚É”½‰f‚³‚ê‚é.
-			//GL_CLIENT_STORAGE_BIT:  (CPU PAGED ‚Èƒƒ‚ƒŠ‚ÉŠm•Û)
+			//GL_MAP_PERSISTENT_BIT: MAPä¸­ã§ã‚‚GPUå´ã§èª­ã¿å‡ºã—ã€æ›¸ãè¾¼ã¿å‡¦ç†ã‚’å®Ÿè¡Œå¯èƒ½, CPUå´ã®ãƒã‚¤ãƒ³ã‚¿ãƒ¼ã¯MAPä¸­å¸¸ã«æœ‰åŠ¹
+			//GL_MAP_COHERENT_BIT  : MAPçµæœãŒå³åº§ã«åæ˜ ã€æ¬¡ã®GLã‚³ãƒãƒ³ãƒ‰ä»¥é™ã«åæ˜ ã•ã‚Œã‚‹.
+			//GL_CLIENT_STORAGE_BIT:  (CPU PAGED ãªãƒ¡ãƒ¢ãƒªã«ç¢ºä¿)
 			//
 			//VK_DEVICE_LOCAL
 			//VK_HOST_VISIBLE =GL_CLIENT_STORAGE_BIT|GL_MAP_READ_BIT|GL_MAP_WRITE_BIT
@@ -167,12 +167,6 @@ namespace RTLib
 				eTriangleStripAdjacency,
 				eTrianglesAdjacency
 			};
-			enum class GLIndexType:uint64_t
-			{
-				eUInt8  = static_cast<uint64_t>(Core::SizedTypeFlagBits::eUInt8 ),
-				eUInt16 = static_cast<uint64_t>(Core::SizedTypeFlagBits::eUInt16),
-				eUInt32 = static_cast<uint64_t>(Core::SizedTypeFlagBits::eUInt32),
-			};
 			struct GLTextureCreateDesc
 			{
 				GLImageType imageType   = GLImageType::e1D;
@@ -181,6 +175,13 @@ namespace RTLib
 				uint32_t    mipLevels   = 1;
 				uint32_t    arrayLayers = 1;
 			};
+			enum  GLClearBufferFlagBits
+			{
+				GLClearBufferFlagsColor   = 1,
+				GLClearBufferFlagsDepth   = 2,
+				GLClearBufferFlagsStencil = 4,
+			};
+			using GLClearBufferFlags = unsigned int;
 		}
 	}
 }

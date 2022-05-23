@@ -60,7 +60,10 @@ namespace RTLib
                 void SetVertexArrayState(GLVertexArray* vao);
 				/*Draw*/
 				void DrawArrays(  GLDrawMode drawMode, size_t first, int32_t count);
-				void DrawElements(GLDrawMode drawMode, GLIndexType indexType, size_t count, intptr_t indexOffsetInBytes);
+				void DrawElements(GLDrawMode drawMode, GLIndexFormat indexType, size_t count, intptr_t indexOffsetInBytes);
+				/*Clear*/
+				void SetClearBuffer(GLClearBufferFlags flags);
+				void SetClearColor(float r, float g, float b, float a);
 			private:
 				auto GetContextState() const noexcept -> const GLContextState *;
 				auto GetContextState() noexcept -> GLContextState*;
