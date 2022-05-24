@@ -1,5 +1,6 @@
 #include <RTLib/Ext/CUDA/CUDAFunction.h>
 #include <RTLib/Ext/CUDA/CUDAModule.h>
+#include <RTLib/Ext/CUDA/CUDANatives.h>
 #include <iostream>
 #include <string>
 
@@ -7,7 +8,7 @@ auto RTLib::Ext::CUDA::CUDAFunction::Load(CUDAModule* cuModule, const char* entr
 {
     if (!cuModule) { return nullptr; }
     CUfunction function = nullptr;
-    auto result = cuModuleGetFunction(&function, cuModule->GetCUModule(), entryPoint);
+	auto result = cuModuleGetFunction(&function, CUDANatives::GetCUmodule(cuModule), entryPoint);
     if (result != CUDA_SUCCESS) {
         const char* errString = nullptr;
         (void)cuGetErrorString(result, &errString);
@@ -35,7 +36,7 @@ bool RTLib::Ext::CUDA::CUDAFunction::Launch(const CUDAKernelLaunchDesc& desc)
 	auto pStream = (CUstream)nullptr;
 	auto pKernelParams = desc.kernelParams;
 	if (desc.stream) {
-		pStream = desc.stream->GetCUStream();
+		pStream = CUDANatives::GetCUstream(desc.stream);
 	}
 	auto result = cuLaunchKernel(
 		m_Function,
@@ -62,7 +63,8 @@ RTLib::Ext::CUDA::CUDAFunction::CUDAFunction(CUDAModule* module, CUfunction func
 {
 }
 
-auto RTLib::Ext::CUDA::CUDAFunction::GetCUFunction() noexcept -> CUfunction
+auto RTLib::Ext::CUDA::CUDAFunction::GetCUfunction() const noexcept -> CUfunction
 {
-    return m_Function;
+	return m_Function;
 }
+

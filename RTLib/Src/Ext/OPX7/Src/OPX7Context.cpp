@@ -41,7 +41,7 @@ bool RTLib::Ext::OPX7::OPX7Context::Initialize()
         options.logCallbackData     = m_Impl->desc.pCallbackData;
         options.logCallbackLevel    = static_cast<unsigned int>(m_Impl->desc.level);
         options.validationMode      = static_cast<OptixDeviceContextValidationMode>(m_Impl->desc.validationMode);
-        RTLIB_EXT_OPX7_THROW_IF_FAILED(optixDeviceContextCreate(GetCUContext(), &options, &m_Impl->deviceContext));
+        RTLIB_EXT_OPX7_THROW_IF_FAILED(optixDeviceContextCreate(GetCUcontext(), &options, &m_Impl->deviceContext));
     }
     return true;
 }
@@ -91,7 +91,7 @@ void RTLib::Ext::OPX7::OPX7Context::Launch(OPX7Pipeline* pipeline, CUDA::CUDAStr
     assert(pipeline);
     auto sbt = shaderTable->GetOptixShaderBindingTable();
     RTLIB_EXT_OPX7_THROW_IF_FAILED(
-        optixLaunch(pipeline->GetOptixPipeline(), GetCUstream(stream), paramsBufferView.GetDeviceAddress(), paramsBufferView.GetSizeInBytes(), &sbt, width, height, depth
+        optixLaunch(pipeline->GetOptixPipeline(), GetInternalCUstream(stream), paramsBufferView.GetCUdeviceptr(), paramsBufferView.GetSizeInBytes(), &sbt, width, height, depth
     ));
 }
 

@@ -4,6 +4,7 @@
 #include <RTLib/Ext/CUDA/CUDATexture.h>
 #include <RTLib/Ext/CUDA/CUDAModule.h>
 #include <RTLib/Ext/CUDA/CUDAStream.h>
+#include <RTLib/Ext/CUDA/CUDANatives.h>
 #include <RTLib/Ext/CUDA/CUDAExceptions.h>
 #include <RTLib/Core/Context.h>
 #include <iostream>
@@ -78,8 +79,8 @@ auto RTLib::Ext::CUDA::CUDAContext::LoadModuleFromData(const void* data, const s
 bool RTLib::Ext::CUDA::CUDAContext::CopyBuffer(CUDABuffer* srcBuffer, CUDABuffer* dstBuffer, const std::vector<CUDABufferCopy>& regions)
 {
     if (!srcBuffer || !dstBuffer) { return false; }
-    auto srcAddress = srcBuffer->GetDeviceAddress();
-    auto dstAddress = dstBuffer->GetDeviceAddress();
+    auto srcAddress = CUDANatives::GetCUdeviceptr(srcBuffer);
+    auto dstAddress = CUDANatives::GetCUdeviceptr(dstBuffer);
     if (!srcAddress || !dstAddress) { return false; }
     auto result = CUDA_SUCCESS;
     for (auto& region : regions) {
@@ -100,7 +101,7 @@ bool RTLib::Ext::CUDA::CUDAContext::CopyBuffer(CUDABuffer* srcBuffer, CUDABuffer
 bool RTLib::Ext::CUDA::CUDAContext::CopyMemoryToBuffer(CUDABuffer* buffer, const std::vector<CUDAMemoryBufferCopy>& regions)
 {
     if(!buffer) { return false; }
-    auto dstAddress = buffer->GetDeviceAddress();
+    auto dstAddress = CUDANatives::GetCUdeviceptr(buffer);
     auto result = CUDA_SUCCESS;
     for (auto& region : regions) {
         result = cuMemcpyHtoD(dstAddress + region.dstOffset, region.srcData, region.size);
@@ -120,7 +121,7 @@ bool RTLib::Ext::CUDA::CUDAContext::CopyMemoryToBuffer(CUDABuffer* buffer, const
 bool RTLib::Ext::CUDA::CUDAContext::CopyBufferToMemory(CUDABuffer* buffer, const std::vector<CUDABufferMemoryCopy>& regions)
 {
     if (!buffer) { return false; }
-    auto srcAddress = buffer->GetDeviceAddress();
+    auto srcAddress = CUDANatives::GetCUdeviceptr(buffer);
     auto result = CUDA_SUCCESS;
     for (auto& region : regions) {
         result = cuMemcpyDtoH(region.dstData, srcAddress + region.srcOffset, region.size);
@@ -141,7 +142,7 @@ bool RTLib::Ext::CUDA::CUDAContext::CopyBufferToMemory(CUDABuffer* buffer, const
 bool RTLib::Ext::CUDA::CUDAContext::CopyImageToBuffer(CUDAImage* image, CUDABuffer* buffer, const std::vector<CUDABufferImageCopy>& regions)
 {
     if (!image || !buffer) { return false; }
-    auto bffAddress  = buffer->GetDeviceAddress();
+    auto bffAddress  = CUDANatives::GetCUdeviceptr(buffer);
     auto imgType     = image->GetImageType();
     auto imgFormat   = image->GetFormat();
     auto imgDataSize = image->GetChannels()* GetCUDAImageDataTypeSize(imgFormat)/8;
@@ -159,7 +160,7 @@ bool RTLib::Ext::CUDA::CUDAContext::CopyImageToBuffer(CUDAImage* image, CUDABuff
                 }
             }
             for (auto& region : regions) {
-                result = cuMemcpyAtoD(bffAddress + region.bufferOffset, image->GetArrays(region.imageSubresources.mipLevel), region.imageOffset.x * imgDataSize, region.imageExtent.width * imgDataSize);
+                result = cuMemcpyAtoD(bffAddress + region.bufferOffset, image->GetCUarrayWithLevel(region.imageSubresources.mipLevel), region.imageOffset.x * imgDataSize, region.imageExtent.width * imgDataSize);
                 if (result != CUDA_SUCCESS) { break; }
             }
         }
@@ -173,7 +174,7 @@ bool RTLib::Ext::CUDA::CUDAContext::CopyImageToBuffer(CUDAImage* image, CUDABuff
                 memcpy2d.dstY = 0;
                 memcpy2d.dstPitch = 0;
                 memcpy2d.srcMemoryType = CU_MEMORYTYPE_ARRAY;
-                memcpy2d.srcArray = image->GetArrays(region.imageSubresources.mipLevel);
+                memcpy2d.srcArray = image->GetCUarrayWithLevel(region.imageSubresources.mipLevel);
                 memcpy2d.srcXInBytes = region.imageOffset.x * imgDataSize;
                 memcpy2d.srcY = region.imageOffset.y;
                 memcpy2d.srcPitch = 0;
@@ -199,7 +200,7 @@ bool RTLib::Ext::CUDA::CUDAContext::CopyImageToBuffer(CUDAImage* image, CUDABuff
                 memcpy3d.dstPitch = 0;
                 memcpy3d.dstHeight = 0;
                 memcpy3d.srcMemoryType = CU_MEMORYTYPE_ARRAY;
-                memcpy3d.srcArray = image->GetArrays(region.imageSubresources.mipLevel);
+                memcpy3d.srcArray = image->GetCUarrayWithLevel(region.imageSubresources.mipLevel);
                 memcpy3d.srcXInBytes = region.imageOffset.x * imgDataSize;
                 memcpy3d.srcY = region.imageOffset.y;
                 memcpy3d.srcZ = region.imageOffset.z;
@@ -230,7 +231,7 @@ bool RTLib::Ext::CUDA::CUDAContext::CopyImageToBuffer(CUDAImage* image, CUDABuff
                 memcpy3d.dstPitch = 0;
                 memcpy3d.dstHeight = 0;
                 memcpy3d.srcMemoryType = CU_MEMORYTYPE_ARRAY;
-                memcpy3d.srcArray = image->GetArrays(region.imageSubresources.mipLevel);
+                memcpy3d.srcArray = image->GetCUarrayWithLevel(region.imageSubresources.mipLevel);
                 memcpy3d.srcXInBytes = region.imageOffset.x * imgDataSize;
                 memcpy3d.srcY = 0;
                 memcpy3d.srcZ = region.imageSubresources.baseArrayLayer;
@@ -259,7 +260,7 @@ bool RTLib::Ext::CUDA::CUDAContext::CopyImageToBuffer(CUDAImage* image, CUDABuff
                 memcpy3d.dstPitch = 0;
                 memcpy3d.dstHeight = 0;
                 memcpy3d.srcMemoryType = CU_MEMORYTYPE_ARRAY;
-                memcpy3d.srcArray = image->GetArrays(region.imageSubresources.mipLevel);
+                memcpy3d.srcArray = image->GetCUarrayWithLevel(region.imageSubresources.mipLevel);
                 memcpy3d.srcXInBytes = region.imageOffset.x * imgDataSize;
                 memcpy3d.srcY = region.imageOffset.y;
                 memcpy3d.srcZ = region.imageSubresources.baseArrayLayer;
@@ -289,7 +290,7 @@ bool RTLib::Ext::CUDA::CUDAContext::CopyImageToBuffer(CUDAImage* image, CUDABuff
 bool RTLib::Ext::CUDA::CUDAContext::CopyBufferToImage(CUDABuffer* buffer, CUDAImage* image, const std::vector<CUDABufferImageCopy>& regions)
 {
     if (!image || !buffer) { return false; }
-    auto bffAddress = buffer->GetDeviceAddress();
+    auto bffAddress = CUDANatives::GetCUdeviceptr(buffer);
     auto imgType = image->GetImageType();
     auto imgFormat = image->GetFormat();
     auto imgDataSize = image->GetChannels() * GetCUDAImageDataTypeSize(imgFormat) / 8;
@@ -307,7 +308,7 @@ bool RTLib::Ext::CUDA::CUDAContext::CopyBufferToImage(CUDABuffer* buffer, CUDAIm
                 }
             }
             for (auto& region : regions) {
-                result = cuMemcpyDtoA(image->GetArrays(region.imageSubresources.mipLevel), region.imageOffset.x * imgDataSize, bffAddress + region.bufferOffset, region.imageExtent.width * imgDataSize);
+                result = cuMemcpyDtoA(image->GetCUarrayWithLevel(region.imageSubresources.mipLevel), region.imageOffset.x * imgDataSize, bffAddress + region.bufferOffset, region.imageExtent.width * imgDataSize);
                 if (result != CUDA_SUCCESS) { break; }
             }
         }
@@ -388,7 +389,7 @@ bool RTLib::Ext::CUDA::CUDAContext::CopyImageToMemory(CUDAImage* image, const st
                 }
             }
             for (auto& region : regions) {
-                result = cuMemcpyHtoA(image->GetArrays(region.srcImageSubresources.mipLevel), region.srcImageOffset.x * imgDataSize, region.dstData, region.srcImageExtent.width * imgDataSize);
+                result = cuMemcpyHtoA(image->GetCUarrayWithLevel(region.srcImageSubresources.mipLevel), region.srcImageOffset.x * imgDataSize, region.dstData, region.srcImageExtent.width * imgDataSize);
                 if (result != CUDA_SUCCESS) { break; }
             }
         }
@@ -402,7 +403,7 @@ bool RTLib::Ext::CUDA::CUDAContext::CopyImageToMemory(CUDAImage* image, const st
                 memcpy2d.dstY          = 0;
                 memcpy2d.dstPitch      = 0;
                 memcpy2d.srcMemoryType = CU_MEMORYTYPE_ARRAY;
-                memcpy2d.srcArray      = image->GetArrays(region.srcImageSubresources.mipLevel);
+                memcpy2d.srcArray      = image->GetCUarrayWithLevel(region.srcImageSubresources.mipLevel);
                 memcpy2d.srcXInBytes   = region.srcImageOffset.x * imgDataSize;
                 memcpy2d.srcY          = region.srcImageOffset.y;
                 memcpy2d.srcPitch      = 0;
@@ -428,7 +429,7 @@ bool RTLib::Ext::CUDA::CUDAContext::CopyImageToMemory(CUDAImage* image, const st
                 memcpy3d.dstPitch  = 0;
                 memcpy3d.dstHeight = 0;
                 memcpy3d.srcMemoryType = CU_MEMORYTYPE_ARRAY;
-                memcpy3d.srcArray = image->GetArrays(region.srcImageSubresources.mipLevel);
+                memcpy3d.srcArray = image->GetCUarrayWithLevel(region.srcImageSubresources.mipLevel);
                 memcpy3d.srcXInBytes = region.srcImageOffset.x * imgDataSize;
                 memcpy3d.srcY = region.srcImageOffset.y;
                 memcpy3d.srcZ = region.srcImageOffset.z;
@@ -459,7 +460,7 @@ bool RTLib::Ext::CUDA::CUDAContext::CopyImageToMemory(CUDAImage* image, const st
                 memcpy3d.dstPitch = 0;
                 memcpy3d.dstHeight = 0;
                 memcpy3d.srcMemoryType = CU_MEMORYTYPE_ARRAY;
-                memcpy3d.srcArray = image->GetArrays(region.srcImageSubresources.mipLevel);
+                memcpy3d.srcArray = image->GetCUarrayWithLevel(region.srcImageSubresources.mipLevel);
                 memcpy3d.srcXInBytes = region.srcImageOffset.x * imgDataSize;
                 memcpy3d.srcY = 0;
                 memcpy3d.srcZ = region.srcImageSubresources.baseArrayLayer;
@@ -488,7 +489,7 @@ bool RTLib::Ext::CUDA::CUDAContext::CopyImageToMemory(CUDAImage* image, const st
                 memcpy3d.dstPitch = 0;
                 memcpy3d.dstHeight = 0;
                 memcpy3d.srcMemoryType = CU_MEMORYTYPE_ARRAY;
-                memcpy3d.srcArray = image->GetArrays(region.srcImageSubresources.mipLevel);
+                memcpy3d.srcArray = image->GetCUarrayWithLevel(region.srcImageSubresources.mipLevel);
                 memcpy3d.srcXInBytes = region.srcImageOffset.x * imgDataSize;
                 memcpy3d.srcY = region.srcImageOffset.y;
                 memcpy3d.srcZ = region.srcImageSubresources.baseArrayLayer;
@@ -536,7 +537,7 @@ bool RTLib::Ext::CUDA::CUDAContext::CopyMemoryToImage(CUDAImage* image, const st
                 }
             }
             for (auto& region : regions) {
-                result = cuMemcpyHtoA(image->GetArrays(region.dstImageSubresources.mipLevel), region.dstImageOffset.x * imgDataSize, region.srcData, region.dstImageExtent.width * imgDataSize);
+                result = cuMemcpyHtoA(image->GetCUarrayWithLevel(region.dstImageSubresources.mipLevel), region.dstImageOffset.x * imgDataSize, region.srcData, region.dstImageExtent.width * imgDataSize);
                 if (result != CUDA_SUCCESS) { break; }
             }
         }
@@ -550,7 +551,7 @@ bool RTLib::Ext::CUDA::CUDAContext::CopyMemoryToImage(CUDAImage* image, const st
                 memcpy2d.srcY          = 0;
                 memcpy2d.srcPitch      = 0;
                 memcpy2d.dstMemoryType = CU_MEMORYTYPE_ARRAY;
-                memcpy2d.dstArray      = image->GetArrays(region.dstImageSubresources.mipLevel);
+                memcpy2d.dstArray      = image->GetCUarrayWithLevel(region.dstImageSubresources.mipLevel);
                 memcpy2d.dstXInBytes   = region.dstImageOffset.x * imgDataSize;
                 memcpy2d.dstY          = region.dstImageOffset.y;
                 memcpy2d.dstPitch      = 0;
@@ -576,7 +577,7 @@ bool RTLib::Ext::CUDA::CUDAContext::CopyMemoryToImage(CUDAImage* image, const st
                 memcpy3d.srcPitch  = 0;
                 memcpy3d.srcHeight = 0;
                 memcpy3d.dstMemoryType = CU_MEMORYTYPE_ARRAY;
-                memcpy3d.dstArray = image->GetArrays(region.dstImageSubresources.mipLevel);
+                memcpy3d.dstArray = image->GetCUarrayWithLevel(region.dstImageSubresources.mipLevel);
                 memcpy3d.dstXInBytes = region.dstImageOffset.x * imgDataSize;
                 memcpy3d.dstY = region.dstImageOffset.y;
                 memcpy3d.dstZ = region.dstImageOffset.z;
@@ -607,7 +608,7 @@ bool RTLib::Ext::CUDA::CUDAContext::CopyMemoryToImage(CUDAImage* image, const st
                 memcpy3d.srcPitch = 0;
                 memcpy3d.srcHeight = 0;
                 memcpy3d.dstMemoryType = CU_MEMORYTYPE_ARRAY;
-                memcpy3d.dstArray = image->GetArrays(region.dstImageSubresources.mipLevel);
+                memcpy3d.dstArray = image->GetCUarrayWithLevel(region.dstImageSubresources.mipLevel);
                 memcpy3d.dstXInBytes = region.dstImageOffset.x * imgDataSize;
                 memcpy3d.dstY = 0;
                 memcpy3d.dstZ = region.dstImageSubresources.baseArrayLayer;
@@ -636,7 +637,7 @@ bool RTLib::Ext::CUDA::CUDAContext::CopyMemoryToImage(CUDAImage* image, const st
                 memcpy3d.srcPitch = 0;
                 memcpy3d.srcHeight = 0;
                 memcpy3d.dstMemoryType = CU_MEMORYTYPE_ARRAY;
-                memcpy3d.dstArray = image->GetArrays(region.dstImageSubresources.mipLevel);
+                memcpy3d.dstArray = image->GetCUarrayWithLevel(region.dstImageSubresources.mipLevel);
                 memcpy3d.dstXInBytes = region.dstImageOffset.x * imgDataSize;
                 memcpy3d.dstY = region.dstImageOffset.y;
                 memcpy3d.dstZ = region.dstImageSubresources.baseArrayLayer;
@@ -663,6 +664,4 @@ bool RTLib::Ext::CUDA::CUDAContext::CopyMemoryToImage(CUDAImage* image, const st
     }
     return true;
 }
-
-auto RTLib::Ext::CUDA::CUDAContext::GetCUstream(CUDAStream* stream) noexcept -> CUstream { return stream ? stream->GetCUStream() : nullptr; }
 

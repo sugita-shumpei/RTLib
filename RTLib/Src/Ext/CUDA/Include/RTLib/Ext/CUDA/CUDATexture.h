@@ -8,15 +8,18 @@ namespace RTLib
 	{
 		namespace CUDA
 		{
+			class CUDANatives;
 			class CUDATexture
 			{
 			public:
+				friend class CUDANatives;
 				static auto Allocate(CUDAContext* context, const CUDATextureImageCreateDesc& desc)->CUDATexture*;
 				virtual ~CUDATexture()noexcept;
 
 				void Destroy();
 			public:
 				CUDATexture(CUtexObject texObject)noexcept;
+				auto GetCUtexObject()const noexcept -> CUtexObject;
 			private:
 				CUtexObject m_TexObject;
 			};

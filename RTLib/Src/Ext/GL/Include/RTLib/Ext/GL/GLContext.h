@@ -74,6 +74,13 @@ namespace RTLib
 			private:
 				auto GetContextState() const noexcept -> const GLContextState *;
 				auto GetContextState() noexcept -> GLContextState*;
+
+				static auto GetInternalResId(GLBuffer     * buf)->GLuint;
+				static auto GetInternalResId(GLImage      * img)->GLuint;
+				static auto GetInternalResId(GLTexture    * tex)->GLuint;
+				static auto GetInternalResId(GLVertexArray* vao)->GLuint;
+				static auto GetInternalResId(GLProgram    * prg)->GLuint;
+				static auto GetInternalResId(GLShader     * shd)->GLuint;
 			private:
 				struct Impl;
 				std::unique_ptr<Impl> m_Impl;

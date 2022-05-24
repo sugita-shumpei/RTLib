@@ -1,4 +1,5 @@
 #include <RTLib/Ext/CUDA/CUDABuffer.h>
+#include <RTLib/Ext/CUDA/CUDANatives.h>
 #include <RTLib/Ext/CUDA/CUDAExceptions.h>
 #include <iostream>
 #include <string>
@@ -44,8 +45,6 @@ RTLib::Ext::CUDA::CUDABuffer::~CUDABuffer() noexcept
 	m_Impl.reset();
 }
 
-auto RTLib::Ext::CUDA::CUDABuffer::GetDeviceAddress() noexcept -> CUdeviceptr { return m_Impl->deviceptr; }
-
 auto RTLib::Ext::CUDA::CUDABuffer::GetSizeInBytes() const noexcept -> size_t { return m_Impl->sizeInBytes; }
 
 RTLib::Ext::CUDA::CUDABuffer::CUDABuffer(CUDAContext* ctx, const CUDABufferCreateDesc& desc, CUdeviceptr deviceptr) noexcept:m_Impl{new Impl()}
@@ -56,3 +55,39 @@ RTLib::Ext::CUDA::CUDABuffer::CUDABuffer(CUDAContext* ctx, const CUDABufferCreat
 	m_Impl->deviceptr   = deviceptr;
 }
 
+auto RTLib::Ext::CUDA::CUDABuffer::GetCUdeviceptr() const noexcept -> CUdeviceptr { return m_Impl->deviceptr; }
+
+RTLib::Ext::CUDA::CUDABufferView::CUDABufferView(CUDABuffer* base) noexcept
+{
+	m_Base = base;
+	m_OffsetInBytes = 0;
+	m_SizeInBytes = base->GetSizeInBytes();
+}
+
+RTLib::Ext::CUDA::CUDABufferView::CUDABufferView(CUDABuffer* base, size_t offsetInBytes, size_t sizeInBytes) noexcept
+{
+	auto realBufferSize = base->GetSizeInBytes();
+	m_Base = base;
+	m_OffsetInBytes = std::min(offsetInBytes, realBufferSize);
+	m_SizeInBytes = std::max(std::min(sizeInBytes + m_OffsetInBytes, realBufferSize), m_OffsetInBytes) - m_OffsetInBytes;
+}
+
+RTLib::Ext::CUDA::CUDABufferView::CUDABufferView(const CUDABufferView& bufferView, size_t offsetInBytes, size_t sizeInBytes) noexcept
+	:CUDABufferView(bufferView.m_Base, bufferView.m_OffsetInBytes + offsetInBytes, bufferView.m_SizeInBytes + sizeInBytes) {}
+
+RTLib::Ext::CUDA::CUDABufferView::CUDABufferView(const CUDABufferView& bufferView) noexcept
+{
+	m_Base = bufferView.m_Base;
+	m_OffsetInBytes = bufferView.m_OffsetInBytes;
+	m_SizeInBytes = bufferView.m_SizeInBytes;
+}
+
+auto RTLib::Ext::CUDA::CUDABufferView::operator=(const CUDABufferView& bufferView) noexcept->CUDABufferView&
+{
+	if (this != &bufferView) {
+		m_Base = bufferView.m_Base;
+		m_OffsetInBytes = bufferView.m_OffsetInBytes;
+		m_SizeInBytes = bufferView.m_SizeInBytes;
+	}
+	return *this;
+}

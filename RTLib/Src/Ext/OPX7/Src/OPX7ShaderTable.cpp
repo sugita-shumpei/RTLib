@@ -46,7 +46,7 @@ struct RTLib::Ext::OPX7::OPX7ShaderTable::Impl
 		buffDesc.flags	     = CUDA::CUDAMemoryFlags::eDefault;
 		buffer               = std::unique_ptr<CUDA::CUDABuffer>(context->CreateBuffer(buffDesc));
 		RTLIB_EXT_CUDA_THROW_IF_FAILED(cuMemHostAlloc(&pHostData, shaderBindingTableSizeInBytes, 0));
-		auto baseAddress = buffer->GetDeviceAddress();
+		auto baseAddress = buffer->GetCUdeviceptr();
 		if (raygenRecordSizeInBytes > 0) {
 			shaderBindingTable.raygenRecord = baseAddress;
 		}

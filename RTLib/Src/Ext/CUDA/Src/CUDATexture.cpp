@@ -7,8 +7,8 @@ auto RTLib::Ext::CUDA::CUDATexture::Allocate(CUDAContext* context, const CUDATex
     if (!context || !desc.image) { return nullptr; }
     auto numLevels  = desc.image->GetLevels();
     auto numLayers  = desc.image->GetLayers();
-    auto hArray     = desc.image->GetArray();
-    auto hMipmapped = desc.image->GetMipMappedArray();
+    auto hArray     = desc.image->GetCUarray();
+    auto hMipmapped = desc.image->GetCUmipmappedArray();
     CUDA_RESOURCE_DESC resDesc = {};
     if (!hMipmapped) {
         resDesc.resType = CU_RESOURCE_TYPE_ARRAY;
@@ -80,4 +80,9 @@ void RTLib::Ext::CUDA::CUDATexture::Destroy()
 
 RTLib::Ext::CUDA::CUDATexture::CUDATexture(CUtexObject texObject) noexcept:m_TexObject{texObject}
 {
+}
+
+auto RTLib::Ext::CUDA::CUDATexture::GetCUtexObject() const noexcept -> CUtexObject
+{
+    return m_TexObject;
 }

@@ -11,36 +11,26 @@ namespace RTLib {
 			class CUDAContext;
 			class CUDABuffer;
 			class CUDAImage;
-			class CUDATexture;
-			class CUDAModule;
+			class CUDANatives;
 			class CUDAStream
 			{
-				friend class CUDAContext;
-				friend class CUDAFunction;
+				friend class CUDANatives;
 			public:
 				static auto New(CUDAContext* context)->CUDAStream*;
 				virtual ~CUDAStream()noexcept;
 				void Destroy();
-
 				bool Synchronize();
 				/*Copy*/
 				bool CopyBuffer(CUDABuffer* srcBuffer, CUDABuffer* dstBuffer, const std::vector<CUDABufferCopy>& regions);
-
 				bool CopyMemoryToBuffer(CUDABuffer* buffer, const std::vector<CUDAMemoryBufferCopy>& regions);
-
 				bool CopyBufferToMemory(CUDABuffer* buffer, const std::vector<CUDABufferMemoryCopy>& regions);
-
 				bool CopyImageToBuffer(CUDAImage* srcImage, CUDABuffer* dstBuffer, const std::vector<CUDABufferImageCopy>& regions);
-
 				bool CopyBufferToImage(CUDABuffer* srcBuffer, CUDAImage* dstImage, const std::vector<CUDABufferImageCopy>& regions);
-
 				bool CopyImageToMemory(CUDAImage* image, const std::vector<CUDAImageMemoryCopy>& regions);
-
 				bool CopyMemoryToImage(CUDAImage* image, const std::vector<CUDAMemoryImageCopy>& regions);
-
 			private:
 				CUDAStream(CUDAContext* context, CUstream stream)noexcept;
-				auto GetCUStream()noexcept -> CUstream;
+				auto GetCUstream()const noexcept -> CUstream;
 			private:
 				CUDAContext* m_Context = nullptr;
 				CUstream     m_Stream  = nullptr;

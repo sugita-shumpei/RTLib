@@ -121,9 +121,9 @@ int main() {
 		auto stream          = std::unique_ptr<RTLib::Ext::CUDA::CUDAStream>(context.CreateStream());
 		{
 			SimpleKernelParams params    = {};
-			params.frameBufferForGraphics= reinterpret_cast<uchar4*>(frameBufferForG->GetDeviceAddress());
-			params.frameBufferForCompute = reinterpret_cast<float3*>(frameBufferForC->GetDeviceAddress());
-			params.accumBuffer           = reinterpret_cast<float3*>(    accumBuffer->GetDeviceAddress());;
+			params.frameBufferForGraphics= reinterpret_cast<uchar4*>(frameBufferForG->GetCUdeviceptr());
+			params.frameBufferForCompute = reinterpret_cast<float3*>(frameBufferForC->GetCUdeviceptr());
+			params.accumBuffer           = reinterpret_cast<float3*>(    accumBuffer->GetCUdeviceptr());;
 			params.fbWidth               = 1024;
 			params.fbHeight              = 1024;
 			params.sampleForAccum        = 0;

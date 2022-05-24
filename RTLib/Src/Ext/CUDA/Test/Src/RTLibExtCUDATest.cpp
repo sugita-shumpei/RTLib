@@ -7,6 +7,7 @@
 #include <RTLib/Ext/CUDA/CUDAModule.h>
 #include <RTLib/Ext/CUDA/CUDAFunction.h>
 #include <RTLib/Ext/CUDA/CUDAStream.h>
+#include <RTLib/Ext/CUDA/CUDANatives.h>
 #include <RTLibExtCUDATestConfig.h>
 #include <RTLibExtCUDATest.h>
 #include <memory>
@@ -141,8 +142,8 @@ int main(int argc, const char* argv)
 			assert(ctx.CopyMemoryToBuffer(ibff.get(), { {static_cast<const void*>(iImgData),static_cast<size_t>(0),static_cast<size_t>(x * y * comp)}}));
 			auto obff = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(ctx.CreateBuffer(obffDesc));
 
-			auto ipixel = ibff->GetDeviceAddress();
-			auto opixel = obff->GetDeviceAddress();
+			auto ipixel = RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(ibff.get());
+			auto opixel = RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(obff.get());
 			int width  = x;
 			int height = y;
 			fnc->Launch({ 1024,1024,1,32,32,1,0,{

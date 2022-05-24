@@ -9,10 +9,12 @@ namespace RTLib {
 		namespace CUDA
 		{
 			class CUDAContext;
+			class CUDANatives;
 			class CUDAImage {
 				friend class CUDAContext;
 				friend class CUDAStream ;
 				friend class CUDATexture;
+				friend class CUDANatives;
 			public:
 				static auto Allocate(CUDAContext* ctx, const CUDAImageCreateDesc& desc)->CUDAImage*;
 				virtual ~CUDAImage()noexcept;
@@ -39,12 +41,12 @@ namespace RTLib {
 				static auto AllocateArray(CUDAContext* ctx, const CUDAImageCreateDesc& desc)->CUDAImage*;
 				static auto AllocateArray3D(CUDAContext* ctx, const CUDAImageCreateDesc& desc)->CUDAImage*;
 				static auto AllocateMipmappedArray(CUDAContext* ctx, const CUDAImageCreateDesc& desc)->CUDAImage*;
-				auto GetArray()noexcept -> CUarray { return m_Arrays[0]; }
-				auto GetArrays(unsigned int level)noexcept -> CUarray {
+				auto GetCUarray()noexcept -> CUarray { return m_Arrays[0]; }
+				auto GetCUarrayWithLevel(unsigned int level)noexcept -> CUarray {
 					if (level >= m_Arrays.size()) { return nullptr; }
 					return m_Arrays[level]; 
 				}
-				auto GetMipMappedArray()noexcept -> CUmipmappedArray { return m_ArrayMipmapped; }
+				auto GetCUmipmappedArray()noexcept -> CUmipmappedArray { return m_ArrayMipmapped; }
 			private:
 				CUDAContext*            m_Context;
 				CUmipmappedArray        m_ArrayMipmapped;

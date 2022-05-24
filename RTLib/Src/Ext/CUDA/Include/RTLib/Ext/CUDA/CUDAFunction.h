@@ -12,9 +12,11 @@ namespace RTLib
 		namespace CUDA
 		{
 			class CUDAModule;
+			class CUDANatives;
 			class CUDAFunction
 			{
 			public:
+				friend class CUDANatives;
 				static auto Load(CUDAModule* cuModule, const char* entryPoint)->CUDAFunction*;
 				virtual ~CUDAFunction()noexcept;
 
@@ -22,7 +24,7 @@ namespace RTLib
 				bool Launch(const CUDAKernelLaunchDesc& desc);
 			private:
 				CUDAFunction(CUDAModule* module, CUfunction function)noexcept;
-				auto GetCUFunction()noexcept -> CUfunction;
+				auto GetCUfunction()const noexcept -> CUfunction;
 			private:
 				CUDAModule* m_Module   = nullptr;
 				CUfunction  m_Function = nullptr;

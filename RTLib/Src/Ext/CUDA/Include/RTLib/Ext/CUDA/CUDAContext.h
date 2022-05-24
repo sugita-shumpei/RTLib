@@ -15,8 +15,10 @@ namespace RTLib
 			class CUDATexture;
 			class CUDAModule;
 			class CUDAStream;
+			class CUDANatives;
 			class CUDAContext : public Core::Context
 			{
+				friend class CUDANatives;
 				RTLIB_CORE_TYPE_OBJECT_DECLARE_DERIVED_METHOD(CUDAContext, Core::Context, RTLIB_TYPE_UUID_RTLIB_EXT_CUDA_CUDA_CONTEXT);
 				virtual ~CUDAContext()noexcept;
 				// Context を介して継承されました
@@ -40,11 +42,9 @@ namespace RTLib
 				bool CopyBufferToImage(CUDABuffer *srcBuffer, CUDAImage *dstImage, const std::vector<CUDABufferImageCopy> &regions);
 				bool CopyImageToMemory(CUDAImage *image, const std::vector<CUDAImageMemoryCopy> &regions);
 				bool CopyMemoryToImage(CUDAImage *image, const std::vector<CUDAMemoryImageCopy> &regions);
-
 			protected:
-				auto GetCUContext() const noexcept -> CUcontext { return m_CtxCU; }
-				auto GetCUDevice() const noexcept -> CUdevice { return m_DevCU; }
-				static auto GetCUstream(CUDAStream* stream)noexcept->CUstream;
+				auto GetCUcontext() const noexcept -> CUcontext { return m_CtxCU; }
+				auto GetCUdevice () const noexcept -> CUdevice  { return m_DevCU; }
 			private:
 				CUcontext m_CtxCU = nullptr;
 				CUdevice m_DevCU = 0;

@@ -478,6 +478,36 @@ void RTLib::Ext::GL::GLContext::SetClearColor(float r, float g, float b, float a
 	glClearColor(r, g, b, a);
 }
 
+auto RTLib::Ext::GL::GLContext::GetInternalResId(GLBuffer* buf) -> GLuint
+{
+	return buf ? GLuint(buf->GetResId()): 0;
+}
+
+auto RTLib::Ext::GL::GLContext::GetInternalResId(GLImage* img) -> GLuint
+{
+	return img ? GLuint(img->GetResId()) : 0;
+}
+
+auto RTLib::Ext::GL::GLContext::GetInternalResId(GLTexture* tex) -> GLuint
+{
+	return tex ? GLuint(tex->GetResId()) : 0;
+}
+
+auto RTLib::Ext::GL::GLContext::GetInternalResId(GLVertexArray* vao) -> GLuint
+{
+	return vao ? GLuint(vao->GetResId()) : 0;
+}
+
+auto RTLib::Ext::GL::GLContext::GetInternalResId(GLProgram* prg) -> GLuint
+{
+	return prg ? GLuint(prg->GetResId()) : 0;
+}
+
+auto RTLib::Ext::GL::GLContext::GetInternalResId(GLShader* shd) -> GLuint
+{
+	return shd ? GLuint(shd->GetResId()) : 0;
+}
+
 auto RTLib::Ext::GL::GLContext::CreateBuffer(const GLBufferCreateDesc& desc) -> GLBuffer*
 {
 	return GLBuffer::Allocate(this,desc);

@@ -70,4 +70,4 @@ auto RTLib::Ext::CUDA::CUDAModule::LoadFunction(const char* entryPoint) -> CUDAF
 
 RTLib::Ext::CUDA::CUDAModule::CUDAModule(CUDAContext* context, CUmodule cuModule) noexcept :m_Context{ context }, m_Module{ cuModule } {}
 
-auto RTLib::Ext::CUDA::CUDAModule::GetCUModule() noexcept -> CUmodule { return m_Module; }
+auto RTLib::Ext::CUDA::CUDAModule::GetCUmodule() noexcept -> CUmodule { return m_Module; }

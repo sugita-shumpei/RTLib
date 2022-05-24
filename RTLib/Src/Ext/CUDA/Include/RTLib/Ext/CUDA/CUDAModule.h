@@ -8,11 +8,12 @@ namespace RTLib
 	{
 		namespace CUDA
 		{
-			class CUDAContext;
-			class CUDAFunction;
-			class CUDAModule
+			class  CUDAContext;
+			class  CUDAFunction;
+			struct CUDANatives;
+			class  CUDAModule
 			{
-				friend class CUDAFunction;
+				friend class CUDANatives;
 			public:
 				static auto LoadFromFile(CUDAContext* context, const char* filename)->CUDAModule*;
 				static auto LoadFromData(CUDAContext* context, const void* data)->CUDAModule*;
@@ -24,7 +25,7 @@ namespace RTLib
 				auto LoadFunction(const char* entryPoint)->CUDAFunction*;
 			private:
 				CUDAModule(CUDAContext* context, CUmodule cuModule)noexcept;
-				auto GetCUModule()noexcept -> CUmodule;
+				auto GetCUmodule()noexcept -> CUmodule;
 			private:
 				CUDAContext* m_Context = nullptr;
 				CUmodule     m_Module  = nullptr;

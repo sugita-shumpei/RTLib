@@ -89,7 +89,7 @@ void RTLib::Ext::CUDA::CUDAImage::Destroy() noexcept
 }
 auto RTLib::Ext::CUDA::CUDAImage::GetMipImage(unsigned int level) -> CUDAImage*
 {
-	auto cuArray = GetArrays(level);
+	auto cuArray = GetCUarrayWithLevel(level);
 	if (!cuArray) { return nullptr; }
 	CUDAImageCreateDesc desc = {};
 	desc.imageType = this->m_ImageType;
