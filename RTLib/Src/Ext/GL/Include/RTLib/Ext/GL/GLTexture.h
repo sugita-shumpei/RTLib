@@ -11,9 +11,11 @@ namespace RTLib
 		namespace GL
 		{
 			class GLContext;
+			class GLNatives;
 			class GLTexture : public Core::Texture {
 				RTLIB_CORE_TYPE_OBJECT_DECLARE_DERIVED_METHOD(GLTexture, Core::Texture, RTLIB_TYPE_UUID_RTLIB_EXT_GL_GL_TEXTURE);
 				friend class GLContext;
+				friend class GLNatives;
 			public:
 				static auto Allocate(GLContext* context, const GLTextureCreateDesc& desc)->GLTexture*;
 				virtual ~GLTexture()noexcept;

@@ -13,9 +13,11 @@ namespace RTLib
         {
             class GLContext;
             class GLBuffer;
+            class GLNatives;
             class GLVertexArray : public Core::BaseObject
             {
                 friend class GLContext;
+                friend class GLNatives;
                 RTLIB_CORE_TYPE_OBJECT_DECLARE_DERIVED_METHOD(GLVertexArray, Core::BaseObject, RTLIB_TYPE_UUID_RTLIB_EXT_GL_GL_VERTEX_ARRAY);
             public:
                 static auto New(GLContext *context) -> GLVertexArray *;

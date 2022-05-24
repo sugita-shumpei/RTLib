@@ -124,6 +124,7 @@ int main(int argc, const char* argv[]) {
 			RTLib::Ext::GL::GLMemoryPropertyDefault,
 			vertexData.data()
 		}));
+		vertexBuffer->SetName("Vertex");
 		auto  colorBuffer = std::unique_ptr<RTLib::Ext::GL::GLBuffer>(context->CreateBuffer(RTLib::Ext::GL::GLBufferCreateDesc{
 			sizeof(colorData[0]) * std::size(colorData),
 			RTLib::Ext::GL::GLBufferUsageVertex |
@@ -131,6 +132,7 @@ int main(int argc, const char* argv[]) {
 			RTLib::Ext::GL::GLMemoryPropertyDefault,
 			colorData.data()
 		}));
+		colorBuffer->SetName("Color");
 		auto indexBuffer  = std::unique_ptr<RTLib::Ext::GL::GLBuffer>(context->CreateBuffer(RTLib::Ext::GL::GLBufferCreateDesc{
 			sizeof(indexData[0])* std::size(indexData),
 			RTLib::Ext::GL::GLBufferUsageIndex |
@@ -138,6 +140,7 @@ int main(int argc, const char* argv[]) {
 			RTLib::Ext::GL::GLMemoryPropertyDefault,
 			indexData.data()
 		}));
+		indexBuffer->SetName("Index");
 		auto tex = std::unique_ptr<RTLib::Ext::GL::GLTexture>(nullptr);
 		auto texDesc = RTLib::Ext::GL::GLTextureCreateDesc();
 		{
@@ -224,7 +227,9 @@ int main(int argc, const char* argv[]) {
 			context->SetTexture(0, tex.get());
 			context->SetUniformImageUnit(smpLoc, 0);
             context->SetVertexArray(vao.get());
-            context->DrawArrays(RTLib::Ext::GL::GLDrawMode::eTriangles,0,3);
+			//context->DrawArrays(RTLib::Ext::GL::GLDrawMode::eTriangles, 0, 3);
+			//context->SetBuffer(RTLib::Ext::GL::GLBufferUsageIndex, indexBuffer.get());
+			context->DrawElements(RTLib::Ext::GL::GLDrawMode::eTriangles, RTLib::Ext::GL::GLIndexFormat::eUInt32,3,0);
 			glfwSwapBuffers(window);
 			glfwPollEvents();
 		}

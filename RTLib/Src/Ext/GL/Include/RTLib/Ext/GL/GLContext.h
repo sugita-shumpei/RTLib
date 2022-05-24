@@ -57,7 +57,7 @@ namespace RTLib
 				bool CopyImageToMemory(GLImage *image, const std::vector<GLImageMemoryCopy> &regions);
 				bool CopyMemoryToImage(GLImage* image, const std::vector<GLMemoryImageCopy>& regions);
 				/*Buffer*/
-				void SetBuffer(GLBufferUsageFlagBits usage, GLBuffer* buffer);
+				void SetBuffer(GLBufferUsageFlagBits usage, GLBuffer* buffer, bool resetVAO = false);
 				auto GetBuffer(GLBufferUsageFlagBits usage) noexcept->GLBuffer*;
 				bool HasBuffer(GLBufferUsageFlagBits usage, GLBuffer* buffer)const noexcept;
 				void InvalidateBuffer(GLBufferUsageFlagBits usage);

@@ -10,8 +10,6 @@ namespace RTLib
 		{
 			RTLIB_CORE_TYPE_OBJECT_DECLARE_BEGIN(GLFramebuffer, Core::BaseObject, RTLIB_TYPE_UUID_RTLIB_EXT_GL_GL_FRAME_BUFFER);
 			RTLIB_CORE_TYPE_OBJECT_DECLARE_END();
-            
-			};
 		}
 	}
 }

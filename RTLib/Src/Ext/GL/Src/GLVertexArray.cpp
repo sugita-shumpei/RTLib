@@ -58,6 +58,7 @@ bool RTLib::Ext::GL::GLVertexArray::SetIndexBuffer(GLBuffer* indexBuffer)
     auto resId = GetResId();
     if (!resId || IsEnabled() || !indexBuffer) { return false; }
     m_IndexBuffer = indexBuffer;
+
     return true;
 }
 
@@ -88,7 +89,7 @@ bool RTLib::Ext::GL::GLVertexArray::Enable()
     {
         m_Context->SetVertexArray(this);
         if (m_IndexBuffer) {
-            m_Context->SetBuffer(GLBufferUsageIndex, m_IndexBuffer);
+            m_Context->SetBuffer(GLBufferUsageIndex, m_IndexBuffer,true);
         }
         else {
             m_Context->InvalidateBuffer(GLBufferUsageIndex);
@@ -101,7 +102,7 @@ bool RTLib::Ext::GL::GLVertexArray::Enable()
             if (tVertexAttribIndices.empty()) {
                 continue;
             }
-            m_Context->SetBuffer(GLBufferUsageVertex, bindingInfo.vertexBuffer);
+            m_Context->SetBuffer(GLBufferUsageVertex, bindingInfo.vertexBuffer, true);
             for (const auto& attribIndex : tVertexAttribIndices) {
                 if (m_VertexAttributes.count(attribIndex) > 0) {
                     const auto& attrib = m_VertexAttributes.at(attribIndex);

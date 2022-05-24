@@ -1,6 +1,7 @@
 #include <RTLib/Ext/GL/GLImage.h>
 #include <RTLib/Ext/GL/GLTexture.h>
 #include <RTLib/Ext/GL/GLCommon.h>
+#include <RTLib/Ext/GL/GLNatives.h>
 #include <RTLib/Core/Utility.h>
 #include "GLContextImpl.h"
 #include "GLTypeConversions.h"
@@ -63,7 +64,7 @@ bool RTLib::Ext::GL::GLContext::CopyBuffer(GLBuffer* srcBuffer, GLBuffer* dstBuf
 	if (!srcBuffer || !dstBuffer) { return false; }
 	if (SupportVersion(4, 5)) {
 		for (const auto& region : regions) {
-			glCopyNamedBufferSubData(srcBuffer->GetResId(), dstBuffer->GetResId(), region.srcOffset, region.dstOffset, region.size);
+			glCopyNamedBufferSubData(GLNatives::GetResId(srcBuffer), GLNatives::GetResId(dstBuffer), region.srcOffset, region.dstOffset, region.size);
 		}
 	}
 	else {
@@ -416,10 +417,14 @@ bool RTLib::Ext::GL::GLContext::CopyMemoryToImage(GLImage* image, const std::vec
 	return true;
 }
 
-void RTLib::Ext::GL::GLContext::SetBuffer(GLBufferUsageFlagBits usage, GLBuffer* buffer)
+
+/*Buffer*/
+
+void RTLib::Ext::GL::GLContext::SetBuffer(GLBufferUsageFlagBits usage, GLBuffer* buffer, bool resetVAO)
 {
 	if (!buffer) { return; }
-	if (!HasBuffer(usage,buffer)) {
+	if (!HasBuffer(usage, buffer) ||
+		(resetVAO && ((usage == GLBufferUsageVertex) || (usage == GLBufferUsageIndex)))) {
 		glBindBuffer(GetGLBufferMainUsageTarget(usage), buffer->GetResId());
 		m_Impl->m_Buffers[RTLib::Core::Utility::Log2(static_cast<uint64_t>(usage))] = buffer;
 	}
@@ -587,6 +592,6 @@ void RTLib::Ext::GL::GLContext::InvalidateVertexArray()
 	if (!m_Impl->m_VertexArray) {
 		return;
 	}
-	m_Impl->m_VertexArray = nullptr;
 	glBindVertexArray(0);
+	m_Impl->m_VertexArray = nullptr;
 }

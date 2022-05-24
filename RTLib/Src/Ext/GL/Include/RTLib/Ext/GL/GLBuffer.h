@@ -11,21 +11,21 @@ namespace RTLib
 		namespace GL
 		{
 			class GLContext;
-			class GLVertexArray;
+			class GLNatives;
 			class GLBuffer: public Core::Buffer{
 				RTLIB_CORE_TYPE_OBJECT_DECLARE_DERIVED_METHOD(GLBuffer, Core::Buffer, RTLIB_TYPE_UUID_RTLIB_EXT_GL_GL_BUFFER);
 				friend class GLContext;
-				friend class GLVertexArray;
+				friend class GLNatives;
 			public:
 				static auto Allocate(GLContext* context, const GLBufferCreateDesc& desc)->GLBuffer*;
                 virtual ~GLBuffer()noexcept;
                 
 				virtual void Destroy()noexcept override;
 				auto GetUsages()const noexcept  -> GLBufferUsageFlags;
+				auto GetMainUsage()const noexcept -> GLBufferUsageFlagBits;
 				auto GetSizeInBytes() const noexcept -> size_t;
 			private:
 				GLBuffer(GLContext* context, const GLBufferCreateDesc& desc)noexcept;
-				auto GetMainUsage()const noexcept -> GLBufferUsageFlagBits;
 				auto GetMemoryProperty()const noexcept -> GLMemoryPropertyFlags;
 				auto GetResId()const noexcept -> GLuint;
 			private:

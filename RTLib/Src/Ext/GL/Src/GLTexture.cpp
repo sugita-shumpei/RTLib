@@ -1,6 +1,7 @@
 #include <RTLib/Ext/GL/GLTexture.h>
 #include <RTLib/Ext/GL/GLContext.h>
 #include <RTLib/Ext/GL/GLImage.h>
+#include <RTLib/Ext/GL/GLNatives.h>
 #include <memory>
 #include "GLTypeConversions.h"
 struct RTLib::Ext::GL::GLTexture::Impl {
@@ -120,5 +121,5 @@ RTLib::Ext::GL::GLTexture::GLTexture() noexcept : m_Impl{new Impl()}
 
 auto RTLib::Ext::GL::GLTexture::GetResId() const noexcept -> GLuint
 {
-    return GLuint(m_Impl->image->GetResId());
+    return GLNatives::GetResId(m_Impl->image.get());
 }

@@ -12,12 +12,14 @@ namespace RTLib
 		{
 			class GLContext;
 			class GLShader;
+			class GLNatives;
 			class GLProgram : public Core::BaseObject
 			{
 				RTLIB_CORE_TYPE_OBJECT_DECLARE_DERIVED_METHOD(GLProgram, Core::BaseObject, RTLIB_TYPE_UUID_RTLIB_EXT_GL_GL_PROGRAM);
 
 			public:
 				friend class GLContext;
+				friend class GLNatives;
 				friend class GLProgramPipeline;
 				friend class GLShader;
 				static auto New(GLContext *context) -> GLProgram *;

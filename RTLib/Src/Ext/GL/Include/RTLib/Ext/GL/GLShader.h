@@ -12,12 +12,14 @@ namespace RTLib
 		namespace GL
 		{
             class GLContext;
+			class GLNatives;
 			class GLShader :public Core::BaseObject
 			{
 				RTLIB_CORE_TYPE_OBJECT_DECLARE_DERIVED_METHOD(GLShader, Core::BaseObject, RTLIB_TYPE_UUID_RTLIB_EXT_GL_GL_SHADER);
 			public:
 				friend class GLContext;
 				friend class GLProgram;
+				friend class GLNatives;
 				static auto New(GLContext *context, GLShaderStageFlagBits shaderStage, bool isSpirvSupport) -> GLShader *;
                 virtual ~GLShader()noexcept;
                 
