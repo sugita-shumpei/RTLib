@@ -14,6 +14,10 @@ namespace RTLib {
 				eLinear,
 				ePitch2D
 			};
+			using      CUDAOffset2D = Core::Offset2D;
+			using      CUDAOffset3D = Core::Offset3D;
+			using      CUDAExtent2D = Core::Extent2D;
+			using      CUDAExtent3D = Core::Extent3D;
 			using	   CUDAImageSubresourceLayers = Core::ImageSubresourceLayers;
 			using      CUDABufferCopy       = Core::BufferCopy;
 			using      CUDABufferImageCopy  = Core::BufferImageCopy;
@@ -45,15 +49,12 @@ namespace RTLib {
 			};
 			using      CUDAImageCreateFlags = unsigned int;
 			struct     CUDAImageCreateDesc {
-				CUDAImageType			imageType   = CUDAImageType::e1D;
-				unsigned int	  	    width       = 1;
-				unsigned int			height      = 0;
-				unsigned int			depth       = 0;
-				unsigned int			levels      = 0;
-				unsigned int			layers      = 0;
-				CUDAImageDataType		format      = CUDAImageDataType::eUndefined;
-				unsigned int			channels    = 1;
 				CUDAImageCreateFlags    flags       = CUDAImageCreateFlagBitsDefault;
+				CUDAImageType			imageType   = CUDAImageType::e1D;
+				CUDAExtent3D            extent      = CUDAExtent3D();
+				unsigned int			mipLevels   = 0;
+				unsigned int			arrayLayers = 0;
+				CUDAImageFormat	  	    format      = CUDAImageFormat::eUndefined;
 			};
 			enum class CUDATextureAddressMode
 			{

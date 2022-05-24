@@ -3,10 +3,10 @@
 #include <RTLib/Ext/GL/GLCommon.h>
 #define RTLIB_EXT_GL_GET_GL_ENUM_GL_TYPE_CASE_2(VAL1, VAL2) \
 	case GL_##VAL1:                                         \
-		return GLTypeFlagBits::e##VAL2
+		return GLDataTypeFlagBits::e##VAL2
 
 #define RTLIB_EXT_GL_GET_GL_TYPE_GL_ENUM_CASE_2_INV(VAL1, VAL2) \
-	case GLTypeFlagBits::e##VAL2:                               \
+	case GLDataTypeFlagBits::e##VAL2:                               \
 		return GL_##VAL1
 
 #define RTLIB_EXT_GL_GET_GL_ENUM_GL_FORMAT_CASE_2(VAL1, VAL2) \
@@ -144,7 +144,7 @@ namespace RTLib
 				return GL_ARRAY_BUFFER;
 			}
 
-			inline constexpr auto GetGLenumGLType(GLenum glEnum) -> GLTypeFlagBits
+			inline constexpr auto GetGLenumGLType(GLenum glEnum) -> GLDataTypeFlagBits
 			{
 				switch (glEnum)
 				{
@@ -168,10 +168,10 @@ namespace RTLib
 					RTLIB_EXT_GL_GET_GL_ENUM_GL_TYPE_CASE_2(UNSIGNED_INT_2_10_10_10_REV, UInt32_2_10_10_10_Rev);
 					RTLIB_EXT_GL_GET_GL_ENUM_GL_TYPE_CASE_2(UNSIGNED_INT_10F_11F_11F_REV, UInt32_10F_11F_11F_Rev);
 				default:
-					return GLTypeFlagBits::eUndefined;
+					return GLDataTypeFlagBits::eUndefined;
 				}
 			}
-			inline constexpr auto GetGLTypeGLEnum(GLTypeFlagBits glType) -> GLenum
+			inline constexpr auto GetGLTypeGLEnum(GLDataTypeFlagBits glType) -> GLenum
 			{
 				switch (glType)
 				{
@@ -621,7 +621,7 @@ namespace RTLib
 				case RTLib::Ext::GL::GLFormat::eDepth32FStencil8:
 					return GL_FLOAT_32_UNSIGNED_INT_24_8_REV;
 					break;
-				default:
+				default: return GL_FLOAT;
 					break;
 				}
 			}

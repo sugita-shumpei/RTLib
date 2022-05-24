@@ -102,10 +102,10 @@ auto RTLib::Ext::GL::GLImage::Allocate(GLContext* context, const GLImageCreateDe
     GLsizei levels         = std::max<GLsizei>(desc.mipLevels, 1);
     GLuint  resIdx         = 0;
     GLenum  internalFormat = GetGLFormatGLenum(desc.format);
-    GLenum  baseFormat     = GetGLBaseFormatGLenum(GetGLFormatBaseFormat(desc.format));
+    GLenum  baseFormat     = GetGLBaseFormatGLenum(GLFormatUtils::GetBaseFormat(desc.format));
     auto    unpackType     = GetGLFormatGLUnpackEnum(desc.format);
     bool    isCubemap      = false;
-    bool    isCompressed   = IsComressedGLFormat(desc.format);
+    bool    isCompressed   = GLFormatUtils::IsComressed(desc.format);
     switch (imageType)
     {
     case RTLib::Ext::GL::GLImageType::e1D:

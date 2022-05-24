@@ -21,7 +21,7 @@ namespace RTLib
                     m_UniqueIdentifier = id.m_UniqueIdentifier;
                     id.m_UniqueIdentifier = 0;
                 }
-                auto operator=( GLUniqueIdHolder &&id) -> GLUniqueIdHolder &
+                auto operator=( GLUniqueIdHolder &&id) noexcept-> GLUniqueIdHolder &
                 {
                     if (this!=&id)
                     {

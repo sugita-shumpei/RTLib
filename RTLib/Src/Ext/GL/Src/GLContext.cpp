@@ -154,11 +154,11 @@ bool RTLib::Ext::GL::GLContext::CopyBufferToImage(GLBuffer* srcBuffer, GLImage* 
 	}
 	auto viewType   = dstImage->GetViewType();
 	auto format     = dstImage->GetFormat();
-	auto baseFormat = GetGLFormatBaseFormat(format);
+	auto baseFormat = GLFormatUtils::GetBaseFormat(format);
 	auto baseEnum   = GetGLBaseFormatGLenum(baseFormat);
 	auto typeEnum   = GetGLFormatGLUnpackEnum(format);
 	auto type       = GetGLenumGLType(typeEnum);
-	auto typeSize   = GetGLTypeSize(type);
+	auto typeSize   = GLDataTypeFlagsUtils::GetBaseTypeBitSize(type)/8;
 	auto alignment  = static_cast<int>(typeSize);
 	auto target     = GetGLImageViewTypeGLenum(viewType);
 	auto resId      = dstImage->GetResId();
@@ -283,11 +283,12 @@ bool RTLib::Ext::GL::GLContext::CopyMemoryToImage(GLImage* image, const std::vec
 	if (!image) { return false; }
 	auto viewType   = image->GetViewType();
 	auto format     = image->GetFormat();
-	auto baseFormat = GetGLFormatBaseFormat(format);
+	auto baseFormat = GLFormatUtils::GetBaseFormat(format);
 	auto baseEnum   = GetGLBaseFormatGLenum(baseFormat);
-	auto type       = GetGLFormatGLUnpackEnum(format);
-	auto typeSize   = GetGLTypeSize(GetGLenumGLType(type));
-	auto alignment = static_cast<int>(typeSize);
+	auto typeEnum   = GetGLFormatGLUnpackEnum(format);
+	auto type       = GetGLenumGLType(typeEnum);
+	auto typeSize   = GLDataTypeFlagsUtils::GetBaseTypeBitSize(type) / 8;
+	auto alignment   = static_cast<int>(typeSize);
 	auto target     = GetGLImageViewTypeGLenum(viewType);
 	auto resId      = image->GetResId();
 	if ((typeSize % 8) == 0) { alignment = 8; }
@@ -309,37 +310,37 @@ bool RTLib::Ext::GL::GLContext::CopyMemoryToImage(GLImage* image, const std::vec
 		{
 		case RTLib::Ext::GL::GLImageViewType::e1D:
 			for (const auto& region : regions) {
-				glTextureSubImage1D(resId, region.dstImageSubresources.mipLevel, region.dstImageOffset.x, region.dstImageExtent.width, baseEnum, type, region.srcData);
+				glTextureSubImage1D(resId, region.dstImageSubresources.mipLevel, region.dstImageOffset.x, region.dstImageExtent.width, baseEnum, typeEnum, region.srcData);
 			}
 			break;
 		case RTLib::Ext::GL::GLImageViewType::e2D:
 			for (const auto& region : regions) {
-				glTextureSubImage2D(resId, region.dstImageSubresources.mipLevel, region.dstImageOffset.x, region.dstImageOffset.y, region.dstImageExtent.width, region.dstImageExtent.height, baseEnum, type, region.srcData);
+				glTextureSubImage2D(resId, region.dstImageSubresources.mipLevel, region.dstImageOffset.x, region.dstImageOffset.y, region.dstImageExtent.width, region.dstImageExtent.height, baseEnum, typeEnum, region.srcData);
 			}
 			break;
 		case RTLib::Ext::GL::GLImageViewType::e3D:
 			for (const auto& region : regions) {
-				glTextureSubImage3D(resId, region.dstImageSubresources.mipLevel, region.dstImageOffset.x, region.dstImageOffset.y, region.dstImageOffset.z, region.dstImageExtent.width, region.dstImageExtent.height, region.dstImageExtent.depth, baseEnum, type, region.srcData);
+				glTextureSubImage3D(resId, region.dstImageSubresources.mipLevel, region.dstImageOffset.x, region.dstImageOffset.y, region.dstImageOffset.z, region.dstImageExtent.width, region.dstImageExtent.height, region.dstImageExtent.depth, baseEnum, typeEnum, region.srcData);
 			}
 			break;
 		case RTLib::Ext::GL::GLImageViewType::eCubemap:
 			for (const auto& region : regions) {
-				glTextureSubImage3D(resId, region.dstImageSubresources.mipLevel, region.dstImageOffset.x, region.dstImageOffset.y,region.dstImageSubresources.baseArrayLayer, region.dstImageExtent.width, region.dstImageExtent.height,region.dstImageSubresources.layerCount, baseEnum, type, region.srcData);
+				glTextureSubImage3D(resId, region.dstImageSubresources.mipLevel, region.dstImageOffset.x, region.dstImageOffset.y,region.dstImageSubresources.baseArrayLayer, region.dstImageExtent.width, region.dstImageExtent.height,region.dstImageSubresources.layerCount, baseEnum, typeEnum, region.srcData);
 			}
 			break;
 		case RTLib::Ext::GL::GLImageViewType::e1DArray:
 			for (const auto& region : regions) {
-				glTextureSubImage2D(resId, region.dstImageSubresources.mipLevel, region.dstImageOffset.x, region.dstImageSubresources.baseArrayLayer, region.dstImageExtent.width, region.dstImageSubresources.layerCount, baseEnum, type, region.srcData);
+				glTextureSubImage2D(resId, region.dstImageSubresources.mipLevel, region.dstImageOffset.x, region.dstImageSubresources.baseArrayLayer, region.dstImageExtent.width, region.dstImageSubresources.layerCount, baseEnum, typeEnum, region.srcData);
 			}
 			break;
 		case RTLib::Ext::GL::GLImageViewType::e2DArray:
 			for (const auto& region : regions) {
-				glTextureSubImage3D(resId, region.dstImageSubresources.mipLevel, region.dstImageOffset.x, region.dstImageOffset.y, region.dstImageSubresources.baseArrayLayer, region.dstImageExtent.width, region.dstImageExtent.height, region.dstImageSubresources.layerCount, baseEnum, type, region.srcData);
+				glTextureSubImage3D(resId, region.dstImageSubresources.mipLevel, region.dstImageOffset.x, region.dstImageOffset.y, region.dstImageSubresources.baseArrayLayer, region.dstImageExtent.width, region.dstImageExtent.height, region.dstImageSubresources.layerCount, baseEnum, typeEnum, region.srcData);
 			}
 			break;
 		case RTLib::Ext::GL::GLImageViewType::eCubemapArray:
 			for (const auto& region : regions) {
-				glTextureSubImage3D(resId, region.dstImageSubresources.mipLevel, region.dstImageOffset.x, region.dstImageOffset.y, region.dstImageSubresources.baseArrayLayer, region.dstImageExtent.width, region.dstImageExtent.height, region.dstImageSubresources.layerCount, baseEnum, type, region.srcData);
+				glTextureSubImage3D(resId, region.dstImageSubresources.mipLevel, region.dstImageOffset.x, region.dstImageOffset.y, region.dstImageSubresources.baseArrayLayer, region.dstImageExtent.width, region.dstImageExtent.height, region.dstImageSubresources.layerCount, baseEnum, typeEnum, region.srcData);
 			}
 			break;
 		default:
@@ -356,17 +357,17 @@ bool RTLib::Ext::GL::GLContext::CopyMemoryToImage(GLImage* image, const std::vec
 		{
 		case RTLib::Ext::GL::GLImageViewType::e1D:
 			for (const auto& region : regions) {
-				glTexSubImage1D(GL_TEXTURE_1D, region.dstImageSubresources.mipLevel, region.dstImageOffset.x, region.dstImageExtent.width, baseEnum, type, region.srcData);
+				glTexSubImage1D(GL_TEXTURE_1D, region.dstImageSubresources.mipLevel, region.dstImageOffset.x, region.dstImageExtent.width, baseEnum, typeEnum, region.srcData);
 			}
 			break;
 		case RTLib::Ext::GL::GLImageViewType::e2D:
 			for (const auto& region : regions) {
-				glTexSubImage2D(GL_TEXTURE_2D, region.dstImageSubresources.mipLevel, region.dstImageOffset.x, region.dstImageOffset.y, region.dstImageExtent.width, region.dstImageExtent.height, baseEnum, type, region.srcData);
+				glTexSubImage2D(GL_TEXTURE_2D, region.dstImageSubresources.mipLevel, region.dstImageOffset.x, region.dstImageOffset.y, region.dstImageExtent.width, region.dstImageExtent.height, baseEnum, typeEnum, region.srcData);
 			}
 			break;
 		case RTLib::Ext::GL::GLImageViewType::e3D:
 			for (const auto& region : regions) {
-				glTexSubImage3D(GL_TEXTURE_3D, region.dstImageSubresources.mipLevel, region.dstImageOffset.x, region.dstImageOffset.y, region.dstImageOffset.z, region.dstImageExtent.width, region.dstImageExtent.height, region.dstImageExtent.depth, baseEnum, type, region.srcData);
+				glTexSubImage3D(GL_TEXTURE_3D, region.dstImageSubresources.mipLevel, region.dstImageOffset.x, region.dstImageOffset.y, region.dstImageOffset.z, region.dstImageExtent.width, region.dstImageExtent.height, region.dstImageExtent.depth, baseEnum, typeEnum, region.srcData);
 			}
 			break;
 		case RTLib::Ext::GL::GLImageViewType::eCubemap:
@@ -374,18 +375,18 @@ bool RTLib::Ext::GL::GLContext::CopyMemoryToImage(GLImage* image, const std::vec
 				faceTargetIdxMin = region.dstImageSubresources.baseArrayLayer % 6;
 				faceTargetIdxMax = std::max<int>(faceTargetIdxMin + region.dstImageSubresources.layerCount, 6);
 				for (int i = faceTargetIdxMin; i < faceTargetIdxMax; ++i) {
-					glTexSubImage2D(faceTargets[i], region.dstImageSubresources.mipLevel, region.dstImageOffset.x, region.dstImageOffset.y, region.dstImageExtent.width, region.dstImageExtent.height, baseEnum, type, region.srcData);
+					glTexSubImage2D(faceTargets[i], region.dstImageSubresources.mipLevel, region.dstImageOffset.x, region.dstImageOffset.y, region.dstImageExtent.width, region.dstImageExtent.height, baseEnum, typeEnum, region.srcData);
 				}
 			}
 			break;
 		case RTLib::Ext::GL::GLImageViewType::e1DArray:
 			for (const auto& region : regions) {
-				glTexSubImage2D(GL_TEXTURE_1D_ARRAY, region.dstImageSubresources.mipLevel, region.dstImageOffset.x, region.dstImageSubresources.baseArrayLayer, region.dstImageExtent.width, region.dstImageSubresources.layerCount, baseEnum, type, region.srcData);
+				glTexSubImage2D(GL_TEXTURE_1D_ARRAY, region.dstImageSubresources.mipLevel, region.dstImageOffset.x, region.dstImageSubresources.baseArrayLayer, region.dstImageExtent.width, region.dstImageSubresources.layerCount, baseEnum, typeEnum, region.srcData);
 			}
 			break;
 		case RTLib::Ext::GL::GLImageViewType::e2DArray:
 			for (const auto& region : regions) {
-				glTexSubImage3D(GL_TEXTURE_2D_ARRAY, region.dstImageSubresources.mipLevel, region.dstImageOffset.x, region.dstImageOffset.y, region.dstImageSubresources.baseArrayLayer, region.dstImageExtent.width, region.dstImageExtent.height, region.dstImageSubresources.layerCount, baseEnum, type, region.srcData);
+				glTexSubImage3D(GL_TEXTURE_2D_ARRAY, region.dstImageSubresources.mipLevel, region.dstImageOffset.x, region.dstImageOffset.y, region.dstImageSubresources.baseArrayLayer, region.dstImageExtent.width, region.dstImageExtent.height, region.dstImageSubresources.layerCount, baseEnum, typeEnum, region.srcData);
 			}
 			break;
 		case RTLib::Ext::GL::GLImageViewType::eCubemapArray:
@@ -455,7 +456,7 @@ void RTLib::Ext::GL::GLContext::DrawArrays(GLDrawMode drawMode, size_t first, in
 void RTLib::Ext::GL::GLContext::DrawElements(GLDrawMode drawMode, GLIndexFormat indexType, size_t count, intptr_t indexOffsetInBytes)
 {
     if (!m_Impl->m_VAO){ return;}
-	glDrawElements(GetGLDrawModeGLenum(drawMode), count, GetGLTypeGLEnum(static_cast<GLTypeFlagBits>(indexType)), reinterpret_cast<void*>(indexOffsetInBytes));
+	glDrawElements(GetGLDrawModeGLenum(drawMode), count, GetGLTypeGLEnum(static_cast<GLDataTypeFlagBits>(indexType)), reinterpret_cast<void*>(indexOffsetInBytes));
 }
 
 void RTLib::Ext::GL::GLContext::SetClearBuffer(GLClearBufferFlags flags)

@@ -121,7 +121,7 @@ bool RTLib::Ext::CUDA::CUDAStream::CopyImageToBuffer(CUDAImage* image, CUDABuffe
     auto bffAddress = CUDANatives::GetCUdeviceptr(buffer);
     auto imgType = image->GetImageType();
     auto imgFormat = image->GetFormat();
-    auto imgDataSize = image->GetChannels() * GetCUDAImageDataTypeSize(imgFormat) / 8;
+    auto imgDataSize = CUDAImageFormatUtils::GetBitSize(imgFormat) / 8;
     auto imgLevels = image->GetLevels();
     auto imgLayers = image->GetLayers();
     auto result = CUDA_SUCCESS;
@@ -271,7 +271,7 @@ bool RTLib::Ext::CUDA::CUDAStream::CopyBufferToImage(CUDABuffer* buffer, CUDAIma
     auto bffAddress = CUDANatives::GetCUdeviceptr(buffer);
     auto imgType = image->GetImageType();
     auto imgFormat = image->GetFormat();
-    auto imgDataSize = image->GetChannels() * GetCUDAImageDataTypeSize(imgFormat) / 8;
+    auto imgDataSize = CUDAImageFormatUtils::GetBitSize(imgFormat) / 8;
     auto imgLevels = image->GetLevels();
     auto imgLayers = image->GetLayers();
     auto result = CUDA_SUCCESS;
@@ -354,7 +354,7 @@ bool RTLib::Ext::CUDA::CUDAStream::CopyImageToMemory(CUDAImage* image, const std
     if (!image || !m_Stream) { return false; }
     auto imgType = image->GetImageType();
     auto imgFormat = image->GetFormat();
-    auto imgDataSize = image->GetChannels() * GetCUDAImageDataTypeSize(imgFormat) / 8;
+    auto imgDataSize = CUDAImageFormatUtils::GetBitSize(imgFormat) / 8;
     auto imgLevels = image->GetLevels();
     auto imgLayers = image->GetLayers();
     auto result = CUDA_SUCCESS;
@@ -502,7 +502,7 @@ bool RTLib::Ext::CUDA::CUDAStream::CopyMemoryToImage(CUDAImage* image, const std
     if (!image || !m_Stream) { return false; }
     auto imgType = image->GetImageType();
     auto imgFormat = image->GetFormat();
-    auto imgDataSize = image->GetChannels() * GetCUDAImageDataTypeSize(imgFormat) / 8;
+    auto imgDataSize = CUDAImageFormatUtils::GetBitSize(imgFormat) / 8;
     auto imgLevels = image->GetLevels();
     auto imgLayers = image->GetLayers();
     auto result = CUDA_SUCCESS;

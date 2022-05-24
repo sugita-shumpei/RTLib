@@ -145,7 +145,7 @@ bool RTLib::Ext::CUDA::CUDAContext::CopyImageToBuffer(CUDAImage* image, CUDABuff
     auto bffAddress  = CUDANatives::GetCUdeviceptr(buffer);
     auto imgType     = image->GetImageType();
     auto imgFormat   = image->GetFormat();
-    auto imgDataSize = image->GetChannels()* GetCUDAImageDataTypeSize(imgFormat)/8;
+    auto imgDataSize = CUDAImageFormatUtils::GetBitSize(imgFormat)/8;
     auto imgLevels   = image->GetLevels();
     auto imgLayers   = image->GetLayers();
     auto result      = CUDA_SUCCESS;
@@ -293,7 +293,7 @@ bool RTLib::Ext::CUDA::CUDAContext::CopyBufferToImage(CUDABuffer* buffer, CUDAIm
     auto bffAddress = CUDANatives::GetCUdeviceptr(buffer);
     auto imgType = image->GetImageType();
     auto imgFormat = image->GetFormat();
-    auto imgDataSize = image->GetChannels() * GetCUDAImageDataTypeSize(imgFormat) / 8;
+    auto imgDataSize = CUDAImageFormatUtils::GetBitSize(imgFormat) / 8;
     auto imgLevels = image->GetLevels();
     auto imgLayers = image->GetLayers();
     auto result = CUDA_SUCCESS;
@@ -374,7 +374,7 @@ bool RTLib::Ext::CUDA::CUDAContext::CopyImageToMemory(CUDAImage* image, const st
     if (!image) { return false; }
     auto imgType = image->GetImageType();
     auto imgFormat = image->GetFormat();
-    auto imgDataSize = image->GetChannels() * GetCUDAImageDataTypeSize(imgFormat) / 8;
+    auto imgDataSize = CUDAImageFormatUtils::GetBitSize(imgFormat) / 8;
     auto imgLevels = image->GetLevels();
     auto imgLayers = image->GetLayers();
     auto result = CUDA_SUCCESS;
@@ -522,7 +522,7 @@ bool RTLib::Ext::CUDA::CUDAContext::CopyMemoryToImage(CUDAImage* image, const st
     if (!image) { return false; }
     auto imgType = image->GetImageType();
     auto imgFormat = image->GetFormat();
-    auto imgDataSize = image->GetChannels() * GetCUDAImageDataTypeSize(imgFormat) / 8;
+    auto imgDataSize = CUDAImageFormatUtils::GetBitSize(imgFormat) / 8;
     auto imgLevels = image->GetLevels();
     auto imgLayers = image->GetLayers();
     auto result = CUDA_SUCCESS;
