@@ -117,7 +117,7 @@ namespace RTLib
 				{
 					return GL_DISPATCH_INDIRECT_BUFFER;
 				}
-				if (usageFlags & GLBufferUsageTransformFeedBack)
+				if (usageFlags & GLBufferUsageTransformFeedback)
 				{
 					return GL_TRANSFORM_FEEDBACK_BUFFER;
 				}
@@ -1196,41 +1196,57 @@ namespace RTLib
 					break;
 				}
 			}
-			inline constexpr auto GetGLMinFilterEnum(Core::FilterMode filterMode, Core::SamplerMipmapMode mipmapFilterMode) -> GLenum
+			inline constexpr auto GetGLMinFilterEnum(Core::FilterMode filterMode, Core::SamplerMipmapMode mipmapFilterMode, bool useMipmap = false) -> GLenum
 			{
-				switch (filterMode)
-				{
-				case RTLib::Core::FilterMode::eNearest:
-					switch (mipmapFilterMode)
+				if (useMipmap) {
+					switch (filterMode)
 					{
-					case RTLib::Core::SamplerMipmapMode::eNearest:
-						return GL_NEAREST_MIPMAP_NEAREST;
+					case RTLib::Core::FilterMode::eNearest:
+						switch (mipmapFilterMode)
+						{
+						case RTLib::Core::SamplerMipmapMode::eNearest:
+							return GL_NEAREST_MIPMAP_NEAREST;
+							break;
+						case RTLib::Core::SamplerMipmapMode::eLinear:
+							return GL_NEAREST_MIPMAP_LINEAR;
+							break;
+						default:
+							return GL_NEAREST;
+							break;
+						}
 						break;
-					case RTLib::Core::SamplerMipmapMode::eLinear:
-						return GL_NEAREST_MIPMAP_LINEAR;
-						break;
-					default:
-						return GL_NEAREST;
-						break;
-					}
-					break;
-				case RTLib::Core::FilterMode::eLinear:
-					switch (mipmapFilterMode)
-					{
-					case RTLib::Core::SamplerMipmapMode::eNearest:
-						return GL_LINEAR_MIPMAP_NEAREST;
-						break;
-					case RTLib::Core::SamplerMipmapMode::eLinear:
-						return GL_LINEAR_MIPMAP_LINEAR;
+					case RTLib::Core::FilterMode::eLinear:
+						switch (mipmapFilterMode)
+						{
+						case RTLib::Core::SamplerMipmapMode::eNearest:
+							return GL_LINEAR_MIPMAP_NEAREST;
+							break;
+						case RTLib::Core::SamplerMipmapMode::eLinear:
+							return GL_LINEAR_MIPMAP_LINEAR;
+							break;
+						default:
+							return GL_LINEAR;
+							break;
+						}
 						break;
 					default:
 						return GL_LINEAR;
 						break;
 					}
-					break;
-				default:
-					return GL_LINEAR;
-					break;
+				}
+				else {
+					switch (filterMode)
+					{
+					case RTLib::Core::FilterMode::eNearest:
+						return GL_NEAREST;
+						break;
+					case RTLib::Core::FilterMode::eLinear:
+						return GL_LINEAR;
+						break;
+					default:
+						return GL_LINEAR;
+						break;
+					}
 				}
 			}
 

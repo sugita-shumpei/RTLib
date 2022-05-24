@@ -184,16 +184,20 @@ int main(int argc, const char* argv[]) {
         if (vertexShader->ResetBinarySPV(LoadBinary(RTLIB_EXT_GL_TEST_CONFIG_SHADER_DIR"/Test460.vert.spv"))){
             vertexShader->Specialize("main");
         }else{
-            vertexShader->ResetSourceGLSL(LoadShaderSource(RTLIB_EXT_GL_TEST_CONFIG_SHADER_DIR"/Test330.vert"));
-			vertexShader->Compile();
+			std::string log;
+            vertexShader->ResetSourceGLSL(LoadShaderSource(RTLIB_EXT_GL_TEST_CONFIG_SHADER_DIR"/Test410.vert"));
+			vertexShader->Compile(log);
+			std::cout << log << std::endl;
         }
 
 		auto fragmentShader = std::unique_ptr<RTLib::Ext::GL::GLShader>(context->CreateShader(RTLib::Ext::GL::GLShaderStageFragment));
         if (fragmentShader->ResetBinarySPV(LoadBinary( RTLIB_EXT_GL_TEST_CONFIG_SHADER_DIR"/Test460.frag.spv"))){
             fragmentShader->Specialize("main");
         }else{
-            fragmentShader->ResetSourceGLSL(LoadShaderSource(RTLIB_EXT_GL_TEST_CONFIG_SHADER_DIR"/Test330.frag"));
-			fragmentShader->Compile();
+			std::string log;
+            fragmentShader->ResetSourceGLSL(LoadShaderSource(RTLIB_EXT_GL_TEST_CONFIG_SHADER_DIR"/Test410.frag"));
+			fragmentShader->Compile(log);
+			std::cout << log << std::endl;
         }
         
         auto   vao = std::unique_ptr<RTLib::Ext::GL::GLVertexArray>(context->CreateVertexArray());
@@ -206,7 +210,7 @@ int main(int argc, const char* argv[]) {
         vao->SetVertexAttribBinding(1, 1);
 		assert(vao->Enable());
         
-		auto graphicsProgram = std::unique_ptr < RTLib::Ext::GL::GLProgram>(context->CreateProgram());
+		auto graphicsProgram = std::unique_ptr<RTLib::Ext::GL::GLProgram>(context->CreateProgram());
 		graphicsProgram->AttachShader(vertexShader.get());
 		graphicsProgram->AttachShader(fragmentShader.get());
 		assert(graphicsProgram->Link());
@@ -218,11 +222,13 @@ int main(int argc, const char* argv[]) {
 			context->SetClearColor (0.0f, 1.0f, 0.0f, 0.0f);
 			context->SetProgram(graphicsProgram.get());
 			context->SetTexture(0, tex.get());
-            context->SetVertexArrayState(vao.get());
-            context->DrawArrays(RTLib::Ext::GL::GLDrawMode::eTriangles, 0, 3);
+			context->SetUniformImageUnit(smpLoc, 0);
+            context->SetVertexArray(vao.get());
+            context->DrawArrays(RTLib::Ext::GL::GLDrawMode::eTriangles,0,3);
 			glfwSwapBuffers(window);
 			glfwPollEvents();
 		}
+
 		tex->Destroy();
 		graphicsProgram->Destroy();
 		fragmentShader->Destroy();

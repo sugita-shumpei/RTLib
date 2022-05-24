@@ -11,26 +11,49 @@ auto RTLib::Ext::GL::GLTexture::Allocate(GLContext *context, const GLTextureCrea
     auto texture = new GLTexture();
     texture->m_Impl->image = std::unique_ptr<GLImage>(GLImage::Allocate(context, desc.image));
     auto samplerDesc = desc.sampler;
-    auto target = GetGLImageViewTypeGLenum(texture->m_Impl->image->GetViewType());
-    glTexParameteri( target, GL_TEXTURE_MAG_FILTER, GetGLMagFilterEnum(samplerDesc.magFilter));
-    glTexParameteri( target, GL_TEXTURE_MIN_FILTER, GetGLMinFilterEnum(samplerDesc.minFilter, samplerDesc.mipmapMode));
-    glTexParameteri( target, GL_TEXTURE_WRAP_S, GetGLAddressModeGLEnum(samplerDesc.addressModeU));
-    glTexParameteri( target, GL_TEXTURE_WRAP_T, GetGLAddressModeGLEnum(samplerDesc.addressModeV));
-    glTexParameteri( target, GL_TEXTURE_WRAP_R, GetGLAddressModeGLEnum(samplerDesc.addressModeW));
-    glTexParameterf( target, GL_TEXTURE_LOD_BIAS, samplerDesc.mipLodBias);
-    glTexParameterf( target, GL_TEXTURE_MIN_LOD, samplerDesc.minLod);
-    glTexParameterf( target, GL_TEXTURE_MAX_LOD, samplerDesc.maxLod);
-    glTexParameterfv(target, GL_TEXTURE_BORDER_COLOR, samplerDesc.borderColor);
-    if (samplerDesc.anisotropyEnable)
-    {
-        glTexParameterf(target, GL_TEXTURE_MAX_ANISOTROPY, samplerDesc.maxAnisotropy);
+    if (context->SupportVersion(4, 5)) {
+        glTextureParameteri(texture->GetResId(), GL_TEXTURE_MAG_FILTER, GetGLMagFilterEnum(samplerDesc.magFilter));
+        glTextureParameteri(texture->GetResId(), GL_TEXTURE_MIN_FILTER, GetGLMinFilterEnum(samplerDesc.minFilter, samplerDesc.mipmapMode));
+        glTextureParameteri(texture->GetResId(), GL_TEXTURE_WRAP_S, GetGLAddressModeGLEnum(samplerDesc.addressModeU));
+        glTextureParameteri(texture->GetResId(), GL_TEXTURE_WRAP_T, GetGLAddressModeGLEnum(samplerDesc.addressModeV));
+        glTextureParameteri(texture->GetResId(), GL_TEXTURE_WRAP_R, GetGLAddressModeGLEnum(samplerDesc.addressModeW));
+        glTextureParameterf(texture->GetResId(), GL_TEXTURE_LOD_BIAS, samplerDesc.mipLodBias);
+        glTextureParameterf(texture->GetResId(), GL_TEXTURE_MIN_LOD, samplerDesc.minLod);
+        glTextureParameterf(texture->GetResId(), GL_TEXTURE_MAX_LOD, samplerDesc.maxLod);
+        glTextureParameterfv(texture->GetResId(), GL_TEXTURE_BORDER_COLOR, samplerDesc.borderColor);
+        if (samplerDesc.anisotropyEnable)
+        {
+            glTextureParameterf(texture->GetResId(), GL_TEXTURE_MAX_ANISOTROPY, samplerDesc.maxAnisotropy);
+        }
+        if (samplerDesc.compareEnable)
+        {
+            glTextureParameteri(texture->GetResId(), GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+            glTextureParameteri(texture->GetResId(), GL_TEXTURE_COMPARE_FUNC, GetGLCompareOpGLEnum(samplerDesc.compareOp));
+        }
     }
-    if (samplerDesc.compareEnable)
-    {
-        glTexParameteri(target, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
-        glTexParameteri(target, GL_TEXTURE_COMPARE_FUNC, GetGLCompareOpGLEnum(samplerDesc.compareOp));
+    else {
+        context->SetTexture(0, texture);
+        auto target = GetGLImageViewTypeGLenum(texture->m_Impl->image->GetViewType());
+        bool useMap = desc.image.mipLevels > 1;
+        glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GetGLMagFilterEnum(samplerDesc.magFilter));
+        glTexParameteri(target, GL_TEXTURE_MIN_FILTER, GetGLMinFilterEnum(samplerDesc.minFilter, samplerDesc.mipmapMode, useMap));
+        glTexParameteri(target, GL_TEXTURE_WRAP_S, GetGLAddressModeGLEnum(samplerDesc.addressModeU));
+        glTexParameteri(target, GL_TEXTURE_WRAP_T, GetGLAddressModeGLEnum(samplerDesc.addressModeV));
+        glTexParameteri(target, GL_TEXTURE_WRAP_R, GetGLAddressModeGLEnum(samplerDesc.addressModeW));
+        glTexParameterf(target, GL_TEXTURE_LOD_BIAS, samplerDesc.mipLodBias);
+        glTexParameterf(target, GL_TEXTURE_MIN_LOD, samplerDesc.minLod);
+        glTexParameterf(target, GL_TEXTURE_MAX_LOD, samplerDesc.maxLod);
+        glTexParameterfv(target, GL_TEXTURE_BORDER_COLOR, samplerDesc.borderColor);
+        if (samplerDesc.anisotropyEnable)
+        {
+            glTexParameterf(target, GL_TEXTURE_MAX_ANISOTROPY, samplerDesc.maxAnisotropy);
+        }
+        if (samplerDesc.compareEnable)
+        {
+            glTexParameteri(target, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+            glTexParameteri(target, GL_TEXTURE_COMPARE_FUNC, GetGLCompareOpGLEnum(samplerDesc.compareOp));
+        }
     }
-
     return texture;
 }
 

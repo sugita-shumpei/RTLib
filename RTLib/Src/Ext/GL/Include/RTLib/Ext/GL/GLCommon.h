@@ -38,7 +38,7 @@ namespace RTLib
 				GLBufferUsageQuery = 1 << 5,
 				GLBufferUsageStorage = 1 << 6,
 				GLBufferUsageTexture = 1 << 7,
-				GLBufferUsageTransformFeedBack = 1 << 8,
+				GLBufferUsageTransformFeedback = 1 << 8,
 				GLBufferUsageUniform = 1 << 9,
 				GLBufferUsageImageCopySrc = 1 << 10,
 				GLBufferUsageImageCopyDst = 1 << 11,
@@ -46,127 +46,130 @@ namespace RTLib
 				GLBufferUsageGenericCopyDst = 1 << 13,
 			};
 			using GLBufferUsageFlags = unsigned int;
-			inline constexpr auto GetGLBufferUsageCount(GLBufferUsageFlags usageFlags) -> unsigned int
+			struct GLBufferUsageFlagsUtils
 			{
-				unsigned int count = 0;
-				if (usageFlags == GLBufferUsageGenericCopySrc)
+				static inline constexpr auto GetUsageCount(GLBufferUsageFlags usageFlags) -> unsigned int
 				{
-					return 1;
+					unsigned int count = 0;
+					if (usageFlags == GLBufferUsageGenericCopySrc)
+					{
+						return 1;
+					}
+					if (usageFlags == GLBufferUsageGenericCopyDst)
+					{
+						return 1;
+					}
+					if ((usageFlags & GLBufferUsageVertex) == GLBufferUsageVertex)
+					{
+						++count;
+					}
+					if ((usageFlags & GLBufferUsageIndex) == GLBufferUsageIndex)
+					{
+						++count;
+					}
+					if ((usageFlags & GLBufferUsageUniform) == GLBufferUsageUniform)
+					{
+						++count;
+					}
+					if ((usageFlags & GLBufferUsageStorage) == GLBufferUsageStorage)
+					{
+						++count;
+					}
+					if ((usageFlags & GLBufferUsageImageCopySrc) == GLBufferUsageImageCopySrc)
+					{
+						++count;
+					}
+					if ((usageFlags & GLBufferUsageImageCopyDst) == GLBufferUsageImageCopyDst)
+					{
+						++count;
+					}
+					if ((usageFlags & GLBufferUsageDrawIndirect) == GLBufferUsageDrawIndirect)
+					{
+						++count;
+					}
+					if ((usageFlags & GLBufferUsageDispatchIndirect) == GLBufferUsageDispatchIndirect)
+					{
+						++count;
+					}
+					if ((usageFlags & GLBufferUsageTransformFeedback) == GLBufferUsageTransformFeedback)
+					{
+						++count;
+					}
+					if ((usageFlags & GLBufferUsageTexture) == GLBufferUsageTexture)
+					{
+						++count;
+					}
+					if ((usageFlags & GLBufferUsageQuery) == GLBufferUsageQuery)
+					{
+						++count;
+					}
+					if ((usageFlags & GLBufferUsageAtomicCounter) == GLBufferUsageAtomicCounter)
+					{
+						++count;
+					}
+					return count;
 				}
-				if (usageFlags == GLBufferUsageGenericCopyDst)
+				static inline constexpr auto GetMainUsage(GLBufferUsageFlags usageFlags) -> GLBufferUsageFlagBits
 				{
-					return 1;
+					if ((usageFlags & GLBufferUsageVertex))
+					{
+						return GLBufferUsageVertex;
+					}
+					if ((usageFlags & GLBufferUsageIndex))
+					{
+						return GLBufferUsageIndex;
+					}
+					if ((usageFlags & GLBufferUsageUniform))
+					{
+						return GLBufferUsageUniform;
+					}
+					if ((usageFlags & GLBufferUsageStorage))
+					{
+						return GLBufferUsageStorage;
+					}
+					if ((usageFlags & GLBufferUsageDrawIndirect))
+					{
+						return GLBufferUsageDrawIndirect;
+					}
+					if ((usageFlags & GLBufferUsageDispatchIndirect))
+					{
+						return GLBufferUsageDispatchIndirect;
+					}
+					if ((usageFlags & GLBufferUsageTransformFeedback))
+					{
+						return GLBufferUsageTransformFeedback;
+					}
+					if ((usageFlags & GLBufferUsageTexture))
+					{
+						return GLBufferUsageTexture;
+					}
+					if ((usageFlags & GLBufferUsageQuery))
+					{
+						return GLBufferUsageQuery;
+					}
+					if ((usageFlags & GLBufferUsageAtomicCounter))
+					{
+						return GLBufferUsageAtomicCounter;
+					}
+					if ((usageFlags & GLBufferUsageImageCopySrc))
+					{
+						return GLBufferUsageImageCopySrc;
+					}
+					if ((usageFlags & GLBufferUsageImageCopyDst))
+					{
+						return GLBufferUsageImageCopyDst;
+					}
+					if ((usageFlags & GLBufferUsageGenericCopySrc))
+					{
+						return GLBufferUsageGenericCopySrc;
+					}
+					if ((usageFlags & GLBufferUsageGenericCopyDst))
+					{
+						return GLBufferUsageGenericCopyDst;
+					}
+					return GLBufferUsageUnknown;
 				}
-				if ((usageFlags & GLBufferUsageVertex) == GLBufferUsageVertex)
-				{
-					++count;
-				}
-				if ((usageFlags & GLBufferUsageIndex) == GLBufferUsageIndex)
-				{
-					++count;
-				}
-				if ((usageFlags & GLBufferUsageUniform) == GLBufferUsageUniform)
-				{
-					++count;
-				}
-				if ((usageFlags & GLBufferUsageStorage) == GLBufferUsageStorage)
-				{
-					++count;
-				}
-				if ((usageFlags & GLBufferUsageImageCopySrc) == GLBufferUsageImageCopySrc)
-				{
-					++count;
-				}
-				if ((usageFlags & GLBufferUsageImageCopyDst) == GLBufferUsageImageCopyDst)
-				{
-					++count;
-				}
-				if ((usageFlags & GLBufferUsageDrawIndirect) == GLBufferUsageDrawIndirect)
-				{
-					++count;
-				}
-				if ((usageFlags & GLBufferUsageDispatchIndirect) == GLBufferUsageDispatchIndirect)
-				{
-					++count;
-				}
-				if ((usageFlags & GLBufferUsageTransformFeedBack) == GLBufferUsageTransformFeedBack)
-				{
-					++count;
-				}
-				if ((usageFlags & GLBufferUsageTexture) == GLBufferUsageTexture)
-				{
-					++count;
-				}
-				if ((usageFlags & GLBufferUsageQuery) == GLBufferUsageQuery)
-				{
-					++count;
-				}
-				if ((usageFlags & GLBufferUsageAtomicCounter) == GLBufferUsageAtomicCounter)
-				{
-					++count;
-				}
-				return count;
-			}
-			inline constexpr auto GetGLBufferMainUsage(GLBufferUsageFlags usageFlags) -> GLBufferUsageFlagBits
-			{
-				if ((usageFlags & GLBufferUsageVertex))
-				{
-					return GLBufferUsageVertex;
-				}
-				if ((usageFlags & GLBufferUsageIndex))
-				{
-					return GLBufferUsageIndex;
-				}
-				if ((usageFlags & GLBufferUsageUniform))
-				{
-					return GLBufferUsageUniform;
-				}
-				if ((usageFlags & GLBufferUsageStorage))
-				{
-					return GLBufferUsageStorage;
-				}
-				if ((usageFlags & GLBufferUsageDrawIndirect))
-				{
-					return GLBufferUsageDrawIndirect;
-				}
-				if ((usageFlags & GLBufferUsageDispatchIndirect))
-				{
-					return GLBufferUsageDispatchIndirect;
-				}
-				if ((usageFlags & GLBufferUsageTransformFeedBack))
-				{
-					return GLBufferUsageTransformFeedBack;
-				}
-				if ((usageFlags & GLBufferUsageTexture))
-				{
-					return GLBufferUsageTexture;
-				}
-				if ((usageFlags & GLBufferUsageQuery))
-				{
-					return GLBufferUsageQuery;
-				}
-				if ((usageFlags & GLBufferUsageAtomicCounter))
-				{
-					return GLBufferUsageAtomicCounter;
-				}
-				if ((usageFlags & GLBufferUsageImageCopySrc))
-				{
-					return GLBufferUsageImageCopySrc;
-				}
-				if ((usageFlags & GLBufferUsageImageCopyDst))
-				{
-					return GLBufferUsageImageCopyDst;
-				}
-				if ((usageFlags & GLBufferUsageGenericCopySrc))
-				{
-					return GLBufferUsageGenericCopySrc;
-				}
-				if ((usageFlags & GLBufferUsageGenericCopyDst))
-				{
-					return GLBufferUsageGenericCopyDst;
-				}
-				return GLBufferUsageUnknown;
-			}
+			};
 			enum GLShaderStageFlagBits
 			{
 				GLShaderStageVertex = Core::ShaderStageVertex,

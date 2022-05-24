@@ -21,15 +21,38 @@ namespace RTLib
                 virtual ~GLBuffer()noexcept;
                 
 				virtual void Destroy()noexcept override;
-				auto GetBufferUsage()const noexcept -> GLBufferUsageFlags;
+				auto GetUsages()const noexcept  -> GLBufferUsageFlags;
+				auto GetSizeInBytes() const noexcept -> size_t;
 			private:
 				GLBuffer(GLContext* context, const GLBufferCreateDesc& desc)noexcept;
+				auto GetMainUsage()const noexcept -> GLBufferUsageFlagBits;
+				auto GetMemoryProperty()const noexcept -> GLMemoryPropertyFlags;
 				auto GetResId()const noexcept -> GLuint;
-				auto GetCurrentTarget() const noexcept -> std::optional<GLenum>;
-				auto GetMemoryProperty()const noexcept-> GLMemoryPropertyFlags;
 			private:
 				struct Impl;
 				std::unique_ptr<Impl> m_Impl;
+			};
+			struct GLBufferView
+			{
+			public:
+				friend class GLNatives;
+			public:
+				GLBufferView()noexcept;
+				GLBufferView(GLBuffer* base)noexcept;
+				GLBufferView(GLBuffer* base, size_t offsetInBytes, size_t sizeInBytes)noexcept;
+				GLBufferView(const GLBufferView& bufferView, size_t offsetInBytes, size_t sizeInBytes)noexcept;
+
+				GLBufferView(const GLBufferView& bufferView)noexcept;
+				GLBufferView& operator=(const GLBufferView& bufferView)noexcept;
+
+				auto GetBaseBuffer()const noexcept -> const GLBuffer* { return m_Base; }
+				auto GetBaseBuffer()      noexcept ->       GLBuffer* { return m_Base; }
+				auto GetSizeInBytes() const noexcept -> size_t { return m_SizeInBytes; }
+				auto GetOffsetInBytes()const noexcept-> size_t { return m_OffsetInBytes; }
+			private:
+				GLBuffer* m_Base;
+				size_t      m_OffsetInBytes;
+				size_t      m_SizeInBytes;
 			};
 		}
 	}

@@ -85,35 +85,36 @@ bool RTLib::Ext::GL::GLVertexArray::Enable()
             return false;
         }
     }
-    glBindVertexArray(resId);
-    if (m_IndexBuffer) {
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_IndexBuffer->GetResId());
-    }
-    else {
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-    }
-    for (auto& [bindingIndex, bindingInfo] : m_VertexBindings) {
-        std::vector<GLuint> tVertexAttribIndices = {};
-        for (auto& [attribIndex, tBindingIndex] : m_VertexAttribBindings) {
-            if (tBindingIndex == bindingIndex) { tVertexAttribIndices.push_back(attribIndex); }
+    {
+        m_Context->SetVertexArray(this);
+        if (m_IndexBuffer) {
+            m_Context->SetBuffer(GLBufferUsageIndex, m_IndexBuffer);
         }
-        if (tVertexAttribIndices.empty()) {
-            continue;
+        else {
+            m_Context->InvalidateBuffer(GLBufferUsageIndex);
         }
-        glBindBuffer(GL_ARRAY_BUFFER, bindingInfo.vertexBuffer->GetResId());
-        for (const auto& attribIndex : tVertexAttribIndices) {
-            if (m_VertexAttributes.count(attribIndex) > 0) {
-                const auto& attrib = m_VertexAttributes.at(attribIndex);
-                uintptr_t offset = bindingInfo.stride * bindingInfo.offset + attrib.relativeOffset;
-                glEnableVertexAttribArray(attribIndex);
-                glVertexAttribPointer(attribIndex, attrib.size, attrib.type, attrib.normalized, bindingInfo.stride, reinterpret_cast<const void*>(offset));
+        for (auto& [bindingIndex, bindingInfo] : m_VertexBindings) {
+            std::vector<GLuint> tVertexAttribIndices = {};
+            for (auto& [attribIndex, tBindingIndex] : m_VertexAttribBindings) {
+                if (tBindingIndex == bindingIndex) { tVertexAttribIndices.push_back(attribIndex); }
+            }
+            if (tVertexAttribIndices.empty()) {
+                continue;
+            }
+            m_Context->SetBuffer(GLBufferUsageVertex, bindingInfo.vertexBuffer);
+            for (const auto& attribIndex : tVertexAttribIndices) {
+                if (m_VertexAttributes.count(attribIndex) > 0) {
+                    const auto& attrib = m_VertexAttributes.at(attribIndex);
+                    uintptr_t offset = bindingInfo.stride * bindingInfo.offset + attrib.relativeOffset;
+                    glEnableVertexAttribArray(attribIndex);
+                    glVertexAttribPointer(attribIndex, attrib.size, attrib.type, attrib.normalized, bindingInfo.stride, reinterpret_cast<const void*>(offset));
+                }
             }
         }
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-    }
-    glBindVertexArray(0);
-    if (m_IndexBuffer) {
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+        m_Context->InvalidateVertexArray();
+        if (m_IndexBuffer) {
+            m_Context->InvalidateBuffer(GLBufferUsageIndex);
+        }
     }
     m_IsEnabled = true;
     return true;
@@ -124,12 +125,4 @@ RTLib::Ext::GL::GLVertexArray::GLVertexArray(GLContext* context, GLuint resId)no
 bool RTLib::Ext::GL::GLVertexArray::IsEnabled() const noexcept
 {
     return m_IsEnabled;
-}
-
-void RTLib::Ext::GL::GLVertexArray::Bind(){
-    if(m_IsBinded||!m_ResId){
-        return;
-    }
-    glBindVertexArray(m_ResId);
-    m_IsBinded = true;
 }

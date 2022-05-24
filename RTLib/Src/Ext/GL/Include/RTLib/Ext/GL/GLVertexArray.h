@@ -22,7 +22,6 @@ namespace RTLib
                 virtual ~GLVertexArray()noexcept;
                 
                 void Destroy() noexcept;
-                bool IsBindable() const noexcept;
                 bool SetVertexAttribBinding(GLuint attribIndex, GLuint bindIndex);
                 bool SetVertexAttribFormat(GLuint attribIndex , GLVertexFormat format, GLboolean normalized, GLuint relativeOffset = 0);
                 bool SetVertexBuffer(GLuint bindIndex, GLBuffer *vertexBuffer, GLsizei stride, GLintptr offset = 0);
@@ -72,8 +71,6 @@ namespace RTLib
                 }
                 auto GetResId() const noexcept -> GLuint { return m_ResId; }
             private:
-                void Bind();
-            private:
                 
                 struct VertexAttribFormatInfo
                 {
@@ -98,7 +95,6 @@ namespace RTLib
                 GLBuffer *m_IndexBuffer = nullptr;
                 GLuint m_ResId = 0;
                 bool m_IsEnabled = false;
-                bool m_IsBinded  = false;
             };
         }
     }

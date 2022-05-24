@@ -1,6 +1,7 @@
 set(RTLIB_CORE_SOURCES 
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Core/Common.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Core/TypeFormat.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Core/Utility.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Core/UuidDefinitions.h
 
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Core/Context.h

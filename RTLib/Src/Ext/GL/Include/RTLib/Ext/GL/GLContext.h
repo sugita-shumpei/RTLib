@@ -56,31 +56,28 @@ namespace RTLib
 				bool CopyBufferToImage(GLBuffer*srcBuffer, GLImage *dstImage, const std::vector<GLBufferImageCopy> &regions);
 				bool CopyImageToMemory(GLImage *image, const std::vector<GLImageMemoryCopy> &regions);
 				bool CopyMemoryToImage(GLImage* image, const std::vector<GLMemoryImageCopy>& regions);
+				/*Buffer*/
+				void SetBuffer(GLBufferUsageFlagBits usage, GLBuffer* buffer);
+				auto GetBuffer(GLBufferUsageFlagBits usage) noexcept->GLBuffer*;
+				bool HasBuffer(GLBufferUsageFlagBits usage, GLBuffer* buffer)const noexcept;
+				void InvalidateBuffer(GLBufferUsageFlagBits usage);
 				/*Uniform*/
 				void SetUniformImageUnit(int loc , int index);
 				void SetProgramUniformImageUnit(GLProgram* program, int loc, int index);
-				/*ActivateTexture*/
-				void SetActiveTexture(int index);
-				void SetTexture(int index, GLTexture* texture);
+				/*Texture*/
+				void ActivateImageUnit(int imageUnit);
+				void SetTexture(int imageUnit, GLTexture* texture);
+				void SetImage  (int imageUnit, GLImage*   image  );
                 /*PipelineState*/
                 void SetProgram(GLProgram* program);
-                void SetVertexArrayState(GLVertexArray* vao);
+                void SetVertexArray(GLVertexArray* vao);
+				void InvalidateVertexArray();
 				/*Draw*/
 				void DrawArrays(  GLDrawMode drawMode, size_t first, int32_t count);
 				void DrawElements(GLDrawMode drawMode, GLIndexFormat indexType, size_t count, intptr_t indexOffsetInBytes);
 				/*Clear*/
 				void SetClearBuffer(GLClearBufferFlags flags);
 				void SetClearColor(float r, float g, float b, float a);
-			private:
-				auto GetContextState() const noexcept -> const GLContextState *;
-				auto GetContextState() noexcept -> GLContextState*;
-
-				static auto GetInternalResId(GLBuffer     * buf)->GLuint;
-				static auto GetInternalResId(GLImage      * img)->GLuint;
-				static auto GetInternalResId(GLTexture    * tex)->GLuint;
-				static auto GetInternalResId(GLVertexArray* vao)->GLuint;
-				static auto GetInternalResId(GLProgram    * prg)->GLuint;
-				static auto GetInternalResId(GLShader     * shd)->GLuint;
 			private:
 				struct Impl;
 				std::unique_ptr<Impl> m_Impl;

@@ -134,7 +134,7 @@ auto RTLib::Ext::GL::GLProgram::GetShaderStages() const noexcept -> GLbitfield
 
 auto RTLib::Ext::GL::GLProgram::GetUniformLocation(const char* name) -> GLint
 {
-	if (IsLinked()) {
+	if (!IsLinked()) {
 		return -1;
 	}
 	return glGetUniformLocation(m_ResId, name);

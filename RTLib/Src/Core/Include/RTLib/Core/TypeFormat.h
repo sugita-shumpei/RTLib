@@ -8,25 +8,6 @@
 #define RTLIB_CORE_CORE_FORMAT_DEF_4(VAL1, VAL2, VAL3, VAL4) ((uint64_t)VAL1) | (((uint64_t)VAL2) << 9) | (((uint64_t)VAL3) << 18) | (((uint64_t)VAL4) << 27)
 namespace RTLib {
 	namespace Core {
-		struct BitMaskFlagsUtils
-		{
-			static constexpr auto Log2(uint64_t v)->unsigned int
-			{
-				uint32_t val = 0;
-				v /= 2;
-				while (v > 0) {
-					v /= 2;
-					val++;
-				} ;
-				return val;
-			}
-		};
-		namespace {
-			static_assert(BitMaskFlagsUtils::Log2(UINT8_MAX)  == 7);
-			static_assert(BitMaskFlagsUtils::Log2(UINT16_MAX) == 15);
-			static_assert(BitMaskFlagsUtils::Log2(UINT32_MAX) == 31);
-			static_assert(BitMaskFlagsUtils::Log2(UINT64_MAX) == 63);
-		}
 		enum class BaseTypeFlagBits
 		{
 			eUndefined = 0,

@@ -163,10 +163,13 @@ auto RTLib::Ext::GL::GLImage::Allocate(GLContext* context, const GLImageCreateDe
         depth = desc.extent.depth;
         break;
     default:
+        target = GL_TEXTURE_2D;
         break;
     }
     glGenTextures(1, &resIdx);
-    glBindTexture(target, resIdx);
+    auto image            = new GLImage(context, desc);
+    image->m_Impl->resId  = resIdx;
+    context->SetImage(0, image);
     if (context->SupportVersion(4, 2))
     {
         if (depth > 0)
@@ -184,9 +187,9 @@ auto RTLib::Ext::GL::GLImage::Allocate(GLContext* context, const GLImageCreateDe
     }
     else
     {
-        GLsizei mipWidth = width;
+        GLsizei mipWidth  = width;
         GLsizei mipHeight = height;
-        GLsizei mipDepth = depth;
+        GLsizei mipDepth  = depth;
         if (depth > 0)
         {
             if (target == GL_TEXTURE_CUBE_MAP_ARRAY)
@@ -269,9 +272,8 @@ auto RTLib::Ext::GL::GLImage::Allocate(GLContext* context, const GLImageCreateDe
                 }
             }
         }
+    
     }
-    auto image            = new GLImage(context, desc);
-    image->m_Impl->resId  = resIdx;
     return image;
 }
 
