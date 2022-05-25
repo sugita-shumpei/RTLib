@@ -1,22 +1,26 @@
 #ifndef RTLIB_EXT_GL_RECT_RENDERER_H
 #define RTLIB_EXT_GL_RECT_RENDERER_H
-#include <RTLib/Ext/GL/GLProgram.h>
+#include <RTLib/Core/BaseObject.h>
+#include <RTLib/Ext/GL/UuidDefinitions.h>
+#include <RTLib/Ext/GL/GLContext.h>
 namespace RTLib{
     namespace Ext{
         namespace GL{
-            class GLRectRenderer
+            class GLTexture;
+            class GLRectRenderer : public Core::BaseObject
             {
             public:
-                 GLRectRenderer()noexcept {}
-                ~GLRectRenderer()noexcept {}
-                
+                RTLIB_CORE_TYPE_OBJECT_DECLARE_DERIVED_METHOD(GLRectRenderer, Core::BaseObject, RTLIB_TYPE_UUID_RTLIB_EXT_GL_GL_RECT_RENDERER);
+                static auto New(GLContext* ctx)->GLRectRenderer*;
+                virtual ~GLRectRenderer()noexcept;
+
+                void Destroy()noexcept;
+                void DrawTexture(GLTexture* texture);
             private:
-                unsigned int m_VAO;
-                unsigned int m_VBO;
-                unsigned int m_IBO;
-                unsigned int m_Program;
-                uint32_t     m_Width;
-                uint32_t     m_Height;
+                GLRectRenderer(GLContext* ctx)noexcept;
+            private:
+                struct Impl;
+                std::unique_ptr<Impl> m_Impl;
             };
         }
     }

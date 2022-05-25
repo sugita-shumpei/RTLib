@@ -76,30 +76,6 @@ bool RTLib::Ext::GL::GLProgram::IsAttachable(GLShaderStageFlagBits programType) 
 	return true;
 }
 
-bool RTLib::Ext::GL::GLProgram::Enable()
-{
-	auto resId = GetResId();
-	if (!resId || !IsLinked() || !m_Context) {
-		return false;
-	}
-	if (m_IsEnabled) { return true; }
-	glUseProgram(resId);
-	m_IsEnabled = true;
-	return true;
-}
-
-void RTLib::Ext::GL::GLProgram::Disable()
-{
-	auto resId = GetResId();
-	if (!resId || !IsLinked() || !m_Context || !m_IsEnabled) {
-		return;
-	}
-	glUseProgram(0);
-	m_IsEnabled = false;
-}
-
-bool RTLib::Ext::GL::GLProgram::IsEnabled() const noexcept { return m_IsEnabled; }
-
 bool RTLib::Ext::GL::GLProgram::HasShaderType(GLShaderStageFlagBits shaderType) const noexcept
 {
 	if (m_AttachedStages.count(shaderType) == 0) {
@@ -108,7 +84,7 @@ bool RTLib::Ext::GL::GLProgram::HasShaderType(GLShaderStageFlagBits shaderType) 
 	return m_AttachedStages.at(shaderType).isEnabled;
 }
 
-auto RTLib::Ext::GL::GLProgram::GetShaderStages() const noexcept -> GLbitfield
+auto RTLib::Ext::GL::GLProgram::GetShaderStages() const noexcept -> GLShaderStageFlags
 {
 	GLbitfield stages = 0;
 	if (HasShaderType(GLShaderStageVertex)) {
@@ -188,6 +164,23 @@ bool RTLib::Ext::GL::GLProgram::SetUniformImageUnit(GLint location, GLuint image
 		m_Context->SetUniformImageUnit(location, imageUnit);
 	}
 	return true;
+}
+
+void RTLib::Ext::GL::GLProgram::SetSeparetable(bool isEnabled)
+{
+	if (!m_Context->SupportVersion(4, 1)) {
+		std::cerr << "Error: Separatable Program Must Support OpenGL 4.1\n";
+		return;
+	}
+	if (m_IsSeparatable != isEnabled) {
+		glProgramParameteri(m_ResId, GL_PROGRAM_SEPARABLE, isEnabled);
+		m_IsSeparatable = isEnabled;
+	}
+} 
+
+bool RTLib::Ext::GL::GLProgram::IsSeparatable() const noexcept
+{
+	return m_IsSeparatable;
 }
 
 auto RTLib::Ext::GL::GLProgram::New(GLContext* context) -> GLProgram*

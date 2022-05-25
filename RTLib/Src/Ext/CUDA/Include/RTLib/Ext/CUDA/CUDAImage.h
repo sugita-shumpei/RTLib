@@ -36,7 +36,7 @@ namespace RTLib {
 				auto GetMipDepth( unsigned int level)const noexcept -> size_t;
 			private:
 				CUDAImage(CUDAContext* ctx, const CUDAImageCreateDesc& desc, CUarray          cuArray, bool ownership = true)noexcept;
-				CUDAImage(CUDAContext* ctx, const CUDAImageCreateDesc& desc, CUmipmappedArray cuArray, const std::vector<CUarray>& cuArrayRefs)noexcept;
+				CUDAImage(CUDAContext* ctx, const CUDAImageCreateDesc& desc, CUmipmappedArray cuArray, const std::vector<CUarray>& cuArrayRefs, bool ownership = true)noexcept;
 				static auto AllocateArray(CUDAContext* ctx, const CUDAImageCreateDesc& desc)->CUDAImage*;
 				static auto AllocateArray3D(CUDAContext* ctx, const CUDAImageCreateDesc& desc)->CUDAImage*;
 				static auto AllocateMipmappedArray(CUDAContext* ctx, const CUDAImageCreateDesc& desc)->CUDAImage*;

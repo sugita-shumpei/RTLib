@@ -3,6 +3,7 @@
 #include <RTLib/Ext/GL/GLImage.h>
 #include <RTLib/Ext/GL/GLTexture.h>
 #include <RTLib/Ext/GL/GLProgram.h>
+#include <RTLib/Ext/GL/GLProgramPipeline.h>
 #include <RTLib/Ext/GL/GLShader.h>
 #include <RTLib/Ext/GL/GLVertexArray.h>
 #include <RTLib/Ext/GL/GLFramebuffer.h>
@@ -25,6 +26,11 @@ auto RTLib::Ext::GL::GLNatives::GetResId(GLTexture* tex) -> GLuint
 }
 
 auto RTLib::Ext::GL::GLNatives::GetResId(GLProgram* prg) -> GLuint
+{
+	return prg ? prg->GetResId() : 0;
+}
+
+auto RTLib::Ext::GL::GLNatives::GetResId(GLProgramPipeline* prg) -> GLuint
 {
 	return prg ? prg->GetResId() : 0;
 }

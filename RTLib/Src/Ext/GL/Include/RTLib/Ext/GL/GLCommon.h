@@ -211,12 +211,7 @@ namespace RTLib
 				const void *pData = nullptr;
 			};
 
-			enum class GLImageType
-			{
-				e1D,
-				e2D,
-				e3D
-			};
+			using GLImageType = Core::ImageType;
 			enum class GLImageViewType
 			{
 				e1D,

@@ -5,6 +5,21 @@
 #include <RTLib/Ext/CUDA/CUDATexture.h>
 #include <RTLib/Ext/CUDA/CUDAModule.h>
 #include <RTLib/Ext/CUDA/CUDAFunction.h>
+auto RTLib::Ext::CUDA::CUDANatives::GetCUDABuffer(CUDAContext* ctx, CUdeviceptr deviceptr, size_t sizeInBytes, CUDAMemoryFlags flags) -> CUDABuffer*
+{
+    CUDABufferCreateDesc desc = {};
+    desc.flags = flags;
+    desc.sizeInBytes = sizeInBytes;
+    return new CUDABuffer(ctx, desc, deviceptr, false);
+}
+auto RTLib::Ext::CUDA::CUDANatives::GetCUDAImage(CUDAContext* ctx, const CUDAImageCreateDesc& desc, CUarray cuArray) -> CUDAImage*
+{
+    return new CUDA::CUDAImage(ctx,desc,cuArray,false);
+}
+auto RTLib::Ext::CUDA::CUDANatives::GetCUDAImage(CUDAContext* ctx, const CUDAImageCreateDesc& desc, CUmipmappedArray cuArray, const std::vector<CUarray>& cuArrayRefs) -> CUDAImage*
+{
+    return new CUDA::CUDAImage(ctx,desc,cuArray,cuArrayRefs,false);
+}
 auto RTLib::Ext::CUDA::CUDANatives::GetCUcontext(CUDAContext* context) -> CUcontext
 {
     return context ? context->GetCUcontext() : nullptr;

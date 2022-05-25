@@ -11,13 +11,13 @@ struct RTLib::Ext::CUDA::CUDAImage::Impl {
 		m_Arrays = { cuArray };
 		m_Ownership = ownership;
 	}
-	Impl(CUDAContext* ctx, const CUDAImageCreateDesc& desc, CUmipmappedArray cuArray, const std::vector<CUarray>& cuArrayRefs)noexcept {
+	Impl(CUDAContext* ctx, const CUDAImageCreateDesc& desc, CUmipmappedArray cuArray, const std::vector<CUarray>& cuArrayRefs, bool ownership)noexcept {
 
 		m_Context = ctx;
 		m_Desc = desc;
-		m_ArrayMipmapped = nullptr;
+		m_ArrayMipmapped = cuArray;
 		m_Arrays = cuArrayRefs;
-		m_Ownership = true;
+		m_Ownership = ownership;
 	}
 	CUDAContext*            m_Context;
 	CUmipmappedArray        m_ArrayMipmapped;
@@ -28,8 +28,8 @@ struct RTLib::Ext::CUDA::CUDAImage::Impl {
 RTLib::Ext::CUDA::CUDAImage::CUDAImage(CUDAContext* ctx, const CUDAImageCreateDesc& desc, CUarray cuArray, bool ownership)noexcept :m_Impl{ new Impl(ctx,desc,cuArray,ownership) } {}
 
 
-RTLib::Ext::CUDA::CUDAImage::CUDAImage(CUDAContext* ctx, const CUDAImageCreateDesc& desc, CUmipmappedArray cuArray, const std::vector<CUarray>& cuArrayRefs)noexcept
-	:m_Impl{ new Impl(ctx,desc,cuArray,cuArrayRefs) } {}
+RTLib::Ext::CUDA::CUDAImage::CUDAImage(CUDAContext* ctx, const CUDAImageCreateDesc& desc, CUmipmappedArray cuArray, const std::vector<CUarray>& cuArrayRefs, bool ownership)noexcept
+	:m_Impl{ new Impl(ctx,desc,cuArray,cuArrayRefs,ownership) } {}
 
 auto RTLib::Ext::CUDA::CUDAImage::Allocate(CUDAContext* ctx, const CUDAImageCreateDesc& desc)->CUDAImage*
 {

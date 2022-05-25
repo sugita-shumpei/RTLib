@@ -1,5 +1,6 @@
 #ifndef RTLIB_EXT_CUDA_CUDA_NATIVES_H
 #define RTLIB_EXT_CUDA_CUDA_NATIVES_H
+#include <RTLib/Ext/CUDA/CUDACommon.h>
 #include <cuda.h>
 namespace RTLib
 {
@@ -18,6 +19,10 @@ namespace RTLib
             class  CUDANatives;
             
             struct CUDANatives{
+                static auto GetCUDABuffer(CUDAContext* ctx, CUdeviceptr deviceptr, size_t sizeInBytes, CUDAMemoryFlags flags)->CUDABuffer*;
+                static auto GetCUDAImage(CUDAContext* ctx, const CUDAImageCreateDesc& desc, CUarray          cuArray)->CUDAImage*;
+                static auto GetCUDAImage(CUDAContext* ctx, const CUDAImageCreateDesc& desc, CUmipmappedArray cuArray, const std::vector<CUarray>& cuArrayRefs)->CUDAImage*;
+
                 static auto GetCUcontext(CUDAContext* context)->CUcontext;
                 static auto GetCUdevice(CUDAContext* context)->CUdevice;
                 static auto GetCUdeviceptr(CUDABuffer* buffer)->CUdeviceptr;

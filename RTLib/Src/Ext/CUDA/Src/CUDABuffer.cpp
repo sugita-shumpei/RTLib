@@ -10,6 +10,7 @@ struct RTLib::Ext::CUDA::CUDABuffer ::Impl{
 	size_t          sizeInBytes = 0;
 	CUDAMemoryFlags flags       = CUDAMemoryFlags::eDefault;
 	CUdeviceptr     deviceptr   = 0;
+	bool            hasOwnership= true;
 };
 auto RTLib::Ext::CUDA::CUDABuffer::Allocate(CUDAContext* ctx, const CUDABufferCreateDesc& desc) -> CUDABuffer*
 {
@@ -31,11 +32,13 @@ void RTLib::Ext::CUDA::CUDABuffer::Destroy() noexcept
 	if (!m_Impl->deviceptr) {
 		return;
 	}
-	try {
-		RTLIB_EXT_CUDA_THROW_IF_FAILED(cuMemFree(m_Impl->deviceptr));
-	}
-	catch (CUDAException& err) {
-		std::cerr << err.what() << std::endl;
+	if (m_Impl->hasOwnership) {
+		try {
+			RTLIB_EXT_CUDA_THROW_IF_FAILED(cuMemFree(m_Impl->deviceptr));
+		}
+		catch (CUDAException& err) {
+			std::cerr << err.what() << std::endl;
+		}
 	}
 	m_Impl->deviceptr = 0;
 }
@@ -47,12 +50,13 @@ RTLib::Ext::CUDA::CUDABuffer::~CUDABuffer() noexcept
 
 auto RTLib::Ext::CUDA::CUDABuffer::GetSizeInBytes() const noexcept -> size_t { return m_Impl->sizeInBytes; }
 
-RTLib::Ext::CUDA::CUDABuffer::CUDABuffer(CUDAContext* ctx, const CUDABufferCreateDesc& desc, CUdeviceptr deviceptr) noexcept:m_Impl{new Impl()}
+RTLib::Ext::CUDA::CUDABuffer::CUDABuffer(CUDAContext* ctx, const CUDABufferCreateDesc& desc, CUdeviceptr deviceptr, bool hasOwnership) noexcept:m_Impl{new Impl()}
 {
 	m_Impl->context     = ctx;
 	m_Impl->flags       = desc.flags;
 	m_Impl->sizeInBytes = desc.sizeInBytes;
 	m_Impl->deviceptr   = deviceptr;
+	m_Impl->hasOwnership= hasOwnership;
 }
 
 auto RTLib::Ext::CUDA::CUDABuffer::GetCUdeviceptr() const noexcept -> CUdeviceptr { return m_Impl->deviceptr; }

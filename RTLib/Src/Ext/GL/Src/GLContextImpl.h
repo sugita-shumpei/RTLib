@@ -6,6 +6,7 @@
 #include <RTLib/Ext/GL/GLVertexArray.h>
 #include <RTLib/Ext/GL/GLShader.h>
 #include <RTLib/Ext/GL/GLProgram.h>
+#include <RTLib/Ext/GL/GLProgramPipeline.h>
 #include <RTLib/Core/Utility.h>
 #include <array>
 struct RTLib::Ext::GL::GLContext::Impl
@@ -47,6 +48,7 @@ struct RTLib::Ext::GL::GLContext::Impl
 	GLImages       m_Images          = {};
     GLVertexArray* m_VertexArray     = nullptr;
 	GLProgram    * m_Program         = nullptr;
+	GLProgramPipeline* m_ProgramPipeline = nullptr;
 
 	bool SupportVersion(uint32_t versionMajor, uint32_t versionMinor)const noexcept
 	{

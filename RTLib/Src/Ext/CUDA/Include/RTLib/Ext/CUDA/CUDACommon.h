@@ -33,11 +33,7 @@ namespace RTLib {
 				CUDAMemoryFlags flags = CUDAMemoryFlags::eDefault;
 				size_t sizeInBytes = 0;
 			};
-			enum class CUDAImageType {
-				e1D,
-				e2D,
-				e3D
-			};
+			using CUDAImageType = Core::ImageType;
 			enum       CUDAImageCreateFlagBits
 			{
 				CUDAImageCreateFlagBitsDefault         = 0,

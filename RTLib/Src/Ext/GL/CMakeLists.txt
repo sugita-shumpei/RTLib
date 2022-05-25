@@ -13,6 +13,9 @@ set(RTLIB_EXT_GL_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/GLUniqueIdentifier.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/GLObjectBase.h
     
+    ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/GL/GLRectRenderer.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Src/GLRectRenderer.cpp
+
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/GL/GLNatives.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/GLNatives.cpp 
 

@@ -12,6 +12,7 @@ namespace RTLib
             class GLImage  ;
             class GLTexture;
             class GLProgram;
+            class GLProgramPipeline;
             class GLShader ;
             class GLVertexArray ;
             class GLFramebuffer ;
@@ -22,6 +23,7 @@ namespace RTLib
                 static auto GetResId(GLImage*   img)->GLuint;
                 static auto GetResId(GLTexture* tex)->GLuint;
                 static auto GetResId(GLProgram* prg)->GLuint;
+                static auto GetResId(GLProgramPipeline* prg)->GLuint;
                 static auto GetResId(GLShader * shd)->GLuint;
                 static auto GetResId(GLVertexArray* vao)->GLuint;
                 static auto GetResId(GLFramebuffer* fbo)->GLuint;

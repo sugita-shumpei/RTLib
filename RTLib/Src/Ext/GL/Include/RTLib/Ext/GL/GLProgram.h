@@ -34,13 +34,9 @@ namespace RTLib
 				bool IsLinked() const noexcept;
 				bool IsLinkable() const noexcept;
 				bool IsAttachable(GLShaderStageFlagBits shaderType) const noexcept;
-				// USE
-				bool Enable();
-				void Disable();
-				bool IsEnabled() const noexcept;
 				//
 				bool HasShaderType(GLShaderStageFlagBits shaderType) const noexcept;
-				auto GetShaderStages() const noexcept -> GLbitfield;
+				auto GetShaderStages() const noexcept -> GLShaderStageFlags;
 
 				auto GetUniformLocation(const char* name)->GLint;
 
@@ -48,6 +44,9 @@ namespace RTLib
 				bool SetUniformBlockBinding(GLuint blockIndex, GLuint bindingIndex);
 
 				bool SetUniformImageUnit(GLint location, GLuint imageUnit);
+
+				void SetSeparetable(bool isEnabled = false);
+				bool  IsSeparatable()const noexcept;
 			protected:
 				GLProgram(GLContext *context) noexcept;
 				void AddShaderType(GLShaderStageFlagBits shaderType, bool isRequired = false) noexcept;
@@ -60,12 +59,12 @@ namespace RTLib
 					bool isRequired = false;
 					bool isEnabled = false;
 				};
-				GLContext *m_Context = nullptr;
+				GLContext *                             m_Context        = nullptr;
 				std::unordered_map<GLenum, AttachState> m_AttachedStages = {};
 				std::unordered_map<GLint , GLint>       m_ImageUnits     = {};
-				bool m_IsEnabled = false;
-				bool m_IsLinked = false;
-				GLuint m_ResId = 0;
+				bool                                    m_IsLinked       = false;
+				bool                                    m_IsSeparatable = false;
+				GLuint                                  m_ResId          = 0;
 			};
 		}
 	}

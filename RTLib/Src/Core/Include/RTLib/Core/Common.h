@@ -132,6 +132,13 @@ namespace RTLib {
 			Extent3D               extent;
 		};
 
+		enum class ImageType
+		{
+			e1D,
+			e2D,
+			e3D
+		};
+
 		struct SamplerCreateDesc
 		{
 			FilterMode              magFilter        = FilterMode::eLinear;

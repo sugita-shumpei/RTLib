@@ -1,6 +1,7 @@
 #include <RTLib/Ext/GL/GLVertexArray.h>
 #include <RTLib/Ext/GL/GLBuffer.h>
 #include <RTLib/Ext/GL/GLContext.h>
+#include <RTLib/Ext/GL/GLNatives.h>
 #include "GLTypeConversions.h"
 auto RTLib::Ext::GL::GLVertexArray::New(GLContext* context) -> GLVertexArray*
 {
@@ -89,7 +90,7 @@ bool RTLib::Ext::GL::GLVertexArray::Enable()
     {
         m_Context->SetVertexArray(this);
         if (m_IndexBuffer) {
-            m_Context->SetBuffer(GLBufferUsageIndex, m_IndexBuffer,true);
+            m_Context->SetBuffer(GLBufferUsageIndex, m_IndexBuffer, true);
         }
         else {
             m_Context->InvalidateBuffer(GLBufferUsageIndex);

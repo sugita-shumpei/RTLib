@@ -1,5 +1,6 @@
 #include <RTLib/Ext/GL/GLImage.h>
 #include <RTLib/Ext/GL/GLTexture.h>
+#include <RTLib/Ext/GL/GLRectRenderer.h>
 #include <RTLib/Ext/GL/GLCommon.h>
 #include <RTLib/Ext/GL/GLNatives.h>
 #include <RTLib/Core/Utility.h>
@@ -463,10 +464,6 @@ void RTLib::Ext::GL::GLContext::SetUniformImageUnit(int loc, int index)
 	}
 }
 
-void RTLib::Ext::GL::GLContext::SetProgramUniformImageUnit(GLProgram* program, int loc, int index)
-{
-}
-
 void RTLib::Ext::GL::GLContext::ActivateImageUnit(int index)
 {
 	if (index < 0) {
@@ -564,8 +561,18 @@ auto RTLib::Ext::GL::GLContext::CreateProgram() -> GLProgram*
 	return GLProgram::New(this);
 }
 
+auto RTLib::Ext::GL::GLContext::CreateProgramPipeline() -> GLProgramPipeline*
+{
+	return GLProgramPipeline::New(this);
+}
+
 auto RTLib::Ext::GL::GLContext::CreateVertexArray()->GLVertexArray*{
     return GLVertexArray::New(this);
+}
+
+auto RTLib::Ext::GL::GLContext::CreateRectRenderer() -> GLRectRenderer*
+{
+	return GLRectRenderer::New(this);
 }
 
 void RTLib::Ext::GL::GLContext::SetProgram(GLProgram* program){
@@ -574,7 +581,27 @@ void RTLib::Ext::GL::GLContext::SetProgram(GLProgram* program){
         return;
     }
     m_Impl->m_Program = program;
-    m_Impl->m_Program->Enable();
+	glUseProgram(m_Impl->m_Program->GetResId());
+}
+
+void RTLib::Ext::GL::GLContext::InvalidateProgram()
+{
+	if (!m_Impl->m_Program) {
+		return;
+	}
+	glUseProgram(0);
+	m_Impl->m_Program = nullptr;
+}
+
+void RTLib::Ext::GL::GLContext::SetProgramPipeline(GLProgramPipeline* programPipeline)
+{
+	if (!programPipeline) { return; }
+	InvalidateProgram();
+	if (m_Impl->m_ProgramPipeline == programPipeline) {
+		return;
+	}
+	glBindProgramPipeline(GLNatives::GetResId(programPipeline));
+	m_Impl->m_ProgramPipeline = programPipeline;
 }
 
 void RTLib::Ext::GL::GLContext::SetVertexArray(GLVertexArray* vao)

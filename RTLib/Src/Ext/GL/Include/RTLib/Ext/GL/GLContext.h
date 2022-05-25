@@ -15,9 +15,11 @@ namespace RTLib
 			class GLTexture;
 			class GLImage;
 			class GLProgram;
+		    class GLProgramPipeline;
 			class GLShader;
 			class GLContextState;
 			class GLVertexArray;
+			class GLRectRenderer;
 			class GLContext : public Core::Context
 			{
 				RTLIB_CORE_TYPE_OBJECT_DECLARE_DERIVED_METHOD(GLContext, Core::Context, RTLIB_TYPE_UUID_RTLIB_EXT_GL_GL_CONTEXT);
@@ -27,7 +29,9 @@ namespace RTLib
 				friend class GLTexture;
 				friend class GLShader;
 				friend class GLProgram;
+				friend class GLProgramPipeline;
 				friend class GLVertexArray;
+				friend class GLRectRenderer;
 			public:
 				GLContext() noexcept;
                 virtual ~GLContext()noexcept;
@@ -47,7 +51,9 @@ namespace RTLib
 				auto CreateTexture(const GLTextureCreateDesc &desc) -> GLTexture *;
 				auto CreateShader(GLShaderStageFlagBits shaderType) -> GLShader *;
 				auto CreateProgram() -> GLProgram *;
+				auto CreateProgramPipeline()->GLProgramPipeline*;
 				auto CreateVertexArray() -> GLVertexArray *;
+				auto CreateRectRenderer()-> GLRectRenderer*;
 				/*Copy*/
 				bool CopyBuffer(GLBuffer *srcBuffer, GLBuffer *dstBuffer, const std::vector<GLBufferCopy> &regions);
 				bool CopyMemoryToBuffer(GLBuffer *buffer, const std::vector<GLMemoryBufferCopy> &regions);
@@ -63,13 +69,14 @@ namespace RTLib
 				void InvalidateBuffer(GLBufferUsageFlagBits usage);
 				/*Uniform*/
 				void SetUniformImageUnit(int loc , int index);
-				void SetProgramUniformImageUnit(GLProgram* program, int loc, int index);
 				/*Texture*/
 				void ActivateImageUnit(int imageUnit);
 				void SetTexture(int imageUnit, GLTexture* texture);
 				void SetImage  (int imageUnit, GLImage*   image  );
                 /*PipelineState*/
                 void SetProgram(GLProgram* program);
+				void InvalidateProgram();
+				void SetProgramPipeline(GLProgramPipeline* programPipeline);
                 void SetVertexArray(GLVertexArray* vao);
 				void InvalidateVertexArray();
 				/*Draw*/

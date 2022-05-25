@@ -6,6 +6,8 @@
 #include <RTLib/Ext/GL/GLTexture.h>
 #include <RTLib/Ext/GL/GLShader.h>
 #include <RTLib/Ext/GL/GLProgram.h>
+#include <RTLib/Ext/GL/GLProgramPipeline.h>
+#include <RTLib/Ext/GL/GLRectRenderer.h>
 #include <RTLib/Ext/GL/GLCommon.h>
 #include <RTLibExtGLTestConfig.h>
 #include <stb_image.h>
@@ -214,26 +216,42 @@ int main(int argc, const char* argv[]) {
 		assert(vao->Enable());
         
 		auto graphicsProgram = std::unique_ptr<RTLib::Ext::GL::GLProgram>(context->CreateProgram());
+		graphicsProgram->SetSeparetable(false);
 		graphicsProgram->AttachShader(vertexShader.get());
 		graphicsProgram->AttachShader(fragmentShader.get());
 		assert(graphicsProgram->Link());
-		auto smpLoc = graphicsProgram->GetUniformLocation("smp");
+
+		auto vertProgram = std::unique_ptr<RTLib::Ext::GL::GLProgram>(context->CreateProgram());
+		vertProgram->SetSeparetable(true);
+		vertProgram->AttachShader(vertexShader.get());
+		assert(vertProgram->Link());
+
+		auto fragProgram = std::unique_ptr<RTLib::Ext::GL::GLProgram>(context->CreateProgram());
+		fragProgram->SetSeparetable(true);
+		fragProgram->AttachShader(fragmentShader.get());
+		assert(fragProgram->Link());
+
+		auto graphicsPipeline = std::unique_ptr<RTLib::Ext::GL::GLProgramPipeline>(context->CreateProgramPipeline());
+		graphicsPipeline->SetProgram(RTLib::Ext::GL::GLShaderStageVertex  , vertProgram.get());
+		graphicsPipeline->SetProgram(RTLib::Ext::GL::GLShaderStageFragment, fragProgram.get());
+
+		auto smpLoc0 = fragProgram->GetUniformLocation("smp");
+		fragProgram->SetUniformImageUnit(smpLoc0, 0);
+
+		auto smpLoc1 = graphicsProgram->GetUniformLocation("smp");
+
+		auto rectRenderer = std::unique_ptr<RTLib::Ext::GL::GLRectRenderer>(context->CreateRectRenderer());
 
 		glfwShowWindow(window);
 		while (!glfwWindowShouldClose(window)) {
 			context->SetClearBuffer(RTLib::Ext::GL::GLClearBufferFlagsColor);
-			context->SetClearColor (0.0f, 1.0f, 0.0f, 0.0f);
-			context->SetProgram(graphicsProgram.get());
-			context->SetTexture(0, tex.get());
-			context->SetUniformImageUnit(smpLoc, 0);
-            context->SetVertexArray(vao.get());
-			//context->DrawArrays(RTLib::Ext::GL::GLDrawMode::eTriangles, 0, 3);
-			//context->SetBuffer(RTLib::Ext::GL::GLBufferUsageIndex, indexBuffer.get());
-			context->DrawElements(RTLib::Ext::GL::GLDrawMode::eTriangles, RTLib::Ext::GL::GLIndexFormat::eUInt32,3,0);
+			context->SetClearColor( 0.0f, 1.0f, 0.0f, 0.0f);
+			rectRenderer->DrawTexture(tex.get());
 			glfwSwapBuffers(window);
 			glfwPollEvents();
 		}
 
+		rectRenderer->Destroy();
 		tex->Destroy();
 		graphicsProgram->Destroy();
 		fragmentShader->Destroy();

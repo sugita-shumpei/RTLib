@@ -22,7 +22,7 @@ namespace RTLib {
 				virtual ~CUDABuffer()noexcept;
 				auto GetSizeInBytes() const noexcept -> size_t;
 			private:
-				CUDABuffer(CUDAContext* ctx, const CUDABufferCreateDesc& desc, CUdeviceptr deviceptr) noexcept;
+				CUDABuffer(CUDAContext* ctx, const CUDABufferCreateDesc& desc, CUdeviceptr deviceptr, bool hasOwnership = true) noexcept;
 				auto GetCUdeviceptr() const noexcept -> CUdeviceptr;
 			private:
 				struct Impl;
