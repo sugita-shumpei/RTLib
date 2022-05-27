@@ -4,8 +4,12 @@ set(RTLIB_EXT_OPX7_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/OPX7Common.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/OPX7/UuidDefinitions.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/OPX7/OPX7ShaderRecord.h
+
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/OPX7/OPX7Context.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/OPX7Context.cpp
+
+    ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/OPX7/OPX7Natives.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Src/OPX7Natives.cpp
     
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/OPX7/OPX7Exceptions.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/OPX7Exceptions.cpp
@@ -28,6 +32,9 @@ set(RTLIB_EXT_OPX7_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/OPX7/OPX7AccelerationStructureBuildInput.h  
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/OPX7AccelerationStructureBuildInput.cpp   
 
+    ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/OPX7/OPX7ShaderTableLayout.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Src/OPX7ShaderTableLayout.cpp 
+    
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/OPX7/OPX7ShaderTable.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/OPX7ShaderTable.cpp 
 )

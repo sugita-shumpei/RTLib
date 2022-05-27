@@ -3,6 +3,7 @@
 #include <RTLib/Core/Buffer.h>
 #include <RTLib/Ext/CUDA/CUDACommon.h>
 #include <RTLib/Ext/CUDA/UuidDefinitions.h>
+#include <RTLib/Ext/CUDA/CUDANatives.h>
 namespace RTLib {
 	namespace Ext
 	{
@@ -10,10 +11,11 @@ namespace RTLib {
 		{
 			class CUDAContext;
 			class CUDABufferView;
+			class CUDABuffer;
 			class CUDANatives;
 			class CUDABuffer : public Core::Buffer{
-				friend class CUDANatives;
 				friend class CUDABufferView;
+				friend class CUDANatives;
 			public:
 				RTLIB_CORE_TYPE_OBJECT_DECLARE_DERIVED_METHOD(CUDABuffer, Core::Buffer, RTLIB_TYPE_UUID_RTLIB_EXT_CUDA_CUDA_BUFFER);
 				static auto Allocate(CUDAContext* ctx, const CUDABufferCreateDesc& desc)->CUDABuffer*;
@@ -46,7 +48,8 @@ namespace RTLib {
 				auto GetSizeInBytes() const noexcept -> size_t { return m_SizeInBytes; }
 				auto GetOffsetInBytes()const noexcept-> size_t { return m_OffsetInBytes; }
 			private:
-				auto GetCUdeviceptr()const noexcept -> CUdeviceptr { return m_Base->GetCUdeviceptr() + m_OffsetInBytes; }
+				auto GetCUdeviceptr()const noexcept -> CUdeviceptr;
+			private:
 				CUDABuffer* m_Base;
 				size_t      m_OffsetInBytes;
 				size_t      m_SizeInBytes;

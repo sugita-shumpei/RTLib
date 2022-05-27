@@ -2,6 +2,7 @@
 #include <RTLib/Ext/OPX7/OPX7Context.h>
 #include <RTLib/Ext/CUDA/CUDABuffer.h>
 #include <RTLib/Ext/CUDA/CUDACommon.h>
+#include <RTLib/Ext/CUDA/CUDANatives.h>
 #include <RTLib/Ext/CUDA/CUDAExceptions.h>
 #include <cuda.h>
 #include <cassert>
@@ -46,7 +47,7 @@ struct RTLib::Ext::OPX7::OPX7ShaderTable::Impl
 		buffDesc.flags	     = CUDA::CUDAMemoryFlags::eDefault;
 		buffer               = std::unique_ptr<CUDA::CUDABuffer>(context->CreateBuffer(buffDesc));
 		RTLIB_EXT_CUDA_THROW_IF_FAILED(cuMemHostAlloc(&pHostData, shaderBindingTableSizeInBytes, 0));
-		auto baseAddress = buffer->GetCUdeviceptr();
+		auto baseAddress = CUDA::CUDANatives::GetCUdeviceptr(buffer.get());
 		if (raygenRecordSizeInBytes > 0) {
 			shaderBindingTable.raygenRecord = baseAddress;
 		}

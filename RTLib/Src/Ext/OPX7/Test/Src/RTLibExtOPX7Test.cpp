@@ -5,6 +5,8 @@
 #include <RTLib/Ext/OPX7/OPX7Pipeline.h>
 #include <RTLib/Ext/OPX7/OPX7ShaderTable.h>
 #include <RTLib/Ext/OPX7/OPX7ShaderRecord.h>
+#include <RTLib/Ext/OPX7/OPX7ShaderTableLayout.h>
+#include <RTLib/Ext/CUDA/CUDANatives.h>
 #include <RTLib/Ext/CUDA/CUDAStream.h>
 #include <RTLibExtOPX7TestConfig.h>
 #include <cuda/SimpleKernel.h>
@@ -98,6 +100,47 @@ int main() {
 			sbtDesc.callablesRecordStrideInBytes = 0;
 			sbtDesc.callablesRecordCount         = 0;
 		}
+		auto shaderTableLayout= std::unique_ptr<RTLib::Ext::OPX7::OPX7ShaderTableLayout>();
+		{
+			auto stlGeometry1 = RTLib::Ext::OPX7::OPX7ShaderTableLayoutGeometry(4);//MATERIAL4
+			auto stlGeometry2 = RTLib::Ext::OPX7::OPX7ShaderTableLayoutGeometry(3);//MATERIAL3
+			auto stlGeometry3 = RTLib::Ext::OPX7::OPX7ShaderTableLayoutGeometry(1);//MATERIAL1
+			auto stlGeometry4 = RTLib::Ext::OPX7::OPX7ShaderTableLayoutGeometry(0);//MATERIAL0
+
+			auto stlGeometry5 = RTLib::Ext::OPX7::OPX7ShaderTableLayoutGeometry(4);//MATERIAL4
+			auto stlGeometry6 = RTLib::Ext::OPX7::OPX7ShaderTableLayoutGeometry(3);//MATERIAL3
+			auto stlGeometry7 = RTLib::Ext::OPX7::OPX7ShaderTableLayoutGeometry(4);//MATERIAL1
+			auto stlGeometry8 = RTLib::Ext::OPX7::OPX7ShaderTableLayoutGeometry(2);//MATERIAL0
+
+			auto stlGeometryAS1 = RTLib::Ext::OPX7::OPX7ShaderTableLayoutGeometryAS();
+			stlGeometryAS1.SetDwGeometry(stlGeometry1);
+			stlGeometryAS1.SetDwGeometry(stlGeometry2);
+			stlGeometryAS1.SetDwGeometry(stlGeometry3);
+			stlGeometryAS1.SetDwGeometry(stlGeometry4);
+
+			auto stlGeometryAS2 = RTLib::Ext::OPX7::OPX7ShaderTableLayoutGeometryAS();
+			stlGeometryAS2.SetDwGeometry(stlGeometry5);
+			stlGeometryAS2.SetDwGeometry(stlGeometry6);
+			stlGeometryAS2.SetDwGeometry(stlGeometry7);
+			stlGeometryAS2.SetDwGeometry(stlGeometry8);
+
+			auto stlInstance1 = RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstance(&stlGeometryAS1);
+			auto stlInstance2 = RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstance(&stlGeometryAS2);
+
+			auto stlInstanceAS1 = RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstanceAS();
+			stlInstanceAS1.SetInstance(RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstance(&stlGeometryAS1));
+			stlInstanceAS1.SetInstance(RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstance(&stlGeometryAS2));
+
+			auto stlInstanceAS2 = RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstanceAS();
+			stlInstanceAS2.SetInstance(RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstance(&stlGeometryAS1));
+			stlInstanceAS2.SetInstance(RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstance(&stlGeometryAS2));
+			stlInstanceAS2.SetInstance(RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstance(&stlInstanceAS1));
+			stlInstanceAS2.SetRecordStride(3);
+			stlInstanceAS2.Show();
+
+			shaderTableLayout = std::make_unique<RTLib::Ext::OPX7::OPX7ShaderTableLayout>(stlInstanceAS2);
+		}
+
 		auto opxShaderTable = std::unique_ptr<RTLib::Ext::OPX7::OPX7ShaderTable>(context.CreateOPXShaderTable(sbtDesc));
 		{
 			//RAYGEN
@@ -121,9 +164,9 @@ int main() {
 		auto stream          = std::unique_ptr<RTLib::Ext::CUDA::CUDAStream>(context.CreateStream());
 		{
 			SimpleKernelParams params    = {};
-			params.frameBufferForGraphics= reinterpret_cast<uchar4*>(frameBufferForG->GetCUdeviceptr());
-			params.frameBufferForCompute = reinterpret_cast<float3*>(frameBufferForC->GetCUdeviceptr());
-			params.accumBuffer           = reinterpret_cast<float3*>(    accumBuffer->GetCUdeviceptr());;
+			params.frameBufferForGraphics= reinterpret_cast<uchar4*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(frameBufferForG.get()));
+			params.frameBufferForCompute = reinterpret_cast<float3*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(frameBufferForC.get()));
+			params.accumBuffer           = reinterpret_cast<float3*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(accumBuffer.get()));
 			params.fbWidth               = 1024;
 			params.fbHeight              = 1024;
 			params.sampleForAccum        = 0;

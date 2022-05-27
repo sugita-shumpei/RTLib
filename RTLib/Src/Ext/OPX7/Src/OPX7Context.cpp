@@ -7,6 +7,7 @@
 #include <RTLib/Ext/OPX7/OPX7Pipeline.h>
 #include <RTLib/Ext/CUDA/CUDABuffer.h>
 #include <RTLib/Ext/CUDA/CUDAStream.h>
+#include <RTLib/Ext/CUDA/CUDANatives.h>
 #include <optix.h>
 #include <optix_stubs.h>
 #include <optix_function_table.h>
@@ -89,9 +90,9 @@ auto RTLib::Ext::OPX7::OPX7Context::CreateOPXShaderTable(const OPX7ShaderTableCr
 void RTLib::Ext::OPX7::OPX7Context::Launch(OPX7Pipeline* pipeline, CUDA::CUDAStream* stream, CUDA::CUDABufferView paramsBufferView, OPX7ShaderTable* shaderTable, unsigned int width, unsigned int height, unsigned int depth)
 {
     assert(pipeline);
-    auto sbt = shaderTable->GetOptixShaderBindingTable();
+    auto& sbt = shaderTable->GetOptixShaderBindingTable();
     RTLIB_EXT_OPX7_THROW_IF_FAILED(
-        optixLaunch(pipeline->GetOptixPipeline(), GetInternalCUstream(stream), paramsBufferView.GetCUdeviceptr(), paramsBufferView.GetSizeInBytes(), &sbt, width, height, depth
+        optixLaunch(pipeline->GetOptixPipeline(), CUDA::CUDANatives::GetCUstream(stream), CUDA::CUDANatives::GetCUdeviceptr(paramsBufferView), paramsBufferView.GetSizeInBytes(), &sbt, width, height, depth
     ));
 }
 

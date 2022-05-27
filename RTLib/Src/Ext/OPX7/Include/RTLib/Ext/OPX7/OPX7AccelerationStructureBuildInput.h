@@ -10,7 +10,10 @@ namespace RTLib {
 	{
 		namespace OPX7
 		{
-			
+			class OPX7AccelerationStructure
+			{
+
+			};
 		}
 	}
 }

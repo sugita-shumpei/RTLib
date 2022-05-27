@@ -95,3 +95,5 @@ auto RTLib::Ext::CUDA::CUDABufferView::operator=(const CUDABufferView& bufferVie
 	}
 	return *this;
 }
+
+auto RTLib::Ext::CUDA::CUDABufferView::GetCUdeviceptr() const noexcept -> CUdeviceptr { return m_Base->GetCUdeviceptr() + m_OffsetInBytes; }

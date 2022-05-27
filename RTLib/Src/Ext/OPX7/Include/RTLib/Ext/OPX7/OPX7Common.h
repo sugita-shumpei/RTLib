@@ -263,7 +263,7 @@ namespace RTLib
 				eSnorm16x3 = static_cast<uint64_t>(Core::SizedTypeFlagBits::eInt16X3),
 				eSnorm16x2 = static_cast<uint64_t>(Core::SizedTypeFlagBits::eInt16X2),
 			};
-			enum class OPX7IndicesFormat : uint64_t
+			enum class OPX7TriIdxFormat : uint64_t
 			{
 				eNone = 0,
 				eUInt16x3 = static_cast<uint64_t>(Core::SizedTypeFlagBits::eUInt16X3),
@@ -276,13 +276,13 @@ namespace RTLib
 				eUInt16 = static_cast<uint64_t>(Core::SizedTypeFlagBits::eUInt16),
 				eUInt32 = static_cast<uint64_t>(Core::SizedTypeFlagBits::eUInt32),
 			};
-			enum OPX7GeometryFlagBits
+			enum       OPX7GeometryFlagBits
 			{
 				OPX7GeometryFlagsNone = OPTIX_GEOMETRY_FLAG_NONE,
 				OPX7GeometryFlagsDisableAnyHit = OPTIX_GEOMETRY_FLAG_DISABLE_ANYHIT,
 				OPX7GeometryFlagsRequireSingleAnyHit = OPTIX_GEOMETRY_FLAG_REQUIRE_SINGLE_ANYHIT_CALL,
 			};
-			using OPX7GeometryFlags = unsigned int;
+			using      OPX7GeometryFlags = unsigned int;
 			enum class OPX7TransformFormat
 			{
 				eNone = OPTIX_TRANSFORM_FORMAT_NONE,
@@ -296,74 +296,7 @@ namespace RTLib
 				eInstancePointers = OPTIX_BUILD_INPUT_TYPE_INSTANCE_POINTERS,
 				eCurves           = OPTIX_BUILD_INPUT_TYPE_CURVES,
 			};
-			struct OPX7BuildInputTriangleArrayDesc
-			{
-				CUDA::CUDABufferView         vertexBufferView;
-				unsigned int                      numVertices;
-				OPX7VertexFormat                 vertexFormat;
-				unsigned int              vertexStrideInBytes;
-				CUDA::CUDABufferView          indexBufferView;
-				unsigned int                 numIndexTriplets;
-				OPX7IndicesFormat               indicesFormat;
-				unsigned int               indexStrideInBytes;
-				CUDA::CUDABufferView   preTransformBufferView;
-				size_t                        transformFormat;
-				CUDA::CUDABufferView sbtIndexOffsetBufferView;
-				unsigned int                     numSbtRecord;
-				OPX7SbtOffsetFormat           sbtOffsetFormat;
-				unsigned int      sbtIndexOffsetStrideInBytes;
-				unsigned int             primitiveIndexOffset;
-				const OptixGeometryFlags* flags;
-			};
-			struct OPX7BuildInputCustomPrimitiveArrayDesc
-			{
-				CUDA::CUDABufferView              aabbBuffers;
-				unsigned int                    numPrimitives;
-				unsigned int					strideInBytes;
-				unsigned int                     numSbtRecord;
-				OPX7SbtOffsetFormat           sbtOffsetFormat;
-				unsigned int      sbtIndexOffsetStrideInBytes;
-				unsigned int             primitiveIndexOffset;
-				const OptixGeometryFlags* flags;
-			};
-			class  OPX7AccelerationStructureInstance;
-			struct OPX7BuildInputInstanceArrayDesc
-			{
-				OPX7AccelerationStructureInstance* instance;
-				unsigned int                       numInstances;
-			};
-			struct OPX7BuildInputCurveArrayDesc
-			{
-				OPX7PrimitiveTypeFlagBits     curveType;
-				unsigned int              numPrimitives;
-				CUDA::CUDABufferView   vertexBufferView;
-				unsigned int                numVertices;
-				unsigned int        vertexStrideInBytes;
-				CUDA::CUDABufferView    widthBufferView;
-				unsigned int         widthStrideInBytes;
-				CUDA::CUDABufferView   normalBufferView;
-				unsigned int        normalStrideInBytes;
-				CUDA::CUDABufferView    indexBufferView;
-				unsigned int         indexStrideInBytes;
-				OPX7GeometryFlags                 flags;
-				unsigned int       primitiveIndexOffset;
-				unsigned int                endcapFlags;
-			};
-			struct OPX7BuildInputDesc
-			{
-				OPX7BuildInputDesc()noexcept {
-					type = OPX7BuildInputType::eTriangles;
-					triangleArray = {};
-				}
 
-				OPX7BuildInputType type;
-				union {
-					OPX7BuildInputTriangleArrayDesc               triangleArray;
-					OPX7BuildInputCurveArrayDesc                     curveArray;
-					OPX7BuildInputCustomPrimitiveArrayDesc customPrimitiveArray;
-					OPX7BuildInputInstanceArrayDesc               instanceArray;
-				};
-			};
 		}
 	}
 }
