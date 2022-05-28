@@ -138,7 +138,7 @@ namespace RTLib
 				OPX7TraversableGraphFlagsAllowSingleLevelInstancing = OPTIX_TRAVERSABLE_GRAPH_FLAG_ALLOW_SINGLE_LEVEL_INSTANCING,
 			};
 			using OPX7TraversableGraphFlags = unsigned int;
-			enum class OPX7ExceptionFlagBits
+			enum OPX7ExceptionFlagBits
 			{
 				OPX7ExceptionFlagsNone = OPTIX_EXCEPTION_FLAG_NONE,
 				OPX7ExceptionFlagsStackOverflow = OPTIX_EXCEPTION_FLAG_STACK_OVERFLOW,
@@ -213,6 +213,46 @@ namespace RTLib
 					kind = OPX7ProgramGroupKind::eRayGen;
 					flags = OPX7ProgramGroupFlagsNone;
 					raygen = {};
+				}
+				static auto Raygen(const OPX7ProgramGroupSingleModule& raygen, OPX7ProgramGroupFlags flags = OPX7ProgramGroupFlagBits::OPX7ProgramGroupFlagsNone)noexcept -> OPX7ProgramGroupCreateDesc {
+					auto desc = OPX7ProgramGroupCreateDesc{};
+					desc.kind = OPX7ProgramGroupKind::eRayGen;
+					desc.raygen = raygen;
+					desc.flags = flags;
+					return desc;
+				}
+				static auto Miss(const OPX7ProgramGroupSingleModule& miss, OPX7ProgramGroupFlags flags = OPX7ProgramGroupFlagBits::OPX7ProgramGroupFlagsNone)noexcept -> OPX7ProgramGroupCreateDesc {
+					auto desc = OPX7ProgramGroupCreateDesc{};
+					desc.kind = OPX7ProgramGroupKind::eMiss;
+					desc.miss = miss;
+					desc.flags = flags;
+					return desc;
+				}
+				static auto Exception(const OPX7ProgramGroupSingleModule& exception, OPX7ProgramGroupFlags flags = OPX7ProgramGroupFlagBits::OPX7ProgramGroupFlagsNone)noexcept -> OPX7ProgramGroupCreateDesc {
+					auto desc = OPX7ProgramGroupCreateDesc{};
+					desc.kind = OPX7ProgramGroupKind::eException;
+					desc.exception = exception;
+					desc.flags = flags;
+					return desc;
+				}
+				static auto Callables(const OPX7ProgramGroupSingleModule& direct = {}, const OPX7ProgramGroupSingleModule& continuation = {},
+					OPX7ProgramGroupFlags flags = OPX7ProgramGroupFlagBits::OPX7ProgramGroupFlagsNone)noexcept -> OPX7ProgramGroupCreateDesc {
+					auto desc = OPX7ProgramGroupCreateDesc{};
+					desc.kind = OPX7ProgramGroupKind::eCallables;
+					desc.callables.continuation = continuation;
+					desc.callables.direct = direct;
+					desc.flags = flags;
+					return desc;
+				}
+				static auto Hitgroup(const OPX7ProgramGroupSingleModule& closesthit = {}, const OPX7ProgramGroupSingleModule& anyhit = {}, const OPX7ProgramGroupSingleModule& intersect = {},
+					OPX7ProgramGroupFlags flags = OPX7ProgramGroupFlagBits::OPX7ProgramGroupFlagsNone)noexcept -> OPX7ProgramGroupCreateDesc {
+					auto desc = OPX7ProgramGroupCreateDesc{};
+					desc.kind = OPX7ProgramGroupKind::eHitgroup;
+					desc.hitgroup.closesthit = closesthit;
+					desc.hitgroup.anyhit = anyhit;
+					desc.hitgroup.intersect = intersect;
+					desc.flags = flags;
+					return desc;
 				}
 				OPX7ProgramGroupKind kind;
 				OPX7ProgramGroupFlags flags;

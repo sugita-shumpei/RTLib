@@ -9,12 +9,14 @@ namespace RTLib {
 	{
 		namespace OPX7
 		{
+			class OPX7Natives;
 			class OPX7Context;
 			class OPX7ProgramGroup;
 			class OPX7Module: public RTLib::Core::BaseObject
 			{
 			private:
 				friend class OPX7ProgramGroup;
+				friend class OPX7Natives;
 				RTLIB_CORE_TYPE_OBJECT_DECLARE_DERIVED_METHOD(OPX7Module, Core::BaseObject, RTLIB_TYPE_UUID_RTLIB_EXT_OPX7_OPX7_MODULE);
 			public:
 				static auto New(OPX7Context* context, const OPX7ModuleCreateDesc& desc)->OPX7Module*;

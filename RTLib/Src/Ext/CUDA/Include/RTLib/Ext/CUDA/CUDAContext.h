@@ -42,6 +42,9 @@ namespace RTLib
 				bool CopyBufferToImage(CUDABuffer *srcBuffer, CUDAImage *dstImage, const std::vector<CUDABufferImageCopy> &regions);
 				bool CopyImageToMemory(CUDAImage *image, const std::vector<CUDAImageMemoryCopy> &regions);
 				bool CopyMemoryToImage(CUDAImage *image, const std::vector<CUDAMemoryImageCopy> &regions);
+
+				void Synchronize();
+				void SynchronizeStream(CUDAStream* stream);
 			protected:
 				auto GetCUcontext() const noexcept -> CUcontext { return m_CtxCU; }
 				auto GetCUdevice () const noexcept -> CUdevice  { return m_DevCU; }

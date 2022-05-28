@@ -32,6 +32,7 @@ namespace RTLib {
 			struct     CUDABufferCreateDesc {
 				CUDAMemoryFlags flags = CUDAMemoryFlags::eDefault;
 				size_t sizeInBytes = 0;
+				void* pData = nullptr;
 			};
 			using CUDAImageType = Core::ImageType;
 			enum       CUDAImageCreateFlagBits

@@ -13,12 +13,14 @@ namespace RTLib {
 		}
 		namespace OPX7
 		{
+			class OPX7Natives;
 			class OPX7Context;
 			class OPX7ProgramGroup;
 			class OPX7ShaderTable;
 			class OPX7Pipeline : public RTLib::Core::BaseObject
 			{
 			private:
+				friend class OPX7Natives;
 				friend class OPX7Context;
 				friend class OPX7ProgramGroup;
 				RTLIB_CORE_TYPE_OBJECT_DECLARE_DERIVED_METHOD(OPX7Pipeline, Core::BaseObject, RTLIB_TYPE_UUID_RTLIB_EXT_OPX7_OPX7_PIPELINE);

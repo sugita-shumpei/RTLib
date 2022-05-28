@@ -1,194 +1,162 @@
-#define  STB_IMAGE_WRITE_IMPLEMENTATION
-#include <RTLib/Ext/OPX7/OPX7Context.h>
-#include <RTLib/Ext/OPX7/OPX7Module.h>
-#include <RTLib/Ext/OPX7/OPX7ProgramGroup.h>
-#include <RTLib/Ext/OPX7/OPX7Pipeline.h>
-#include <RTLib/Ext/OPX7/OPX7ShaderTable.h>
-#include <RTLib/Ext/OPX7/OPX7ShaderRecord.h>
-#include <RTLib/Ext/OPX7/OPX7ShaderTableLayout.h>
-#include <RTLib/Ext/CUDA/CUDANatives.h>
-#include <RTLib/Ext/CUDA/CUDAStream.h>
-#include <RTLibExtOPX7TestConfig.h>
-#include <cuda/SimpleKernel.h>
-#include <stb_image_write.h>
-#include <memory>
-#include <vector>
-#include <fstream>
-auto LoadBinary(const char* filename)->std::vector<char>
-{
-	auto binary = std::vector<char>();
-	auto binaryFile = std::ifstream(filename, std::ios::binary);
-	if (binaryFile.is_open()) {
-		binaryFile.seekg(0, std::ios::end);
-		auto size = static_cast<size_t>(binaryFile.tellg());
-		binary.resize(size / sizeof(binary[0]));
-		binaryFile.seekg(0, std::ios::beg);
-		binaryFile.read((char*)binary.data(), size);
-		binaryFile.close();
-	}
-	return binary;
-}
+#define STB_IMAGE_IMPLEMENTATION
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include <RTLibExtOPX7Test.h>
+struct Vertex {
+    float3 position;
+};
 int main() {
-	RTLib::Ext::OPX7::OPX7ContextCreateDesc ctxDesc = {};
-	ctxDesc.level          = RTLib::Ext::OPX7::OPX7ContextValidationLogLevel::ePrint;
-	ctxDesc.pfnLogCallback = RTLib::Ext::OPX7::DefaultLogCallback;
-	ctxDesc.pCallbackData  = nullptr;
-	ctxDesc.validationMode = RTLib::Ext::OPX7::OPX7ContextValidationMode::eALL;
-	auto context           = RTLib::Ext::OPX7::OPX7Context(ctxDesc);
-	context.Initialize();
-	{
-		RTLib::Ext::OPX7::OPX7PipelineCompileOptions pipeCompileOps = {};
-		{
+    using namespace RTLib::Ext::CUDA;
+    using namespace RTLib::Ext::OPX7;
+    static constexpr float3 vertices[] = { float3{-0.5f,-0.5f,0.0f},float3{0.5f,-0.5f,0.0f},float3{0.0f,0.5f,0.0f}};
+    static constexpr uint3   indices[] = {{0,1,2}};
+    auto box = rtlib::utils::Box{};
+    box.x0 = -0.5f;
+    box.y0 = -0.5f;
+    box.z0 = -0.5f;
+    box.x1 = 0.5f;
+    box.y1 = 0.5f;
+    box.z1 = 0.5f;
+    //auto vertices = box.getVertices();
+    //auto indices = box.getIndices();
+    try {
+        int width = 1024;
+        int height = 1024;
+        auto camera = rtlib::ext::Camera({ 0.0f,0.0f,2.0f }, { 0.0f,0.0f,0.0f }, { 0.0f,1.0f,3.0f }, 45.0f, 1.0f);
+        //contextはcopy/move不可
+        auto contextCreateDesc = OPX7ContextCreateDesc();
+        contextCreateDesc.validationMode = OPX7ContextValidationMode::eALL;
+        contextCreateDesc.level = OPX7ContextValidationLogLevel::ePrint;
+        auto context = std::make_unique<OPX7Context>(contextCreateDesc);
+        context->Initialize();
+        auto d_vertices = std::unique_ptr<CUDABuffer>(context->CreateBuffer({CUDAMemoryFlags::eDefault, sizeof(vertices[0])*std::size(vertices),(void*)std::data(vertices)}));
+        auto d_pVertices = CUDANatives::GetCUdeviceptr(d_vertices.get());
+        auto d_indices = std::unique_ptr<CUDABuffer>(context->CreateBuffer({ CUDAMemoryFlags::eDefault, sizeof(indices[0]) * std::size(indices),(void*)std::data(indices) }));
+        auto accelBuildOptions = OptixAccelBuildOptions();
+        accelBuildOptions.buildFlags = OPTIX_BUILD_FLAG_PREFER_FAST_TRACE | OPTIX_BUILD_FLAG_ALLOW_COMPACTION;
+        accelBuildOptions.motionOptions = {};
+        accelBuildOptions.operation = OPTIX_BUILD_OPERATION_BUILD;
+        auto geometryFlags = std::vector<unsigned int>{
+            OPTIX_GEOMETRY_FLAG_NONE
+        };
+        auto buildInput = OptixBuildInput();
+        buildInput.type = OPTIX_BUILD_INPUT_TYPE_TRIANGLES;
+        buildInput.triangleArray.vertexBuffers = &d_pVertices;
+        buildInput.triangleArray.numVertices = std::size(vertices);
+        buildInput.triangleArray.vertexFormat = OPTIX_VERTEX_FORMAT_FLOAT3;
+        buildInput.triangleArray.vertexStrideInBytes = sizeof(float3);
+        buildInput.triangleArray.indexBuffer = CUDANatives::GetCUdeviceptr(d_indices.get());
+        buildInput.triangleArray.numIndexTriplets = std::size(indices);
+        buildInput.triangleArray.indexFormat = OPTIX_INDICES_FORMAT_UNSIGNED_INT3;
+        buildInput.triangleArray.indexStrideInBytes = sizeof(uint3);
+        buildInput.triangleArray.numSbtRecords = 1;
+        buildInput.triangleArray.flags = geometryFlags.data();
+        auto pipelineCompileOptions = OPX7PipelineCompileOptions{};
+        auto [outputBuffer, traversableHandle] = rtlib::ext::buildAccel(context.get(), accelBuildOptions, { buildInput });
+        {
+            pipelineCompileOptions.usesMotionBlur = false;
+            pipelineCompileOptions.traversableGraphFlags = OPX7TraversableGraphFlagsAllowSingleGAS;
+            pipelineCompileOptions.numAttributeValues = 3;
+            pipelineCompileOptions.numPayloadValues = 3;
+            pipelineCompileOptions.launchParamsVariableNames = "params";
+            pipelineCompileOptions.usesPrimitiveTypeFlags = OPX7PrimitiveTypeFlagsTriangle;
+            pipelineCompileOptions.exceptionFlags = OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
+        }
+        auto ptxSource = std::vector<char>();
+        {
+            auto cuFile = std::ifstream(RTLIB_EXT_OPX7_TEST_CUDA_PATH"/SimpleKernel.ptx", std::ios::binary);
+            ptxSource = std::vector<char>((std::istreambuf_iterator<char>(cuFile)), (std::istreambuf_iterator<char>()));
+        }
+        //contextはcopy不可
+        auto moduleCreateDesc = OPX7ModuleCreateDesc{};
+        {
+            moduleCreateDesc.ptxBinary = ptxSource;
+            moduleCreateDesc.pipelineOptions = pipelineCompileOptions;
+            moduleCreateDesc.moduleOptions.optLevel = OPX7CompileOptimizationLevel::eDefault;
+            moduleCreateDesc.moduleOptions.debugLevel = OPX7CompileDebugLevel::eMinimal;
+            moduleCreateDesc.moduleOptions.maxRegisterCount = OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT;
+            moduleCreateDesc.moduleOptions.payloadTypes = {};
+            moduleCreateDesc.moduleOptions.boundValueEntries = {};
+        }
+        auto module = std::unique_ptr<RTLib::Ext::OPX7::OPX7Module>(context->CreateOPXModule(moduleCreateDesc));
+        auto programGroups = context->CreateOPXProgramGroups({
+            OPX7ProgramGroupCreateDesc::Raygen(  { module.get(),"__raygen__rg" }),
+            OPX7ProgramGroupCreateDesc::Miss(    { module.get(),"__miss__ms" }),
+            OPX7ProgramGroupCreateDesc::Hitgroup({ module.get(),"__closesthit__ch" })
+        });
+        auto raygenPG   = std::unique_ptr<OPX7ProgramGroup>(programGroups[0]);
+        auto missPG     = std::unique_ptr<OPX7ProgramGroup>(programGroups[1]);
+        auto hitgroupPG = std::unique_ptr<OPX7ProgramGroup>(programGroups[2]);
+        auto pipelineCreateDesc = OPX7PipelineCreateDesc{};
+        {
+            pipelineCreateDesc.linkOptions.maxTraceDepth = 1;
+            pipelineCreateDesc.linkOptions.debugLevel = OPX7CompileDebugLevel::eMinimal;
+            pipelineCreateDesc.compileOptions = pipelineCompileOptions;
+            pipelineCreateDesc.programGroups = {
+                raygenPG.get(),missPG.get(),hitgroupPG.get()
+            };
+        }
+        auto pipeline = std::unique_ptr<OPX7Pipeline>(context->CreateOPXPipeline(pipelineCreateDesc));
+        auto      raygenRecord = raygenPG->GetRecord<RayGenData>();
+        raygenRecord.data.eye = camera.getEye();
+        auto [u, v, w] = camera.getUVW();
+        raygenRecord.data.u = u;
+        raygenRecord.data.v = v;
+        raygenRecord.data.w = w;
+        auto        missRecord = missPG->GetRecord<MissData>();
+        missRecord.data.bgColor = float4{ 1.0f,0.0f,0.0f,1.0f };
+        auto    hitgroupRecord = hitgroupPG->GetRecord<HitgroupData>();
+        hitgroupRecord.data.vertices =reinterpret_cast<float3*>(CUDANatives::GetCUdeviceptr(d_vertices.get()));
+        hitgroupRecord.data.indices  = reinterpret_cast<uint3*>(CUDANatives::GetCUdeviceptr(d_indices.get()));
+        hitgroupRecord.data.diffuse = make_float3(1.0f, 1.0f, 1.0f);
+        hitgroupRecord.data.emission = make_float3(0.3f, 0.3f, 0.3f);
+        auto shaderTableDesc = OPX7ShaderTableCreateDesc();
+        {
+            shaderTableDesc.raygenRecordSizeInBytes = sizeof(raygenRecord);
+            shaderTableDesc.missRecordStrideInBytes = sizeof(missRecord);
+            shaderTableDesc.missRecordCount = 1;
+            shaderTableDesc.hitgroupRecordStrideInBytes = sizeof(hitgroupRecord);
+            shaderTableDesc.hitgroupRecordCount = 1;
+        }
+        auto shaderTable = std::unique_ptr<OPX7ShaderTable>(context->CreateOPXShaderTable(shaderTableDesc));
+        {
+            shaderTable->SetHostRaygenRecordTypeData(raygenRecord);
+            shaderTable->SetHostMissRecordTypeData(0,missRecord);
+            shaderTable->SetHostHitgroupRecordTypeData(0,hitgroupRecord);
+            shaderTable->Upload();
+        }
+        auto d_pixel = std::unique_ptr<CUDABuffer>(context->CreateBuffer({ CUDAMemoryFlags::eDefault, static_cast<size_t>(sizeof(uchar4) * width * height),nullptr}));
+        auto params  = Params();
+        params.image = reinterpret_cast<uchar4*>(CUDANatives::GetCUdeviceptr( d_pixel.get()));
+        params.width = width;
+        params.height = height;
+        params.gasHandle = traversableHandle;
+        auto d_params = std::unique_ptr<CUDABuffer>(context->CreateBuffer({ CUDAMemoryFlags::eDefault, static_cast<size_t>(sizeof(Params)),&params }));
+        auto stream = std::unique_ptr<CUDAStream>(context->CreateStream());
+        pipeline->Launch(CUDABufferView(d_params.get(), 0, d_params->GetSizeInBytes()), shaderTable.get(), width, height, 1);
+        stream->Synchronize();
+        auto img_pixels = std::vector<uchar4>(width*height);
+        stream->CopyBufferToMemory(d_pixel.get(), { {img_pixels.data(),0,width * height * sizeof(uchar4)} });
+        stbi_write_bmp("tekitou.bmp", width, height, 4, img_pixels.data());
+        stream->Destroy();
+    }
+    catch (std::runtime_error& err) {
+        std::cerr << err.what() << std::endl;
+    }
+}
 
-			pipeCompileOps.numPayloadValues          = 3;
-			pipeCompileOps.numAttributeValues        = 3;
-			pipeCompileOps.launchParamsVariableNames = "params";
-			pipeCompileOps.usesPrimitiveTypeFlags    = 0;
-			pipeCompileOps.traversableGraphFlags     = RTLib::Ext::OPX7::OPX7TraversableGraphFlagsAllowSingleGAS;
-			pipeCompileOps.exceptionFlags            = 0;
-			pipeCompileOps.usesMotionBlur            = false;
-		}
-		RTLib::Ext::OPX7::OPX7ModuleCreateDesc modDesc = {};
-		{
-			modDesc.moduleOptions.optLevel   = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eDefault;
-			modDesc.moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-			modDesc.moduleOptions.maxRegisterCount = OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT;
-			modDesc.moduleOptions.boundValueEntries = {};
-			modDesc.moduleOptions.payloadTypes = {};
-			modDesc.pipelineOptions = pipeCompileOps;
-			modDesc.ptxBinary = LoadBinary(RTLIB_EXT_OPX7_TEST_CUDA_PATH"/SimpleKernel.ptx");
-		}
-		auto opxModule = std::unique_ptr<RTLib::Ext::OPX7::OPX7Module>(context.CreateOPXModule(modDesc));
-		auto pgDescs = std::vector<RTLib::Ext::OPX7::OPX7ProgramGroupCreateDesc>(3);
-		{
-			pgDescs[0].kind = RTLib::Ext::OPX7::OPX7ProgramGroupKind::eRayGen;
-			pgDescs[0].raygen = {};
-			pgDescs[0].raygen.entryFunctionName = "__raygen__simple_kernel";
-			pgDescs[0].raygen.module = opxModule.get();
-
-			pgDescs[1].kind = RTLib::Ext::OPX7::OPX7ProgramGroupKind::eMiss;
-			pgDescs[1].miss = {};
-			pgDescs[1].miss.entryFunctionName = "__miss__simple_kernel";
-			pgDescs[1].miss.module = opxModule.get();
-
-			pgDescs[2].kind = RTLib::Ext::OPX7::OPX7ProgramGroupKind::eMiss;
-			pgDescs[2].hitgroup = {};
-			pgDescs[2].hitgroup.closesthit.entryFunctionName = "__closesthit__simple_kernel";
-			pgDescs[2].hitgroup.closesthit.module = opxModule.get();
-		}
-		auto opxProgramGroups  = context.CreateOPXProgramGroups(pgDescs);
-		auto opxProgramGroupRG = std::unique_ptr<RTLib::Ext::OPX7::OPX7ProgramGroup>(opxProgramGroups[0]);
-		auto opxProgramGroupMS = std::unique_ptr<RTLib::Ext::OPX7::OPX7ProgramGroup>(opxProgramGroups[1]);
-		auto opxProgramGroupHG = std::unique_ptr<RTLib::Ext::OPX7::OPX7ProgramGroup>(opxProgramGroups[2]);
-		auto pipeDesc = RTLib::Ext::OPX7::OPX7PipelineCreateDesc();
-		{
-			pipeDesc.compileOptions               = pipeCompileOps;
-			pipeDesc.linkOptions.debugLevel       = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-			pipeDesc.linkOptions.maxTraceDepth    = 1;
-			pipeDesc.programGroups                = opxProgramGroups;
-		}
-		auto opxPipeline = std::unique_ptr<RTLib::Ext::OPX7::OPX7Pipeline>(context.CreateOPXPipeline(pipeDesc));
-		auto sbtDesc = RTLib::Ext::OPX7::OPX7ShaderTableCreateDesc();
-		{
-			sbtDesc.raygenRecordSizeInBytes      = sizeof(RTLib::Ext::OPX7::OPX7ShaderRecord<SimpleKernelSBTRaygenData>);
-			sbtDesc.exceptionRecordSizeInBytes   = 0;
-			sbtDesc.missRecordStrideInBytes      = sizeof(RTLib::Ext::OPX7::OPX7ShaderRecord<SimpleKernelSBTMissData>);
-			sbtDesc.missRecordCount              = SimpleKernelRayTypeCount;
-			sbtDesc.hitgroupRecordStrideInBytes  = sizeof(RTLib::Ext::OPX7::OPX7ShaderRecord<SimpleKernelSBTHitgroupData>);
-			sbtDesc.hitgroupRecordCount          = SimpleKernelRayTypeCount * 1;
-			sbtDesc.exceptionRecordSizeInBytes   = 0;
-			sbtDesc.callablesRecordStrideInBytes = 0;
-			sbtDesc.callablesRecordCount         = 0;
-		}
-		auto shaderTableLayout= std::unique_ptr<RTLib::Ext::OPX7::OPX7ShaderTableLayout>();
-		{
-			auto stlGeometry1 = RTLib::Ext::OPX7::OPX7ShaderTableLayoutGeometry(4);//MATERIAL4
-			auto stlGeometry2 = RTLib::Ext::OPX7::OPX7ShaderTableLayoutGeometry(3);//MATERIAL3
-			auto stlGeometry3 = RTLib::Ext::OPX7::OPX7ShaderTableLayoutGeometry(1);//MATERIAL1
-			auto stlGeometry4 = RTLib::Ext::OPX7::OPX7ShaderTableLayoutGeometry(0);//MATERIAL0
-
-			auto stlGeometry5 = RTLib::Ext::OPX7::OPX7ShaderTableLayoutGeometry(4);//MATERIAL4
-			auto stlGeometry6 = RTLib::Ext::OPX7::OPX7ShaderTableLayoutGeometry(3);//MATERIAL3
-			auto stlGeometry7 = RTLib::Ext::OPX7::OPX7ShaderTableLayoutGeometry(4);//MATERIAL1
-			auto stlGeometry8 = RTLib::Ext::OPX7::OPX7ShaderTableLayoutGeometry(2);//MATERIAL0
-
-			auto stlGeometryAS1 = RTLib::Ext::OPX7::OPX7ShaderTableLayoutGeometryAS();
-			stlGeometryAS1.SetDwGeometry(stlGeometry1);
-			stlGeometryAS1.SetDwGeometry(stlGeometry2);
-			stlGeometryAS1.SetDwGeometry(stlGeometry3);
-			stlGeometryAS1.SetDwGeometry(stlGeometry4);
-
-			auto stlGeometryAS2 = RTLib::Ext::OPX7::OPX7ShaderTableLayoutGeometryAS();
-			stlGeometryAS2.SetDwGeometry(stlGeometry5);
-			stlGeometryAS2.SetDwGeometry(stlGeometry6);
-			stlGeometryAS2.SetDwGeometry(stlGeometry7);
-			stlGeometryAS2.SetDwGeometry(stlGeometry8);
-
-			auto stlInstance1 = RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstance(&stlGeometryAS1);
-			auto stlInstance2 = RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstance(&stlGeometryAS2);
-
-			auto stlInstanceAS1 = RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstanceAS();
-			stlInstanceAS1.SetInstance(RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstance(&stlGeometryAS1));
-			stlInstanceAS1.SetInstance(RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstance(&stlGeometryAS2));
-
-			auto stlInstanceAS2 = RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstanceAS();
-			stlInstanceAS2.SetInstance(RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstance(&stlGeometryAS1));
-			stlInstanceAS2.SetInstance(RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstance(&stlGeometryAS2));
-			stlInstanceAS2.SetInstance(RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstance(&stlInstanceAS1));
-			stlInstanceAS2.SetRecordStride(3);
-			stlInstanceAS2.Show();
-
-			shaderTableLayout = std::make_unique<RTLib::Ext::OPX7::OPX7ShaderTableLayout>(stlInstanceAS2);
-		}
-
-		auto opxShaderTable = std::unique_ptr<RTLib::Ext::OPX7::OPX7ShaderTable>(context.CreateOPXShaderTable(sbtDesc));
-		{
-			//RAYGEN
-			auto raygenData = SimpleKernelSBTRaygenData();
-			opxShaderTable->SetHostRaygenRecordTypeData(opxProgramGroupRG->GetRecord(raygenData));
-			//MISS
-			auto missData   = SimpleKernelSBTMissData();
-			opxShaderTable->SetHostMissRecordTypeData(SimpleKernelRayTypeTrace  , opxProgramGroupMS->GetRecord(missData));
-			opxShaderTable->SetHostMissRecordTypeData(SimpleKernelRayTypeOcclude, opxProgramGroupMS->GetRecord(missData));
-			//HITGROUP
-			auto hitgroupData = SimpleKernelSBTHitgroupData();
-			opxShaderTable->SetHostHitgroupRecordTypeData(SimpleKernelRayTypeTrace  , opxProgramGroupHG->GetRecord(hitgroupData));
-			opxShaderTable->SetHostHitgroupRecordTypeData(SimpleKernelRayTypeOcclude, opxProgramGroupHG->GetRecord(hitgroupData));
-			//UPLOAD
-			opxShaderTable->Upload();
-		}
-		auto frameBufferForG = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(context.CreateBuffer({ RTLib::Ext::CUDA::CUDAMemoryFlags::eDefault, sizeof(uchar4) * 1024 * 1024 }));
-		auto frameBufferForC = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(context.CreateBuffer({ RTLib::Ext::CUDA::CUDAMemoryFlags::eDefault, sizeof(float3) * 1024 * 1024 }));
-		auto accumBuffer     = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(context.CreateBuffer({ RTLib::Ext::CUDA::CUDAMemoryFlags::eDefault, sizeof(float3) * 1024 * 1024 }));
-		auto paramsBuffer    = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(context.CreateBuffer({ RTLib::Ext::CUDA::CUDAMemoryFlags::eDefault, sizeof(SimpleKernelParams)}));
-		auto stream          = std::unique_ptr<RTLib::Ext::CUDA::CUDAStream>(context.CreateStream());
-		{
-			SimpleKernelParams params    = {};
-			params.frameBufferForGraphics= reinterpret_cast<uchar4*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(frameBufferForG.get()));
-			params.frameBufferForCompute = reinterpret_cast<float3*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(frameBufferForC.get()));
-			params.accumBuffer           = reinterpret_cast<float3*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(accumBuffer.get()));
-			params.fbWidth               = 1024;
-			params.fbHeight              = 1024;
-			params.sampleForAccum        = 0;
-			params.samplePerLaunch       = 1;
-			stream->CopyMemoryToBuffer(paramsBuffer.get()  , { {&params,0,sizeof(SimpleKernelParams)}});
-			opxPipeline->Launch(stream.get(), paramsBuffer.get(), opxShaderTable.get(), 1024, 1024, 1);
-			std::vector<uchar4> resultPixels(1024 * 1024);
-			stream->CopyBufferToMemory(frameBufferForG.get(), { {resultPixels.data(),0,sizeof(uchar4) * 1024 * 1024} });
-			stbi_write_png(RTLIB_EXT_OPX7_TEST_CUDA_PATH"/../result.png", 1024, 1024, 4, resultPixels.data(), 1024 * 4);
-		}
-		stream->Destroy();
-		frameBufferForC->Destroy();
-		frameBufferForG->Destroy();
-		accumBuffer->Destroy();
-		paramsBuffer->Destroy();
-		opxShaderTable->Destroy();
-		opxPipeline->Destroy();
-		opxProgramGroupRG->Destroy();
-		opxProgramGroupMS->Destroy();
-		opxProgramGroupHG->Destroy();
-		opxModule->Destroy();
-	}
-	context.Terminate();
-	return 0;
+void rtlib::ext::Camera::getUVW(float3& u, float3& v, float3& w)const noexcept {
+    w = m_LookAt - m_Eye;
+    //front
+    //u = rtlib::normalize(rtlib::cross(w,m_Vup));
+    u = normalize(cross(m_Vup, w));
+    v =normalize(cross(w, u));
+    auto vlen = length(w) * std::tanf(RTLIB_M_PI * m_FovY / 360.0f);
+    auto ulen = vlen * m_Aspect;
+    u *= ulen;
+    v *= vlen;
+}
+std::tuple<float3, float3, float3> rtlib::ext::Camera::getUVW()const noexcept {
+    std::tuple<float3, float3, float3> uvw;
+    this->getUVW(std::get<0>(uvw), std::get<1>(uvw), std::get<2>(uvw));
+    return uvw;
 }

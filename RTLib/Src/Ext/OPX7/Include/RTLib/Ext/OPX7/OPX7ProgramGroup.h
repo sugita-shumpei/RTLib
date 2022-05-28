@@ -11,10 +11,12 @@ namespace RTLib {
 	{
 		namespace OPX7
 		{
+			class OPX7Natives;
 			class OPX7Context;
 			class OPX7Pipeline;
 			class OPX7ProgramGroup : public RTLib::Core::BaseObject
 			{
+				friend class OPX7Natives;
 				friend class OPX7Pipeline;
 				RTLIB_CORE_TYPE_OBJECT_DECLARE_DERIVED_METHOD(OPX7ProgramGroup, Core::BaseObject, RTLIB_TYPE_UUID_RTLIB_EXT_OPX7_OPX7_PROGRAM_GROUP);
 			public:

@@ -42,7 +42,7 @@ add_library(RTLib-Ext-CUDA
     ${RTLIB_EXT_CUDA_SOURCES}
 )
 target_include_directories(RTLib-Ext-CUDA PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Include)
-target_link_libraries(RTLib-Ext-CUDA PUBLIC RTLib-Core CUDA::cuda_driver)
+target_link_libraries(RTLib-Ext-CUDA PUBLIC RTLib-Core CUDA::cuda_driver CUDA::cudart)
 set_target_properties(RTLib-Ext-CUDA PROPERTIES FOLDER RTLib/RTLib/Ext/CUDA)
 
 set(RTLIB_EXT_CUDA_TEST_DATA_PATH "${RTLIB_TEST_DATA_PATH}")

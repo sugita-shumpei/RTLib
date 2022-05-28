@@ -7,6 +7,8 @@ set(RTLIB_EXT_OPX7_SOURCES
 
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/OPX7/OPX7Context.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/OPX7Context.cpp
+    
+    ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/OPX7/OPX7Payload.h
 
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/OPX7/OPX7Natives.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/OPX7Natives.cpp
@@ -44,14 +46,14 @@ add_library(RTLib-Ext-OPX7
     ${RTLIB_EXT_OPX7_SOURCES}
 )
 target_include_directories(RTLib-Ext-OPX7 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Include)
-target_link_libraries(RTLib-Ext-OPX7 PUBLIC RTLib-Ext-CUDA OptiX::OptiX)
+target_link_libraries(RTLib-Ext-OPX7 PUBLIC RTLib-Ext-CUGL OptiX::OptiX tinyobjloader glfw)
 set_target_properties(RTLib-Ext-OPX7 PROPERTIES FOLDER RTLib/RTLib/Ext/OPX7)
 
 set(RTLIB_EXT_OPX7_TEST_DATA_PATH "${RTLIB_TEST_DATA_PATH}")
 set(RTLIB_EXT_OPX7_TEST_CUDA_PATH "${CMAKE_CURRENT_BINARY_DIR}/Test/cuda")
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Test/RTLibExtOPX7TestConfig.h.in ${CMAKE_CURRENT_BINARY_DIR}/Test/RTLibExtOPX7TestConfig.h)
 
-set(RTLIB_EXT_OPX7_TEST_NVCC_INCLUDE_DIRS ${OptiX_INCLUDE_DIR}  ${RTLIB_EXT_CUDA_INCLUDE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda)
+set(RTLIB_EXT_OPX7_TEST_NVCC_INCLUDE_DIRS ${OptiX_INCLUDE_DIR}  ${RTLIB_EXT_CUDA_INCLUDE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda ${CMAKE_CURRENT_SOURCE_DIR}/Include)
 set(RTLIB_EXT_OPX7_TEST_NVCC_OPTIONS -arch compute_75 -use_fast_math -lineinfo -rdc true -m64 --std c++17 -ptx)
 foreach(INCLUDE_DIR ${RTLIB_EXT_OPX7_TEST_NVCC_INCLUDE_DIRS})
     list(APPEND RTLIB_EXT_OPX7_TEST_NVCC_OPTIONS -I${INCLUDE_DIR})
@@ -68,7 +70,7 @@ target_include_directories(RTLib-Ext-OPX7-Test PUBLIC ${CMAKE_CURRENT_SOURCE_DIR
 target_link_libraries(RTLib-Ext-OPX7-Test PUBLIC RTLib-Ext-OPX7 stb::stb)
 
 add_custom_command(TARGET RTLib-Ext-OPX7-Test POST_BUILD 
-COMMAND ${CUDAToolkit_NVCC_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/SimpleKernel.cu ${RTLIB_EXT_OPX7_TEST_NVCC_OPTIONS} -o  ${CMAKE_CURRENT_BINARY_DIR}/Test/cuda/simpleKernel.ptx
+COMMAND ${CUDAToolkit_NVCC_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/SimpleKernel.cu ${RTLIB_EXT_OPX7_TEST_NVCC_OPTIONS} -o  ${CMAKE_CURRENT_BINARY_DIR}/Test/cuda/SimpleKernel.ptx
 COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/SimpleKernel.cu ${CMAKE_CURRENT_BINARY_DIR}/Test/cuda/SimpleKernel.cu
 COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/SimpleKernel.h  ${CMAKE_CURRENT_BINARY_DIR}/Test/cuda/SimpleKernel.h
 )

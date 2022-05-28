@@ -14,6 +14,9 @@ namespace RTLib {
 				};
 				return val;
 			}
+			inline constexpr auto GetAlignmentSize(size_t size, size_t alignment)-> size_t {
+				return ((size + alignment - 1) / alignment) * alignment;
+			}
 		}
 	}
 }

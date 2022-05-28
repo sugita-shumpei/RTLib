@@ -665,3 +665,13 @@ bool RTLib::Ext::CUDA::CUDAContext::CopyMemoryToImage(CUDAImage* image, const st
     return true;
 }
 
+void RTLib::Ext::CUDA::CUDAContext::Synchronize()
+{
+    RTLIB_EXT_CUDA_THROW_IF_FAILED(cuCtxSynchronize());
+}
+
+void RTLib::Ext::CUDA::CUDAContext::SynchronizeStream(CUDAStream* stream)
+{
+    RTLIB_EXT_CUDA_THROW_IF_FAILED(cuStreamSynchronize(CUDANatives::GetCUstream(stream)));
+}
+

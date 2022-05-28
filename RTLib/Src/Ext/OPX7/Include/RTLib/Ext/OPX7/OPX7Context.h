@@ -11,6 +11,7 @@ namespace RTLib
 	{
 		namespace OPX7
 		{
+			class OPX7Natives;
 			class OPX7Module;
 			class OPX7Pipeline;
 			class OPX7ProgramGroup;
@@ -19,6 +20,7 @@ namespace RTLib
 			class OPX7AccelerationStructureInstance;
 			class OPX7Context : public CUDA::CUDAContext
 			{
+				friend class OPX7Natives;
 				friend class OPX7Module;
 				friend class OPX7Pipeline;
 				friend class OPX7ProgramGroup;

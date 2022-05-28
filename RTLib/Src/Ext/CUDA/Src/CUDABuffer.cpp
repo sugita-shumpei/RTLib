@@ -19,6 +19,9 @@ auto RTLib::Ext::CUDA::CUDABuffer::Allocate(CUDAContext* ctx, const CUDABufferCr
 	if (desc.flags == CUDAMemoryFlags::eDefault) {
 		RTLIB_EXT_CUDA_THROW_IF_FAILED(cuMemAlloc(&deviceptr, desc.sizeInBytes));
 	}
+	if (desc.pData) {
+		RTLIB_EXT_CUDA_THROW_IF_FAILED(cuMemcpyHtoD(deviceptr, desc.pData, desc.sizeInBytes));
+	}
 	auto buffer = new CUDABuffer(ctx, desc,deviceptr);
 	return buffer;
 }
