@@ -13,11 +13,13 @@
 #include <optix_stubs.h>
 #include <GLFW/glfw3.h>
 #include <stb_image.h>
+#include <tiny_obj_loader.h>
 #include <stb_image_write.h>
 #include <cuda/SimpleKernel.h>
 #include <RTLibExtOPX7TestConfig.h>
 #include <iostream>
 #include <fstream>
+#include <unordered_map>
 #include <array>
 #include <string_view>
 #include "cuda/SimpleKernel.h"
@@ -83,8 +85,22 @@ namespace rtlib
             RTLIB_DECLARE_GET_AND_SET_BY_VALUE(Camera, float, FovY, m_FovY);
             RTLIB_DECLARE_GET_AND_SET_BY_VALUE(Camera, float, Aspect, m_Aspect);
             //getUVW
-            void getUVW(float3& u, float3& v, float3& w) const noexcept;
-            std::tuple<float3, float3, float3> getUVW() const noexcept;
+            void getUVW(float3& u, float3& v, float3& w) const noexcept {
+                w = m_LookAt - m_Eye;
+                //front
+                //u = rtlib::normalize(rtlib::cross(w,m_Vup));
+                u = normalize(cross(m_Vup, w));
+                v = normalize(cross(w, u));
+                auto vlen = length(w) * std::tanf(RTLIB_M_PI * m_FovY / 360.0f);
+                auto ulen = vlen * m_Aspect;
+                u *= ulen;
+                v *= vlen;
+            }
+            std::tuple<float3, float3, float3> getUVW() const noexcept {
+                std::tuple<float3, float3, float3> uvw;
+                this->getUVW(std::get<0>(uvw), std::get<1>(uvw), std::get<2>(uvw));
+                return uvw;
+            }
         };
         enum class CameraMovement : uint8_t
         {
@@ -234,61 +250,6 @@ namespace rtlib
                 m_Right = normalize(cross(m_Up, m_Front));
             }
         };
-        struct AccelBuildOutput {
-            std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer> buffer;
-            OptixTraversableHandle handle;
-        };
-        inline auto buildAccel(RTLib::Ext::OPX7::OPX7Context* context, const OptixAccelBuildOptions& accelBuildOptions, const std::vector<OptixBuildInput>& buildInputs)  -> AccelBuildOutput
-        {
-            OptixAccelBufferSizes bufferSizes = {};
-            RTLIB_EXT_OPX7_THROW_IF_FAILED(optixAccelComputeMemoryUsage(OPX7::OPX7Natives::GetOptixDeviceContext(context), &accelBuildOptions, buildInputs.data(), buildInputs.size(), &bufferSizes));
-            if ((accelBuildOptions.buildFlags & OPTIX_BUILD_FLAG_ALLOW_COMPACTION) != OPTIX_BUILD_FLAG_ALLOW_COMPACTION) {
-                AccelBuildOutput accel = {};
-                accel.buffer = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(context->CreateBuffer({ CUDA::CUDAMemoryFlags::eDefault, bufferSizes.outputSizeInBytes }));
-                auto  tempBuffer = std::unique_ptr<CUDA::CUDABuffer>(context->CreateBuffer({ CUDA::CUDAMemoryFlags::eDefault, bufferSizes.tempSizeInBytes }));
-                RTLIB_EXT_OPX7_THROW_IF_FAILED(optixAccelBuild(
-                    OPX7::OPX7Natives::GetOptixDeviceContext(context), 0, &accelBuildOptions,
-                    buildInputs.data(), buildInputs.size(),
-                    CUDA::CUDANatives::GetCUdeviceptr(tempBuffer.get()), tempBuffer->GetSizeInBytes(),
-                   CUDA::CUDANatives::GetCUdeviceptr(accel.buffer.get()), accel.buffer->GetSizeInBytes(),
-                    &accel.handle, nullptr, 0));
-                tempBuffer->Destroy();
-                return accel;
-            }
-            else {
-                AccelBuildOutput tempAccel = {};
-                tempAccel.buffer = std::unique_ptr<CUDA::CUDABuffer>(context->CreateBuffer({ CUDA::CUDAMemoryFlags::eDefault, bufferSizes.outputSizeInBytes }));
-                auto compactSizeBuffer = std::unique_ptr<CUDA::CUDABuffer>(context->CreateBuffer({ CUDA::CUDAMemoryFlags::eDefault, sizeof(size_t)}));
-                auto  tempBuffer = std::unique_ptr<CUDA::CUDABuffer>(context->CreateBuffer({ CUDA::CUDAMemoryFlags::eDefault, bufferSizes.tempSizeInBytes }));
-                OptixAccelEmitDesc compactDesc = {};
-                compactDesc.type = OPTIX_PROPERTY_TYPE_COMPACTED_SIZE;
-                compactDesc.result = CUDA::CUDANatives::GetCUdeviceptr(compactSizeBuffer.get());
-                RTLIB_EXT_OPX7_THROW_IF_FAILED(optixAccelBuild(
-                    OPX7::OPX7Natives::GetOptixDeviceContext(context), nullptr, &accelBuildOptions,
-                    buildInputs.data(), buildInputs.size(),
-                   CUDA::CUDANatives::GetCUdeviceptr(tempBuffer.get()), tempBuffer->GetSizeInBytes(),
-                   CUDA::CUDANatives::GetCUdeviceptr(tempAccel.buffer.get()), tempAccel.buffer->GetSizeInBytes(),
-                    &tempAccel.handle, &compactDesc, 1));
-                size_t compactSize = {};
-                context->CopyBufferToMemory(compactSizeBuffer.get(), { {&compactSize,0, sizeof(size_t)}});
-                compactSizeBuffer->Destroy();
-                std::cout << compactSize << "vs" << bufferSizes.outputSizeInBytes << std::endl;
-                if (compactSize < bufferSizes.outputSizeInBytes) {
-                    AccelBuildOutput accel = {};
-                    accel.buffer = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(context->CreateBuffer({ CUDA::CUDAMemoryFlags::eDefault, compactSize }));
-                    RTLIB_EXT_OPX7_THROW_IF_FAILED(optixAccelCompact(OPX7::OPX7Natives::GetOptixDeviceContext(context), nullptr, tempAccel.handle,
-                       CUDA::CUDANatives::GetCUdeviceptr(accel.buffer.get()),
-                        accel.buffer->GetSizeInBytes(), &accel.handle));
-                    tempBuffer->Destroy();
-                    tempAccel.buffer->Destroy();
-                    return accel;
-                }
-                else {
-                    return tempAccel;
-                }
-            }
-        }
-
     }
     namespace utils {
         enum AxisFlag {
