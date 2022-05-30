@@ -214,15 +214,15 @@ int main(int argc, const char* argv[]) {
 			
 			{
 				auto bufferImageCopy = RTLib::Ext::GL::GLBufferImageCopy();
-
-				bufferImageCopy.bufferOffset = 0;
-				bufferImageCopy.imageExtent.width = width;
-				bufferImageCopy.imageExtent.height = height;
-				bufferImageCopy.imageExtent.depth = 0;
-				bufferImageCopy.imageSubresources.baseArrayLayer = 0;
-				bufferImageCopy.imageSubresources.layerCount = 1;
-				bufferImageCopy.imageSubresources.mipLevel = 0;
-
+				{
+					bufferImageCopy.bufferOffset = 0;
+					bufferImageCopy.imageExtent.width = width;
+					bufferImageCopy.imageExtent.height = height;
+					bufferImageCopy.imageExtent.depth = 0;
+					bufferImageCopy.imageSubresources.baseArrayLayer = 0;
+					bufferImageCopy.imageSubresources.layerCount = 1;
+					bufferImageCopy.imageSubresources.mipLevel = 0;
+				}
 				glContext->CopyBufferToImage(frameBufferGL.get(), tex->GetImage(), { bufferImageCopy });
 			}
 

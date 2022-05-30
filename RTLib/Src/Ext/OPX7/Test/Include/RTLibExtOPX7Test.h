@@ -10,6 +10,10 @@
 #include <RTLib/Ext/CUDA/Math/VectorFunction.h>
 #include <RTLib/Ext/CUDA/CUDAExceptions.h>
 #include <RTLib/Ext/CUDA/CUDAStream.h>
+#include <RTLib/Ext/CUGL/CUGLBuffer.h>
+#include <RTLib/Ext/GL/GLRectRenderer.h>
+#include <RTLib/Ext/GL/GLTexture.h>
+#include <RTLib/Ext/GL/GLImage.h>
 #include <optix_stubs.h>
 #include <GLFW/glfw3.h>
 #include <stb_image.h>
@@ -39,6 +43,88 @@ RTLIB_DECLARE_GET_BY_VALUE(class_name,type_name,func_name_base,member_name); \
 RTLIB_DECLARE_SET_BY_VALUE(class_name,type_name,func_name_base,member_name)
 namespace rtlib
 {
+    namespace test {
+        inline auto CreateGLFWWindowWithHints(int width, int height, const char* title, const std::unordered_map<int, int>& windowHint)->GLFWwindow* {
+            for (auto& [key, value] : windowHint) {
+                glfwWindowHint(key, value);
+            }
+            return glfwCreateWindow(width, height, title, nullptr, nullptr);
+        }
+        inline auto LoadShaderSource(const char* filename)->std::vector<GLchar>
+        {
+            auto shaderSource = std::vector<GLchar>();
+            auto sourceFile = std::ifstream(filename, std::ios::binary);
+            if (sourceFile.is_open()) {
+                sourceFile.seekg(0, std::ios::end);
+                auto size = static_cast<size_t>(sourceFile.tellg());
+                shaderSource.resize(size / sizeof(shaderSource[0]));
+                sourceFile.seekg(0, std::ios::beg);
+                sourceFile.read((char*)shaderSource.data(), size);
+                sourceFile.close();
+            }
+            return shaderSource;
+        }
+        inline auto LoadBinary(const char* filename)->std::vector<uint32_t>
+        {
+            auto shaderBinary = std::vector<uint32_t>();
+            auto sourceFile = std::ifstream(filename, std::ios::binary);
+            if (sourceFile.is_open()) {
+                sourceFile.seekg(0, std::ios::end);
+                auto size = static_cast<size_t>(sourceFile.tellg());
+                shaderBinary.resize(size / sizeof(shaderBinary[0]));
+                sourceFile.seekg(0, std::ios::beg);
+                sourceFile.read((char*)shaderBinary.data(), size);
+                sourceFile.close();
+            }
+            return shaderBinary;
+        }
+        inline auto CreateGLFWWindow(int width, int height, const char* title) -> GLFWwindow* {
+            GLFWwindow* window = nullptr;
+            auto windowHints = std::unordered_map<int, int>();
+            windowHints[GLFW_CLIENT_API] = GLFW_OPENGL_API;
+            windowHints[GLFW_OPENGL_PROFILE] = GLFW_OPENGL_CORE_PROFILE;
+            windowHints[GLFW_OPENGL_FORWARD_COMPAT] = GLFW_TRUE;
+            windowHints[GLFW_VISIBLE] = GLFW_FALSE;
+            std::vector<std::pair<int, int>> glVersions = {
+                {4,6},{4,5},{4,4},{4,3},{4,2},{4,1},{4,0},
+                {3,3},{3,2},{3,1},{3,0},
+                {2,1},{2,0}
+            };
+            for (auto& [version_major, version_minor] : glVersions) {
+                windowHints[GLFW_CONTEXT_VERSION_MAJOR] = version_major;
+                windowHints[GLFW_CONTEXT_VERSION_MINOR] = version_minor;
+                window = CreateGLFWWindowWithHints(width, height, "NONE", windowHints);
+                if (window) {
+                    break;
+                }
+            }
+            return window;
+        }
+        class GLContext : public RTLib::Ext::GL::GLContext
+        {
+        public:
+            GLContext(GLFWwindow* window) :RTLib::Ext::GL::GLContext(), m_Window{ window }
+            {}
+            virtual ~GLContext()noexcept {
+
+            }
+            // GLContext を介して継承されました
+            virtual bool InitLoader() override
+            {
+                glfwMakeContextCurrent(m_Window);
+                if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+                    return false;
+                }
+                return true;
+            }
+            virtual void FreeLoader() override
+            {
+
+            }
+        private:
+            GLFWwindow* m_Window = nullptr;
+        };
+    }
     namespace ext
     {
         using namespace RTLib::Ext;
