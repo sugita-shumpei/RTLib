@@ -68,11 +68,11 @@ add_executable(RTLib-Ext-OPX7-Test
 )
 target_include_directories(RTLib-Ext-OPX7-Test PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Test/Include PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/Test)
 target_link_libraries(RTLib-Ext-OPX7-Test PUBLIC RTLib-Ext-OPX7 stb::stb)
-
+add_custom_command(TARGET RTLib-Ext-OPX7-Test PRE_BUILD 
+COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/SimpleKernel.cu ${CMAKE_CURRENT_BINARY_DIR}/Test/cuda/SimpleKernel.cu
+COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/SimpleKernel.h  ${CMAKE_CURRENT_BINARY_DIR}/Test/cuda/SimpleKernel.h)
 add_custom_command(TARGET RTLib-Ext-OPX7-Test POST_BUILD 
 COMMAND ${CUDAToolkit_NVCC_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/SimpleKernel.cu ${RTLIB_EXT_OPX7_TEST_NVCC_OPTIONS} -o  ${CMAKE_CURRENT_BINARY_DIR}/Test/cuda/SimpleKernel.ptx
-COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/SimpleKernel.cu ${CMAKE_CURRENT_BINARY_DIR}/Test/cuda/SimpleKernel.cu
-COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/SimpleKernel.h  ${CMAKE_CURRENT_BINARY_DIR}/Test/cuda/SimpleKernel.h
 )
 
 set_target_properties(RTLib-Ext-OPX7-Test PROPERTIES FOLDER RTLib/RTLib/Ext/OPX7)
