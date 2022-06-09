@@ -65,7 +65,7 @@ int  OnlineSample() {
         accelBuildOptions.motionOptions = {};
         accelBuildOptions.operation = OPTIX_BUILD_OPERATION_BUILD;
         auto blasHandle = OptixTraversableHandle();
-        auto blasLayout = std::make_unique<OPX7ShaderTableLayoutGeometryAS>();
+        auto blasLayout = std::make_unique<OPX7ShaderTableLayoutGeometryAS>("CornellBox-Original");
         auto blasBuffer = std::unique_ptr<CUDABuffer>();
         {
             auto geometryFlags = std::vector<unsigned int>();
@@ -101,7 +101,7 @@ int  OnlineSample() {
                         buildInputs[i].triangleArray.transformFormat = OPTIX_TRANSFORM_FORMAT_NONE;
                         buildInputs[i].triangleArray.flags = &geometryFlags[i];
                     }
-                    blasLayout->SetDwGeometry(OPX7ShaderTableLayoutGeometry(mesh->GetUniqueResource()->materials.size()));
+                    blasLayout->SetDwGeometry(OPX7ShaderTableLayoutGeometry(uniqueNames[i],mesh->GetUniqueResource()->materials.size()));
                 }
             }
             auto accelOutput = OPX7Natives::BuildAccelerationStructure(opx7Context.get(), accelBuildOptions, buildInputs);
@@ -110,10 +110,10 @@ int  OnlineSample() {
         }
         auto blasInstBuffer = std::unique_ptr<CUDABuffer>();
         auto tlasHandle     = OptixTraversableHandle();
-        auto tlasLayout     = OPX7ShaderTableLayoutInstanceAS();
+        auto tlasLayout     = OPX7ShaderTableLayoutInstanceAS("Root");
         auto tlasBuffer     = std::unique_ptr<CUDABuffer>();
         {
-            tlasLayout.SetInstance(OPX7ShaderTableLayoutInstance(blasLayout.get()));
+            tlasLayout.SetInstance(OPX7ShaderTableLayoutInstance("Instance0",blasLayout.get()));
             tlasLayout.SetRecordStride(1);
         }
 
@@ -162,7 +162,7 @@ int  OnlineSample() {
             shaderTableDesc.hitgroupRecordCount         = shaderTableLayout.GetRecordCount();
         }
         auto shaderTable = std::unique_ptr<OPX7ShaderTable>(opx7Context->CreateOPXShaderTable(shaderTableDesc));
-       
+
         {
             {
                 auto raygenRecord = raygenPG->GetRecord<RayGenData>();
@@ -180,11 +180,15 @@ int  OnlineSample() {
                 shaderTable->SetHostMissRecordTypeData(0, missRecord);
             }
             {
-                auto& objAsset   = objAssetLoader.GetAsset("CornellBox-Original");
-                auto uniqueNames = objAsset.meshGroup->GetUniqueNames();
-                size_t matOffset = 0;
-                for (size_t i = 0; i < uniqueNames.size(); ++i) {
-                    auto mesh = objAsset.meshGroup->LoadMesh(uniqueNames[i]);
+                auto&     objAsset   = objAssetLoader.GetAsset("CornellBox-Original");
+                auto instLayout = shaderTableLayout.FindInstance("Instance0");
+                auto gasLayout  = shaderTableLayout.FindGeometryAS(instLayout,"CornellBox-Original");
+
+                auto sbtStride = shaderTableLayout.GetRecordStride();
+                auto sbtOffset = instLayout->GetRecordOffset();
+
+                for (auto& geometryLayout: gasLayout->GetDwGeometries()) {
+                    auto mesh = objAsset.meshGroup->LoadMesh(geometryLayout.GetName());
                     auto extSharedData = mesh->GetSharedResource()->GetExtData<rtlib::ext::OPX7MeshSharedResourceExtData>();
                     auto extUniqueData = mesh->GetUniqueResource()->GetExtData<rtlib::ext::OPX7MeshUniqueResourceExtData>();
                     auto hitgroupRecord = hitgroupPG->GetRecord<HitgroupData>();
@@ -192,9 +196,13 @@ int  OnlineSample() {
                     hitgroupRecord.data.indices  =  reinterpret_cast<uint3*>(extUniqueData->GetTriIdxBuffer());
                     hitgroupRecord.data.diffuse  = make_float3(1.0f, 1.0f, 1.0f);
                     hitgroupRecord.data.emission = make_float3(0.3f, 0.3f, 0.3f);
-                    for (auto& matIdx: mesh->GetUniqueResource()->materials) {
-                        shaderTable->SetHostHitgroupRecordTypeData(matOffset, hitgroupRecord);
-                        ++matOffset;
+                    for (auto i = 0; i < geometryLayout.GetBaseRecordCount();++i) {
+                        for (auto j = 0; j < sbtStride; ++j) {
+                            shaderTable->SetHostHitgroupRecordTypeData(
+                                sbtOffset + sbtStride * (geometryLayout.GetBaseRecordOffset() +i) + j, 
+                                hitgroupRecord
+                            );
+                        }
                     }
                 }
                 auto pCpuHitgroupRecord = shaderTable->GetHostHitgroupRecordTypeData<HitgroupData>(0);

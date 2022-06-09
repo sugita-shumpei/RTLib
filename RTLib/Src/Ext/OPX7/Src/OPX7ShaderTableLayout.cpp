@@ -1,10 +1,11 @@
 #include <RTLib/Ext/OPX7/OPX7ShaderTableLayout.h>
 #include <iostream>
 
-RTLib::Ext::OPX7::OPX7ShaderTableLayoutGeometryAS::OPX7ShaderTableLayoutGeometryAS() noexcept {}
+RTLib::Ext::OPX7::OPX7ShaderTableLayoutGeometryAS::OPX7ShaderTableLayoutGeometryAS(const std::string& name) noexcept :m_Name{ name } {}
 
 RTLib::Ext::OPX7::OPX7ShaderTableLayoutGeometryAS::OPX7ShaderTableLayoutGeometryAS(const OPX7ShaderTableLayoutGeometryAS& gas) noexcept
 {
+	m_Name = gas.m_Name;
 	m_BaseRecordCount = 0;
 	m_DwGeometries      = gas.GetDwGeometries();
 	for (auto& geometry : m_DwGeometries) {
@@ -18,6 +19,7 @@ auto RTLib::Ext::OPX7::OPX7ShaderTableLayoutGeometryAS::operator=(const OPX7Shad
 {
 	// TODO: return ステートメントをここに挿入します
 	if (this != &gas) {
+		m_Name = gas.m_Name;
 		m_BaseRecordCount = 0;
 		m_DwGeometries = gas.GetDwGeometries();
 		for (auto& geometry : m_DwGeometries) {
@@ -28,6 +30,8 @@ auto RTLib::Ext::OPX7::OPX7ShaderTableLayoutGeometryAS::operator=(const OPX7Shad
 	}
 	return *this;
 }
+
+auto RTLib::Ext::OPX7::OPX7ShaderTableLayoutGeometryAS::GetName() const noexcept -> std::string { return m_Name; }
 
 auto RTLib::Ext::OPX7::OPX7ShaderTableLayoutGeometryAS::GetBaseRecordCount() const noexcept -> unsigned int { return m_BaseRecordCount; }
 
@@ -49,24 +53,28 @@ void RTLib::Ext::OPX7::OPX7ShaderTableLayoutGeometryAS::Update() noexcept
 	}
 }
 
-RTLib::Ext::OPX7::OPX7ShaderTableLayoutGeometry::OPX7ShaderTableLayoutGeometry(unsigned int baseRecordcount) noexcept {
+RTLib::Ext::OPX7::OPX7ShaderTableLayoutGeometry::OPX7ShaderTableLayoutGeometry(const std::string& name, unsigned int baseRecordcount) noexcept {
+	m_Name            = name;
 	m_BaseRecordCount = baseRecordcount;
 }
 
 RTLib::Ext::OPX7::OPX7ShaderTableLayoutGeometry::OPX7ShaderTableLayoutGeometry(const OPX7ShaderTableLayoutGeometry& geometry) noexcept
-	:m_BaseRecordCount(geometry.GetBaseRecordCount()) {}
+	:m_Name{ geometry.m_Name },m_BaseRecordCount(geometry.GetBaseRecordCount()) {}
 
 auto RTLib::Ext::OPX7::OPX7ShaderTableLayoutGeometry::operator=(const OPX7ShaderTableLayoutGeometry& geometry) noexcept -> OPX7ShaderTableLayoutGeometry&
 {
 	if (this != &geometry) {
 		m_UpGeometryAS = nullptr;
+		m_Name = geometry.m_Name;
 		m_BaseRecordCount = geometry.m_BaseRecordCount;
 		m_BaseRecordOffset = 0;
 	}
 	return *this;
 }
 
- auto RTLib::Ext::OPX7::OPX7ShaderTableLayoutGeometry::GetBaseRecordOffset() const noexcept -> unsigned int { return m_BaseRecordOffset; }
+auto RTLib::Ext::OPX7::OPX7ShaderTableLayoutGeometry::GetName() const noexcept -> std::string { return m_Name; }
+
+auto RTLib::Ext::OPX7::OPX7ShaderTableLayoutGeometry::GetBaseRecordOffset() const noexcept -> unsigned int { return m_BaseRecordOffset; }
 
  auto RTLib::Ext::OPX7::OPX7ShaderTableLayoutGeometry::GetBaseRecordCount() const noexcept -> unsigned int { return m_BaseRecordCount; }
 
@@ -79,16 +87,19 @@ void RTLib::Ext::OPX7::OPX7ShaderTableLayoutGeometry::Internal_SetBaseRecordOffs
 	m_BaseRecordOffset = offset;
 }
 
-RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstance::OPX7ShaderTableLayoutInstance(GeometryAS* geometryAS) noexcept {
+RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstance::OPX7ShaderTableLayoutInstance(const std::string& name,GeometryAS* geometryAS) noexcept {
+	m_Name = name;
 	m_DwGeometryAS = geometryAS;
 }
 
-RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstance::OPX7ShaderTableLayoutInstance(InstanceAS* instanceAS) noexcept {
+RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstance::OPX7ShaderTableLayoutInstance(const std::string& name, InstanceAS* instanceAS) noexcept {
+	m_Name = name;
 	m_DwInstanceAS = instanceAS;
 }
 
 RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstance::OPX7ShaderTableLayoutInstance(const OPX7ShaderTableLayoutInstance& instance) noexcept
 {
+	m_Name = instance.m_Name;
 	m_UpInstanceAS = nullptr;
 	m_DwGeometryAS = instance.m_DwGeometryAS;
 	m_DwInstanceAS = instance.m_DwInstanceAS;
@@ -101,6 +112,7 @@ auto RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstance::operator=(const OPX7Shader
 {
 	// TODO: return ステートメントをここに挿入します
 	if (this != &instance) {
+		m_Name = instance.m_Name;
 		m_UpInstanceAS = nullptr;
 		m_DwGeometryAS = instance.m_DwGeometryAS;
 		m_DwInstanceAS = instance.m_DwInstanceAS;
@@ -110,6 +122,8 @@ auto RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstance::operator=(const OPX7Shader
 	}
 	return *this;
 }
+
+auto RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstance::GetName() const noexcept -> std::string { return m_Name; }
 
 auto RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstance::GetRecordStride() const noexcept -> unsigned int
 {
@@ -204,10 +218,11 @@ void RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstance::Internal_SetUpInstanceAS(I
 	m_UpInstanceAS = instanceAS;
 }
 
-RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstanceAS::OPX7ShaderTableLayoutInstanceAS() noexcept {}
+RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstanceAS::OPX7ShaderTableLayoutInstanceAS(const std::string& name) noexcept :m_Name{ name } {}
 
 RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstanceAS::OPX7ShaderTableLayoutInstanceAS(const OPX7ShaderTableLayoutInstanceAS& instance) noexcept
 {
+	m_Name = instance.m_Name;
 	m_UpInstance   = nullptr;
 	m_DwInstances  = instance.GetInstances();
 	m_RecordStride = 0;
@@ -218,12 +233,23 @@ auto RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstanceAS::operator=(const OPX7Shad
 {
 	// TODO: return ステートメントをここに挿入します
 	if (this != &instanceAS) {
+		m_Name = instanceAS.m_Name;
 		m_UpInstance = nullptr;
 		m_DwInstances = instanceAS.GetInstances();
 		m_RecordStride = 0;
 		SetRecordStride(instanceAS.GetRecordStride());
 	}
 	return *this;
+}
+
+auto RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstanceAS::GetName() const noexcept -> std::string
+{
+	return m_Name;
+}
+
+void RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstanceAS::SetName(const std::string& name) noexcept
+{
+	m_Name = name;
 }
 
 auto RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstanceAS::GetInstanceCount() const noexcept -> unsigned int
@@ -328,12 +354,14 @@ RTLib::Ext::OPX7::OPX7ShaderTableLayout::OPX7ShaderTableLayout(const OPX7ShaderT
 	m_InstanceASLayouts.reserve(std::size(iasSet) + 1);
 	iasMap[&tlas] = 0;
 	m_InstanceASLayouts.push_back(std::make_unique<OPX7ShaderTableLayoutInstanceAS>(tlas));
-	iasSet.insert(&tlas);
+	m_InstanceASLayouts.front()->SetName("Root");
 
 	for (auto& pIAS : iasSet) {
 		iasMap[pIAS] = m_InstanceASLayouts.size();
 		m_InstanceASLayouts.push_back(std::make_unique<OPX7ShaderTableLayoutInstanceAS>(*pIAS));
 	}
+
+
 	for (auto& pIAS : iasSet) {
 		for (auto& instance : m_InstanceASLayouts[iasMap[pIAS]]->m_DwInstances)
 		{
@@ -350,6 +378,7 @@ RTLib::Ext::OPX7::OPX7ShaderTableLayout::OPX7ShaderTableLayout(const OPX7ShaderT
 		}
 	}
 	m_InstanceASLayouts[0]->SetRecordStride(tlas.GetRecordStride());
+
 }
 
 auto RTLib::Ext::OPX7::OPX7ShaderTableLayout::GetRecordCount() const noexcept -> unsigned int
@@ -370,4 +399,180 @@ auto RTLib::Ext::OPX7::OPX7ShaderTableLayout::RootInstanceAS() noexcept -> OPX7S
 auto RTLib::Ext::OPX7::OPX7ShaderTableLayout::RootInstanceAS() const noexcept -> const OPX7ShaderTableLayoutInstanceAS*
 {
 	return m_InstanceASLayouts[0].get();
+}
+
+auto RTLib::Ext::OPX7::OPX7ShaderTableLayout::FindInstance(const std::string& name) const -> const OPX7ShaderTableLayoutInstance*
+{
+	return FindInstance(RootInstanceAS(),name);
+}
+
+auto RTLib::Ext::OPX7::OPX7ShaderTableLayout::FindInstanceAS(const std::string& name) const -> const OPX7ShaderTableLayoutInstanceAS*
+{
+	return FindInstanceAS(RootInstanceAS(), name);
+}
+
+auto RTLib::Ext::OPX7::OPX7ShaderTableLayout::FindGeometryAS(const std::string& name) const -> const OPX7ShaderTableLayoutGeometryAS*
+{
+	return FindGeometryAS(RootInstanceAS(), name);
+}
+
+auto RTLib::Ext::OPX7::OPX7ShaderTableLayout::FindGeometry(const std::string& name) const -> const OPX7ShaderTableLayoutGeometry*
+{
+	return FindGeometry(RootInstanceAS(), name);
+}
+
+auto RTLib::Ext::OPX7::OPX7ShaderTableLayout::FindInstance(const OPX7ShaderTableLayoutInstanceAS* instanceAS, const std::string& name) const -> const OPX7ShaderTableLayoutInstance*
+{
+	auto[ instanceName,second ] = SplitFirstOf(name);
+	auto instance = FindChildInstance(instanceAS, instanceName);
+	if (second.empty()) {
+		return instance;
+	}
+	auto [instanceASName, second2] = SplitFirstOf(second);
+	auto instanceAS2 = FindChildInstanceAS(instance, instanceASName);
+	if (second2.empty()) {
+		return nullptr;
+	}
+	return FindInstance(instanceAS2,second2);
+}
+
+auto RTLib::Ext::OPX7::OPX7ShaderTableLayout::FindInstanceAS(const OPX7ShaderTableLayoutInstanceAS* instanceAS, const std::string& name) const -> const OPX7ShaderTableLayoutInstanceAS*
+{
+	auto [instanceName, second] = SplitFirstOf(name);
+	auto instance = FindChildInstance(instanceAS, instanceName);
+	if (!instance) { return nullptr; }
+	if (second.empty()) { return nullptr; }
+	return FindInstanceAS(instance,second);
+}
+
+auto RTLib::Ext::OPX7::OPX7ShaderTableLayout::FindInstanceAS(const OPX7ShaderTableLayoutInstance* instance, const std::string& name) const -> const OPX7ShaderTableLayoutInstanceAS*
+{
+	auto [instanceASName, second] = SplitFirstOf(name);
+	auto instanceAS = FindChildInstanceAS(instance, instanceASName);
+	if (second.empty()) {
+		return instanceAS;
+	}
+	auto [instanceName, second2] = SplitFirstOf(second);
+	auto instance2 = FindChildInstance(instanceAS, instanceName);
+	if (second2.empty()) {
+		return nullptr;
+	}
+	return FindInstanceAS(instance2,second2);
+}
+
+auto RTLib::Ext::OPX7::OPX7ShaderTableLayout::FindGeometryAS(const OPX7ShaderTableLayoutInstance* instance, const std::string& name) const -> const OPX7ShaderTableLayoutGeometryAS*
+{
+	auto [asName, second] = SplitFirstOf(name);
+	auto geometryAS = instance->GetDwGeometryAS();
+	if (geometryAS) {
+		if (!second.empty()) {
+			return nullptr;
+		}
+		if (geometryAS->GetName() == asName) { 
+			return geometryAS; 
+		}
+		else {
+			return nullptr;
+		}
+	}
+	auto instanceAS = instance->GetDwInstanceAS();
+	if (instanceAS->GetName() != asName) {
+		return nullptr;
+	}
+	if (second.empty()) {
+		return nullptr;
+	}
+	return FindGeometryAS(instanceAS, second);
+}
+
+auto RTLib::Ext::OPX7::OPX7ShaderTableLayout::FindGeometry(const OPX7ShaderTableLayoutInstanceAS* instanceAS, const std::string& name) const -> const OPX7ShaderTableLayoutGeometry*
+{
+	auto [geometryASName, geometryName] = SplitLastOf(name);
+	if (geometryName.empty()) {
+		return nullptr;
+	}
+	auto geometryAS = FindGeometryAS(instanceAS, geometryASName);
+	if (!geometryAS) { return nullptr; }
+	return FindGeometry(geometryAS, geometryName);
+}
+
+auto RTLib::Ext::OPX7::OPX7ShaderTableLayout::FindGeometry(const OPX7ShaderTableLayoutInstance* instance, const std::string& name) const -> const OPX7ShaderTableLayoutGeometry*
+{
+	auto [geometryASName, geometryName] = SplitLastOf(name);
+	if (geometryName.empty()) {
+		return nullptr;
+	}
+	auto geometryAS = FindGeometryAS(instance, geometryASName);
+	if (!geometryAS) { return nullptr; }
+	return FindGeometry(geometryAS,geometryName);
+}
+
+auto RTLib::Ext::OPX7::OPX7ShaderTableLayout::FindGeometry(const OPX7ShaderTableLayoutGeometryAS* gas, const std::string& name) const -> const OPX7ShaderTableLayoutGeometry*
+{
+	return FindChildGeometry(gas,name);
+}
+
+auto RTLib::Ext::OPX7::OPX7ShaderTableLayout::FindGeometryAS(const OPX7ShaderTableLayoutInstanceAS* instanceAS, const std::string& name) const -> const OPX7ShaderTableLayoutGeometryAS*
+{
+	auto [instanceName, geometryASName] = SplitLastOf(name);
+
+	if (geometryASName.empty()) { return nullptr; }
+	auto instance = FindInstance(instanceAS, instanceName);
+
+	if (!instance) { return nullptr; }
+	auto geometryAS = FindChildGeometryAS(instance, geometryASName);
+
+	return geometryAS;
+}
+
+auto RTLib::Ext::OPX7::OPX7ShaderTableLayout::FindChildInstance(const OPX7ShaderTableLayoutInstanceAS* instanceAS, const std::string& name) const -> const OPX7ShaderTableLayoutInstance*
+{
+	if (!instanceAS) { return nullptr; }
+	for (auto& instance : instanceAS->GetInstances()) {
+		if (instance.GetName() == name) { return &instance; }
+	}
+	return nullptr;
+}
+
+auto RTLib::Ext::OPX7::OPX7ShaderTableLayout::FindChildInstanceAS(const OPX7ShaderTableLayoutInstance* instance, const std::string& name) const -> const OPX7ShaderTableLayoutInstanceAS*
+{
+	if (!instance) { return nullptr; }
+	if (instance->GetDwGeometryAS()) {
+		return nullptr;
+	}
+	auto instanceAS = instance->GetDwInstanceAS();
+	if (instanceAS->GetName() == name) {
+		return instanceAS;
+	}
+	else {
+		return nullptr;
+	}
+}
+
+auto RTLib::Ext::OPX7::OPX7ShaderTableLayout::FindChildGeometryAS(const OPX7ShaderTableLayoutInstance* instance, const std::string& name) const -> const OPX7ShaderTableLayoutGeometryAS*
+{
+	if (!instance) { return nullptr; }
+
+	if (instance->GetDwInstanceAS()) {
+		return nullptr;
+	}
+
+	auto geometryAS = instance->GetDwGeometryAS();
+	if (geometryAS->GetName() == name) {
+		return geometryAS;
+	}
+	else {
+		return nullptr;
+	}
+}
+
+auto RTLib::Ext::OPX7::OPX7ShaderTableLayout::FindChildGeometry(const OPX7ShaderTableLayoutGeometryAS* gas, const std::string& name) const -> const OPX7ShaderTableLayoutGeometry*
+{
+	if (!gas) { return nullptr; }
+	for (auto& geometry : gas->GetDwGeometries()) {
+		if (geometry.GetName() == name) {
+			return &geometry;
+		}
+	}
+	return nullptr;
 }
