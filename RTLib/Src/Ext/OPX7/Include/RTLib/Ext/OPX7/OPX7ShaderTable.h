@@ -202,14 +202,14 @@ namespace RTLib {
 			template<typename T>
 			inline auto OPX7ShaderTable::GetHostMissRecordTypeData(size_t index) noexcept -> OPX7::OPX7ShaderRecord<T>*
 			{
-				if (sizeof(OPX7::OPX7ShaderRecord<T>) != GetMissRecordSizeInBytes()) { return nullptr; }
+				if (sizeof(OPX7::OPX7ShaderRecord<T>) != GetMissRecordStrideInBytes()) { return nullptr; }
 				auto data = GetHostMissRecordData(index);
 				return static_cast< OPX7::OPX7ShaderRecord<T>*>(data);
 			}
 			template<typename T>
 			inline auto OPX7ShaderTable::GetHostMissRecordTypeData(size_t index) const noexcept -> const OPX7::OPX7ShaderRecord<T>*
 			{
-				if (sizeof(OPX7::OPX7ShaderRecord<T>) != GetMissRecordSizeInBytes()) { return nullptr; }
+				if (sizeof(OPX7::OPX7ShaderRecord<T>) != GetMissRecordStrideInBytes()) { return nullptr; }
 				auto data = GetHostMissRecordData(index);
 				return static_cast<const OPX7::OPX7ShaderRecord<T>*>(data);
 			}
@@ -223,14 +223,14 @@ namespace RTLib {
 			template<typename T>
 			inline auto OPX7ShaderTable::GetHostHitgroupRecordTypeData(size_t index) noexcept -> OPX7::OPX7ShaderRecord<T>*
 			{
-				if (sizeof(OPX7::OPX7ShaderRecord<T>) != GetHitgroupRecordSizeInBytes()) { return nullptr; }
+				if (sizeof(OPX7::OPX7ShaderRecord<T>) != GetHitgroupRecordStrideInBytes()) { return nullptr; }
 				auto data = GetHostHitgroupRecordData(index);
 				return static_cast< OPX7::OPX7ShaderRecord<T>*>(data);
 			}
 			template<typename T>
 			inline auto OPX7ShaderTable::GetHostHitgroupRecordTypeData(size_t index) const noexcept -> const OPX7::OPX7ShaderRecord<T>*
 			{
-				if (sizeof(OPX7::OPX7ShaderRecord<T>) != GetHitgroupRecordSizeInBytes()) { return nullptr; }
+				if (sizeof(OPX7::OPX7ShaderRecord<T>) != GetHitgroupRecordStrideInBytes()) { return nullptr; }
 				auto data = GetHostHitgroupRecordData(index);
 				return static_cast<const OPX7::OPX7ShaderRecord<T>*>(data);
 			}

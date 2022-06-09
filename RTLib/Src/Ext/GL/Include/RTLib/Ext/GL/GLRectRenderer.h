@@ -11,7 +11,7 @@ namespace RTLib{
             {
             public:
                 RTLIB_CORE_TYPE_OBJECT_DECLARE_DERIVED_METHOD(GLRectRenderer, Core::BaseObject, RTLIB_TYPE_UUID_RTLIB_EXT_GL_GL_RECT_RENDERER);
-                static auto New(GLContext* ctx)->GLRectRenderer*;
+                static auto New(GLContext* ctx, const GLVertexArrayCreateDesc& desc)->GLRectRenderer*;
                 virtual ~GLRectRenderer()noexcept;
 
                 void Destroy()noexcept;

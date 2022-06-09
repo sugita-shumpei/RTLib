@@ -1,3 +1,3 @@
-#ifndef RTLIB_CORE__PROGRAM_H
-#define RTLIB_CORE__PROGRAM_H
+#ifndef RTLIB_CORE_PROGRAM_H
+#define RTLIB_CORE_PROGRAM_H
 #endif

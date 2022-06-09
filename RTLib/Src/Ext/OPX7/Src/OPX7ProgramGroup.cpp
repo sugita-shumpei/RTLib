@@ -46,15 +46,15 @@ auto RTLib::Ext::OPX7::OPX7ProgramGroup::Enumerate(OPX7Context *context, const s
             opxProgramGroupDescs[i].hitgroup = {};
             if (descs[i].hitgroup.intersect.module) {
                 opxProgramGroupDescs[i].hitgroup.entryFunctionNameIS = descs[i].hitgroup.intersect.entryFunctionName;
-                opxProgramGroupDescs[i].hitgroup.moduleIS = descs[i].hitgroup.intersect.module->GetOptixModule();
+                opxProgramGroupDescs[i].hitgroup.moduleIS            = descs[i].hitgroup.intersect.module->GetOptixModule();
             }
             if (descs[i].hitgroup.closesthit.module) {
                 opxProgramGroupDescs[i].hitgroup.entryFunctionNameCH = descs[i].hitgroup.closesthit.entryFunctionName;
-                opxProgramGroupDescs[i].hitgroup.moduleCH = descs[i].hitgroup.closesthit.module->GetOptixModule();
+                opxProgramGroupDescs[i].hitgroup.moduleCH            = descs[i].hitgroup.closesthit.module->GetOptixModule();
             }
             if (descs[i].hitgroup.anyhit.module) {
                 opxProgramGroupDescs[i].hitgroup.entryFunctionNameAH = descs[i].hitgroup.anyhit.entryFunctionName;
-                opxProgramGroupDescs[i].hitgroup.moduleAH = descs[i].hitgroup.anyhit.module->GetOptixModule();
+                opxProgramGroupDescs[i].hitgroup.moduleAH            = descs[i].hitgroup.anyhit.module->GetOptixModule();
             }
             break;
         case OPTIX_PROGRAM_GROUP_KIND_CALLABLES:

@@ -9,14 +9,15 @@
 static inline constexpr char screenVSSource[] =
 R"(#version 330 core
 #extension GL_ARB_separate_shader_objects : enable
-layout(location = 0) in vec3  vertexInPosition;
+layout(location = 0) in  vec2 vertexInPosition;
+layout(location = 1) in  vec2 vertexInTexCoord;
 layout(location = 0) out vec2 vertexOutTexCoord;
 out gl_PerVertex {
     vec4 gl_Position;
 };
 void main(){
-    gl_Position = vec4(vertexInPosition, 1.0);
-    vertexOutTexCoord = vec2(1.0f+vertexInPosition.x,1.0f-vertexInPosition.y)/2.0f;
+    gl_Position = vec4(vertexInPosition,0.0f, 1.0f);
+    vertexOutTexCoord = vertexInTexCoord;
 })";
 static inline constexpr char screenFSSource[] =
 R"(#version 330 core
@@ -60,15 +61,20 @@ RTLib::Ext::GL::GLRectRenderer::GLRectRenderer(GLContext* ctx)noexcept : m_Impl{
 	m_Impl->context = ctx;
 }
 
-auto RTLib::Ext::GL::GLRectRenderer::New(GLContext* ctx) -> GLRectRenderer*
+auto RTLib::Ext::GL::GLRectRenderer::New(GLContext* ctx, const GLVertexArrayCreateDesc& desc) -> GLRectRenderer*
 {
 	if (!ctx) { return nullptr; }
 	auto renderer = new GLRectRenderer(ctx);
-	constexpr float    rectVertices[12] = {
-		-1.0f,-1.0f,0.0f,
-		 1.0f,-1.0f,0.0f,
-		 1.0f, 1.0f,0.0f,
-		-1.0f, 1.0f,0.0f
+	auto minX = desc.isFlipX ? 1.0f : 0.0f;
+	auto maxX = 1.0f - minX;
+	auto minY = desc.isFlipY ? 0.0f : 1.0f;
+	auto maxY = 1.0f - minY;
+
+	float rectVertices[16] = {
+		-1.0f,-1.0f,minX,minY,
+		 1.0f,-1.0f,maxX,minY,
+		 1.0f, 1.0f,maxX,maxY,
+		-1.0f, 1.0f,minX,maxY
 	};
 	constexpr uint32_t rectIndices[6] = {
 		0,1,2,2,3,0
@@ -80,7 +86,7 @@ auto RTLib::Ext::GL::GLRectRenderer::New(GLContext* ctx) -> GLRectRenderer*
 		bufDesc.size = sizeof(rectVertices);
 		bufDesc.pData = rectVertices;
 		renderer->m_Impl->vbo = std::unique_ptr<GLBuffer>(ctx->CreateBuffer(bufDesc));
-		renderer->m_Impl->vbo->SetName("RectRenderer.VBO");
+		renderer->m_Impl->vbo->SetName("Unknown.RectRenderer.VBO");
 	}
 	{
 		auto bufDesc = GLBufferCreateDesc();
@@ -89,14 +95,16 @@ auto RTLib::Ext::GL::GLRectRenderer::New(GLContext* ctx) -> GLRectRenderer*
 		bufDesc.size = sizeof(rectIndices);
 		bufDesc.pData = rectIndices;
 		renderer->m_Impl->ibo = std::unique_ptr<GLBuffer>(ctx->CreateBuffer(bufDesc));
-		renderer->m_Impl->ibo->SetName("RectRenderer.IBO");
+		renderer->m_Impl->ibo->SetName("Unknown.RectRenderer.IBO");
 	}
 	{
 		renderer->m_Impl->vao = std::unique_ptr<GLVertexArray>(ctx->CreateVertexArray());
-		renderer->m_Impl->vao->SetName("RectRenderer.VAO");
+		renderer->m_Impl->vao->SetName("Unknown.RectRenderer.VAO");
 		renderer->m_Impl->vao->SetVertexAttribBinding(0, 0);
-		renderer->m_Impl->vao->SetVertexAttribFormat(0, GLVertexFormat::eFloat32x3, false, 0);
-		renderer->m_Impl->vao->SetVertexBuffer(0, renderer->m_Impl->vbo.get(), sizeof(float) * 3, 0);
+		renderer->m_Impl->vao->SetVertexAttribBinding(1, 0);
+		renderer->m_Impl->vao->SetVertexAttribFormat(0, GLVertexFormat::eFloat32x2, false, 0);
+		renderer->m_Impl->vao->SetVertexAttribFormat(1, GLVertexFormat::eFloat32x2, false, sizeof(float)*2);
+		renderer->m_Impl->vao->SetVertexBuffer(0, renderer->m_Impl->vbo.get(), sizeof(float) * 4, 0);
 		renderer->m_Impl->vao->SetIndexBuffer(renderer->m_Impl->ibo.get());
 		renderer->m_Impl->vao->Enable();
 	}

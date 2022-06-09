@@ -570,9 +570,9 @@ auto RTLib::Ext::GL::GLContext::CreateVertexArray()->GLVertexArray*{
     return GLVertexArray::New(this);
 }
 
-auto RTLib::Ext::GL::GLContext::CreateRectRenderer() -> GLRectRenderer*
+auto RTLib::Ext::GL::GLContext::CreateRectRenderer(const GLVertexArrayCreateDesc& desc) -> GLRectRenderer*
 {
-	return GLRectRenderer::New(this);
+	return GLRectRenderer::New(this,desc);
 }
 
 void RTLib::Ext::GL::GLContext::SetProgram(GLProgram* program){

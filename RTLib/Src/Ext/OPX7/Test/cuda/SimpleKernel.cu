@@ -7,9 +7,9 @@ namespace rtlib = RTLib::Ext::CUDA::Math;
 static __forceinline__  __device__ void trace(OptixTraversableHandle handle, const float3& rayOrigin, const float3& rayDirection, float tmin, float tmax, float3& color) {
     unsigned int p0, p1, p2;
     optixTrace(handle, rayOrigin, rayDirection, tmin, tmax, 0.0f, OptixVisibilityMask(255), OPTIX_RAY_FLAG_NONE, 0, 1, 0, p0, p1, p2);
-    color.x = int_as_float(p0);
-    color.y = int_as_float(p1);
-    color.z = int_as_float(p2);
+    color.x = __int_as_float(p0);
+    color.y = __int_as_float(p1);
+    color.z = __int_as_float(p2);
 }
 extern "C" __global__ void     __raygen__rg() {
     const uint3 idx = optixGetLaunchIndex();
@@ -24,29 +24,28 @@ extern "C" __global__ void     __raygen__rg() {
     const float3 origin = rgData->eye;
     const float3 direction = rtlib::normalize(d.x * u + d.y * v + w);
     //printf("%f, %lf, %lf\n", direction.x, direction.y, direction.z);
-    float3 color;
+    float3 color = make_float3(0.0f);
     trace(params.gasHandle, origin, direction, 0.0f, 1e16f, color);
     // printf("%f, %lf\n", texCoord.x, texCoord.y);
     params.image[params.width * idx.y + idx.x] = make_uchar4(static_cast<unsigned char>(255.99 * color.x), static_cast<unsigned char>(255.99 * color.y), static_cast<unsigned char>(255.99 * color.z), 255);
 }
 extern "C" __global__ void       __miss__ms() {
     auto* msData = reinterpret_cast<MissData*>(optixGetSbtDataPointer());
-    optixSetPayload_0(float_as_int(msData->bgColor.x));
-    optixSetPayload_1(float_as_int(msData->bgColor.y));
-    optixSetPayload_2(float_as_int(msData->bgColor.z));
+    optixSetPayload_0(__float_as_int(msData->bgColor.x));
+    optixSetPayload_1(__float_as_int(msData->bgColor.y));
+    optixSetPayload_2(__float_as_int(msData->bgColor.z));
 }
 extern "C" __global__ void __closesthit__ch() {
     auto* hgData = reinterpret_cast<HitgroupData*>(optixGetSbtDataPointer());
-    float2 texCoord = optixGetTriangleBarycentrics();
+    float2 texCoord  = optixGetTriangleBarycentrics();
     auto primitiveId = optixGetPrimitiveIndex();
     auto p0 = hgData->vertices[hgData->indices[primitiveId].x];
     auto p1 = hgData->vertices[hgData->indices[primitiveId].y];
     auto p2 = hgData->vertices[hgData->indices[primitiveId].z];
     auto normal = rtlib::normalize(rtlib::cross(p1 - p0, p2 - p0));
-    //printf("%f %f %f\n", normal.x, normal.y, normal.z);
-    optixSetPayload_0(float_as_int((0.5f + 0.5f * normal.x)));
-    optixSetPayload_1(float_as_int((0.5f + 0.5f * normal.y)));
-    optixSetPayload_2(float_as_int((0.5f + 0.5f * normal.z)));
+    optixSetPayload_0(__float_as_int((0.5f + 0.5f * normal.x)));
+    optixSetPayload_1(__float_as_int((0.5f + 0.5f * normal.y)));
+    optixSetPayload_2(__float_as_int((0.5f + 0.5f * normal.z)));
 }
 extern "C" __global__ void     __anyhit__ah() {
     auto* hgData = reinterpret_cast<HitgroupData*>(optixGetSbtDataPointer());

@@ -288,6 +288,12 @@ namespace RTLib
 				GLClearBufferFlagsStencil = 4,
 			};
 			using  GLClearBufferFlags = unsigned int;
+			struct GLVertexArrayCreateDesc
+			{
+				uint32_t numTextures = 1;
+				bool     isFlipX     = false;
+				bool     isFlipY     = false;
+			};
 		}
 	}
 }

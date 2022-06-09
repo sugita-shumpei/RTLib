@@ -46,7 +46,7 @@ add_library(RTLib-Ext-OPX7
     ${RTLIB_EXT_OPX7_SOURCES}
 )
 target_include_directories(RTLib-Ext-OPX7 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Include)
-target_link_libraries(RTLib-Ext-OPX7 PUBLIC RTLib-Ext-CUGL OptiX::OptiX tinyobjloader glfw)
+target_link_libraries(RTLib-Ext-OPX7 PUBLIC RTLib-Ext-CUGL OptiX::OptiX RTLib-Ext-GLFW-GL)
 set_target_properties(RTLib-Ext-OPX7 PROPERTIES FOLDER RTLib/RTLib/Ext/OPX7)
 
 set(RTLIB_EXT_OPX7_TEST_DATA_PATH "${RTLIB_TEST_DATA_PATH}")

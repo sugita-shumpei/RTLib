@@ -1,5 +1,6 @@
 #ifndef RTLIB_EXT_OPX7_TEST_H
 #define RTLIB_EXT_OPX7_TEST_H
+#include <RTLib/Core/BinaryReader.h>
 #include <RTLib/Ext/OPX7/OPX7Context.h>
 #include <RTLib/Ext/OPX7/OPX7Module.h>
 #include <RTLib/Ext/OPX7/OPX7ProgramGroup.h>
@@ -7,17 +8,20 @@
 #include <RTLib/Ext/OPX7/OPX7Pipeline.h>
 #include <RTLib/Ext/OPX7/OPX7Natives.h>
 #include <RTLib/Ext/OPX7/OPX7Exceptions.h>
-#include <RTLib/Ext/CUDA/Math/VectorFunction.h>
 #include <RTLib/Ext/CUDA/CUDAExceptions.h>
 #include <RTLib/Ext/CUDA/CUDAStream.h>
+#include <RTLib/Ext/CUDA/CUDANatives.h>
+#include <RTLib/Ext/CUDA/Math/VectorFunction.h>
 #include <RTLib/Ext/CUGL/CUGLBuffer.h>
+#include <RTLib/Ext/GLFW/GLFWContext.h>
+#include <RTLib/Ext/GLFW/GL/GLFWOpenGLWindow.h>
+#include <RTLib/Ext/GLFW/GL/GLFWOpenGLContext.h>
 #include <RTLib/Ext/GL/GLRectRenderer.h>
 #include <RTLib/Ext/GL/GLTexture.h>
 #include <RTLib/Ext/GL/GLImage.h>
 #include <optix_stubs.h>
 #include <GLFW/glfw3.h>
 #include <stb_image.h>
-#include <tiny_obj_loader.h>
 #include <stb_image_write.h>
 #include <cuda/SimpleKernel.h>
 #include <RTLibExtOPX7TestConfig.h>
@@ -25,6 +29,7 @@
 #include <fstream>
 #include <unordered_map>
 #include <array>
+#include <string>
 #include <string_view>
 #include "cuda/SimpleKernel.h"
 #define RTLIB_DECLARE_GET_BY_REFERENCE(class_name,type_name,func_name_base,member_name) \
@@ -44,11 +49,27 @@ RTLIB_DECLARE_SET_BY_VALUE(class_name,type_name,func_name_base,member_name)
 namespace rtlib
 {
     namespace test {
-        inline auto CreateGLFWWindowWithHints(int width, int height, const char* title, const std::unordered_map<int, int>& windowHint)->GLFWwindow* {
-            for (auto& [key, value] : windowHint) {
-                glfwWindowHint(key, value);
+        inline auto CreateGLFWWindow(RTLib::Ext::GLFW::GLFWContext* glfwContext,int width, int height, const char* title)->RTLib::Ext::GLFW::GL::GLFWOpenGLWindow* {
+            auto desc          = RTLib::Ext::GLFW::GL::GLFWOpenGLWindowCreateDesc();
+            desc.width         = width;
+            desc.height        = height;
+            desc.title         = title;
+            desc.isCoreProfile = true;
+            desc.isVisible     = false;
+            desc.isResizable   = false;
+            std::vector<std::pair<int, int>> glVersions = {
+                {4,6},{4,5},{4,4},{4,3},{4,2},{4,1},{4,0},
+                {3,3},{3,2},{3,1},{3,0},
+                {2,1},{2,0}
+            };
+            for (auto& [majorVersion, minorVersion] : glVersions) {
+                desc.versionMajor = majorVersion;
+                desc.versionMinor = minorVersion;
+                auto window = RTLib::Ext::GLFW::GL::GLFWOpenGLWindow::New(glfwContext, desc);
+
+                if (window) { return window; }
             }
-            return glfwCreateWindow(width, height, title, nullptr, nullptr);
+            return nullptr;
         }
         inline auto LoadShaderSource(const char* filename)->std::vector<GLchar>
         {
@@ -78,55 +99,10 @@ namespace rtlib
             }
             return shaderBinary;
         }
-        inline auto CreateGLFWWindow(int width, int height, const char* title) -> GLFWwindow* {
-            GLFWwindow* window = nullptr;
-            auto windowHints = std::unordered_map<int, int>();
-            windowHints[GLFW_CLIENT_API] = GLFW_OPENGL_API;
-            windowHints[GLFW_OPENGL_PROFILE] = GLFW_OPENGL_CORE_PROFILE;
-            windowHints[GLFW_OPENGL_FORWARD_COMPAT] = GLFW_TRUE;
-            windowHints[GLFW_VISIBLE] = GLFW_FALSE;
-            std::vector<std::pair<int, int>> glVersions = {
-                {4,6},{4,5},{4,4},{4,3},{4,2},{4,1},{4,0},
-                {3,3},{3,2},{3,1},{3,0},
-                {2,1},{2,0}
-            };
-            for (auto& [version_major, version_minor] : glVersions) {
-                windowHints[GLFW_CONTEXT_VERSION_MAJOR] = version_major;
-                windowHints[GLFW_CONTEXT_VERSION_MINOR] = version_minor;
-                window = CreateGLFWWindowWithHints(width, height, "NONE", windowHints);
-                if (window) {
-                    break;
-                }
-            }
-            return window;
-        }
-        class GLContext : public RTLib::Ext::GL::GLContext
-        {
-        public:
-            GLContext(GLFWwindow* window) :RTLib::Ext::GL::GLContext(), m_Window{ window }
-            {}
-            virtual ~GLContext()noexcept {
-
-            }
-            // GLContext を介して継承されました
-            virtual bool InitLoader() override
-            {
-                glfwMakeContextCurrent(m_Window);
-                if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-                    return false;
-                }
-                return true;
-            }
-            virtual void FreeLoader() override
-            {
-
-            }
-        private:
-            GLFWwindow* m_Window = nullptr;
-        };
     }
     namespace ext
     {
+        using namespace RTLib::Core;
         using namespace RTLib::Ext;
         using namespace RTLib::Ext::CUDA::Math;
         class Camera
@@ -274,11 +250,11 @@ namespace rtlib
                 }
                 if (mode == CameraMovement::eUp)
                 {
-                    m_Position += m_Up * velocity;
+                    m_Position -= m_Up * velocity;
                 }
                 if (mode == CameraMovement::eDown)
                 {
-                    m_Position -= m_Up * velocity;
+                    m_Position += m_Up * velocity;
                 }
 
             }
@@ -335,6 +311,93 @@ namespace rtlib
                 m_Front = normalize(front);
                 m_Right = normalize(cross(m_Up, m_Front));
             }
+        };
+        class OPX7MeshSharedResourceExtData:public RTLib::Core::MeshSharedResourceExtData {
+        public:
+            static auto New(MeshSharedResource* pMeshSharedResource, OPX7::OPX7Context* context)noexcept->OPX7MeshSharedResourceExtData* {
+                auto extData = new OPX7MeshSharedResourceExtData(pMeshSharedResource);
+                auto parent  = extData->GetParent();
+                extData->m_VertexBuffer = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(context->CreateBuffer(
+                    {RTLib::Ext::CUDA::CUDAMemoryFlags::eDefault, sizeof(float3) * std::size(parent->vertexBuffer), std::data(parent->vertexBuffer)}
+                ));
+                extData->m_NormalBuffer = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(context->CreateBuffer(
+                    { RTLib::Ext::CUDA::CUDAMemoryFlags::eDefault, sizeof(float3) * std::size(parent->normalBuffer), std::data(parent->normalBuffer) }
+                ));
+                extData->m_TexCrdBuffer = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(context->CreateBuffer(
+                    { RTLib::Ext::CUDA::CUDAMemoryFlags::eDefault, sizeof(float2) * std::size(parent->texCrdBuffer), std::data(parent->texCrdBuffer) }
+                ));
+                return extData;
+            }
+            virtual ~OPX7MeshSharedResourceExtData()noexcept {}
+            void Destroy() {
+                m_VertexBuffer->Destroy();
+                m_NormalBuffer->Destroy();
+                m_TexCrdBuffer->Destroy();
+            }
+            //SET
+            void SetVertexStrideInBytes(size_t vertexStride)noexcept {m_VertexStrideInBytes = vertexStride;}
+            void SetVertexFormat(OptixVertexFormat format)noexcept {m_VertexFormat = format;}
+            //GET
+            auto GetVertexStrideInBytes()const noexcept -> size_t { return m_VertexStrideInBytes; }
+            auto GetVertexFormat()const noexcept -> OptixVertexFormat { return m_VertexFormat; }
+            auto GetVertexCount()const noexcept -> size_t {
+                if (m_VertexBuffer && m_VertexStrideInBytes > 0) { return m_VertexBuffer->GetSizeInBytes() / m_VertexStrideInBytes; }
+                return 0;
+            }
+            auto GetVertexBuffer()const noexcept -> CUdeviceptr { return CUDA::CUDANatives::GetCUdeviceptr(m_VertexBuffer.get()); }
+            auto GetNormalBuffer()const noexcept -> CUdeviceptr { return CUDA::CUDANatives::GetCUdeviceptr(m_NormalBuffer.get()); }
+            auto GetTexCrdBuffer()const noexcept -> CUdeviceptr { return CUDA::CUDANatives::GetCUdeviceptr(m_TexCrdBuffer.get()); }
+        private:
+            OPX7MeshSharedResourceExtData(MeshSharedResource* pMeshSharedResource) noexcept :MeshSharedResourceExtData(pMeshSharedResource) {}
+        private:
+            std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer> m_VertexBuffer = nullptr;
+            std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer> m_NormalBuffer = nullptr;
+            std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer> m_TexCrdBuffer = nullptr;
+            size_t m_VertexStrideInBytes = 0;
+            OptixVertexFormat m_VertexFormat = OPTIX_VERTEX_FORMAT_NONE;
+        };
+        class OPX7MeshUniqueResourceExtData : public RTLib::Core::MeshUniqueResourceExtData {
+        public:
+            static auto New(MeshUniqueResource* pMeshUniqueResource, OPX7::OPX7Context* context)noexcept->OPX7MeshUniqueResourceExtData* {
+                auto extData = new OPX7MeshUniqueResourceExtData(pMeshUniqueResource);
+                auto parent  = extData->GetParent();
+                extData->m_TriIdxBuffer = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(context->CreateBuffer(
+                    { RTLib::Ext::CUDA::CUDAMemoryFlags::eDefault, sizeof(uint32_t)*3 * std::size(parent->triIndBuffer), std::data(parent->triIndBuffer) }
+                ));
+                extData->m_MatIdxBuffer = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(context->CreateBuffer(
+                    { RTLib::Ext::CUDA::CUDAMemoryFlags::eDefault, sizeof(uint32_t) * std::size(parent->matIndBuffer), std::data(parent->matIndBuffer) }
+                ));
+
+                return extData;
+            }
+            virtual ~OPX7MeshUniqueResourceExtData()noexcept {}
+            void Destroy() {
+                m_TriIdxBuffer.reset();
+            }
+            //SET
+            void SetTriIdxStrideInBytes(size_t indexStride)noexcept { m_TriIdxStride = indexStride; }
+            void SetTriIdxFormat(OptixIndicesFormat format)noexcept { m_IndicesFormat = format; }
+            //GET
+            auto GetTriIdxBuffer()const noexcept -> CUdeviceptr { return CUDA::CUDANatives::GetCUdeviceptr(m_TriIdxBuffer.get()); }
+            auto GetTriIdxCount()const noexcept -> size_t {
+                if (m_TriIdxBuffer && m_TriIdxStride > 0) { return m_TriIdxBuffer->GetSizeInBytes() / m_TriIdxStride; }
+                return 0;
+            }
+            auto GetTriIdxStrideInBytes()const noexcept -> size_t { return m_TriIdxStride; }
+            auto GetTriIdxFormat()const noexcept -> OptixIndicesFormat { return m_IndicesFormat; }
+            //
+            auto GetMatIdxBuffer()const noexcept -> CUdeviceptr { return CUDA::CUDANatives::GetCUdeviceptr(m_MatIdxBuffer.get()); };
+            auto GetMatIdxCount()const noexcept -> size_t {
+                if (m_MatIdxBuffer) { return m_MatIdxBuffer->GetSizeInBytes() / sizeof(uint32_t); }
+                return 0;
+            }
+        private:
+            OPX7MeshUniqueResourceExtData(MeshUniqueResource* pMeshUniqueResource) noexcept :MeshUniqueResourceExtData(pMeshUniqueResource) {}
+        private:
+            std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer> m_TriIdxBuffer = nullptr;
+            std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer> m_MatIdxBuffer = nullptr;
+            OptixIndicesFormat m_IndicesFormat = OPTIX_INDICES_FORMAT_NONE;
+            size_t m_TriIdxStride = 0;
         };
     }
     namespace utils {

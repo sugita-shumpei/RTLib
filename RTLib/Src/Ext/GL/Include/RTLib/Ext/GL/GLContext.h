@@ -53,7 +53,7 @@ namespace RTLib
 				auto CreateProgram() -> GLProgram *;
 				auto CreateProgramPipeline()->GLProgramPipeline*;
 				auto CreateVertexArray() -> GLVertexArray *;
-				auto CreateRectRenderer()-> GLRectRenderer*;
+				auto CreateRectRenderer(const GLVertexArrayCreateDesc& desc = {})->GLRectRenderer*;
 				/*Copy*/
 				bool CopyBuffer(GLBuffer *srcBuffer, GLBuffer *dstBuffer, const std::vector<GLBufferCopy> &regions);
 				bool CopyMemoryToBuffer(GLBuffer *buffer, const std::vector<GLMemoryBufferCopy> &regions);

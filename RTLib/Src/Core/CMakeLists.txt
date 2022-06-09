@@ -7,6 +7,11 @@ set(RTLIB_CORE_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Core/Context.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/Context.cpp
 
+    ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Core/Window.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Core/Keyboard.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Core/Mouse.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Core/Cursor.h
+
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Core/Buffer.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/Buffer.cpp
 
@@ -45,7 +50,7 @@ set(RTLIB_CORE_SOURCES
 add_library(RTLib-Core ${RTLIB_CORE_SOURCES}
 )
 target_include_directories(RTLib-Core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Include)
-target_link_libraries(RTLib-Core PUBLIC Imath::Imath)
+target_link_libraries(RTLib-Core PUBLIC Imath::Imath tinyobjloader)
 set_target_properties(RTLib-Core PROPERTIES FOLDER RTLib/RTLib/Core)
 add_executable(RTLib-Core-Test 
     ${CMAKE_CURRENT_SOURCE_DIR}/Test/Include/RTLibCoreTest.h

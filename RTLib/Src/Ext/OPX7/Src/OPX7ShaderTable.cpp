@@ -24,10 +24,6 @@ struct RTLib::Ext::OPX7::OPX7ShaderTable::Impl
 		hitgroupRecordSizeInBytes  = static_cast<size_t>(shaderBindingTable.hitgroupRecordStrideInBytes)  * shaderBindingTable.hitgroupRecordCount;
 		callablesRecordSizeInBytes = static_cast<size_t>(shaderBindingTable.callablesRecordStrideInBytes) * shaderBindingTable.callablesRecordCount;
 		shaderBindingTableSizeInBytes  = raygenRecordSizeInBytes;
-		if (exceptionRecordSizeInBytes > 0) {
-			exceptionRecordOffsetInBytes = shaderBindingTableSizeInBytes;
-		}
-		shaderBindingTableSizeInBytes += exceptionRecordSizeInBytes;
 		if (missRecordSizeInBytes      > 0) {
 			missRecordOffsetInBytes      = shaderBindingTableSizeInBytes;
 		}
@@ -40,6 +36,10 @@ struct RTLib::Ext::OPX7::OPX7ShaderTable::Impl
 			callablesRecordOffsetInBytes = shaderBindingTableSizeInBytes;
 		}
 		shaderBindingTableSizeInBytes += callablesRecordSizeInBytes;
+		if (exceptionRecordSizeInBytes > 0) {
+			exceptionRecordOffsetInBytes = shaderBindingTableSizeInBytes;
+		}
+		shaderBindingTableSizeInBytes += exceptionRecordSizeInBytes;
 	}
 	void Allocate() {
 		auto buffDesc        = RTLib::Ext::CUDA::CUDABufferCreateDesc();
@@ -171,7 +171,7 @@ auto RTLib::Ext::OPX7::OPX7ShaderTable::GetHostMissRecordData(size_t index) noex
 	auto baseData = GetHostMissRecordBase();
 	if (!baseData) { return nullptr; }
 	if (index >= GetMissRecordCount()) { return nullptr; }
-	return ((char*)baseData)+index * GetMissRecordSizeInBytes();
+	return ((char*)baseData)+index * GetMissRecordStrideInBytes();
 }
 
 auto RTLib::Ext::OPX7::OPX7ShaderTable::GetHostMissRecordData(size_t index) const noexcept -> const void*
@@ -179,7 +179,7 @@ auto RTLib::Ext::OPX7::OPX7ShaderTable::GetHostMissRecordData(size_t index) cons
 	auto baseData = GetHostMissRecordBase();
 	if (!baseData) { return nullptr; }
 	if (index >= GetMissRecordCount()) { return nullptr; }
-	return ((char*)baseData) + index * GetMissRecordSizeInBytes();
+	return ((char*)baseData) + index * GetMissRecordStrideInBytes();
 }
 
 auto RTLib::Ext::OPX7::OPX7ShaderTable::GetHostHitgroupRecordBase() noexcept -> void*
@@ -199,7 +199,7 @@ auto RTLib::Ext::OPX7::OPX7ShaderTable::GetHostHitgroupRecordData(size_t index) 
 	auto baseData = GetHostHitgroupRecordBase();
 	if (!baseData) { return nullptr; }
 	if (index >= GetHitgroupRecordCount()) { return nullptr; }
-	return ((char*)baseData) + index * GetHitgroupRecordSizeInBytes();
+	return ((char*)baseData) + index * GetHitgroupRecordStrideInBytes();
 }
 
 auto RTLib::Ext::OPX7::OPX7ShaderTable::GetHostHitgroupRecordData(size_t index) const noexcept -> const void*
@@ -207,7 +207,7 @@ auto RTLib::Ext::OPX7::OPX7ShaderTable::GetHostHitgroupRecordData(size_t index) 
 	auto baseData = GetHostHitgroupRecordBase();
 	if (!baseData) { return nullptr; }
 	if (index >= GetHitgroupRecordCount()) { return nullptr; }
-	return ((char*)baseData) + index * GetHitgroupRecordSizeInBytes();
+	return ((char*)baseData) + index * GetHitgroupRecordStrideInBytes();
 }
 
 auto RTLib::Ext::OPX7::OPX7ShaderTable::GetHostCallablesRecordBase() noexcept -> void*
@@ -227,7 +227,7 @@ auto RTLib::Ext::OPX7::OPX7ShaderTable::GetHostCallablesRecordData(size_t index)
 	auto baseData = GetHostCallablesRecordBase();
 	if (!baseData) { return nullptr; }
 	if (index >= GetCallablesRecordCount()) { return nullptr; }
-	return ((char*)baseData) + index * GetCallablesRecordSizeInBytes();
+	return ((char*)baseData) + index * GetCallablesRecordStrideInBytes();
 }
 
 auto RTLib::Ext::OPX7::OPX7ShaderTable::GetHostCallablesRecordData(size_t index) const noexcept -> const void*
@@ -235,7 +235,7 @@ auto RTLib::Ext::OPX7::OPX7ShaderTable::GetHostCallablesRecordData(size_t index)
 	auto baseData = GetHostCallablesRecordBase();
 	if (!baseData) { return nullptr; }
 	if (index >= GetCallablesRecordCount()) { return nullptr; }
-	return ((char*)baseData) + index * GetCallablesRecordSizeInBytes();
+	return ((char*)baseData) + index * GetCallablesRecordStrideInBytes();
 }
 
 void RTLib::Ext::OPX7::OPX7ShaderTable::Upload()
