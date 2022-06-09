@@ -31,7 +31,6 @@
 #include <array>
 #include <string>
 #include <string_view>
-#include "cuda/SimpleKernel.h"
 #define RTLIB_DECLARE_GET_BY_REFERENCE(class_name,type_name,func_name_base,member_name) \
 const type_name& get##func_name_base()const noexcept { return member_name; }
 #define RTLIB_DECLARE_GET_BY_VALUE(class_name,type_name,func_name_base,member_name) \

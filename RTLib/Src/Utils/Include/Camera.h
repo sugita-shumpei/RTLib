@@ -1,0 +1,3 @@
+#ifndef RTLIB_UTILS_CAMERA_H
+#define RTLIB_UTILS_CAMERA_H
+#endif
