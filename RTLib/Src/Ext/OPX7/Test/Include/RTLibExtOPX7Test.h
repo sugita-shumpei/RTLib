@@ -5,6 +5,7 @@
 #include <RTLib/Ext/OPX7/OPX7Module.h>
 #include <RTLib/Ext/OPX7/OPX7ProgramGroup.h>
 #include <RTLib/Ext/OPX7/OPX7ShaderTable.h>
+#include <RTLib/Ext/OPX7/OPX7ShaderTableLayout.h>
 #include <RTLib/Ext/OPX7/OPX7Pipeline.h>
 #include <RTLib/Ext/OPX7/OPX7Natives.h>
 #include <RTLib/Ext/OPX7/OPX7Exceptions.h>

@@ -30,10 +30,11 @@ int  OnlineSample() {
     // auto indices = box.getIndices();
     try
     {
-        int width = 1024;
+        int width  = 1024;
         int height = 1024;
         auto glfwContext = std::unique_ptr<GLFWContext>(GLFWContext::New());
         glfwContext->Initialize();
+
         auto window = std::unique_ptr<GL::GLFWOpenGLWindow>(rtlib::test::CreateGLFWWindow(glfwContext.get(),width, height, "title"));
         auto cameraController = rtlib::ext::CameraController({ 0.0f,1.0f, 5.0f });
         // contextはcopy/move不可
@@ -64,6 +65,7 @@ int  OnlineSample() {
         accelBuildOptions.motionOptions = {};
         accelBuildOptions.operation = OPTIX_BUILD_OPERATION_BUILD;
         auto blasHandle = OptixTraversableHandle();
+        auto blasLayout = std::make_unique<OPX7ShaderTableLayoutGeometryAS>();
         auto blasBuffer = std::unique_ptr<CUDABuffer>();
         {
             auto geometryFlags = std::vector<unsigned int>();
@@ -82,28 +84,39 @@ int  OnlineSample() {
                     d_Vertices[i] = extSharedData->GetVertexBuffer();
                     geometryFlags[i] = OPTIX_GEOMETRY_FLAG_DISABLE_ANYHIT;
                     buildInputs[i].type = OPTIX_BUILD_INPUT_TYPE_TRIANGLES;
-                    buildInputs[i].triangleArray.vertexBuffers = &d_Vertices[i];
-                    buildInputs[i].triangleArray.numVertices = extSharedData->GetVertexCount();
-                    buildInputs[i].triangleArray.vertexFormat = extSharedData->GetVertexFormat();
-                    buildInputs[i].triangleArray.vertexStrideInBytes = extSharedData->GetVertexStrideInBytes();
-                    buildInputs[i].triangleArray.indexBuffer = extUniqueData->GetTriIdxBuffer();
-                    buildInputs[i].triangleArray.numIndexTriplets = extUniqueData->GetTriIdxCount();
-                    buildInputs[i].triangleArray.indexFormat = extUniqueData->GetTriIdxFormat();
-                    buildInputs[i].triangleArray.indexStrideInBytes = extUniqueData->GetTriIdxStrideInBytes();
-                    buildInputs[i].triangleArray.sbtIndexOffsetBuffer = extUniqueData->GetMatIdxBuffer();
-                    buildInputs[i].triangleArray.sbtIndexOffsetStrideInBytes = 0;
-                    buildInputs[i].triangleArray.sbtIndexOffsetSizeInBytes   = sizeof(uint32_t);
-                    buildInputs[i].triangleArray.numSbtRecords = mesh->GetUniqueResource()->materials.size();
-                    buildInputs[i].triangleArray.preTransform = 0;
-                    buildInputs[i].triangleArray.transformFormat = OPTIX_TRANSFORM_FORMAT_NONE;
-                    buildInputs[i].triangleArray.flags = &geometryFlags[i];
+                    {
+                        buildInputs[i].triangleArray.vertexBuffers = &d_Vertices[i];
+                        buildInputs[i].triangleArray.numVertices = extSharedData->GetVertexCount();
+                        buildInputs[i].triangleArray.vertexFormat = extSharedData->GetVertexFormat();
+                        buildInputs[i].triangleArray.vertexStrideInBytes = extSharedData->GetVertexStrideInBytes();
+                        buildInputs[i].triangleArray.indexBuffer = extUniqueData->GetTriIdxBuffer();
+                        buildInputs[i].triangleArray.numIndexTriplets = extUniqueData->GetTriIdxCount();
+                        buildInputs[i].triangleArray.indexFormat = extUniqueData->GetTriIdxFormat();
+                        buildInputs[i].triangleArray.indexStrideInBytes = extUniqueData->GetTriIdxStrideInBytes();
+                        buildInputs[i].triangleArray.sbtIndexOffsetBuffer = extUniqueData->GetMatIdxBuffer();
+                        buildInputs[i].triangleArray.sbtIndexOffsetStrideInBytes = 0;
+                        buildInputs[i].triangleArray.sbtIndexOffsetSizeInBytes = sizeof(uint32_t);
+                        buildInputs[i].triangleArray.numSbtRecords = mesh->GetUniqueResource()->materials.size();
+                        buildInputs[i].triangleArray.preTransform = 0;
+                        buildInputs[i].triangleArray.transformFormat = OPTIX_TRANSFORM_FORMAT_NONE;
+                        buildInputs[i].triangleArray.flags = &geometryFlags[i];
+                    }
+                    blasLayout->SetDwGeometry(OPX7ShaderTableLayoutGeometry(mesh->GetUniqueResource()->materials.size()));
                 }
-
             }
             auto accelOutput = OPX7Natives::BuildAccelerationStructure(opx7Context.get(), accelBuildOptions, buildInputs);
             blasHandle = accelOutput.handle;
             blasBuffer = std::move(accelOutput.buffer);
         }
+        auto blasInstBuffer = std::unique_ptr<CUDABuffer>();
+        auto tlasHandle     = OptixTraversableHandle();
+        auto tlasLayout     = OPX7ShaderTableLayoutInstanceAS();
+        auto tlasBuffer     = std::unique_ptr<CUDABuffer>();
+        {
+            tlasLayout.SetInstance(OPX7ShaderTableLayoutInstance(blasLayout.get()));
+            tlasLayout.SetRecordStride(1);
+        }
+
         auto pipelineCompileOptions = OPX7PipelineCompileOptions{};
         {
             pipelineCompileOptions.usesMotionBlur = false;
@@ -137,20 +150,19 @@ int  OnlineSample() {
             pipelineCreateDesc.programGroups  = { raygenPG.get(), missPG.get(), hitgroupPG.get() };
         }
         auto pipeline = std::unique_ptr<OPX7Pipeline>(opx7Context->CreateOPXPipeline(pipelineCreateDesc));
-        auto shaderTableDesc = OPX7ShaderTableCreateDesc();
+
+        auto shaderTableLayout = OPX7ShaderTableLayout(tlasLayout);
+        auto shaderTableDesc   = OPX7ShaderTableCreateDesc();
         {
 
             shaderTableDesc.raygenRecordSizeInBytes     = sizeof(RTLib::Ext::OPX7::OPX7ShaderRecord<RayGenData>);
             shaderTableDesc.missRecordStrideInBytes     = sizeof(RTLib::Ext::OPX7::OPX7ShaderRecord<MissData>);
-            shaderTableDesc.missRecordCount             = 1;
+            shaderTableDesc.missRecordCount             = shaderTableLayout.GetRecordStride();
             shaderTableDesc.hitgroupRecordStrideInBytes = sizeof(RTLib::Ext::OPX7::OPX7ShaderRecord<HitgroupData>);
-            shaderTableDesc.hitgroupRecordCount         = 0;
-            for (auto& [name,uniqueResource] : objAssetLoader.GetAsset("CornellBox-Original").meshGroup->GetUniqueResources()) {
-                std::cout << uniqueResource->materials.size() << std::endl;
-                shaderTableDesc.hitgroupRecordCount += uniqueResource->materials.size();
-            }
+            shaderTableDesc.hitgroupRecordCount         = shaderTableLayout.GetRecordCount();
         }
         auto shaderTable = std::unique_ptr<OPX7ShaderTable>(opx7Context->CreateOPXShaderTable(shaderTableDesc));
+       
         {
             {
                 auto raygenRecord = raygenPG->GetRecord<RayGenData>();
@@ -168,13 +180,13 @@ int  OnlineSample() {
                 shaderTable->SetHostMissRecordTypeData(0, missRecord);
             }
             {
-                auto& objAsset = objAssetLoader.GetAsset("CornellBox-Original");
+                auto& objAsset   = objAssetLoader.GetAsset("CornellBox-Original");
                 auto uniqueNames = objAsset.meshGroup->GetUniqueNames();
                 size_t matOffset = 0;
                 for (size_t i = 0; i < uniqueNames.size(); ++i) {
                     auto mesh = objAsset.meshGroup->LoadMesh(uniqueNames[i]);
-                    auto extSharedData = static_cast<rtlib::ext::OPX7MeshSharedResourceExtData*>(mesh->GetSharedResource()->extData.get());
-                    auto extUniqueData = static_cast<rtlib::ext::OPX7MeshUniqueResourceExtData*>(mesh->GetUniqueResource()->extData.get());
+                    auto extSharedData = mesh->GetSharedResource()->GetExtData<rtlib::ext::OPX7MeshSharedResourceExtData>();
+                    auto extUniqueData = mesh->GetUniqueResource()->GetExtData<rtlib::ext::OPX7MeshUniqueResourceExtData>();
                     auto hitgroupRecord = hitgroupPG->GetRecord<HitgroupData>();
                     hitgroupRecord.data.vertices = reinterpret_cast<float3*>(extSharedData->GetVertexBuffer());
                     hitgroupRecord.data.indices  =  reinterpret_cast<uint3*>(extUniqueData->GetTriIdxBuffer());
@@ -252,9 +264,9 @@ int  OnlineSample() {
             /*RayTrace*/{
                 auto params = Params();
                 {
-                    params.image = reinterpret_cast<uchar4*>(CUDANatives::GetCUdeviceptr(frameBufferCUDA));
-                    params.width = width;
-                    params.height = height;
+                    params.image     = reinterpret_cast<uchar4*>(CUDANatives::GetCUdeviceptr(frameBufferCUDA));
+                    params.width     = width;
+                    params.height    = height;
                     params.gasHandle = blasHandle;
                 }
                 stream->CopyMemoryToBuffer(dParams.get(), { {&params,0,sizeof(params)} });
@@ -262,7 +274,6 @@ int  OnlineSample() {
             }
             frameBufferCUGL->Unmap(stream.get());
             stream->Synchronize();
-            glFlush();
             /*DrawRect*/{
                 ogl4Context->SetClearBuffer(GLClearBufferFlagsColor);
                 ogl4Context->SetClearColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -276,7 +287,7 @@ int  OnlineSample() {
                     });
                 rectRendererGL->DrawTexture(frameTextureGL.get());
             }
-            glfwPollEvents();
+            glfwContext->Update();
             isUpdated = false;
             isResized = false;
             isMovedCamera = false;
@@ -284,7 +295,7 @@ int  OnlineSample() {
                 int tWidth, tHeight;
                 glfwGetWindowSize(window->GetGLFWwindow(), &tWidth, &tHeight);
                 if (width != tWidth || height != tHeight) {
-                    std::cout << width << "->" << tWidth << "\n";
+                    std::cout << width  << "->" << tWidth  << "\n";
                     std::cout << height << "->" << tHeight << "\n";
                     width     = tWidth;
                     height    = tHeight;
@@ -297,35 +308,33 @@ int  OnlineSample() {
                 float prevTime = glfwGetTime();
                 windowState.delTime = windowState.curTime - prevTime;
                 windowState.curTime = prevTime;
-                if (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_W) == GLFW_PRESS) {
+                const bool pressKeyLeft    = (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_A) == GLFW_PRESS) || (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_LEFT ) == GLFW_PRESS);
+                const bool pressKeyRight   = (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_D) == GLFW_PRESS) || (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_RIGHT) == GLFW_PRESS);
+                const bool pressKeyForward = (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_W) == GLFW_PRESS);
+                const bool pressKeyBackward= (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_S) == GLFW_PRESS);
+                const bool pressKeyUp      = (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_UP)   == GLFW_PRESS);
+                const bool pressKeyDown    = (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_DOWN) == GLFW_PRESS);
+                if (pressKeyLeft) {
+                    cameraController.ProcessKeyboard(rtlib::ext::CameraMovement::eLeft, windowState.delTime);
+                    isMovedCamera = true;
+                }
+                if (pressKeyRight) {
+                    cameraController.ProcessKeyboard(rtlib::ext::CameraMovement::eRight, windowState.delTime);
+                    isMovedCamera = true;
+                }
+                if (pressKeyForward) {
                     cameraController.ProcessKeyboard(rtlib::ext::CameraMovement::eForward, windowState.delTime);
                     isMovedCamera = true;
                 }
-                if (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_S) == GLFW_PRESS) {
+                if (pressKeyBackward) {
                     cameraController.ProcessKeyboard(rtlib::ext::CameraMovement::eBackward, windowState.delTime);
                     isMovedCamera = true;
                 }
-                if (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_A) == GLFW_PRESS) {
-                    cameraController.ProcessKeyboard(rtlib::ext::CameraMovement::eLeft, windowState.delTime);
-                    isMovedCamera = true;
-                }
-                if (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_D) == GLFW_PRESS) {
-                    cameraController.ProcessKeyboard(rtlib::ext::CameraMovement::eRight, windowState.delTime);
-                    isMovedCamera = true;
-                }
-                if (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_LEFT) == GLFW_PRESS) {
-                    cameraController.ProcessKeyboard(rtlib::ext::CameraMovement::eLeft, windowState.delTime);
-                    isMovedCamera = true;
-                }
-                if (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_RIGHT) == GLFW_PRESS) {
-                    cameraController.ProcessKeyboard(rtlib::ext::CameraMovement::eRight, windowState.delTime);
-                    isMovedCamera = true;
-                }
-                if (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_UP) == GLFW_PRESS) {
+                if (pressKeyUp) {
                     cameraController.ProcessKeyboard(rtlib::ext::CameraMovement::eUp, windowState.delTime);
                     isMovedCamera = true;
                 }
-                if (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_DOWN) == GLFW_PRESS) {
+                if (pressKeyDown) {
                     cameraController.ProcessKeyboard(rtlib::ext::CameraMovement::eDown, windowState.delTime);
                     isMovedCamera = true;
                 }

@@ -128,6 +128,14 @@ namespace RTLib {
                 extData = std::unique_ptr<MeshSharedResourceExtData>(MeshSharedResourceExtT::New(this, std::forward<Args>(args)...));
                 return extData != nullptr;
             }
+            template<typename MeshSharedResourceExtT, typename ...Args, bool Cond = std::is_base_of_v<MeshSharedResourceExtData, MeshSharedResourceExtT>>
+            auto GetExtData()const ->const MeshSharedResourceExtT* {
+                return dynamic_cast<const MeshSharedResourceExtT*>(extData.get());
+            }
+            template<typename MeshSharedResourceExtT, typename ...Args, bool Cond = std::is_base_of_v<MeshSharedResourceExtData, MeshSharedResourceExtT>>
+            auto GetExtData()->MeshSharedResourceExtT* {
+                return dynamic_cast<MeshSharedResourceExtT*>(extData.get());
+            }
         };
         using  MeshSharedResourcePtr = std::shared_ptr<MeshSharedResource>;
         class  MeshUniqueResource;
@@ -158,6 +166,14 @@ namespace RTLib {
             bool AddExtData(Args&&... args) {
                 extData = std::unique_ptr<MeshUniqueResourceExtData>(MeshUniqueResourceExtT::New(this, std::forward<Args>(args)...));
                 return extData != nullptr;
+            }
+            template<typename MeshUniqueResourceExtT, typename ...Args, bool Cond = std::is_base_of_v<MeshUniqueResourceExtData, MeshUniqueResourceExtT>>
+            auto GetExtData()const ->const MeshUniqueResourceExtT* {
+                return dynamic_cast<const MeshUniqueResourceExtT*>(extData.get());
+            }
+            template<typename MeshUniqueResourceExtT, typename ...Args, bool Cond = std::is_base_of_v<MeshUniqueResourceExtData, MeshUniqueResourceExtT>>
+            auto GetExtData()->MeshUniqueResourceExtT* {
+                return dynamic_cast<MeshUniqueResourceExtT*>(extData.get());
             }
         };
         using  MeshUniqueResourcePtr = std::shared_ptr<MeshUniqueResource>;

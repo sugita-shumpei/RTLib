@@ -136,44 +136,13 @@ namespace RTLib {
 			class OPX7ShaderTableLayout
 			{
 			public: 
-				OPX7ShaderTableLayout(const OPX7ShaderTableLayoutInstanceAS& tlas)noexcept {
-					auto gasSet = std::unordered_set<const OPX7ShaderTableLayoutGeometryAS*>();
-					auto iasSet = std::unordered_set<const OPX7ShaderTableLayoutInstanceAS*>();
-					auto gasMap = std::unordered_map<const OPX7ShaderTableLayoutGeometryAS*, uint32_t>();
-					auto iasMap = std::unordered_map<const OPX7ShaderTableLayoutInstanceAS*, uint32_t>();
-					EnumerateImpl(&tlas, gasSet, iasSet);
-					geometryASs.reserve(std::size(gasSet));
-					for (auto& pGAS:gasSet) {
-						gasMap[pGAS] = geometryASs.size();
-						geometryASs.push_back(std::make_unique<OPX7ShaderTableLayoutGeometryAS>(*pGAS));
-					}
-					instanceASs.reserve(std::size(iasSet)+1);
-					iasMap[&tlas]  = 0;
-					instanceASs.push_back(std::make_unique<OPX7ShaderTableLayoutInstanceAS>(tlas));
-					iasSet.insert(&tlas);
+				OPX7ShaderTableLayout(const OPX7ShaderTableLayoutInstanceAS& tlas)noexcept;
 
-					for (auto& pIAS:iasSet) {
-						iasMap[pIAS] = instanceASs.size();
-						instanceASs.push_back(std::make_unique<OPX7ShaderTableLayoutInstanceAS>(*pIAS));
-					}
-					for (auto& pIAS:iasSet) {
-						for (auto& instance : instanceASs[iasMap[pIAS]]->m_DwInstances)
-						{
-							if (instance.m_UpInstanceAS) {
-								instance.m_UpInstanceAS = instanceASs[iasMap[instance.m_UpInstanceAS]].get();
-							}
-							if (instance.m_DwGeometryAS) {
-								instance.m_DwGeometryAS = geometryASs[gasMap[instance.m_DwGeometryAS]].get();
-							}
-							if (instance.m_DwInstanceAS) {
-								instance.m_DwInstanceAS = instanceASs[iasMap[instance.m_DwInstanceAS]].get();
-								instance.m_DwInstanceAS->m_UpInstance = &instance;
-							}
-						}
-					}
-					instanceASs[0]->SetRecordStride(tlas.GetRecordStride());
-				}
-				
+				auto GetRecordCount() const noexcept -> unsigned int;
+				auto GetRecordStride()const noexcept -> unsigned int;
+
+				auto RootInstanceAS()      noexcept ->      OPX7ShaderTableLayoutInstanceAS*;
+				auto RootInstanceAS()const noexcept ->const OPX7ShaderTableLayoutInstanceAS*;
 			private:
 				static void EnumerateImpl(const OPX7ShaderTableLayoutInstanceAS*  pIAS,
 					std::unordered_set<const OPX7ShaderTableLayoutGeometryAS*>& gasSet,
@@ -192,10 +161,10 @@ namespace RTLib {
 					}
 				}
 			private:
-				std::vector<std::unique_ptr<OPX7ShaderTableLayoutGeometryAS>> geometryASs;
-				std::vector<std::unique_ptr<OPX7ShaderTableLayoutInstanceAS>> instanceASs;
-
+				std::vector<std::unique_ptr<OPX7ShaderTableLayoutGeometryAS>> m_GeometryASLayouts;
+				std::vector<std::unique_ptr<OPX7ShaderTableLayoutInstanceAS>> m_InstanceASLayouts;
 			};
+			
 			
 		}
 	}

@@ -313,3 +313,61 @@ void RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstanceAS::Internal_SetRecordOffset
 		recordOffset  += instance.GetRecordCount();
 	}
 }
+
+RTLib::Ext::OPX7::OPX7ShaderTableLayout::OPX7ShaderTableLayout(const OPX7ShaderTableLayoutInstanceAS& tlas) noexcept {
+	auto gasSet = std::unordered_set<const OPX7ShaderTableLayoutGeometryAS*>();
+	auto iasSet = std::unordered_set<const OPX7ShaderTableLayoutInstanceAS*>();
+	auto gasMap = std::unordered_map<const OPX7ShaderTableLayoutGeometryAS*, uint32_t>();
+	auto iasMap = std::unordered_map<const OPX7ShaderTableLayoutInstanceAS*, uint32_t>();
+	EnumerateImpl(&tlas, gasSet, iasSet);
+	m_GeometryASLayouts.reserve(std::size(gasSet));
+	for (auto& pGAS : gasSet) {
+		gasMap[pGAS] = m_GeometryASLayouts.size();
+		m_GeometryASLayouts.push_back(std::make_unique<OPX7ShaderTableLayoutGeometryAS>(*pGAS));
+	}
+	m_InstanceASLayouts.reserve(std::size(iasSet) + 1);
+	iasMap[&tlas] = 0;
+	m_InstanceASLayouts.push_back(std::make_unique<OPX7ShaderTableLayoutInstanceAS>(tlas));
+	iasSet.insert(&tlas);
+
+	for (auto& pIAS : iasSet) {
+		iasMap[pIAS] = m_InstanceASLayouts.size();
+		m_InstanceASLayouts.push_back(std::make_unique<OPX7ShaderTableLayoutInstanceAS>(*pIAS));
+	}
+	for (auto& pIAS : iasSet) {
+		for (auto& instance : m_InstanceASLayouts[iasMap[pIAS]]->m_DwInstances)
+		{
+			if (instance.m_UpInstanceAS) {
+				instance.m_UpInstanceAS = m_InstanceASLayouts[iasMap[instance.m_UpInstanceAS]].get();
+			}
+			if (instance.m_DwGeometryAS) {
+				instance.m_DwGeometryAS = m_GeometryASLayouts[gasMap[instance.m_DwGeometryAS]].get();
+			}
+			if (instance.m_DwInstanceAS) {
+				instance.m_DwInstanceAS = m_InstanceASLayouts[iasMap[instance.m_DwInstanceAS]].get();
+				instance.m_DwInstanceAS->m_UpInstance = &instance;
+			}
+		}
+	}
+	m_InstanceASLayouts[0]->SetRecordStride(tlas.GetRecordStride());
+}
+
+auto RTLib::Ext::OPX7::OPX7ShaderTableLayout::GetRecordCount() const noexcept -> unsigned int
+{
+	return m_InstanceASLayouts[0]->GetRecordCount();
+}
+
+auto RTLib::Ext::OPX7::OPX7ShaderTableLayout::GetRecordStride() const noexcept -> unsigned int
+{
+	return m_InstanceASLayouts[0]->GetRecordStride();
+}
+
+auto RTLib::Ext::OPX7::OPX7ShaderTableLayout::RootInstanceAS() noexcept -> OPX7ShaderTableLayoutInstanceAS*
+{
+	return m_InstanceASLayouts[0].get();
+}
+
+auto RTLib::Ext::OPX7::OPX7ShaderTableLayout::RootInstanceAS() const noexcept -> const OPX7ShaderTableLayoutInstanceAS*
+{
+	return m_InstanceASLayouts[0].get();
+}
