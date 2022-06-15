@@ -3,6 +3,15 @@
 #include <stdexcept>
 #include <string>
 #include <cstdint>
+#ifndef NDEBUG
+#define RTLIB_CORE_ASSERT_IF_FAILED(EXPR) do {\
+		\
+		auto result = EXPR; \
+		assert(result); \
+} while (0)
+#else
+#define RTLIB_CORE_ASSERT_IF_FAILED(EXPR) EXPR
+#endif
 #define RTLIB_CORE_EXCEPTION_DECLARE_DERIVED_METHOD(EXCEPTION, NAME) \
 private: \
 	static inline constexpr char exceptionName[] = #NAME; \

@@ -3,6 +3,7 @@
 #include <RTLib/Ext/GL/GLRectRenderer.h>
 #include <RTLib/Ext/GL/GLCommon.h>
 #include <RTLib/Ext/GL/GLNatives.h>
+#include <RTLib/Core/Exceptions.h>
 #include <RTLib/Core/Utility.h>
 #include "GLContextImpl.h"
 #include "GLTypeConversions.h"
@@ -105,7 +106,7 @@ bool RTLib::Ext::GL::GLContext::CopyMemoryToBuffer(GLBuffer* buffer, const std::
 		for (const auto& region : regions) {
 			mappedData = (char*)glMapNamedBufferRange(buffer->GetResId(), region.dstOffset, region.size, GL_MAP_WRITE_BIT);
 			std::memcpy(mappedData, region.srcData, region.size);
-			assert(glUnmapNamedBuffer(buffer->GetResId()));
+			RTLIB_CORE_ASSERT_IF_FAILED(glUnmapNamedBuffer(buffer->GetResId()));
 		}
 	}
 	else {
@@ -121,7 +122,7 @@ bool RTLib::Ext::GL::GLContext::CopyMemoryToBuffer(GLBuffer* buffer, const std::
 		for (const auto& region : regions) {
 			mappedData = (char*)glMapBufferRange(dstTarget, region.dstOffset, region.size, GL_MAP_WRITE_BIT);
 			std::memcpy(mappedData, region.srcData, region.size);
-			assert(glUnmapBuffer(dstTarget));
+			RTLIB_CORE_ASSERT_IF_FAILED(glUnmapBuffer(dstTarget));
 		}
 	}
 	return true;
@@ -138,7 +139,7 @@ bool RTLib::Ext::GL::GLContext::CopyBufferToMemory(GLBuffer* buffer, const std::
 		for (const auto& region : regions) {
 			mappedData = (char*)glMapNamedBufferRange(buffer->GetResId(), region.srcOffset, region.size, GL_MAP_READ_BIT);
 			std::memcpy(region.dstData, mappedData, region.size);
-			assert(glUnmapNamedBuffer(buffer->GetResId()));
+			RTLIB_CORE_ASSERT_IF_FAILED(glUnmapNamedBuffer(buffer->GetResId()));
 		}
 	}
 	else {
@@ -154,7 +155,7 @@ bool RTLib::Ext::GL::GLContext::CopyBufferToMemory(GLBuffer* buffer, const std::
 		for (const auto& region : regions) {
 			mappedData = (char*)glMapBufferRange(srcTarget, region.srcOffset, region.size, GL_MAP_READ_BIT);
 			std::memcpy(region.dstData, mappedData, region.size);
-			assert(glUnmapBuffer(srcTarget));
+			RTLIB_CORE_ASSERT_IF_FAILED(glUnmapBuffer(srcTarget));
 		}
 	}
 	return true;

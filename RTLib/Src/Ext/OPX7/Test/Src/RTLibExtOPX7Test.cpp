@@ -15,17 +15,8 @@ int  OnlineSample() {
     using namespace RTLib::Ext::GL;
     using namespace RTLib::Ext::CUGL;
     using namespace RTLib::Ext::GLFW;
-    static constexpr float3 vertices[] = { float3{-0.5f, -0.5f, 0.0f}, float3{0.5f, -0.5f, 0.0f}, float3{0.0f, 0.5f, 0.0f} };
-    static constexpr uint3 indices[] = { {0, 1, 2} };
-    auto box = rtlib::utils::Box{};
-    box.x0 = -0.5f;
-    box.y0 = -0.5f;
-    box.z0 = -0.5f;
-    box.x1 = 0.5f;
-    box.y1 = 0.5f;
-    box.z1 = 0.5f;
     auto objAssetLoader = RTLib::Core::ObjModelAssetManager();
-    assert(objAssetLoader.LoadAsset("CornellBox-Original", RTLIB_EXT_OPX7_TEST_DATA_PATH"/Models/CornellBox/CornellBox-Original.obj"));
+    (objAssetLoader.LoadAsset("CornellBox-Original", RTLIB_EXT_OPX7_TEST_DATA_PATH"/Models/CornellBox/CornellBox-Original.obj"));
     // auto vertices = box.getVertices();
     // auto indices = box.getIndices();
     try
@@ -84,6 +75,7 @@ int  OnlineSample() {
                     d_Vertices[i] = extSharedData->GetVertexBuffer();
                     geometryFlags[i] = OPTIX_GEOMETRY_FLAG_DISABLE_ANYHIT;
                     buildInputs[i].type = OPTIX_BUILD_INPUT_TYPE_TRIANGLES;
+                    blasLayout->SetDwGeometry(OPX7ShaderTableLayoutGeometry(uniqueNames[i], mesh->GetUniqueResource()->materials.size()));
                     {
                         buildInputs[i].triangleArray.vertexBuffers = &d_Vertices[i];
                         buildInputs[i].triangleArray.numVertices = extSharedData->GetVertexCount();
@@ -96,12 +88,12 @@ int  OnlineSample() {
                         buildInputs[i].triangleArray.sbtIndexOffsetBuffer = extUniqueData->GetMatIdxBuffer();
                         buildInputs[i].triangleArray.sbtIndexOffsetStrideInBytes = 0;
                         buildInputs[i].triangleArray.sbtIndexOffsetSizeInBytes = sizeof(uint32_t);
-                        buildInputs[i].triangleArray.numSbtRecords = mesh->GetUniqueResource()->materials.size();
+                        buildInputs[i].triangleArray.numSbtRecords = blasLayout->GetDwGeometries().back().GetBaseRecordCount();
                         buildInputs[i].triangleArray.preTransform = 0;
                         buildInputs[i].triangleArray.transformFormat = OPTIX_TRANSFORM_FORMAT_NONE;
                         buildInputs[i].triangleArray.flags = &geometryFlags[i];
                     }
-                    blasLayout->SetDwGeometry(OPX7ShaderTableLayoutGeometry(uniqueNames[i],mesh->GetUniqueResource()->materials.size()));
+                    
                 }
             }
             auto accelOutput = OPX7Natives::BuildAccelerationStructure(opx7Context.get(), accelBuildOptions, buildInputs);
@@ -268,20 +260,25 @@ int  OnlineSample() {
                     shaderTable->UploadRaygenRecord();
                 }
             }
-            auto frameBufferCUDA = frameBufferCUGL->Map(stream.get());
-            /*RayTrace*/{
-                auto params = Params();
+            glFinish();
+            {
+
+                auto frameBufferCUDA = frameBufferCUGL->Map(stream.get());
+                /*RayTrace*/ 
                 {
-                    params.image     = reinterpret_cast<uchar4*>(CUDANatives::GetCUdeviceptr(frameBufferCUDA));
-                    params.width     = width;
-                    params.height    = height;
-                    params.gasHandle = blasHandle;
+                    auto params = Params();
+                    {
+                        params.image = reinterpret_cast<uchar4*>(CUDANatives::GetCUdeviceptr(frameBufferCUDA));
+                        params.width = width;
+                        params.height = height;
+                        params.gasHandle = blasHandle;
+                    }
+                    stream->CopyMemoryToBuffer(dParams.get(), { {&params,0,sizeof(params)} });
+                    pipeline->Launch(stream.get(), CUDABufferView(dParams.get(), 0, dParams->GetSizeInBytes()), shaderTable.get(), width, height, 1);
                 }
-                stream->CopyMemoryToBuffer(dParams.get(), { {&params,0,sizeof(params)} });
-                pipeline->Launch(stream.get(), CUDABufferView(dParams.get(), 0, dParams->GetSizeInBytes()), shaderTable.get(), width, height, 1); 
+                frameBufferCUGL->Unmap(stream.get());
+                stream->Synchronize();
             }
-            frameBufferCUGL->Unmap(stream.get());
-            stream->Synchronize();
             /*DrawRect*/{
                 ogl4Context->SetClearBuffer(GLClearBufferFlagsColor);
                 ogl4Context->SetClearColor(0.0f, 0.0f, 0.0f, 0.0f);

@@ -1,4 +1,5 @@
 #define STB_IMAGE_IMPLEMENTATION
+#include <RTLib/Core/Exceptions.h>
 #include <RTLib/Ext/GL/GLContext.h>
 #include <RTLib/Ext/GL/GLVertexArray.h>
 #include <RTLib/Ext/GL/GLBuffer.h>
@@ -160,7 +161,7 @@ int main(int argc, const char* argv[]) {
 			texDesc.sampler.minFilter    = RTLib::Core::FilterMode::eLinear;
 
 			tex = std::unique_ptr<RTLib::Ext::GL::GLTexture>(context->CreateTexture(texDesc));
-			assert(context->CopyMemoryToImage(tex->GetImage(), { {(void*)pixels,{(uint32_t)0,(uint32_t)0,(uint32_t)1},{(uint32_t)0,(uint32_t)0,(uint32_t)0},{(uint32_t)tWid,(uint32_t)tHei,(uint32_t)0}} }));
+			RTLIB_CORE_ASSERT_IF_FAILED(context->CopyMemoryToImage(tex->GetImage(), { {(void*)pixels,{(uint32_t)0,(uint32_t)0,(uint32_t)1},{(uint32_t)0,(uint32_t)0,(uint32_t)0},{(uint32_t)tWid,(uint32_t)tHei,(uint32_t)0}} }));
 			stbi_image_free(pixels);
 
 			auto pixelData   = std::vector<unsigned char>(tWid * tHei*4, 255);
@@ -213,23 +214,23 @@ int main(int argc, const char* argv[]) {
         vao->SetVertexBuffer(1,  colorBuffer.get(), 0,0);
         vao->SetVertexAttribFormat( 1, RTLib::Ext::GL::GLVertexFormat::eFloat32x3, false);
         vao->SetVertexAttribBinding(1, 1);
-		assert(vao->Enable());
+		RTLIB_CORE_ASSERT_IF_FAILED(vao->Enable());
         
 		auto graphicsProgram = std::unique_ptr<RTLib::Ext::GL::GLProgram>(context->CreateProgram());
 		graphicsProgram->SetSeparetable(false);
 		graphicsProgram->AttachShader(vertexShader.get());
 		graphicsProgram->AttachShader(fragmentShader.get());
-		assert(graphicsProgram->Link());
+		RTLIB_CORE_ASSERT_IF_FAILED(graphicsProgram->Link());
 
 		auto vertProgram = std::unique_ptr<RTLib::Ext::GL::GLProgram>(context->CreateProgram());
 		vertProgram->SetSeparetable(true);
 		vertProgram->AttachShader(vertexShader.get());
-		assert(vertProgram->Link());
+		RTLIB_CORE_ASSERT_IF_FAILED(vertProgram->Link());
 
 		auto fragProgram = std::unique_ptr<RTLib::Ext::GL::GLProgram>(context->CreateProgram());
 		fragProgram->SetSeparetable(true);
 		fragProgram->AttachShader(fragmentShader.get());
-		assert(fragProgram->Link());
+		RTLIB_CORE_ASSERT_IF_FAILED(fragProgram->Link());
 
 		auto graphicsPipeline = std::unique_ptr<RTLib::Ext::GL::GLProgramPipeline>(context->CreateProgramPipeline());
 		graphicsPipeline->SetProgram(RTLib::Ext::GL::GLShaderStageVertex  , vertProgram.get());

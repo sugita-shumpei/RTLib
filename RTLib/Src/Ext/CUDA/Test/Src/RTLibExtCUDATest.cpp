@@ -1,5 +1,6 @@
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
+#include <RTLib/Core/Exceptions.h>
 #include <RTLib/Ext/CUDA/CUDAContext.h>
 #include <RTLib/Ext/CUDA/CUDABuffer.h>
 #include <RTLib/Ext/CUDA/CUDAImage.h>
@@ -85,21 +86,21 @@ int main(int argc, const char* argv)
 			std::vector<float> dstData2(16 * 16);
 			std::vector<float> dstData3(16 * 16);
 
-			assert(stream->CopyMemoryToBuffer( bff1.get(), { {srcData0.data(),0,sizeof(srcData0[0]) * std::size(srcData0)}}));
-			assert(stream->CopyBuffer(         bff1.get(), bff2.get(), { {0,0,16 *sizeof(float)}}));
-			assert(stream->CopyBufferToMemory( bff2.get(), { {dstData0.data(),0,sizeof(dstData0[0]) * std::size(dstData0)} }));
+			RTLIB_CORE_ASSERT_IF_FAILED(stream->CopyMemoryToBuffer( bff1.get(), { {srcData0.data(),0,sizeof(srcData0[0]) * std::size(srcData0)}}));
+			RTLIB_CORE_ASSERT_IF_FAILED(stream->CopyBuffer(         bff1.get(), bff2.get(), { {0,0,16 *sizeof(float)}}));
+			RTLIB_CORE_ASSERT_IF_FAILED(stream->CopyBufferToMemory( bff2.get(), { {dstData0.data(),0,sizeof(dstData0[0]) * std::size(dstData0)} }));
 			Show(dstData0);
-			assert(stream->CopyMemoryToImage(  img0.get(), { {srcData0.data() ,{0,0,1},{0,0,0},{16,16,0} } }));
-			assert(stream->CopyImageToMemory(  img0.get(), { {dstData0.data() ,{0,0,1},{0,0,0},{16,16,0} } }));
+			RTLIB_CORE_ASSERT_IF_FAILED(stream->CopyMemoryToImage(  img0.get(), { {srcData0.data() ,{0,0,1},{0,0,0},{16,16,0} } }));
+			RTLIB_CORE_ASSERT_IF_FAILED(stream->CopyImageToMemory(  img0.get(), { {dstData0.data() ,{0,0,1},{0,0,0},{16,16,0} } }));
 			Show(dstData0);
-			assert(stream->CopyMemoryToImage(  img0.get(), { {srcData1.data() ,{0,1,1},{0,0,0},{16,16,0} } }));
-			assert(stream->CopyImageToMemory(  img0.get(), { {dstData1.data() ,{0,1,1},{0,0,0},{16,16,0} } }));
+			RTLIB_CORE_ASSERT_IF_FAILED(stream->CopyMemoryToImage(  img0.get(), { {srcData1.data() ,{0,1,1},{0,0,0},{16,16,0} } }));
+			RTLIB_CORE_ASSERT_IF_FAILED(stream->CopyImageToMemory(  img0.get(), { {dstData1.data() ,{0,1,1},{0,0,0},{16,16,0} } }));
 			Show(dstData1);
-			assert(stream->CopyMemoryToImage(  img0.get(), { {srcData2.data() ,{0,2,1},{0,0,0},{16,16,0} } }));
+			RTLIB_CORE_ASSERT_IF_FAILED(stream->CopyMemoryToImage(  img0.get(), { {srcData2.data() ,{0,2,1},{0,0,0},{16,16,0} } }));
 			//assert(stream->CopyImageToMemory(  img0.get(), { {dstData2.data() ,{0,2,1},{0,0,0},{16,16,0} } }));
 			Show(dstData2);
-			assert(stream->CopyMemoryToImage(  img0.get(), { {srcData3.data() ,{0,3,1},{0,0,0},{16,16,0} } }));
-			assert(stream->CopyImageToMemory(  img0.get(), { {dstData3.data() ,{0,3,1},{0,0,0},{16,16,0} } }));
+			RTLIB_CORE_ASSERT_IF_FAILED(stream->CopyMemoryToImage(  img0.get(), { {srcData3.data() ,{0,3,1},{0,0,0},{16,16,0} } }));
+			RTLIB_CORE_ASSERT_IF_FAILED(stream->CopyImageToMemory(  img0.get(), { {dstData3.data() ,{0,3,1},{0,0,0},{16,16,0} } }));
 			Show(dstData3);
 		}
 		auto texDesc = RTLib::Ext::CUDA::CUDATextureImageCreateDesc();
@@ -138,7 +139,7 @@ int main(int argc, const char* argv)
 				obffDesc.sizeInBytes = x * y * comp;
 			}
 			auto ibff = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(ctx.CreateBuffer(ibffDesc));
-			assert(ctx.CopyMemoryToBuffer(ibff.get(), { {static_cast<const void*>(iImgData),static_cast<size_t>(0),static_cast<size_t>(x * y * comp)}}));
+			RTLIB_CORE_ASSERT_IF_FAILED(ctx.CopyMemoryToBuffer(ibff.get(), { {static_cast<const void*>(iImgData),static_cast<size_t>(0),static_cast<size_t>(x * y * comp)}}));
 			auto obff = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(ctx.CreateBuffer(obffDesc));
 
 			auto ipixel = RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(ibff.get());
@@ -151,7 +152,7 @@ int main(int argc, const char* argv)
 				&x,
 				&y
 			}, nullptr});
-			assert(ctx.CopyBufferToMemory(obff.get(), { {static_cast<void*>(oImgData.data()),static_cast<size_t>(0),static_cast<size_t>(x * y * comp)} }));
+			RTLIB_CORE_ASSERT_IF_FAILED(ctx.CopyBufferToMemory(obff.get(), { {static_cast<void*>(oImgData.data()),static_cast<size_t>(0),static_cast<size_t>(x * y * comp)} }));
 			stbi_write_png(RTLIB_EXT_CUDA_TEST_CUDA_PATH"/../Result.png", x, y, comp, oImgData.data(), 4 * x);
 
 			ibff->Destroy();

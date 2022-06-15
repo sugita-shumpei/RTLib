@@ -241,7 +241,7 @@ auto RTLib::Ext::OPX7::OPX7ShaderTable::GetHostCallablesRecordData(size_t index)
 void RTLib::Ext::OPX7::OPX7ShaderTable::Upload()
 {
 	assert(m_Impl != nullptr);
-	assert(m_Impl->context->CopyMemoryToBuffer(m_Impl->buffer.get(), {
+	RTLIB_CORE_ASSERT_IF_FAILED(m_Impl->context->CopyMemoryToBuffer(m_Impl->buffer.get(), {
 		{m_Impl->pHostData, 0, m_Impl->shaderBindingTableSizeInBytes}
 	}));
 }
@@ -252,7 +252,7 @@ void RTLib::Ext::OPX7::OPX7ShaderTable::UploadRaygenRecord()
 	if (m_Impl->raygenRecordSizeInBytes == 0) { return; }
 	auto offsetSizeInBytes = GetRaygenRecordOffsetInBytes();
 	auto sizeInBytes = GetRaygenRecordSizeInBytes();
-	assert(m_Impl->context->CopyMemoryToBuffer(m_Impl->buffer.get(), {
+	RTLIB_CORE_ASSERT_IF_FAILED(m_Impl->context->CopyMemoryToBuffer(m_Impl->buffer.get(), {
 		{(char*)m_Impl->pHostData, offsetSizeInBytes,sizeInBytes}
 	}));
 }
@@ -263,7 +263,7 @@ void RTLib::Ext::OPX7::OPX7ShaderTable::UploadExceptionRecord()
 	if (m_Impl->exceptionRecordOffsetInBytes == 0) { return; }
 	auto offsetSizeInBytes = GetExceptionRecordOffsetInBytes();
 	auto sizeInBytes = GetExceptionRecordSizeInBytes();
-	assert(m_Impl->context->CopyMemoryToBuffer(m_Impl->buffer.get(), {
+	RTLIB_CORE_ASSERT_IF_FAILED(m_Impl->context->CopyMemoryToBuffer(m_Impl->buffer.get(), {
 		{(char*)m_Impl->pHostData, offsetSizeInBytes,sizeInBytes}
 	}));
 }
@@ -274,7 +274,7 @@ void RTLib::Ext::OPX7::OPX7ShaderTable::UploadMissRecord()
 	if (m_Impl->exceptionRecordOffsetInBytes == 0) { return; }
 	auto offsetSizeInBytes = GetMissRecordOffsetInBytes();
 	auto sizeInBytes = GetMissRecordSizeInBytes();
-	assert(m_Impl->context->CopyMemoryToBuffer(m_Impl->buffer.get(), {
+	RTLIB_CORE_ASSERT_IF_FAILED(m_Impl->context->CopyMemoryToBuffer(m_Impl->buffer.get(), {
 		{(char*)m_Impl->pHostData, offsetSizeInBytes,sizeInBytes}
 	}));
 }
@@ -285,7 +285,7 @@ void RTLib::Ext::OPX7::OPX7ShaderTable::UploadHitgroupRecord()
 	if (m_Impl->exceptionRecordOffsetInBytes == 0) { return; }
 	auto offsetSizeInBytes = GetHitgroupRecordOffsetInBytes();
 	auto sizeInBytes = GetHitgroupRecordSizeInBytes();
-	assert(m_Impl->context->CopyMemoryToBuffer(m_Impl->buffer.get(), {
+	RTLIB_CORE_ASSERT_IF_FAILED(m_Impl->context->CopyMemoryToBuffer(m_Impl->buffer.get(), {
 		{(char*)m_Impl->pHostData, offsetSizeInBytes,sizeInBytes}
 	}));
 }
@@ -296,7 +296,7 @@ void RTLib::Ext::OPX7::OPX7ShaderTable::UploadCallablesRecord()
 	if (m_Impl->exceptionRecordOffsetInBytes == 0) { return; }
 	auto offsetSizeInBytes = GetCallablesRecordOffsetInBytes();
 	auto sizeInBytes = GetCallablesRecordSizeInBytes();
-	assert(m_Impl->context->CopyMemoryToBuffer(m_Impl->buffer.get(), {
+	RTLIB_CORE_ASSERT_IF_FAILED(m_Impl->context->CopyMemoryToBuffer(m_Impl->buffer.get(), {
 		{(char*)m_Impl->pHostData, offsetSizeInBytes,sizeInBytes}
 	}));
 }
@@ -304,7 +304,7 @@ void RTLib::Ext::OPX7::OPX7ShaderTable::UploadCallablesRecord()
 void RTLib::Ext::OPX7::OPX7ShaderTable::Download()
 {
 	assert(m_Impl != nullptr);
-	assert(m_Impl->context->CopyBufferToMemory(m_Impl->buffer.get(), {
+	RTLIB_CORE_ASSERT_IF_FAILED(m_Impl->context->CopyBufferToMemory(m_Impl->buffer.get(), {
 		{m_Impl->pHostData, 0, m_Impl->shaderBindingTableSizeInBytes}
 		}));
 }
@@ -315,7 +315,7 @@ void RTLib::Ext::OPX7::OPX7ShaderTable::DownloadRaygenRecord()
 	if (m_Impl->raygenRecordSizeInBytes == 0) { return; }
 	auto offsetSizeInBytes = GetRaygenRecordOffsetInBytes();
 	auto sizeInBytes = GetRaygenRecordSizeInBytes();
-	assert(m_Impl->context->CopyBufferToMemory(m_Impl->buffer.get(), {
+	RTLIB_CORE_ASSERT_IF_FAILED(m_Impl->context->CopyBufferToMemory(m_Impl->buffer.get(), {
 		{(char*)m_Impl->pHostData, offsetSizeInBytes,sizeInBytes}
 		}));
 }
@@ -326,7 +326,7 @@ void RTLib::Ext::OPX7::OPX7ShaderTable::DownloadExceptionRecord()
 	if (m_Impl->exceptionRecordOffsetInBytes == 0) { return; }
 	auto offsetSizeInBytes = GetExceptionRecordOffsetInBytes();
 	auto sizeInBytes = GetExceptionRecordSizeInBytes();
-	assert(m_Impl->context->CopyBufferToMemory(m_Impl->buffer.get(), {
+	RTLIB_CORE_ASSERT_IF_FAILED(m_Impl->context->CopyBufferToMemory(m_Impl->buffer.get(), {
 		{(char*)m_Impl->pHostData, offsetSizeInBytes,sizeInBytes}
 		}));
 }
@@ -337,7 +337,7 @@ void RTLib::Ext::OPX7::OPX7ShaderTable::DownloadMissRecord()
 	if (m_Impl->exceptionRecordOffsetInBytes == 0) { return; }
 	auto offsetSizeInBytes = GetMissRecordOffsetInBytes();
 	auto sizeInBytes = GetMissRecordSizeInBytes();
-	assert(m_Impl->context->CopyBufferToMemory(m_Impl->buffer.get(), {
+	RTLIB_CORE_ASSERT_IF_FAILED(m_Impl->context->CopyBufferToMemory(m_Impl->buffer.get(), {
 		{(char*)m_Impl->pHostData, offsetSizeInBytes,sizeInBytes}
 		}));
 }
@@ -348,7 +348,7 @@ void RTLib::Ext::OPX7::OPX7ShaderTable::DownloadHitgroupRecord()
 	if (m_Impl->exceptionRecordOffsetInBytes == 0) { return; }
 	auto offsetSizeInBytes = GetHitgroupRecordOffsetInBytes();
 	auto sizeInBytes = GetHitgroupRecordSizeInBytes();
-	assert(m_Impl->context->CopyBufferToMemory(m_Impl->buffer.get(), {
+	RTLIB_CORE_ASSERT_IF_FAILED(m_Impl->context->CopyBufferToMemory(m_Impl->buffer.get(), {
 		{(char*)m_Impl->pHostData, offsetSizeInBytes,sizeInBytes}
 		}));
 }
@@ -359,7 +359,7 @@ void RTLib::Ext::OPX7::OPX7ShaderTable::DownloadCallablesRecord()
 	if (m_Impl->exceptionRecordOffsetInBytes == 0) { return; }
 	auto offsetSizeInBytes = GetCallablesRecordOffsetInBytes();
 	auto sizeInBytes = GetCallablesRecordSizeInBytes();
-	assert(m_Impl->context->CopyBufferToMemory(m_Impl->buffer.get(), {
+	RTLIB_CORE_ASSERT_IF_FAILED(m_Impl->context->CopyBufferToMemory(m_Impl->buffer.get(), {
 		{(char*)m_Impl->pHostData, offsetSizeInBytes,sizeInBytes}
 		}));
 }

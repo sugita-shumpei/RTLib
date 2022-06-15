@@ -157,12 +157,12 @@ namespace RTLib {
 				auto RootInstanceAS()      noexcept ->      OPX7ShaderTableLayoutInstanceAS*;
 				auto RootInstanceAS()const noexcept ->const OPX7ShaderTableLayoutInstanceAS*;
 				
-				auto FindInstance(const std::string& name)const ->const OPX7ShaderTableLayoutInstance*;
+				auto FindInstance  (const std::string& name)const ->const OPX7ShaderTableLayoutInstance  *;
 				auto FindInstanceAS(const std::string& name)const ->const OPX7ShaderTableLayoutInstanceAS*;
 				auto FindGeometryAS(const std::string& name)const ->const OPX7ShaderTableLayoutGeometryAS*;
-				auto FindGeometry(const std::string& name)const ->const OPX7ShaderTableLayoutGeometry*;
+				auto FindGeometry  (const std::string& name)const ->const OPX7ShaderTableLayoutGeometry  *;
 
-				auto FindInstance(const OPX7ShaderTableLayoutInstanceAS  * instanceAS, const std::string& name)const ->const OPX7ShaderTableLayoutInstance*;
+				auto FindInstance  (const OPX7ShaderTableLayoutInstanceAS* instanceAS, const std::string& name)const ->const OPX7ShaderTableLayoutInstance  *;
 				auto FindInstanceAS(const OPX7ShaderTableLayoutInstanceAS* instanceAS, const std::string& name)const ->const OPX7ShaderTableLayoutInstanceAS*;
 				auto FindInstanceAS(const OPX7ShaderTableLayoutInstance  * instance  , const std::string& name)const ->const OPX7ShaderTableLayoutInstanceAS*;
 				auto FindGeometryAS(const OPX7ShaderTableLayoutInstanceAS* instanceAS, const std::string& name)const ->const OPX7ShaderTableLayoutGeometryAS*;
@@ -196,7 +196,8 @@ namespace RTLib {
 				}
 				static void EnumerateImpl(const OPX7ShaderTableLayoutInstanceAS*  pIAS,
 					std::unordered_set<const OPX7ShaderTableLayoutGeometryAS*>& gasSet,
-					std::unordered_set<const OPX7ShaderTableLayoutInstanceAS*>& iasSet)noexcept {
+					std::unordered_set<const OPX7ShaderTableLayoutInstanceAS*>& iasSet
+				)noexcept {
 					if (!pIAS) {
 						return;
 					}
@@ -211,15 +212,15 @@ namespace RTLib {
 					}
 				}
 
-				auto FindChildInstance(const OPX7ShaderTableLayoutInstanceAS* instanceAS, const std::string& name)const ->const OPX7ShaderTableLayoutInstance*;
-				auto FindChildInstanceAS(const OPX7ShaderTableLayoutInstance* instance, const std::string& name)const ->const OPX7ShaderTableLayoutInstanceAS*;
-				auto FindChildGeometryAS(const OPX7ShaderTableLayoutInstance* instance, const std::string& name)const ->const OPX7ShaderTableLayoutGeometryAS*;
-				auto FindChildGeometry(const OPX7ShaderTableLayoutGeometryAS* gas, const std::string& name)const ->const OPX7ShaderTableLayoutGeometry*;
+				auto FindChildInstance  (const OPX7ShaderTableLayoutInstanceAS* instanceAS, const std::string& name)const -> const OPX7ShaderTableLayoutInstance  *;
+				auto FindChildInstanceAS(const OPX7ShaderTableLayoutInstance* instance    , const std::string& name)const -> const OPX7ShaderTableLayoutInstanceAS*;
+				auto FindChildGeometryAS(const OPX7ShaderTableLayoutInstance* instance    , const std::string& name)const -> const OPX7ShaderTableLayoutGeometryAS*;
+				auto FindChildGeometry  (const OPX7ShaderTableLayoutGeometryAS* gas       , const std::string& name)const -> const OPX7ShaderTableLayoutGeometry  *;
 			private:
 				std::vector<std::unique_ptr<OPX7ShaderTableLayoutGeometryAS>> m_GeometryASLayouts;
 				std::vector<std::unique_ptr<OPX7ShaderTableLayoutInstanceAS>> m_InstanceASLayouts;
 			};
-			
+
 			
 		}
 	}

@@ -1,4 +1,5 @@
 #define STB_IMAGE_IMPLEMENTATION
+#define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <RTLib/Ext/GL/GLContext.h>
 #include <RTLib/Ext/GL/GLVertexArray.h>
 #include <RTLib/Ext/GL/GLRectRenderer.h>
@@ -17,11 +18,11 @@
 #include <RTLib/Ext/CUGL/CUGLImage.h>
 #include <RTLibExtCUGLTestConfig.h>
 #include <stb_image.h>
+#include <stb_image_write.h>
 #include <GLFW/glfw3.h>
 #include <random>
 #include <unordered_map>
 #include <fstream>
-#include <cassert>
 #include <memory>
 static auto CreateGLFWWindowWithHints(int width, int height, const char* title, const std::unordered_map<int, int>& windowHint)->GLFWwindow* {
 	for (auto& [key, value] : windowHint) {
@@ -152,13 +153,13 @@ int main(int argc, const char* argv[]) {
 			cuContext->CopyMemoryToBuffer(seedBuffer.get(), { seedCopy });
 		}
 		auto frameDesc = RTLib::Ext::GL::GLBufferCreateDesc{};
-		frameDesc.size = width * height * 4;
-		frameDesc.pData = nullptr;
+		frameDesc.size   = width * height * 4;
+		frameDesc.pData  = nullptr;
 		frameDesc.access = RTLib::Ext::GL::GLMemoryPropertyDefault;
-		frameDesc.usage = RTLib::Ext::GL::GLBufferUsageImageCopySrc;
+		frameDesc.usage  = RTLib::Ext::GL::GLBufferUsageImageCopySrc;
 
 		auto frameBufferGL   = std::unique_ptr<GLBuffer>(glContext->CreateBuffer(frameDesc));
-		auto frameBufferCUGL = std::unique_ptr<CUGLBuffer>(CUGLBuffer::New(cuContext.get(),frameBufferGL.get(), RTLib::Ext::CUGL::CUGLGraphicsRegisterFlagsNone));
+		auto frameBufferCUGL = std::unique_ptr<CUGLBuffer>(CUGLBuffer::New(cuContext.get(),frameBufferGL.get(), RTLib::Ext::CUGL::CUGLGraphicsRegisterFlagsWriteDiscard));
 
 		auto cuStream = std::unique_ptr<RTLib::Ext::CUDA::CUDAStream>(cuContext->CreateStream());
 
@@ -176,12 +177,33 @@ int main(int argc, const char* argv[]) {
 			texDesc.sampler.minFilter    = RTLib::Core::FilterMode::eLinear;
 
 			tex = std::unique_ptr<RTLib::Ext::GL::GLTexture>(glContext->CreateTexture(texDesc));
+			auto pixels = std::vector<unsigned char>(width * height * 4,255);
+			RTLIB_CORE_ASSERT_IF_FAILED(glContext->CopyMemoryToImage(tex->GetImage(), { {(void*)pixels.data(),{(uint32_t)0,(uint32_t)0,(uint32_t)1},{(uint32_t)0,(uint32_t)0,(uint32_t)0},{(uint32_t)width,(uint32_t)height,(uint32_t)0}}}));
+		}
+		auto tex2= std::unique_ptr<RTLib::Ext::GL::GLTexture>(nullptr);
+		auto texDesc = RTLib::Ext::GL::GLTextureCreateDesc();
+		{
+			int tWid, tHei, tCmp;
+			auto pixels = stbi_load(RTLIB_EXT_CUGL_TEST_CONFIG_DATA_PATH"/Textures/sample.png", &tWid, &tHei, &tCmp, 4);
+
+			texDesc.image.imageType = RTLib::Ext::GL::GLImageType::e2D;
+			texDesc.image.extent.width = tWid;
+			texDesc.image.extent.height = tHei;
+			texDesc.image.extent.depth = 0;
+			texDesc.image.arrayLayers = 0;
+			texDesc.image.mipLevels = 1;
+			texDesc.image.format = RTLib::Ext::GL::GLFormat::eRGBA8;
+			texDesc.sampler.magFilter = RTLib::Core::FilterMode::eLinear;
+			texDesc.sampler.minFilter = RTLib::Core::FilterMode::eLinear;
+
+			tex2 = std::unique_ptr<RTLib::Ext::GL::GLTexture>(glContext->CreateTexture(texDesc));
+			RTLIB_CORE_ASSERT_IF_FAILED(glContext->CopyMemoryToImage(tex2->GetImage(), { {(void*)pixels,{(uint32_t)0,(uint32_t)0,(uint32_t)1},{(uint32_t)0,(uint32_t)0,(uint32_t)0},{(uint32_t)tWid,(uint32_t)tHei,(uint32_t)0}} }));
+			stbi_image_free(pixels);
 		}
 		auto rectRenderer = std::unique_ptr<RTLib::Ext::GL::GLRectRenderer>(glContext->CreateRectRenderer());
 
 		RTLib::Ext::CUDA::CUDAKernelLaunchDesc lncDesc = {};
 		{
-			CUdeviceptr seedptr = RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(seedBuffer.get());
 			lncDesc.gridDimX = width;
 			lncDesc.gridDimY = height;
 			lncDesc.gridDimZ = 1;
@@ -189,29 +211,31 @@ int main(int argc, const char* argv[]) {
 			lncDesc.blockDimY = 16;
 			lncDesc.blockDimZ = 1;
 			lncDesc.kernelParams.resize(4);
-			lncDesc.kernelParams[0] = &seedptr;
+			lncDesc.kernelParams[0] = nullptr;
 			lncDesc.kernelParams[1] = nullptr;
 			lncDesc.kernelParams[2] = &width;
 			lncDesc.kernelParams[3] = &height;
 			lncDesc.sharedMemBytes = 0;
-			lncDesc.stream = cuStream.get();
+			lncDesc.stream = nullptr;
 		}
 
 		glfwShowWindow(window);
 		while (!glfwWindowShouldClose(window)) {
+			glFinish();
 			{
-				auto frameBufferCU = frameBufferCUGL->Map(cuStream.get());
+				auto frameBufferCU = frameBufferCUGL->Map(nullptr);
 				{
+					CUdeviceptr seedptr   = RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(seedBuffer.get());
 					CUdeviceptr outputptr = RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(frameBufferCU);
+					lncDesc.kernelParams[0] = &seedptr;
 					lncDesc.kernelParams[1] = &outputptr;
-					cuFunction->Launch(lncDesc);
-					cuStream->Synchronize();
+					RTLIB_CORE_ASSERT_IF_FAILED(cuFunction->Launch(lncDesc));
 				}
-				frameBufferCUGL->Unmap(cuStream.get());
+				frameBufferCUGL->Unmap(nullptr);
 			}
+
 			glContext->SetClearBuffer(RTLib::Ext::GL::GLClearBufferFlagsColor);
 			glContext->SetClearColor(0.0f, 1.0f, 0.0f, 0.0f);
-			
 			{
 				auto bufferImageCopy = RTLib::Ext::GL::GLBufferImageCopy();
 				{
@@ -226,8 +250,6 @@ int main(int argc, const char* argv[]) {
 				glContext->CopyBufferToImage(frameBufferGL.get(), tex->GetImage(), { bufferImageCopy });
 			}
 
-			glContext->SetClearBuffer(RTLib::Ext::GL::GLClearBufferFlagsColor);
-			glContext->SetClearColor (0.0f, 1.0f, 0.0f, 0.0f);
 			rectRenderer->DrawTexture(tex.get());
 			glfwSwapBuffers(window);
 			glfwPollEvents();
@@ -239,6 +261,7 @@ int main(int argc, const char* argv[]) {
 		frameBufferGL->Destroy();
 		rectRenderer->Destroy();
 		tex->Destroy();
+		tex2->Destroy();
 	} while (false);
 	cuContext->Terminate();
 	glContext->Terminate();

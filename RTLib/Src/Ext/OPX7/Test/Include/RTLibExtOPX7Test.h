@@ -1,5 +1,6 @@
 #ifndef RTLIB_EXT_OPX7_TEST_H
 #define RTLIB_EXT_OPX7_TEST_H
+#include <RTLib/Core/Exceptions.h>
 #include <RTLib/Core/BinaryReader.h>
 #include <RTLib/Ext/OPX7/OPX7Context.h>
 #include <RTLib/Ext/OPX7/OPX7Module.h>
