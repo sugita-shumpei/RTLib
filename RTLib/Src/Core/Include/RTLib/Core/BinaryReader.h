@@ -2,6 +2,7 @@
 #define RTLIB_CORE_BINARY_READER_H
 #include <tiny_obj_loader.h>
 #include <unordered_map>
+#include <nlohmann/json.hpp>
 #include <vector>
 #include <array>
 #include <string>
@@ -85,14 +86,22 @@ namespace RTLib {
             RTLIB_CORE_VARIABLE_MAP_METHOD_DECLARE_HAS(Float3);
             RTLIB_CORE_VARIABLE_MAP_METHOD_DECLARE_HAS(Float4);
             RTLIB_CORE_VARIABLE_MAP_METHOD_DECLARE_HAS(String);
+
+            auto EnumerateUInt32Data()const noexcept -> const std::unordered_map<std::string, uint32_t>& { return m_UInt32Data; }
+            auto EnumerateBoolData()  const noexcept -> const std::unordered_map<std::string, bool    >& { return m_BoolData; }
+            auto EnumerateFloat1Data()const noexcept -> const std::unordered_map<std::string, float               >& { return m_Float1Data; }
+            auto EnumerateFloat2Data()const noexcept -> const std::unordered_map<std::string, std::array<float, 2>>& { return m_Float2Data; }
+            auto EnumerateFloat3Data()const noexcept -> const std::unordered_map<std::string, std::array<float, 3>>& { return m_Float3Data; }
+            auto EnumerateFloat4Data()const noexcept -> const std::unordered_map<std::string, std::array<float, 4>>& { return m_Float4Data; }
+            auto EnumerateStringData()const noexcept -> const std::unordered_map<std::string, std::string>& { return m_StringData; }
         private:
-            std::unordered_map<std::string, uint32_t>             m_UInt32Data;
-            std::unordered_map<std::string, bool>                 m_BoolData;
-            std::unordered_map<std::string, float>                m_Float1Data;
+            std::unordered_map<std::string, uint32_t>              m_UInt32Data;
+            std::unordered_map<std::string, bool>                  m_BoolData;
+            std::unordered_map<std::string, float>                 m_Float1Data;
             std::unordered_map<std::string, std::array<float, 2>>  m_Float2Data;
             std::unordered_map<std::string, std::array<float, 3>>  m_Float3Data;
             std::unordered_map<std::string, std::array<float, 4>>  m_Float4Data;
-            std::unordered_map<std::string, std::string>          m_StringData;
+            std::unordered_map<std::string, std::string>           m_StringData;
         };
         using  VariableMapList = std::vector<VariableMap>;
         using  VariableMapListPtr = std::shared_ptr<VariableMapList>;
@@ -224,10 +233,13 @@ namespace RTLib {
             void SplitLight();
             void   InitAABB();
         };
-        class ObjModelAssetManager
+        class  ObjModelAssetManager
         {
         public:
-            bool LoadAsset(const std::string& keyName, const std::string& objPath);
+            ObjModelAssetManager(const std::string& cacheDir = "")noexcept :m_CacheDir{ cacheDir } {}
+            auto GetCacheDir()const noexcept -> std::string { return m_CacheDir; }
+            void SetCacheDir(const std::string& cacheDir)noexcept { m_CacheDir = cacheDir; }
+            bool LoadAsset(const std::string& keyName, const std::string& objPath, bool useCache = true);
             void FreeAsset(const std::string& keyName);
             auto  GetAsset(const std::string& keyName)const -> const ObjModel&;
             auto  GetAsset(const std::string& keyName)->ObjModel&;
@@ -238,15 +250,73 @@ namespace RTLib {
             void  Reset();
             ~ObjModelAssetManager();
         private:
+            bool LoadAssetCache(const std::string& keyName)noexcept;
+            void SaveAssetCache(const std::string& keyName)const noexcept;
+        private:
+            std::string                               m_CacheDir  = {};
             std::unordered_map<std::string, ObjModel> m_ObjModels = {};
         };
-		class  ObjModelReader
-		{
-		public:
-			bool Load(const std::string& filename)noexcept;
 
-		};
-		
+        template<typename JsonType>
+        inline void   to_json(JsonType& j, const RTLib::Core::VariableMap& v) {
+
+            for (auto& [key, value] : v.EnumerateBoolData()) {
+                j[key] = value;
+            }
+            for (auto& [key, value] : v.EnumerateFloat1Data()) {
+                j[key] = value;
+            }
+            for (auto& [key, value] : v.EnumerateFloat2Data()) {
+                j[key] = value;
+            }
+            for (auto& [key, value] : v.EnumerateFloat3Data()) {
+                j[key] = value;
+            }
+            for (auto& [key, value] : v.EnumerateFloat4Data()) {
+                j[key] = value;
+            }
+            for (auto& [key, value] : v.EnumerateUInt32Data()) {
+                j[key] = value;
+            }
+            for (auto& [key, value] : v.EnumerateStringData()) {
+                j[key] = value;
+            }
+
+
+        }
+        template<typename JsonType>
+        inline void from_json(const JsonType& j, RTLib::Core::VariableMap& v) {
+            for (auto& elem : j.items()) {
+                if (elem.value().is_string()) {
+                    v.SetString(elem.key(), elem.value().get<std::string>());
+                }
+                if (elem.value().is_boolean()) {
+                    v.SetBool(elem.key(), elem.value().get<bool>());
+                }
+                if (elem.value().is_number_integer()) {
+                    v.SetUInt32(elem.key(), elem.value().get<unsigned int>());
+                }
+                if (elem.value().is_number_float()) {
+                    v.SetFloat1(elem.key(), elem.value().get<float>());
+                }
+                if (elem.value().is_array()) {
+                    auto size = elem.value().size();
+                    switch (size) {
+                    case 2:
+                        v.SetFloat2(elem.key(), elem.value().get < std::array<float, 2>>());
+                        break;
+                    case 3:
+                        v.SetFloat3(elem.key(), elem.value().get < std::array<float, 3>>());
+                        break;
+                    case 4:
+                        v.SetFloat4(elem.key(), elem.value().get < std::array<float, 4>>());
+                        break;
+                    default:
+                        break;
+                    }
+                }
+            }
+        }
 	}
 }
 #endif

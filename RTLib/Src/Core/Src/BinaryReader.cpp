@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <iostream>
+#include <fstream>
 void RTLib::Core::MeshGroup::SetSharedResource(const MeshSharedResourcePtr& res) noexcept
 {
     this->m_SharedResource = res;
@@ -238,8 +239,13 @@ void RTLib::Core::ObjModel::InitAABB()
     meshGroup->GetSharedResource()->variables.SetFloat3From("aabb.max", aabb.max);
 }
 
-bool RTLib::Core::ObjModelAssetManager::LoadAsset(const std::string& keyName, const std::string& objPath) 
+bool RTLib::Core::ObjModelAssetManager::LoadAsset(const std::string& keyName, const std::string& objPath, bool useCache) 
 {
+    if (useCache) {
+        if (LoadAssetCache(keyName)) {
+            return true;
+        }
+    }
     auto mtlBaseDir = std::filesystem::canonical(std::filesystem::path(objPath).parent_path());
     tinyobj::ObjReaderConfig readerConfig = {};
     readerConfig.mtl_search_path = mtlBaseDir.string() + "\\";
@@ -275,8 +281,8 @@ bool RTLib::Core::ObjModelAssetManager::LoadAsset(const std::string& keyName, co
             MyHash& operator=(MyHash&&)noexcept = default;
             size_t operator()(tinyobj::index_t key)const
             {
-                size_t vertexHash = std::hash<int>()(key.vertex_index) & 0x3FFFFF;
-                size_t normalHash = std::hash<int>()(key.normal_index) & 0x1FFFFF;
+                size_t vertexHash = std::hash<int>()(key.vertex_index)   & 0x3FFFFF;
+                size_t normalHash = std::hash<int>()(key.normal_index)   & 0x1FFFFF;
                 size_t texCrdHash = std::hash<int>()(key.texcoord_index) & 0x1FFFFF;
                 return vertexHash + (normalHash << 22) + (texCrdHash << 43);
             }
@@ -525,9 +531,11 @@ bool RTLib::Core::ObjModelAssetManager::LoadAsset(const std::string& keyName, co
             }
         }
     }
+    meshGroup->GetSharedResource()->variables.SetString("path", objPath);
     m_ObjModels[keyName] = { meshGroup,std::move(phongMaterials) };
     m_ObjModels[keyName].SplitLight();
     m_ObjModels[keyName].InitAABB();
+    SaveAssetCache(keyName);
     return true;
 }
 
@@ -583,4 +591,172 @@ void RTLib::Core::ObjModelAssetManager::Reset()
 
 RTLib::Core::ObjModelAssetManager::~ObjModelAssetManager()
 {
+}
+bool RTLib::Core::ObjModelAssetManager::LoadAssetCache(const std::string& keyName) noexcept
+{
+    if (m_CacheDir.empty()) { return false; }
+    auto cacheRootDir  = m_CacheDir   + "\\" + keyName;
+    auto cacheJsonPath = cacheRootDir + "\\" + keyName + ".json";
+    auto cacheJsonFile = std::ifstream(cacheJsonPath, std::ios::binary);
+    if (!cacheJsonFile.is_open()) {
+        return false;
+    }
+    std::cout << cacheJsonPath << std::endl;
+    auto cacheJsonData = nlohmann::json();
+    try
+    {
+        cacheJsonData = nlohmann::json::parse(cacheJsonFile);
+    }
+    catch (nlohmann::json::parse_error& ex)
+    {
+        std::cerr << "parse error at byte " << ex.byte << std::endl;
+    }
+    for (auto& elem : cacheJsonData.items()) {
+        std::cout << elem.key() << std::endl;
+    }
+    auto& meshGroupJson = cacheJsonData.at("MeshGroup");
+    auto& materialsJson = cacheJsonData.at("Materials");
+    auto materialIdxMap = std::unordered_map<std::string, uint32_t>();
+    std::vector<VariableMap> materials;
+    materials.reserve(materialsJson.size());
+    for (auto& materialElem : materialsJson.items()) {
+        materialIdxMap[materialElem.key()]  = materials.size();
+        materials.push_back(materialElem.value());
+    }
+    auto    meshGroup = RTLib::Core::MeshGroup::New();
+
+    auto LoadBuffer = [](const nlohmann::json& json,auto& buffer)->void {
+        auto strideInBytes = sizeof(buffer[0]);
+        auto sizeInBytes   = json.at("SizeInBytes").get<uint32_t>();
+        if (json.count("Path")==0) {
+            if (std::is_same_v<std::array<float, 3>, std::remove_const_t<std::remove_reference_t<decltype(buffer[0])>>>) {
+                buffer.resize(sizeInBytes / strideInBytes);
+                auto bufferData = json.at("Data").get<std::vector<float>>();
+                std::memcpy(buffer.data(), bufferData.data(), sizeInBytes);
+            }
+            else if (std::is_same_v<std::array<float, 2>, std::remove_const_t<std::remove_reference_t<decltype(buffer[0])>>>) {
+                buffer.resize(sizeInBytes / strideInBytes);
+                auto bufferData = json.at("Data").get<std::vector<float>>();
+                std::memcpy(buffer.data(), bufferData.data(), sizeInBytes);
+            }
+            else if (std::is_same_v<std::array<uint32_t, 3>, std::remove_const_t<std::remove_reference_t<decltype(buffer[0])>>>) {
+                buffer.resize(sizeInBytes / strideInBytes);
+                auto bufferData = json.at("Data").get<std::vector<uint32_t>>();
+                std::memcpy(buffer.data(), bufferData.data(), sizeInBytes);
+            }
+            else {
+                buffer = json.at("Data").get<std::vector<std::remove_const_t<std::remove_reference_t<decltype(buffer[0])>>>>();
+            }
+        }
+        else {
+            auto loadPath = json.at("Path").get<std::string>();
+            auto file = std::ifstream(loadPath, std::ios::binary);
+            if (file.is_open()) {
+                buffer.resize(sizeInBytes / strideInBytes);
+                file.read((char*)buffer.data(), sizeInBytes);
+            }
+            file.close();
+        }
+    };
+    {
+        auto meshSharedResource = RTLib::Core::MeshSharedResource::New();
+        auto& sharedResourceJson = meshGroupJson.at("SharedResource");
+        LoadBuffer(sharedResourceJson.at("VertexBuffer"), meshSharedResource->vertexBuffer);
+        LoadBuffer(sharedResourceJson.at("NormalBuffer"), meshSharedResource->normalBuffer);
+        LoadBuffer(sharedResourceJson.at("TexCrdBuffer"), meshSharedResource->texCrdBuffer);
+        meshSharedResource->variables = sharedResourceJson.at("Variables").get<VariableMap>();
+        meshGroup->SetSharedResource(meshSharedResource);
+    }
+    {
+        auto& uniqueResourcesJson = meshGroupJson.at("UniqueResources");
+        for (auto& elem : uniqueResourcesJson.items()) {
+            auto  uniqueResourceName = elem.key();
+            auto& uniqueResourceJson = elem.value();
+            auto meshUniqueResource = RTLib::Core::MeshUniqueResource::New();
+            LoadBuffer(uniqueResourceJson.at("MatIndBuffer"), meshUniqueResource->matIndBuffer);
+            LoadBuffer(uniqueResourceJson.at("TriIndBuffer"), meshUniqueResource->triIndBuffer);
+            meshUniqueResource->variables = uniqueResourceJson.at("Variables").get<VariableMap>();
+            auto uniqueMaterialNames = uniqueResourceJson.at("Materials").get<std::vector<std::string>>();
+            meshUniqueResource->materials.reserve(uniqueMaterialNames.size());
+            for (auto& uniqueMaterialName : uniqueMaterialNames) {
+                meshUniqueResource->materials.push_back(materialIdxMap[uniqueMaterialName]);
+            }
+            meshGroup->SetUniqueResource(uniqueResourceName, meshUniqueResource);
+        }
+    }
+    m_ObjModels[keyName] = { std::move(meshGroup),std::move(materials) };
+
+    cacheJsonFile.close();
+    return true;
+}
+void RTLib::Core::ObjModelAssetManager::SaveAssetCache(const std::string& keyName) const noexcept
+{
+    if (m_CacheDir.empty() || m_ObjModels.count(keyName)==0) { return; }
+    auto cacheRootDir   = m_CacheDir + "\\" + keyName;
+    if (!std::filesystem::exists(cacheRootDir)) {
+        std::filesystem::create_directory(cacheRootDir);
+    }
+    auto cacheJsonPath = cacheRootDir + "\\" + keyName + ".json";
+    auto cacheJsonFile = std::ofstream(cacheJsonPath, std::ios::binary);
+    auto cacheJsonData = nlohmann::json();
+    cacheJsonData["MeshGroup"] = {};
+    auto& [meshGroup, materials] = m_ObjModels.at(keyName);
+    auto sharedResource = meshGroup->GetSharedResource();
+    auto SaveBuffer = [](const auto& buffer, const std::string& savePath) {
+        auto strideInBytes = sizeof(buffer[0]);
+        auto sizeInBytes = buffer.size() * strideInBytes;
+        auto json = nlohmann::json();
+        if (sizeInBytes < 10*1024) {
+            if (std::is_same_v<std::array<float, 3>, std::remove_const_t<std::remove_reference_t<decltype(buffer[0])>>>) {
+                auto bufferData = std::vector<float>(sizeInBytes / sizeof(float));
+                std::memcpy(bufferData.data(), buffer.data(), sizeInBytes);
+               json["Data"] = bufferData;
+            }else if (std::is_same_v<std::array<float, 2>, std::remove_const_t<std::remove_reference_t<decltype(buffer[0])>>>) {
+                auto bufferData = std::vector<float>(sizeInBytes / sizeof(float));
+                std::memcpy(bufferData.data(), buffer.data(), sizeInBytes);
+                json["Data"] = bufferData;
+            }
+            else if (std::is_same_v<std::array<uint32_t, 3>, std::remove_const_t<std::remove_reference_t<decltype(buffer[0])>>>) {
+                auto bufferData = std::vector<uint32_t>(sizeInBytes / sizeof(uint32_t));
+                std::memcpy(bufferData.data(), buffer.data(), sizeInBytes);
+                json["Data"] = bufferData;
+            }
+            else {
+                json["Data"] = buffer;
+            }
+        }
+        else {
+            auto file = std::ofstream(savePath, std::ios::binary);
+            if (file.is_open()) {
+                file.write((const char*)buffer.data(), sizeInBytes);
+            }
+            file.close();
+            json["Path"] = savePath;
+        }
+        json["SizeInBytes"] = sizeInBytes;
+        json["StrideInBytes"] = strideInBytes;
+
+        return json;
+    };
+    cacheJsonData["MeshGroup"]["SharedResource"]["VertexBuffer"] = SaveBuffer(sharedResource->vertexBuffer, cacheRootDir + "\\VertexBuffer.bin");
+    cacheJsonData["MeshGroup"]["SharedResource"]["NormalBuffer"] = SaveBuffer(sharedResource->normalBuffer, cacheRootDir + "\\NormalBuffer.bin");
+    cacheJsonData["MeshGroup"]["SharedResource"]["TexCrdBuffer"] = SaveBuffer(sharedResource->normalBuffer, cacheRootDir + "\\TexCrdBuffer.bin");
+    cacheJsonData["MeshGroup"]["SharedResource"][   "Variables"] = sharedResource->variables;
+    for (auto& [uniqueName, uniqueResource] : meshGroup->GetUniqueResources()) {
+        cacheJsonData["MeshGroup"]["UniqueResources"][uniqueName]["TriIndBuffer"] = SaveBuffer(uniqueResource->triIndBuffer, cacheRootDir + "\\"+ uniqueName  + "-TriIndBuffer.bin");
+        cacheJsonData["MeshGroup"]["UniqueResources"][uniqueName]["MatIndBuffer"] = SaveBuffer(uniqueResource->matIndBuffer, cacheRootDir + "\\" + uniqueName + "-MatIndBuffer.bin");
+        cacheJsonData["MeshGroup"]["UniqueResources"][uniqueName]["Variables"]    = uniqueResource->variables;
+        for (auto& matIdx : uniqueResource->materials) {
+            auto matName = materials[matIdx].GetString("name");
+            cacheJsonData["MeshGroup"]["UniqueResources"][uniqueName]["Materials"].push_back(matName);
+        }
+    }
+    cacheJsonData["Materials"] = {};
+    for (auto& material: m_ObjModels.at(keyName).materials) {
+        auto matName = material.GetString("name");
+        cacheJsonData["Materials"][matName] = material;
+    }
+    cacheJsonFile << cacheJsonData;
+    cacheJsonFile.close();
+    return;
 }

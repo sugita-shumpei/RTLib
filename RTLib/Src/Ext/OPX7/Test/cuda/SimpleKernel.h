@@ -34,10 +34,15 @@ struct MissData {
     float4  bgColor;
 };
 struct HitgroupData {
-    float3* vertices;
-    uint3* indices;
-    float3   diffuse;
-    float3   emission;
+    float3*             vertices;
+    uint3*              indices;
+    float3              diffuse;
+    float3              specular;
+    float3              emission;
+    float               shinness;
+    cudaTextureObject_t diffuseTex;
+    cudaTextureObject_t specularTex;
+    cudaTextureObject_t emissionTex;
 };
 struct RadiancePRD {
     float3       emitted;

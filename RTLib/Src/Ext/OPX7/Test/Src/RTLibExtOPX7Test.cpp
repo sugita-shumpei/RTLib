@@ -9,73 +9,129 @@ struct WindowState
     float2 delCurPos = {};
 };
 
-int  OnlineSample() {
+int OnlineSample()
+{
     using namespace RTLib::Ext::CUDA;
     using namespace RTLib::Ext::OPX7;
     using namespace RTLib::Ext::GL;
     using namespace RTLib::Ext::CUGL;
     using namespace RTLib::Ext::GLFW;
-    auto objAssetLoader = RTLib::Core::ObjModelAssetManager();
-    (objAssetLoader.LoadAsset("CornellBox-Original", RTLIB_EXT_OPX7_TEST_DATA_PATH"/Models/CornellBox/CornellBox-Original.obj"));
+
+    auto sceneJson = nlohmann::json();
+    {
+        std::ifstream sceneJsonFile("./scene.json", std::ios::binary);
+        if (sceneJsonFile.is_open())
+        {
+            sceneJson = nlohmann::json::parse(sceneJsonFile);
+            sceneJsonFile.close();
+        }
+        else
+        {
+            sceneJson = {
+                {"ObjModels",
+                 {{"CacheDir", std::filesystem::absolute(".").string()},
+                  {"Assets",
+                   {{"Bistro-Exterior", RTLIB_EXT_OPX7_TEST_DATA_PATH "/Models/Bistro/Exterior/exterior.obj"}}}}},
+                {"World",
+                 {
+                     {"Geometries",
+                      {{"Bistro-Exterior",
+                        {{"Type", "ObjModel"},
+                         {"Base", "Bistro-Exterior"}}}}},
+                     {"GeometryASs",
+                      {{"Bistro-Exterior",
+                        {{"Type", "GeometryAS"},
+                         {"Geometries", std::vector<std::string>{"Bistro-Exterior"}}}}}},
+                     {"Instances",
+                      {{"Instance0",
+                        {{"Type", "Instance"},
+                         {"ASType", "Geometry"},
+                         {"Base", "Bistro-Exterior"}}}}},
+                     {"InstanceASs",
+                      {{"Root",
+                        {{"Type", "InstanceAS"},
+                         {"Instances", std::vector<std::string>{"Instance0"}}}}}
+                        },
+                 }}
+
+            };
+        }
+    }
+    auto cameraController = RTLib::Utils::CameraController({0.0f, 1.0f, 5.0f});
+    cameraController.SetMovementSpeed(10.0f);
+
+    auto objAssetLoader  = RTLib::Core::ObjModelAssetManager(sceneJson.at("ObjModels").at("CacheDir").get<std::string>());
+    for (auto& assetJson : sceneJson.at("ObjModels").at("Assets").items()) {
+        objAssetLoader.LoadAsset(assetJson.key(), assetJson.value().get<std::string>());
+    }
     // auto vertices = box.getVertices();
     // auto indices = box.getIndices();
     try
     {
-        int width  = 1024;
+        int width = 1024;
         int height = 1024;
         auto glfwContext = std::unique_ptr<GLFWContext>(GLFWContext::New());
         glfwContext->Initialize();
 
-        auto window = std::unique_ptr<GL::GLFWOpenGLWindow>(rtlib::test::CreateGLFWWindow(glfwContext.get(),width, height, "title"));
-        auto cameraController = rtlib::ext::CameraController({ 0.0f,1.0f, 5.0f });
+        auto window = std::unique_ptr<GL::GLFWOpenGLWindow>(rtlib::test::CreateGLFWWindow(glfwContext.get(), width, height, "title"));
+
         // contextはcopy/move不可
         auto contextCreateDesc = OPX7ContextCreateDesc();
         contextCreateDesc.validationMode = OPX7ContextValidationMode::eALL;
         contextCreateDesc.level = OPX7ContextValidationLogLevel::ePrint;
         auto opx7Context = std::make_unique<OPX7Context>(contextCreateDesc);
         auto ogl4Context = window->GetOpenGLContext();
+
         opx7Context->Initialize();
-        {
-            auto& objAsset = objAssetLoader.GetAsset("CornellBox-Original");
-            {
-                auto sharedResource = objAsset.meshGroup->GetSharedResource();
-                sharedResource->AddExtData<rtlib::ext::OPX7MeshSharedResourceExtData>(opx7Context.get());
-                auto extData = static_cast<rtlib::ext::OPX7MeshSharedResourceExtData*>(sharedResource->extData.get());
-                extData->SetVertexFormat(OPTIX_VERTEX_FORMAT_FLOAT3);
-                extData->SetVertexStrideInBytes(sizeof(float) * 3);
+        for (auto& geometry:sceneJson.at("World").at("Geometries").items()) {
+            if (geometry.value().at("Type").get<std::string>() == "ObjModel") {
+                auto objAssetKey = geometry.value().at("Base").get<std::string>();
+                auto& objAsset   = objAssetLoader.GetAsset(objAssetKey);
+                {
+                    auto sharedResource = objAsset.meshGroup->GetSharedResource();
+                    sharedResource->AddExtData<rtlib::ext::OPX7MeshSharedResourceExtData>(opx7Context.get());
+                    auto extData = static_cast<rtlib::ext::OPX7MeshSharedResourceExtData*>(sharedResource->extData.get());
+                    extData->SetVertexFormat(OPTIX_VERTEX_FORMAT_FLOAT3);
+                    extData->SetVertexStrideInBytes(sizeof(float) * 3);
+                }
+                for (auto& [name, uniqueResource] : objAsset.meshGroup->GetUniqueResources())
+                {
+                    uniqueResource->AddExtData<rtlib::ext::OPX7MeshUniqueResourceExtData>(opx7Context.get());
+                    auto extData = static_cast<rtlib::ext::OPX7MeshUniqueResourceExtData*>(uniqueResource->extData.get());
+                    extData->SetTriIdxFormat(OPTIX_INDICES_FORMAT_UNSIGNED_INT3);
+                    extData->SetTriIdxStrideInBytes(sizeof(uint32_t) * 3);
+                }
             }
-            for (auto& [name, uniqueResource] : objAsset.meshGroup->GetUniqueResources()) {
-                uniqueResource->AddExtData<rtlib::ext::OPX7MeshUniqueResourceExtData>(opx7Context.get());
-                auto extData = static_cast<rtlib::ext::OPX7MeshUniqueResourceExtData*>(uniqueResource->extData.get());
-                extData->SetTriIdxFormat(OPTIX_INDICES_FORMAT_UNSIGNED_INT3);
-                extData->SetTriIdxStrideInBytes(sizeof(uint32_t) * 3);
-            }
+            
         }
         auto accelBuildOptions = OptixAccelBuildOptions();
-        accelBuildOptions.buildFlags = OPTIX_BUILD_FLAG_PREFER_FAST_TRACE | OPTIX_BUILD_FLAG_ALLOW_COMPACTION;
+        accelBuildOptions.buildFlags    = OPTIX_BUILD_FLAG_PREFER_FAST_TRACE | OPTIX_BUILD_FLAG_ALLOW_COMPACTION;
         accelBuildOptions.motionOptions = {};
-        accelBuildOptions.operation = OPTIX_BUILD_OPERATION_BUILD;
-        auto blasHandle = OptixTraversableHandle();
-        auto blasLayout = std::make_unique<OPX7ShaderTableLayoutGeometryAS>("CornellBox-Original");
-        auto blasBuffer = std::unique_ptr<CUDABuffer>();
+        accelBuildOptions.operation     = OPTIX_BUILD_OPERATION_BUILD;
+        auto blasLayouts = std::unordered_map<std::string,std::unique_ptr<OPX7ShaderTableLayoutGeometryAS>>();
+        auto blasHandles = std::unordered_map < std::string, OptixTraversableHandle>();
+        auto blasBuffers = std::unordered_map < std::string, std::unique_ptr<CUDABuffer>>();
         {
             auto geometryFlags = std::vector<unsigned int>();
-            auto buildInputs = std::vector<OptixBuildInput>();
-            auto    d_Vertices = std::vector<CUdeviceptr>();
-            {
-                auto& objAsset = objAssetLoader.GetAsset("CornellBox-Original");
+            for (auto& geometryASJson : sceneJson.at("World").at("GeometryASs").items()) {
+                blasLayouts[geometryASJson.key()] = std::make_unique<OPX7ShaderTableLayoutGeometryAS>(geometryASJson.key());
+                auto buildInputs = std::vector<OptixBuildInput>();
+                auto d_Vertices = std::vector<CUdeviceptr>();
+                auto geometryNames = geometryASJson.value().at("Geometries").get<std::vector<std::string>>();
+                auto &objAsset = objAssetLoader.GetAsset("Bistro-Exterior");
                 auto uniqueNames = objAsset.meshGroup->GetUniqueNames();
                 d_Vertices.resize(uniqueNames.size());
                 buildInputs.resize(uniqueNames.size());
                 geometryFlags.resize(uniqueNames.size());
-                for (size_t i = 0; i < buildInputs.size(); ++i) {
+                for (size_t i = 0; i < buildInputs.size(); ++i)
+                {
                     auto mesh = objAsset.meshGroup->LoadMesh(uniqueNames[i]);
-                    auto extSharedData = static_cast<rtlib::ext::OPX7MeshSharedResourceExtData*>(mesh->GetSharedResource()->extData.get());
-                    auto extUniqueData = static_cast<rtlib::ext::OPX7MeshUniqueResourceExtData*>(mesh->GetUniqueResource()->extData.get());
+                    auto extSharedData = static_cast<rtlib::ext::OPX7MeshSharedResourceExtData *>(mesh->GetSharedResource()->extData.get());
+                    auto extUniqueData = static_cast<rtlib::ext::OPX7MeshUniqueResourceExtData *>(mesh->GetUniqueResource()->extData.get());
                     d_Vertices[i] = extSharedData->GetVertexBuffer();
                     geometryFlags[i] = OPTIX_GEOMETRY_FLAG_DISABLE_ANYHIT;
                     buildInputs[i].type = OPTIX_BUILD_INPUT_TYPE_TRIANGLES;
-                    blasLayout->SetDwGeometry(OPX7ShaderTableLayoutGeometry(uniqueNames[i], mesh->GetUniqueResource()->materials.size()));
+                    blasLayouts[geometryASJson.key()]->SetDwGeometry(OPX7ShaderTableLayoutGeometry(uniqueNames[i], mesh->GetUniqueResource()->materials.size()));
                     {
                         buildInputs[i].triangleArray.vertexBuffers = &d_Vertices[i];
                         buildInputs[i].triangleArray.numVertices = extSharedData->GetVertexCount();
@@ -88,27 +144,58 @@ int  OnlineSample() {
                         buildInputs[i].triangleArray.sbtIndexOffsetBuffer = extUniqueData->GetMatIdxBuffer();
                         buildInputs[i].triangleArray.sbtIndexOffsetStrideInBytes = 0;
                         buildInputs[i].triangleArray.sbtIndexOffsetSizeInBytes = sizeof(uint32_t);
-                        buildInputs[i].triangleArray.numSbtRecords = blasLayout->GetDwGeometries().back().GetBaseRecordCount();
+                        buildInputs[i].triangleArray.numSbtRecords = blasLayouts[geometryASJson.key()]->GetDwGeometries().back().GetBaseRecordCount();
                         buildInputs[i].triangleArray.preTransform = 0;
                         buildInputs[i].triangleArray.transformFormat = OPTIX_TRANSFORM_FORMAT_NONE;
                         buildInputs[i].triangleArray.flags = &geometryFlags[i];
                     }
-                    
                 }
+                auto accelOutput = OPX7Natives::BuildAccelerationStructure(opx7Context.get(), accelBuildOptions, buildInputs);
+                blasHandles[geometryASJson.key()] = accelOutput.handle;
+                blasBuffers[geometryASJson.key()] = std::move(accelOutput.buffer);
             }
-            auto accelOutput = OPX7Natives::BuildAccelerationStructure(opx7Context.get(), accelBuildOptions, buildInputs);
-            blasHandle = accelOutput.handle;
-            blasBuffer = std::move(accelOutput.buffer);
+            
         }
         auto blasInstBuffer = std::unique_ptr<CUDABuffer>();
-        auto tlasHandle     = OptixTraversableHandle();
-        auto tlasLayout     = OPX7ShaderTableLayoutInstanceAS("Root");
-        auto tlasBuffer     = std::unique_ptr<CUDABuffer>();
+        auto      tlasHandle = OptixTraversableHandle();
+        auto tlasLayout = OPX7ShaderTableLayoutInstanceAS("Root");
+        auto tlasBuffer = std::unique_ptr<CUDABuffer>();
+        /*    {
+                auto  instance = OptixInstance();
+                float transforms[12] = {
+                    1.0f,0.0f,0.0f,0.0f,
+                    0.0f,1.0f,0.0f,0.0f,
+                    0.0f,0.0f,1.0f,0.0f
+                };
+                std::memcpy(instance.transform, transforms, sizeof(float) * 12);
+                instance.traversableHandle = blasHandle;
+                instance.visibilityMask    = OptixVisibilityMask(255);
+                instance.flags             = OPTIX_INSTANCE_FLAG_NONE;
+                instance.sbtOffset         = 0;
+                instance.instanceId        = 0;
+
+                opx7Context->CopyMemoryToBuffer(blasInstBuffer.get(), { {&instance,(size_t)0,(size_t)sizeof(instance)}});
+
+                auto buildInputs = std::vector<OptixBuildInput>(1);
+                buildInputs[0].type = OPTIX_BUILD_INPUT_TYPE_INSTANCES;
+                buildInputs[0].instanceArray.instances    = CUDANatives::GetCUdeviceptr(blasInstBuffer.get());
+                buildInputs[0].instanceArray.numInstances = 1;
+
+                auto accelOutput = OPX7Natives::BuildAccelerationStructure(opx7Context.get(), accelBuildOptions, buildInputs);
+                tlasHandle = accelOutput.handle;
+                tlasBuffer = std::move(accelOutput.buffer);
+
+
+            }*/
         {
-            tlasLayout.SetInstance(OPX7ShaderTableLayoutInstance("Instance0",blasLayout.get()));
+            auto rootInstanceNames = sceneJson.at("World").at("InstanceASs").at("Root").at("Instances").get<std::vector<std::string>>();
+            for (auto& instanceName : rootInstanceNames) {
+                auto baseGeometryASName = sceneJson.at("World").at("Instances").at(instanceName).at("Base").get<std::string>();
+                tlasLayout.SetInstance(OPX7ShaderTableLayoutInstance("Instance0", blasLayouts[baseGeometryASName].get()));
+            }
+            
             tlasLayout.SetRecordStride(1);
         }
-
         auto pipelineCompileOptions = OPX7PipelineCompileOptions{};
         {
             pipelineCompileOptions.usesMotionBlur = false;
@@ -131,27 +218,27 @@ int  OnlineSample() {
             moduleCreateDesc.moduleOptions.boundValueEntries = {};
         }
         auto module = std::unique_ptr<RTLib::Ext::OPX7::OPX7Module>(opx7Context->CreateOPXModule(moduleCreateDesc));
-        auto raygenPG   = std::unique_ptr<OPX7ProgramGroup>(opx7Context->CreateOPXProgramGroup(OPX7ProgramGroupCreateDesc::Raygen(  { module.get(), "__raygen__rg"})));
-        auto missPG     = std::unique_ptr<OPX7ProgramGroup>(opx7Context->CreateOPXProgramGroup(OPX7ProgramGroupCreateDesc::Miss(    { module.get(), "__miss__ms" })));
-        auto hitgroupPG = std::unique_ptr<OPX7ProgramGroup>(opx7Context->CreateOPXProgramGroup(OPX7ProgramGroupCreateDesc::Hitgroup({ module.get(), "__closesthit__ch" })));
+        auto raygenPG = std::unique_ptr<OPX7ProgramGroup>(opx7Context->CreateOPXProgramGroup(OPX7ProgramGroupCreateDesc::Raygen({module.get(), "__raygen__rg"})));
+        auto missPG = std::unique_ptr<OPX7ProgramGroup>(opx7Context->CreateOPXProgramGroup(OPX7ProgramGroupCreateDesc::Miss({module.get(), "__miss__ms"})));
+        auto hitgroupPG = std::unique_ptr<OPX7ProgramGroup>(opx7Context->CreateOPXProgramGroup(OPX7ProgramGroupCreateDesc::Hitgroup({module.get(), "__closesthit__ch"})));
         auto pipelineCreateDesc = OPX7PipelineCreateDesc{};
         {
             pipelineCreateDesc.linkOptions.maxTraceDepth = 1;
             pipelineCreateDesc.linkOptions.debugLevel = OPX7CompileDebugLevel::eMinimal;
             pipelineCreateDesc.compileOptions = pipelineCompileOptions;
-            pipelineCreateDesc.programGroups  = { raygenPG.get(), missPG.get(), hitgroupPG.get() };
+            pipelineCreateDesc.programGroups = {raygenPG.get(), missPG.get(), hitgroupPG.get()};
         }
         auto pipeline = std::unique_ptr<OPX7Pipeline>(opx7Context->CreateOPXPipeline(pipelineCreateDesc));
 
         auto shaderTableLayout = OPX7ShaderTableLayout(tlasLayout);
-        auto shaderTableDesc   = OPX7ShaderTableCreateDesc();
+        auto shaderTableDesc = OPX7ShaderTableCreateDesc();
         {
 
-            shaderTableDesc.raygenRecordSizeInBytes     = sizeof(RTLib::Ext::OPX7::OPX7ShaderRecord<RayGenData>);
-            shaderTableDesc.missRecordStrideInBytes     = sizeof(RTLib::Ext::OPX7::OPX7ShaderRecord<MissData>);
-            shaderTableDesc.missRecordCount             = shaderTableLayout.GetRecordStride();
+            shaderTableDesc.raygenRecordSizeInBytes = sizeof(RTLib::Ext::OPX7::OPX7ShaderRecord<RayGenData>);
+            shaderTableDesc.missRecordStrideInBytes = sizeof(RTLib::Ext::OPX7::OPX7ShaderRecord<MissData>);
+            shaderTableDesc.missRecordCount = shaderTableLayout.GetRecordStride();
             shaderTableDesc.hitgroupRecordStrideInBytes = sizeof(RTLib::Ext::OPX7::OPX7ShaderRecord<HitgroupData>);
-            shaderTableDesc.hitgroupRecordCount         = shaderTableLayout.GetRecordCount();
+            shaderTableDesc.hitgroupRecordCount = shaderTableLayout.GetRecordCount();
         }
         auto shaderTable = std::unique_ptr<OPX7ShaderTable>(opx7Context->CreateOPXShaderTable(shaderTableDesc));
 
@@ -159,54 +246,54 @@ int  OnlineSample() {
             {
                 auto raygenRecord = raygenPG->GetRecord<RayGenData>();
                 auto camera = cameraController.GetCamera(static_cast<float>(width) / static_cast<float>(height));
-                raygenRecord.data.eye = camera.getEye();
-                auto [u, v, w] = camera.getUVW();
-                raygenRecord.data.u = u;
-                raygenRecord.data.v = v;
-                raygenRecord.data.w = w;
+                raygenRecord.data.eye = camera.GetEyeAs<float3>();
+                auto [u, v, w] = camera.GetUVW();
+                raygenRecord.data.u = make_float3(u[0], u[1], u[2]);
+                raygenRecord.data.v = make_float3(v[0], v[1], v[2]);
+                raygenRecord.data.w = make_float3(w[0], w[1], w[2]);
                 shaderTable->SetHostRaygenRecordTypeData(raygenRecord);
             }
             {
                 auto missRecord = missPG->GetRecord<MissData>();
-                missRecord.data.bgColor = float4{ 1.0f, 1.0f, 1.0f, 1.0f };
+                missRecord.data.bgColor = float4{1.0f, 1.0f, 1.0f, 1.0f};
                 shaderTable->SetHostMissRecordTypeData(0, missRecord);
             }
             {
-                auto&     objAsset   = objAssetLoader.GetAsset("CornellBox-Original");
+                auto &objAsset = objAssetLoader.GetAsset("Bistro-Exterior");
                 auto instLayout = shaderTableLayout.FindInstance("Instance0");
-                auto gasLayout  = shaderTableLayout.FindGeometryAS(instLayout,"CornellBox-Original");
+                auto gasLayout = shaderTableLayout.FindGeometryAS(instLayout, "Bistro-Exterior");
 
                 auto sbtStride = shaderTableLayout.GetRecordStride();
                 auto sbtOffset = instLayout->GetRecordOffset();
 
-                for (auto& geometryLayout: gasLayout->GetDwGeometries()) {
+                for (auto &geometryLayout : gasLayout->GetDwGeometries())
+                {
                     auto mesh = objAsset.meshGroup->LoadMesh(geometryLayout.GetName());
                     auto extSharedData = mesh->GetSharedResource()->GetExtData<rtlib::ext::OPX7MeshSharedResourceExtData>();
                     auto extUniqueData = mesh->GetUniqueResource()->GetExtData<rtlib::ext::OPX7MeshUniqueResourceExtData>();
                     auto hitgroupRecord = hitgroupPG->GetRecord<HitgroupData>();
-                    hitgroupRecord.data.vertices = reinterpret_cast<float3*>(extSharedData->GetVertexBuffer());
-                    hitgroupRecord.data.indices  =  reinterpret_cast<uint3*>(extUniqueData->GetTriIdxBuffer());
-                    hitgroupRecord.data.diffuse  = make_float3(1.0f, 1.0f, 1.0f);
+                    hitgroupRecord.data.vertices = reinterpret_cast<float3 *>(extSharedData->GetVertexBuffer());
+                    hitgroupRecord.data.indices = reinterpret_cast<uint3 *>(extUniqueData->GetTriIdxBuffer());
+                    hitgroupRecord.data.diffuse = make_float3(1.0f, 1.0f, 1.0f);
                     hitgroupRecord.data.emission = make_float3(0.3f, 0.3f, 0.3f);
-                    for (auto i = 0; i < geometryLayout.GetBaseRecordCount();++i) {
-                        for (auto j = 0; j < sbtStride; ++j) {
+                    for (auto i = 0; i < geometryLayout.GetBaseRecordCount(); ++i)
+                    {
+                        for (auto j = 0; j < sbtStride; ++j)
+                        {
                             shaderTable->SetHostHitgroupRecordTypeData(
-                                sbtOffset + sbtStride * (geometryLayout.GetBaseRecordOffset() +i) + j, 
-                                hitgroupRecord
-                            );
+                                sbtOffset + sbtStride * (geometryLayout.GetBaseRecordOffset() + i) + j,
+                                hitgroupRecord);
                         }
                     }
                 }
                 auto pCpuHitgroupRecord = shaderTable->GetHostHitgroupRecordTypeData<HitgroupData>(0);
                 auto cpuHitgroupRecordArray = std::vector<RTLib::Ext::OPX7::OPX7ShaderRecord<HitgroupData>>(
-                    pCpuHitgroupRecord, pCpuHitgroupRecord+shaderTable->GetHitgroupRecordCount()
-                );
-
+                    pCpuHitgroupRecord, pCpuHitgroupRecord + shaderTable->GetHitgroupRecordCount());
             }
             shaderTable->Upload();
         }
 
-        auto frameBufferGL = std::unique_ptr<GLBuffer>(ogl4Context->CreateBuffer(GLBufferCreateDesc{ sizeof(uchar4) * width * height,GLBufferUsageImageCopySrc,GLMemoryPropertyDefault,nullptr }));
+        auto frameBufferGL = std::unique_ptr<GLBuffer>(ogl4Context->CreateBuffer(GLBufferCreateDesc{sizeof(uchar4) * width * height, GLBufferUsageImageCopySrc, GLMemoryPropertyDefault, nullptr}));
         auto frameBufferCUGL = std::unique_ptr<CUGLBuffer>(CUGLBuffer::New(opx7Context.get(), frameBufferGL.get(), CUGLGraphicsRegisterFlagsWriteDiscard));
         auto frameTextureGL = std::unique_ptr<GLTexture>();
         auto frameTextureDesc = RTLib::Ext::GL::GLTextureCreateDesc();
@@ -223,11 +310,11 @@ int  OnlineSample() {
 
             frameTextureGL = std::unique_ptr<GLTexture>(ogl4Context->CreateTexture(frameTextureDesc));
         }
-        auto rectRendererGL = std::unique_ptr<GLRectRenderer>(ogl4Context->CreateRectRenderer({1,false,true}));
+        auto rectRendererGL = std::unique_ptr<GLRectRenderer>(ogl4Context->CreateRectRenderer({1, false, true}));
 
-        auto dPixels  = std::unique_ptr<CUDABuffer>(opx7Context->CreateBuffer({ CUDAMemoryFlags::eDefault, static_cast<size_t>(sizeof(uchar4) * width * height), nullptr }));
-        auto dParams  = std::unique_ptr<CUDABuffer>(opx7Context->CreateBuffer({ CUDAMemoryFlags::eDefault, static_cast<size_t>(sizeof(Params)), nullptr }));
-        auto stream   = std::unique_ptr<CUDAStream>(opx7Context->CreateStream());
+        auto dPixels = std::unique_ptr<CUDABuffer>(opx7Context->CreateBuffer({CUDAMemoryFlags::eDefault, static_cast<size_t>(sizeof(uchar4) * width * height), nullptr}));
+        auto dParams = std::unique_ptr<CUDABuffer>(opx7Context->CreateBuffer({CUDAMemoryFlags::eDefault, static_cast<size_t>(sizeof(Params)), nullptr}));
+        auto stream = std::unique_ptr<CUDAStream>(opx7Context->CreateStream());
 
         auto isUpdated = false;
         auto isResized = false;
@@ -235,26 +322,29 @@ int  OnlineSample() {
         auto windowState = WindowState();
         window->Show();
         window->SetResizable(true);
-        while (!window->ShouldClose()) {
+        while (!window->ShouldClose())
+        {
             {
-                if (isResized) {
+                if (isResized)
+                {
                     frameBufferCUGL->Destroy();
                     frameBufferGL->Destroy();
                     frameTextureGL->Destroy();
-                    frameBufferGL   = std::unique_ptr<GLBuffer>(ogl4Context->CreateBuffer(GLBufferCreateDesc{ sizeof(uchar4) * width * height,GLBufferUsageImageCopySrc,GLMemoryPropertyDefault,nullptr }));
+                    frameBufferGL = std::unique_ptr<GLBuffer>(ogl4Context->CreateBuffer(GLBufferCreateDesc{sizeof(uchar4) * width * height, GLBufferUsageImageCopySrc, GLMemoryPropertyDefault, nullptr}));
                     frameBufferCUGL = std::unique_ptr<CUGLBuffer>(CUGLBuffer::New(opx7Context.get(), frameBufferGL.get(), CUGLGraphicsRegisterFlagsWriteDiscard));
-                    frameTextureDesc.image.extent = { (uint32_t)width,(uint32_t)height,(uint32_t)0 };
-                    frameTextureGL  = std::unique_ptr<GLTexture>(ogl4Context->CreateTexture(frameTextureDesc));
+                    frameTextureDesc.image.extent = {(uint32_t)width, (uint32_t)height, (uint32_t)0};
+                    frameTextureGL = std::unique_ptr<GLTexture>(ogl4Context->CreateTexture(frameTextureDesc));
                 }
-                if (isMovedCamera) {
+                if (isMovedCamera)
+                {
                     auto raygenRecord = raygenPG->GetRecord<RayGenData>();
                     {
                         auto camera = cameraController.GetCamera(static_cast<float>(width) / static_cast<float>(height));
-                        raygenRecord.data.eye = camera.getEye();
-                        auto [u, v, w] = camera.getUVW();
-                        raygenRecord.data.u = u;
-                        raygenRecord.data.v = v;
-                        raygenRecord.data.w = w;
+                        raygenRecord.data.eye = camera.GetEyeAs<float3>();
+                        auto [u, v, w] = camera.GetUVW();
+                        raygenRecord.data.u = make_float3(u[0], u[1], u[2]);
+                        raygenRecord.data.v = make_float3(v[0], v[1], v[2]);
+                        raygenRecord.data.w = make_float3(w[0], w[1], w[2]);
                     }
                     shaderTable->SetHostRaygenRecordTypeData<RayGenData>(raygenRecord);
                     shaderTable->UploadRaygenRecord();
@@ -264,32 +354,32 @@ int  OnlineSample() {
             {
 
                 auto frameBufferCUDA = frameBufferCUGL->Map(stream.get());
-                /*RayTrace*/ 
+                /*RayTrace*/
                 {
                     auto params = Params();
                     {
-                        params.image = reinterpret_cast<uchar4*>(CUDANatives::GetCUdeviceptr(frameBufferCUDA));
+                        params.image = reinterpret_cast<uchar4 *>(CUDANatives::GetCUdeviceptr(frameBufferCUDA));
                         params.width = width;
                         params.height = height;
-                        params.gasHandle = blasHandle;
+                        params.gasHandle = blasHandles["Bistro-Exterior"];
                     }
-                    stream->CopyMemoryToBuffer(dParams.get(), { {&params,0,sizeof(params)} });
+                    stream->CopyMemoryToBuffer(dParams.get(), {{&params, 0, sizeof(params)}});
                     pipeline->Launch(stream.get(), CUDABufferView(dParams.get(), 0, dParams->GetSizeInBytes()), shaderTable.get(), width, height, 1);
                 }
                 frameBufferCUGL->Unmap(stream.get());
                 stream->Synchronize();
             }
-            /*DrawRect*/{
+            /*DrawRect*/ {
                 ogl4Context->SetClearBuffer(GLClearBufferFlagsColor);
                 ogl4Context->SetClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-                ogl4Context->CopyBufferToImage(frameBufferGL.get(), frameTextureGL->GetImage(), {
-                    GLBufferImageCopy{
-                        ((size_t)0),((size_t)0),((size_t)0),
-                        {((uint32_t)0),((uint32_t)0),((uint32_t)1)},
-                        {0,0,0},
-                        {((uint32_t)width),((uint32_t)height),((uint32_t)1)},
-                    }
-                    });
+                ogl4Context->CopyBufferToImage(frameBufferGL.get(), frameTextureGL->GetImage(), {GLBufferImageCopy{
+                                                                                                    ((size_t)0),
+                                                                                                    ((size_t)0),
+                                                                                                    ((size_t)0),
+                                                                                                    {((uint32_t)0), ((uint32_t)0), ((uint32_t)1)},
+                                                                                                    {0, 0, 0},
+                                                                                                    {((uint32_t)width), ((uint32_t)height), ((uint32_t)1)},
+                                                                                                }});
                 rectRendererGL->DrawTexture(frameTextureGL.get());
             }
             glfwContext->Update();
@@ -299,56 +389,73 @@ int  OnlineSample() {
             {
                 int tWidth, tHeight;
                 glfwGetWindowSize(window->GetGLFWwindow(), &tWidth, &tHeight);
-                if (width != tWidth || height != tHeight) {
-                    std::cout << width  << "->" << tWidth  << "\n";
+                if (width != tWidth || height != tHeight)
+                {
+                    std::cout << width << "->" << tWidth << "\n";
                     std::cout << height << "->" << tHeight << "\n";
-                    width     = tWidth;
-                    height    = tHeight;
+                    width = tWidth;
+                    height = tHeight;
                     isResized = true;
                     isUpdated = true;
                 }
-                else {
+                else
+                {
                     isResized = false;
                 }
                 float prevTime = glfwGetTime();
                 windowState.delTime = windowState.curTime - prevTime;
                 windowState.curTime = prevTime;
-                const bool pressKeyLeft    = (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_A) == GLFW_PRESS) || (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_LEFT ) == GLFW_PRESS);
-                const bool pressKeyRight   = (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_D) == GLFW_PRESS) || (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_RIGHT) == GLFW_PRESS);
+                const bool pressKeyLeft = (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_A) == GLFW_PRESS) || (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_LEFT) == GLFW_PRESS);
+                const bool pressKeyRight = (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_D) == GLFW_PRESS) || (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_RIGHT) == GLFW_PRESS);
                 const bool pressKeyForward = (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_W) == GLFW_PRESS);
-                const bool pressKeyBackward= (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_S) == GLFW_PRESS);
-                const bool pressKeyUp      = (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_UP)   == GLFW_PRESS);
-                const bool pressKeyDown    = (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_DOWN) == GLFW_PRESS);
-                if (pressKeyLeft) {
-                    cameraController.ProcessKeyboard(rtlib::ext::CameraMovement::eLeft, windowState.delTime);
+                const bool pressKeyBackward = (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_S) == GLFW_PRESS);
+                const bool pressKeyUp = (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_UP) == GLFW_PRESS);
+                const bool pressKeyDown = (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_DOWN) == GLFW_PRESS);
+                if (pressKeyLeft)
+                {
+                    cameraController.ProcessKeyboard(RTLib::Utils::CameraMovement::eLeft, windowState.delTime);
                     isMovedCamera = true;
                 }
-                if (pressKeyRight) {
-                    cameraController.ProcessKeyboard(rtlib::ext::CameraMovement::eRight, windowState.delTime);
+                if (pressKeyRight)
+                {
+                    cameraController.ProcessKeyboard(RTLib::Utils::CameraMovement::eRight, windowState.delTime);
                     isMovedCamera = true;
                 }
-                if (pressKeyForward) {
-                    cameraController.ProcessKeyboard(rtlib::ext::CameraMovement::eForward, windowState.delTime);
+                if (pressKeyForward)
+                {
+                    cameraController.ProcessKeyboard(RTLib::Utils::CameraMovement::eForward, windowState.delTime);
                     isMovedCamera = true;
                 }
-                if (pressKeyBackward) {
-                    cameraController.ProcessKeyboard(rtlib::ext::CameraMovement::eBackward, windowState.delTime);
+                if (pressKeyBackward)
+                {
+                    cameraController.ProcessKeyboard(RTLib::Utils::CameraMovement::eBackward, windowState.delTime);
                     isMovedCamera = true;
                 }
-                if (pressKeyUp) {
-                    cameraController.ProcessKeyboard(rtlib::ext::CameraMovement::eUp, windowState.delTime);
+                if (pressKeyUp)
+                {
+                    cameraController.ProcessKeyboard(RTLib::Utils::CameraMovement::eUp, windowState.delTime);
                     isMovedCamera = true;
                 }
-                if (pressKeyDown) {
-                    cameraController.ProcessKeyboard(rtlib::ext::CameraMovement::eDown, windowState.delTime);
+                if (pressKeyDown)
+                {
+                    cameraController.ProcessKeyboard(RTLib::Utils::CameraMovement::eDown, windowState.delTime);
                     isMovedCamera = true;
                 }
-                if (glfwGetMouseButton(window->GetGLFWwindow(), GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+                if (glfwGetMouseButton(window->GetGLFWwindow(), GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
+                {
                     cameraController.ProcessMouseMovement(-windowState.delCurPos.x, windowState.delCurPos.y);
                     isMovedCamera = true;
                 }
             }
+
             window->SwapBuffers();
+        }
+
+        {
+
+            auto sceneJsonFile = std::ofstream("./scene.json", std::ios::binary);
+            sceneJsonFile << sceneJson;
+            sceneJsonFile.close();
         }
         frameBufferCUGL->Destroy();
         frameBufferGL->Destroy();
@@ -357,7 +464,7 @@ int  OnlineSample() {
         glfwContext->Terminate();
         window = nullptr;
     }
-    catch (std::runtime_error& err)
+    catch (std::runtime_error &err)
     {
         std::cerr << err.what() << std::endl;
     }

@@ -50,14 +50,17 @@ set(RTLIB_CORE_SOURCES
 add_library(RTLib-Core ${RTLIB_CORE_SOURCES}
 )
 target_include_directories(RTLib-Core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Include)
-target_link_libraries(RTLib-Core PUBLIC Imath::Imath tinyobjloader)
+target_link_libraries(RTLib-Core PUBLIC Imath::Imath tinyobjloader nlohmann_json::nlohmann_json)
 set_target_properties(RTLib-Core PROPERTIES FOLDER RTLib/RTLib/Core)
+set(RTLIB_CORE_TEST_CONFIG_DATA_PATH "${RTLIB_TEST_DATA_PATH}")
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Test/RTLibCoreTestConfig.h.in ${CMAKE_CURRENT_BINARY_DIR}/Test/RTLibCoreTestConfig.h)
 add_executable(RTLib-Core-Test 
     ${CMAKE_CURRENT_SOURCE_DIR}/Test/Include/RTLibCoreTest.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Test/RTLibCoreTestConfig.h.in 
     ${CMAKE_CURRENT_SOURCE_DIR}/Test/Src/RTLibCoreTest.cpp
 )
 
-target_include_directories(RTLib-Core-Test PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Test/Include)
-target_link_libraries(RTLib-Core-Test PUBLIC RTLib-Core glfw)
+target_include_directories(RTLib-Core-Test PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Test/Include PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/Test)
+target_link_libraries(RTLib-Core-Test PUBLIC RTLib-Core glfw )
 
 set_target_properties(RTLib-Core-Test PROPERTIES FOLDER RTLib/RTLib/Core)
