@@ -161,15 +161,15 @@ namespace RTLib
                 float velocity = m_MovementSpeed * deltaTime;
                 if (mode == CameraMovement::eForward)
                 {
-                    m_Position[0] += m_Front[0] * velocity;
-                    m_Position[1] += m_Front[1] * velocity;
-                    m_Position[2] += m_Front[2] * velocity;
-                }
-                if (mode == CameraMovement::eBackward)
-                {
                     m_Position[0] -= m_Front[0] * velocity;
                     m_Position[1] -= m_Front[1] * velocity;
                     m_Position[2] -= m_Front[2] * velocity;
+                }
+                if (mode == CameraMovement::eBackward)
+                {
+                    m_Position[0] += m_Front[0] * velocity;
+                    m_Position[1] += m_Front[1] * velocity;
+                    m_Position[2] += m_Front[2] * velocity;
 
                 }
                 if (mode == CameraMovement::eLeft)
@@ -251,6 +251,40 @@ namespace RTLib
             }
         };
 
+        void to_json(nlohmann::json& json, const CameraController& cameraController)
+        {
+            json["Position"]         = cameraController.GetPosition();
+            json["Yaw"]              = cameraController.GetYaw();
+            json["Pitch"]            = cameraController.GetPitch();
+            json["Zoom"]             = cameraController.GetZoom();
+            json["MouseSensitivity"] = cameraController.GetMouseSensitivity();
+            json["MovementSpeed"]    = cameraController.GetMovementSpeed();
+        }
+        void to_json(nlohmann::json& json, const Camera& camera)
+        {
+            json["Eye"   ] = camera.GetEye();
+            json["LookAt"] = camera.GetLookAt();
+            json["Vup"   ] = camera.GetVup();
+            json["Aspect"] = camera.GetAspect();
+            json["FovY"  ] = camera.GetFovY();
+        }
+        void from_json(const nlohmann::json& json, CameraController& cameraController)
+        {
+            cameraController.SetPosition(json.at("Position").get<std::array<float, 3>>());
+            cameraController.SetYaw     (json.at("Yaw"     ).get<float>());
+            cameraController.SetPitch   (json.at("Pitch"   ).get<float>());
+            cameraController.SetZoom    (json.at("Zoom"    ).get<float>());
+            cameraController.SetMouseSensitivity(json.at("MouseSensitivity").get<float>());
+            cameraController.SetMovementSpeed   (json.at("MovementSpeed"   ).get<float>());
+        }
+        void from_json(const nlohmann::json& json, Camera& camera)
+        {
+            camera.SetEye   (json.at("Eye"   ).get<std::array<float, 3>>());
+            camera.SetLookAt(json.at("LookAt").get<std::array<float, 3>>());
+            camera.SetVup   (  json.at("Vup"   ).get<std::array<float, 3>>());
+            camera.SetAspect(json.at("Aspect").get<float>());
+            camera.SetFovY(json.at("FovY").get<float>());
+        }
     }
 }
 #undef RTLIB_UTILS_CAMERA_MACRO_GETTER_AND_SETTER

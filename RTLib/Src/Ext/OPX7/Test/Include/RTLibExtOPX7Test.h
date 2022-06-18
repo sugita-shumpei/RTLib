@@ -52,6 +52,10 @@ RTLIB_DECLARE_SET_BY_VALUE(class_name,type_name,func_name_base,member_name)
 namespace rtlib
 {
     namespace test {
+        using namespace RTLib::Core;
+        using namespace RTLib::Ext;
+        using namespace RTLib::Ext::CUDA::Math;
+
         inline auto CreateGLFWWindow(RTLib::Ext::GLFW::GLFWContext* glfwContext,int width, int height, const char* title)->RTLib::Ext::GLFW::GL::GLFWOpenGLWindow* {
             auto desc          = RTLib::Ext::GLFW::GL::GLFWOpenGLWindowCreateDesc();
             desc.width         = width;
@@ -74,6 +78,7 @@ namespace rtlib
             }
             return nullptr;
         }
+        
         inline auto LoadShaderSource(const char* filename)->std::vector<GLchar>
         {
             auto shaderSource = std::vector<GLchar>();
@@ -88,6 +93,7 @@ namespace rtlib
             }
             return shaderSource;
         }
+
         inline auto LoadBinary(const char* filename)->std::vector<uint32_t>
         {
             auto shaderBinary = std::vector<uint32_t>();
@@ -102,12 +108,93 @@ namespace rtlib
             }
             return shaderBinary;
         }
-    }
-    namespace ext
-    {
-        using namespace RTLib::Core;
-        using namespace RTLib::Ext;
-        using namespace RTLib::Ext::CUDA::Math;
+
+        inline auto GetDefaultSceneJson()->nlohmann::json {
+            auto cameraController = RTLib::Utils::CameraController({ 0.0f, 1.0f, 5.0f });
+            cameraController.SetMovementSpeed(10.0f);
+            return {
+                {"ObjModels",
+                    {
+                        {"CacheDir", std::filesystem::absolute(".").string()},
+                        {"Assets",
+                            {{"Bistro-Exterior", RTLIB_EXT_OPX7_TEST_DATA_PATH "/Models/Bistro/Exterior/exterior.obj"}}
+                        }
+                    }
+                },
+                {"World",
+                 {
+                     {"Geometries",
+                        {{"Bistro-Exterior", {{"Type", "ObjModel"},{"Base", "Bistro-Exterior"}}}}
+                     },
+                     {"GeometryASs",
+                        {{"Bistro-Exterior", {{"Type", "GeometryAS"}, {"Geometries", std::vector<std::string>{"Bistro-Exterior"}}}}}
+                      },
+                     {"Instances",
+                        {{"Instance0",{{"Type", "Instance"}, {"ASType", "Geometry"},{"Base", "Bistro-Exterior"}}}}
+                     },
+                     {"InstanceASs",
+                      {{"Root",{{"Type", "InstanceAS"},{"Instances", std::vector<std::string>{"Instance0"}}}}}
+                     },
+                 }},
+                {"CameraController", cameraController},
+                {"Width" ,1024},
+                {"Height",1024}
+            };
+        }
+
+
+        inline auto UpdateCameraMovement(
+            RTLib::Utils::CameraController& cameraController,
+            RTLib::Ext::GLFW::GLFWWindow* window,
+            float delTime,
+            float delCurPosX, 
+            float delCurPosY){
+            bool isMovedCamera = false;
+            const bool pressKeyLeft = (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_A) == GLFW_PRESS) || (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_LEFT) == GLFW_PRESS);
+            const bool pressKeyRight = (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_D) == GLFW_PRESS) || (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_RIGHT) == GLFW_PRESS);
+            const bool pressKeyForward = (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_W) == GLFW_PRESS);
+            const bool pressKeyBackward = (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_S) == GLFW_PRESS);
+            const bool pressKeyUp = (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_UP) == GLFW_PRESS);
+            const bool pressKeyDown = (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_DOWN) == GLFW_PRESS);
+            if (pressKeyLeft)
+            {
+                cameraController.ProcessKeyboard(RTLib::Utils::CameraMovement::eLeft, delTime);
+                isMovedCamera = true;
+            }
+            if (pressKeyRight)
+            {
+                cameraController.ProcessKeyboard(RTLib::Utils::CameraMovement::eRight, delTime);
+                isMovedCamera = true;
+            }
+            if (pressKeyForward)
+            {
+                cameraController.ProcessKeyboard(RTLib::Utils::CameraMovement::eForward, delTime);
+                isMovedCamera = true;
+            }
+            if (pressKeyBackward)
+            {
+                cameraController.ProcessKeyboard(RTLib::Utils::CameraMovement::eBackward,  delTime);
+                isMovedCamera = true;
+            }
+            if (pressKeyUp)
+            {
+                cameraController.ProcessKeyboard(RTLib::Utils::CameraMovement::eUp,  delTime);
+                isMovedCamera = true;
+            }
+            if (pressKeyDown)
+            {
+                cameraController.ProcessKeyboard(RTLib::Utils::CameraMovement::eDown,  delTime);
+                isMovedCamera = true;
+            }
+            if (glfwGetMouseButton(window->GetGLFWwindow(), GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
+            {
+                cameraController.ProcessMouseMovement(-delCurPosX, delCurPosY);
+                isMovedCamera = true;
+            }
+            return isMovedCamera;
+        }
+
+
         class OPX7MeshSharedResourceExtData:public RTLib::Core::MeshSharedResourceExtData {
         public:
             static auto New(MeshSharedResource* pMeshSharedResource, OPX7::OPX7Context* context)noexcept->OPX7MeshSharedResourceExtData* {
@@ -143,6 +230,9 @@ namespace rtlib
             auto GetVertexBuffer()const noexcept -> CUdeviceptr { return CUDA::CUDANatives::GetCUdeviceptr(m_VertexBuffer.get()); }
             auto GetNormalBuffer()const noexcept -> CUdeviceptr { return CUDA::CUDANatives::GetCUdeviceptr(m_NormalBuffer.get()); }
             auto GetTexCrdBuffer()const noexcept -> CUdeviceptr { return CUDA::CUDANatives::GetCUdeviceptr(m_TexCrdBuffer.get()); }
+
+
+
         private:
             OPX7MeshSharedResourceExtData(MeshSharedResource* pMeshSharedResource) noexcept :MeshSharedResourceExtData(pMeshSharedResource) {}
         private:
@@ -195,190 +285,8 @@ namespace rtlib
             OptixIndicesFormat m_IndicesFormat = OPTIX_INDICES_FORMAT_NONE;
             size_t m_TriIdxStride = 0;
         };
-    }
-    namespace utils {
-        enum AxisFlag {
-            AXIS_FLAG_YZ = 0,
-            AXIS_FLAG_ZX = 1,
-            AXIS_FLAG_XY = 2,
-        };
-        struct   Rect {
-            float    x0;
-            float    x1;
-            float    y0;
-            float    y1;
-            float    z;
-            AxisFlag axis;
-        public:
-            auto getVertices()const noexcept-> std::vector<float3> {
-                std::vector<float3> vertices = {};
-                vertices.resize(4);
-                auto axisX = (axis + 1) % 3;
-                auto axisY = (axis + 2) % 3;
-                auto axisZ = (axis + 3) % 3;
-                float vertex0[3] = {};
-                vertex0[axisX] = x0;
-                vertex0[axisY] = y0;
-                vertex0[axisZ] = z;
-                float vertexX[3] = {};
-                vertexX[axisX] = x1;
-                vertexX[axisY] = y0;
-                vertexX[axisZ] = z;
-                float vertexY[3] = {};
-                vertexY[axisX] = x0;
-                vertexY[axisY] = y1;
-                vertexY[axisZ] = z;
-                float vertex1[3] = {};
-                vertex1[axisX] = x1;
-                vertex1[axisY] = y1;
-                vertex1[axisZ] = z;
-                vertices[toIndex(0, 0)].x = vertex0[0];
-                vertices[toIndex(0, 0)].y = vertex0[1];
-                vertices[toIndex(0, 0)].z = vertex0[2];
-                vertices[toIndex(1, 0)].x = vertexX[0];
-                vertices[toIndex(1, 0)].y = vertexX[1];
-                vertices[toIndex(1, 0)].z = vertexX[2];
-                vertices[toIndex(1, 1)].x = vertex1[0];
-                vertices[toIndex(1, 1)].y = vertex1[1];
-                vertices[toIndex(1, 1)].z = vertex1[2];
-                vertices[toIndex(0, 1)].x = vertexY[0];
-                vertices[toIndex(0, 1)].y = vertexY[1];
-                vertices[toIndex(0, 1)].z = vertexY[2];
-                return vertices;
-            }
-            auto getIndices()const noexcept-> std::vector<uint3> {
-                std::vector<uint3> indices = {};
-                indices.resize(2);
-                auto i00 = toIndex(0, 0);
-                auto i10 = toIndex(1, 0);
-                auto i11 = toIndex(1, 1);
-                auto i01 = toIndex(0, 1);
-                indices[0].x = i00;
-                indices[0].y = i10;
-                indices[0].z = i11;
-                indices[1].x = i11;
-                indices[1].y = i01;
-                indices[1].z = i00;
-                return indices;
-            }
-        private:
-            static constexpr auto toIndex(uint32_t x, uint32_t y)noexcept->uint32_t {
-                return 2 * y + x;
-            }
-        };
-        struct    Box {
-            float    x0;
-            float    x1;
-            float    y0;
-            float    y1;
-            float    z0;
-            float    z1;
-            auto getVertices()const noexcept-> std::vector<float3> {
-                std::vector<float3> vertices = {};
-                vertices.resize(8);
-                //z: 0->
-                vertices[toIndex(0, 0, 0)].x = x0;
-                vertices[toIndex(0, 0, 0)].y = y0;
-                vertices[toIndex(0, 0, 0)].z = z0;
-                vertices[toIndex(1, 0, 0)].x = x1;
-                vertices[toIndex(1, 0, 0)].y = y0;
-                vertices[toIndex(1, 0, 0)].z = z0;
-                vertices[toIndex(0, 1, 0)].x = x0;
-                vertices[toIndex(0, 1, 0)].y = y1;
-                vertices[toIndex(0, 1, 0)].z = z0;
-                vertices[toIndex(1, 1, 0)].x = x1;
-                vertices[toIndex(1, 1, 0)].y = y1;
-                vertices[toIndex(1, 1, 0)].z = z0;
-                //z: 1->
-                vertices[toIndex(0, 0, 1)].x = x0;
-                vertices[toIndex(0, 0, 1)].y = y0;
-                vertices[toIndex(0, 0, 1)].z = z1;
-                vertices[toIndex(1, 0, 1)].x = x1;
-                vertices[toIndex(1, 0, 1)].y = y0;
-                vertices[toIndex(1, 0, 1)].z = z1;
-                vertices[toIndex(0, 1, 1)].x = x0;
-                vertices[toIndex(0, 1, 1)].y = y1;
-                vertices[toIndex(0, 1, 1)].z = z1;
-                vertices[toIndex(1, 1, 1)].x = x1;
-                vertices[toIndex(1, 1, 1)].y = y1;
-                vertices[toIndex(1, 1, 1)].z = z1;
-                return vertices;
-            }
-            auto  getIndices()const noexcept-> std::vector<uint3> {
-                std::vector<uint3> indices = {};
-                indices.resize(12);
-                for (uint32_t i = 0; i < 3; ++i) {
-                    for (uint32_t j = 0; j < 2; ++j) {
-                        uint32_t index[3] = {};
-                        //x...y...z
-                        uint32_t iX = (i + 1) % 3;//x�ɑΉ�
-                        uint32_t iY = (i + 2) % 3;//y�ɑΉ�
-                        uint32_t iZ = (i + 3) % 3;//z�ɑΉ�
-                        index[iX] = 0;
-                        index[iY] = 0;
-                        index[iZ] = j;
-                        auto i00 = toIndex(index[0], index[1], index[2]);
-                        index[iX] = 1;
-                        index[iY] = 0;
-                        index[iZ] = j;
-                        auto i10 = toIndex(index[0], index[1], index[2]);
-                        index[iX] = 1;
-                        index[iY] = 1;
-                        index[iZ] = j;
-                        auto i11 = toIndex(index[0], index[1], index[2]);
-                        index[iX] = 0;
-                        index[iY] = 1;
-                        index[iZ] = j;
-                        auto i01 = toIndex(index[0], index[1], index[2]);
-                        if (j == 0) {
-                            indices[2 * (2 * i + j) + 0].x = i00;
-                            indices[2 * (2 * i + j) + 0].y = i10;
-                            indices[2 * (2 * i + j) + 0].z = i11;
-                            indices[2 * (2 * i + j) + 1].x = i11;
-                            indices[2 * (2 * i + j) + 1].y = i01;
-                            indices[2 * (2 * i + j) + 1].z = i00;
-                        }
-                        else {
-                            indices[2 * (2 * i + j) + 0].x = i00;
-                            indices[2 * (2 * i + j) + 0].y = i01;
-                            indices[2 * (2 * i + j) + 0].z = i11;
-                            indices[2 * (2 * i + j) + 1].x = i11;
-                            indices[2 * (2 * i + j) + 1].y = i10;
-                            indices[2 * (2 * i + j) + 1].z = i00;
-                        }
-
-                    }
-                }
-                return indices;
-            }
-        private:
-            static constexpr auto toIndex(uint32_t x, uint32_t y, uint32_t z)noexcept->uint32_t {
-                return 4 * z + 2 * y + x;
-            }
-        };
-        struct    AABB {
-            float3 min = make_float3(FLT_MAX, FLT_MAX, FLT_MAX);
-            float3 max = make_float3(-FLT_MAX, -FLT_MAX, -FLT_MAX);
-        public:
-            AABB()noexcept {}
-            AABB(const AABB& aabb)noexcept = default;
-            AABB& operator=(const AABB& aabb)noexcept = default;
-            AABB(const float3& min, const float3& max)noexcept :min{ min }, max{ max }{}
-            AABB(const std::vector<float3>& vertices)noexcept :AABB() {
-                for (auto& vertex : vertices) {
-                    this->Update(vertex);
-                }
-            }
-            auto GetArea()const noexcept -> float {
-                float3 range = max - min;
-                return 2.0f * (range.x * range.y + range.y * range.z + range.z * range.x);
-            }
-            void Update(const float3& vertex)noexcept {
-                min = RTLib::Ext::CUDA::Math::min(min, vertex);
-                max = RTLib::Ext::CUDA::Math::max(max, vertex);
-            }
-        };
 
     }
+
 }
 #endif

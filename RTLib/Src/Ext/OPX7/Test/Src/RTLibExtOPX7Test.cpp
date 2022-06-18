@@ -27,49 +27,21 @@ int OnlineSample()
         }
         else
         {
-            sceneJson = {
-                {"ObjModels",
-                 {{"CacheDir", std::filesystem::absolute(".").string()},
-                  {"Assets",
-                   {{"Bistro-Exterior", RTLIB_EXT_OPX7_TEST_DATA_PATH "/Models/Bistro/Exterior/exterior.obj"}}}}},
-                {"World",
-                 {
-                     {"Geometries",
-                      {{"Bistro-Exterior",
-                        {{"Type", "ObjModel"},
-                         {"Base", "Bistro-Exterior"}}}}},
-                     {"GeometryASs",
-                      {{"Bistro-Exterior",
-                        {{"Type", "GeometryAS"},
-                         {"Geometries", std::vector<std::string>{"Bistro-Exterior"}}}}}},
-                     {"Instances",
-                      {{"Instance0",
-                        {{"Type", "Instance"},
-                         {"ASType", "Geometry"},
-                         {"Base", "Bistro-Exterior"}}}}},
-                     {"InstanceASs",
-                      {{"Root",
-                        {{"Type", "InstanceAS"},
-                         {"Instances", std::vector<std::string>{"Instance0"}}}}}
-                        },
-                 }}
-
-            };
+            sceneJson = rtlib::test::GetDefaultSceneJson();
         }
     }
-    auto cameraController = RTLib::Utils::CameraController({0.0f, 1.0f, 5.0f});
-    cameraController.SetMovementSpeed(10.0f);
-
-    auto objAssetLoader  = RTLib::Core::ObjModelAssetManager(sceneJson.at("ObjModels").at("CacheDir").get<std::string>());
-    for (auto& assetJson : sceneJson.at("ObjModels").at("Assets").items()) {
+    auto cameraController = sceneJson.at("CameraController").get<RTLib::Utils::CameraController>();
+    auto objAssetLoader = RTLib::Core::ObjModelAssetManager(sceneJson.at("ObjModels").at("CacheDir").get<std::string>());
+    for (auto &assetJson : sceneJson.at("ObjModels").at("Assets").items())
+    {
         objAssetLoader.LoadAsset(assetJson.key(), assetJson.value().get<std::string>());
     }
     // auto vertices = box.getVertices();
     // auto indices = box.getIndices();
     try
     {
-        int width = 1024;
-        int height = 1024;
+        int width = sceneJson.at("Width").get<int>();
+        int height = sceneJson.at("Height").get<int>();
         auto glfwContext = std::unique_ptr<GLFWContext>(GLFWContext::New());
         glfwContext->Initialize();
 
@@ -83,37 +55,39 @@ int OnlineSample()
         auto ogl4Context = window->GetOpenGLContext();
 
         opx7Context->Initialize();
-        for (auto& geometry:sceneJson.at("World").at("Geometries").items()) {
-            if (geometry.value().at("Type").get<std::string>() == "ObjModel") {
+        for (auto &geometry : sceneJson.at("World").at("Geometries").items())
+        {
+            if (geometry.value().at("Type").get<std::string>() == "ObjModel")
+            {
                 auto objAssetKey = geometry.value().at("Base").get<std::string>();
-                auto& objAsset   = objAssetLoader.GetAsset(objAssetKey);
+                auto &objAsset = objAssetLoader.GetAsset(objAssetKey);
                 {
                     auto sharedResource = objAsset.meshGroup->GetSharedResource();
-                    sharedResource->AddExtData<rtlib::ext::OPX7MeshSharedResourceExtData>(opx7Context.get());
-                    auto extData = static_cast<rtlib::ext::OPX7MeshSharedResourceExtData*>(sharedResource->extData.get());
+                    sharedResource->AddExtData<rtlib::test::OPX7MeshSharedResourceExtData>(opx7Context.get());
+                    auto extData = static_cast<rtlib::test::OPX7MeshSharedResourceExtData *>(sharedResource->extData.get());
                     extData->SetVertexFormat(OPTIX_VERTEX_FORMAT_FLOAT3);
                     extData->SetVertexStrideInBytes(sizeof(float) * 3);
                 }
-                for (auto& [name, uniqueResource] : objAsset.meshGroup->GetUniqueResources())
+                for (auto &[name, uniqueResource] : objAsset.meshGroup->GetUniqueResources())
                 {
-                    uniqueResource->AddExtData<rtlib::ext::OPX7MeshUniqueResourceExtData>(opx7Context.get());
-                    auto extData = static_cast<rtlib::ext::OPX7MeshUniqueResourceExtData*>(uniqueResource->extData.get());
+                    uniqueResource->AddExtData<rtlib::test::OPX7MeshUniqueResourceExtData>(opx7Context.get());
+                    auto extData = static_cast<rtlib::test::OPX7MeshUniqueResourceExtData *>(uniqueResource->extData.get());
                     extData->SetTriIdxFormat(OPTIX_INDICES_FORMAT_UNSIGNED_INT3);
                     extData->SetTriIdxStrideInBytes(sizeof(uint32_t) * 3);
                 }
             }
-            
         }
         auto accelBuildOptions = OptixAccelBuildOptions();
-        accelBuildOptions.buildFlags    = OPTIX_BUILD_FLAG_PREFER_FAST_TRACE | OPTIX_BUILD_FLAG_ALLOW_COMPACTION;
+        accelBuildOptions.buildFlags = OPTIX_BUILD_FLAG_PREFER_FAST_TRACE | OPTIX_BUILD_FLAG_ALLOW_COMPACTION;
         accelBuildOptions.motionOptions = {};
-        accelBuildOptions.operation     = OPTIX_BUILD_OPERATION_BUILD;
-        auto blasLayouts = std::unordered_map<std::string,std::unique_ptr<OPX7ShaderTableLayoutGeometryAS>>();
-        auto blasHandles = std::unordered_map < std::string, OptixTraversableHandle>();
-        auto blasBuffers = std::unordered_map < std::string, std::unique_ptr<CUDABuffer>>();
+        accelBuildOptions.operation = OPTIX_BUILD_OPERATION_BUILD;
+        auto blasLayouts = std::unordered_map<std::string, std::unique_ptr<OPX7ShaderTableLayoutGeometryAS>>();
+        auto blasHandles = std::unordered_map<std::string, OptixTraversableHandle>();
+        auto blasBuffers = std::unordered_map<std::string, std::unique_ptr<CUDABuffer>>();
         {
             auto geometryFlags = std::vector<unsigned int>();
-            for (auto& geometryASJson : sceneJson.at("World").at("GeometryASs").items()) {
+            for (auto &geometryASJson : sceneJson.at("World").at("GeometryASs").items())
+            {
                 blasLayouts[geometryASJson.key()] = std::make_unique<OPX7ShaderTableLayoutGeometryAS>(geometryASJson.key());
                 auto buildInputs = std::vector<OptixBuildInput>();
                 auto d_Vertices = std::vector<CUdeviceptr>();
@@ -125,13 +99,14 @@ int OnlineSample()
                 geometryFlags.resize(uniqueNames.size());
                 for (size_t i = 0; i < buildInputs.size(); ++i)
                 {
+                    auto geometryASName = geometryASJson.key();
                     auto mesh = objAsset.meshGroup->LoadMesh(uniqueNames[i]);
-                    auto extSharedData = static_cast<rtlib::ext::OPX7MeshSharedResourceExtData *>(mesh->GetSharedResource()->extData.get());
-                    auto extUniqueData = static_cast<rtlib::ext::OPX7MeshUniqueResourceExtData *>(mesh->GetUniqueResource()->extData.get());
+                    auto extSharedData = static_cast<rtlib::test::OPX7MeshSharedResourceExtData *>(mesh->GetSharedResource()->extData.get());
+                    auto extUniqueData = static_cast<rtlib::test::OPX7MeshUniqueResourceExtData *>(mesh->GetUniqueResource()->extData.get());
                     d_Vertices[i] = extSharedData->GetVertexBuffer();
                     geometryFlags[i] = OPTIX_GEOMETRY_FLAG_DISABLE_ANYHIT;
                     buildInputs[i].type = OPTIX_BUILD_INPUT_TYPE_TRIANGLES;
-                    blasLayouts[geometryASJson.key()]->SetDwGeometry(OPX7ShaderTableLayoutGeometry(uniqueNames[i], mesh->GetUniqueResource()->materials.size()));
+                    blasLayouts[geometryASName]->SetDwGeometry(OPX7ShaderTableLayoutGeometry(uniqueNames[i], mesh->GetUniqueResource()->materials.size()));
                     {
                         buildInputs[i].triangleArray.vertexBuffers = &d_Vertices[i];
                         buildInputs[i].triangleArray.numVertices = extSharedData->GetVertexCount();
@@ -144,7 +119,7 @@ int OnlineSample()
                         buildInputs[i].triangleArray.sbtIndexOffsetBuffer = extUniqueData->GetMatIdxBuffer();
                         buildInputs[i].triangleArray.sbtIndexOffsetStrideInBytes = 0;
                         buildInputs[i].triangleArray.sbtIndexOffsetSizeInBytes = sizeof(uint32_t);
-                        buildInputs[i].triangleArray.numSbtRecords = blasLayouts[geometryASJson.key()]->GetDwGeometries().back().GetBaseRecordCount();
+                        buildInputs[i].triangleArray.numSbtRecords = blasLayouts[geometryASName]->GetDwGeometries().back().GetBaseRecordCount();
                         buildInputs[i].triangleArray.preTransform = 0;
                         buildInputs[i].triangleArray.transformFormat = OPTIX_TRANSFORM_FORMAT_NONE;
                         buildInputs[i].triangleArray.flags = &geometryFlags[i];
@@ -154,10 +129,9 @@ int OnlineSample()
                 blasHandles[geometryASJson.key()] = accelOutput.handle;
                 blasBuffers[geometryASJson.key()] = std::move(accelOutput.buffer);
             }
-            
         }
         auto blasInstBuffer = std::unique_ptr<CUDABuffer>();
-        auto      tlasHandle = OptixTraversableHandle();
+        auto tlasHandle = OptixTraversableHandle();
         auto tlasLayout = OPX7ShaderTableLayoutInstanceAS("Root");
         auto tlasBuffer = std::unique_ptr<CUDABuffer>();
         /*    {
@@ -189,11 +163,12 @@ int OnlineSample()
             }*/
         {
             auto rootInstanceNames = sceneJson.at("World").at("InstanceASs").at("Root").at("Instances").get<std::vector<std::string>>();
-            for (auto& instanceName : rootInstanceNames) {
+            for (auto &instanceName : rootInstanceNames)
+            {
                 auto baseGeometryASName = sceneJson.at("World").at("Instances").at(instanceName).at("Base").get<std::string>();
                 tlasLayout.SetInstance(OPX7ShaderTableLayoutInstance("Instance0", blasLayouts[baseGeometryASName].get()));
             }
-            
+
             tlasLayout.SetRecordStride(1);
         }
         auto pipelineCompileOptions = OPX7PipelineCompileOptions{};
@@ -269,8 +244,8 @@ int OnlineSample()
                 for (auto &geometryLayout : gasLayout->GetDwGeometries())
                 {
                     auto mesh = objAsset.meshGroup->LoadMesh(geometryLayout.GetName());
-                    auto extSharedData = mesh->GetSharedResource()->GetExtData<rtlib::ext::OPX7MeshSharedResourceExtData>();
-                    auto extUniqueData = mesh->GetUniqueResource()->GetExtData<rtlib::ext::OPX7MeshUniqueResourceExtData>();
+                    auto extSharedData = mesh->GetSharedResource()->GetExtData<rtlib::test::OPX7MeshSharedResourceExtData>();
+                    auto extUniqueData = mesh->GetUniqueResource()->GetExtData<rtlib::test::OPX7MeshUniqueResourceExtData>();
                     auto hitgroupRecord = hitgroupPG->GetRecord<HitgroupData>();
                     hitgroupRecord.data.vertices = reinterpret_cast<float3 *>(extSharedData->GetVertexBuffer());
                     hitgroupRecord.data.indices = reinterpret_cast<uint3 *>(extUniqueData->GetTriIdxBuffer());
@@ -391,9 +366,9 @@ int OnlineSample()
                 glfwGetWindowSize(window->GetGLFWwindow(), &tWidth, &tHeight);
                 if (width != tWidth || height != tHeight)
                 {
-                    std::cout << width << "->" << tWidth << "\n";
+                    std::cout << width  << "->" << tWidth  << "\n";
                     std::cout << height << "->" << tHeight << "\n";
-                    width = tWidth;
+                    width  = tWidth;
                     height = tHeight;
                     isResized = true;
                     isUpdated = true;
@@ -403,56 +378,28 @@ int OnlineSample()
                     isResized = false;
                 }
                 float prevTime = glfwGetTime();
-                windowState.delTime = windowState.curTime - prevTime;
-                windowState.curTime = prevTime;
-                const bool pressKeyLeft = (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_A) == GLFW_PRESS) || (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_LEFT) == GLFW_PRESS);
-                const bool pressKeyRight = (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_D) == GLFW_PRESS) || (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_RIGHT) == GLFW_PRESS);
-                const bool pressKeyForward = (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_W) == GLFW_PRESS);
-                const bool pressKeyBackward = (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_S) == GLFW_PRESS);
-                const bool pressKeyUp = (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_UP) == GLFW_PRESS);
-                const bool pressKeyDown = (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_DOWN) == GLFW_PRESS);
-                if (pressKeyLeft)
                 {
-                    cameraController.ProcessKeyboard(RTLib::Utils::CameraMovement::eLeft, windowState.delTime);
-                    isMovedCamera = true;
+                    windowState.delTime = windowState.curTime - prevTime;
+                    windowState.curTime = prevTime;
                 }
-                if (pressKeyRight)
-                {
-                    cameraController.ProcessKeyboard(RTLib::Utils::CameraMovement::eRight, windowState.delTime);
-                    isMovedCamera = true;
-                }
-                if (pressKeyForward)
-                {
-                    cameraController.ProcessKeyboard(RTLib::Utils::CameraMovement::eForward, windowState.delTime);
-                    isMovedCamera = true;
-                }
-                if (pressKeyBackward)
-                {
-                    cameraController.ProcessKeyboard(RTLib::Utils::CameraMovement::eBackward, windowState.delTime);
-                    isMovedCamera = true;
-                }
-                if (pressKeyUp)
-                {
-                    cameraController.ProcessKeyboard(RTLib::Utils::CameraMovement::eUp, windowState.delTime);
-                    isMovedCamera = true;
-                }
-                if (pressKeyDown)
-                {
-                    cameraController.ProcessKeyboard(RTLib::Utils::CameraMovement::eDown, windowState.delTime);
-                    isMovedCamera = true;
-                }
-                if (glfwGetMouseButton(window->GetGLFWwindow(), GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
-                {
-                    cameraController.ProcessMouseMovement(-windowState.delCurPos.x, windowState.delCurPos.y);
-                    isMovedCamera = true;
-                }
+                isMovedCamera = rtlib::test::UpdateCameraMovement(
+                    cameraController,
+                    window.get(),
+                    windowState.delTime,
+                    windowState.delCurPos.x,
+                    windowState.delCurPos.y
+                );
             }
 
             window->SwapBuffers();
         }
 
         {
-
+            {
+                sceneJson["CameraController"] = cameraController;
+                sceneJson["Width"] = width;
+                sceneJson["Height"] = height;
+            }
             auto sceneJsonFile = std::ofstream("./scene.json", std::ios::binary);
             sceneJsonFile << sceneJson;
             sceneJsonFile.close();
