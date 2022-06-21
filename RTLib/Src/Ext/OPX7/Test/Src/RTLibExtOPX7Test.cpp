@@ -19,7 +19,7 @@ int OnlineSample()
 
     auto sceneJson = nlohmann::json();
     {
-        std::ifstream sceneJsonFile("./scene.json", std::ios::binary);
+        std::ifstream sceneJsonFile(RTLIB_EXT_OPX7_TEST_CUDA_PATH"/../scene.json", std::ios::binary);
         if (sceneJsonFile.is_open())
         {
             sceneJson = nlohmann::json::parse(sceneJsonFile);
@@ -31,16 +31,16 @@ int OnlineSample()
         }
     }
     auto cameraController = sceneJson.at("CameraController").get<RTLib::Utils::CameraController>();
-    auto objAssetLoader = RTLib::Core::ObjModelAssetManager(sceneJson.at("ObjModels").at("CacheDir").get<std::string>());
+    auto  objAssetLoader  = RTLib::Core::ObjModelAssetManager(sceneJson.at("ObjModels").at("CacheDir").get<std::string>());
     for (auto &assetJson : sceneJson.at("ObjModels").at("Assets").items())
     {
+        std::cout << assetJson.value().get<std::string>() << std::endl;
         objAssetLoader.LoadAsset(assetJson.key(), assetJson.value().get<std::string>());
     }
-    // auto vertices = box.getVertices();
-    // auto indices = box.getIndices();
+
     try
     {
-        int width = sceneJson.at("Width").get<int>();
+        int width  = sceneJson.at("Width").get<int>();
         int height = sceneJson.at("Height").get<int>();
         auto glfwContext = std::unique_ptr<GLFWContext>(GLFWContext::New());
         glfwContext->Initialize();
@@ -55,6 +55,7 @@ int OnlineSample()
         auto ogl4Context = window->GetOpenGLContext();
 
         opx7Context->Initialize();
+
         for (auto &geometry : sceneJson.at("World").at("Geometries").items())
         {
             if (geometry.value().at("Type").get<std::string>() == "ObjModel")
@@ -63,8 +64,8 @@ int OnlineSample()
                 auto &objAsset = objAssetLoader.GetAsset(objAssetKey);
                 {
                     auto sharedResource = objAsset.meshGroup->GetSharedResource();
-                    sharedResource->AddExtData<rtlib::test::OPX7MeshSharedResourceExtData>(opx7Context.get());
-                    auto extData = static_cast<rtlib::test::OPX7MeshSharedResourceExtData *>(sharedResource->extData.get());
+                    sharedResource->AddExtData<rtlib::test::OPX7MeshSharedResourceExtData >(opx7Context.get());
+                    auto extData = static_cast<rtlib::test::OPX7MeshSharedResourceExtData*>(sharedResource->extData.get());
                     extData->SetVertexFormat(OPTIX_VERTEX_FORMAT_FLOAT3);
                     extData->SetVertexStrideInBytes(sizeof(float) * 3);
                 }
@@ -77,6 +78,7 @@ int OnlineSample()
                 }
             }
         }
+
         auto accelBuildOptions = OptixAccelBuildOptions();
         accelBuildOptions.buildFlags = OPTIX_BUILD_FLAG_PREFER_FAST_TRACE | OPTIX_BUILD_FLAG_ALLOW_COMPACTION;
         accelBuildOptions.motionOptions = {};
@@ -85,88 +87,77 @@ int OnlineSample()
         auto blasHandles = std::unordered_map<std::string, OptixTraversableHandle>();
         auto blasBuffers = std::unordered_map<std::string, std::unique_ptr<CUDABuffer>>();
         {
-            auto geometryFlags = std::vector<unsigned int>();
             for (auto &geometryASJson : sceneJson.at("World").at("GeometryASs").items())
             {
-                blasLayouts[geometryASJson.key()] = std::make_unique<OPX7ShaderTableLayoutGeometryAS>(geometryASJson.key());
-                auto buildInputs = std::vector<OptixBuildInput>();
-                auto d_Vertices = std::vector<CUdeviceptr>();
+                blasLayouts[geometryASJson.key()]      = std::make_unique<OPX7ShaderTableLayoutGeometryAS>(geometryASJson.key());
                 auto geometryNames = geometryASJson.value().at("Geometries").get<std::vector<std::string>>();
-                auto &objAsset = objAssetLoader.GetAsset("Bistro-Exterior");
-                auto uniqueNames = objAsset.meshGroup->GetUniqueNames();
-                d_Vertices.resize(uniqueNames.size());
-                buildInputs.resize(uniqueNames.size());
-                geometryFlags.resize(uniqueNames.size());
-                for (size_t i = 0; i < buildInputs.size(); ++i)
-                {
-                    auto geometryASName = geometryASJson.key();
-                    auto mesh = objAsset.meshGroup->LoadMesh(uniqueNames[i]);
-                    auto extSharedData = static_cast<rtlib::test::OPX7MeshSharedResourceExtData *>(mesh->GetSharedResource()->extData.get());
-                    auto extUniqueData = static_cast<rtlib::test::OPX7MeshUniqueResourceExtData *>(mesh->GetUniqueResource()->extData.get());
-                    d_Vertices[i] = extSharedData->GetVertexBuffer();
-                    geometryFlags[i] = OPTIX_GEOMETRY_FLAG_DISABLE_ANYHIT;
-                    buildInputs[i].type = OPTIX_BUILD_INPUT_TYPE_TRIANGLES;
-                    blasLayouts[geometryASName]->SetDwGeometry(OPX7ShaderTableLayoutGeometry(uniqueNames[i], mesh->GetUniqueResource()->materials.size()));
-                    {
-                        buildInputs[i].triangleArray.vertexBuffers = &d_Vertices[i];
-                        buildInputs[i].triangleArray.numVertices = extSharedData->GetVertexCount();
-                        buildInputs[i].triangleArray.vertexFormat = extSharedData->GetVertexFormat();
-                        buildInputs[i].triangleArray.vertexStrideInBytes = extSharedData->GetVertexStrideInBytes();
-                        buildInputs[i].triangleArray.indexBuffer = extUniqueData->GetTriIdxBuffer();
-                        buildInputs[i].triangleArray.numIndexTriplets = extUniqueData->GetTriIdxCount();
-                        buildInputs[i].triangleArray.indexFormat = extUniqueData->GetTriIdxFormat();
-                        buildInputs[i].triangleArray.indexStrideInBytes = extUniqueData->GetTriIdxStrideInBytes();
-                        buildInputs[i].triangleArray.sbtIndexOffsetBuffer = extUniqueData->GetMatIdxBuffer();
-                        buildInputs[i].triangleArray.sbtIndexOffsetStrideInBytes = 0;
-                        buildInputs[i].triangleArray.sbtIndexOffsetSizeInBytes = sizeof(uint32_t);
-                        buildInputs[i].triangleArray.numSbtRecords = blasLayouts[geometryASName]->GetDwGeometries().back().GetBaseRecordCount();
-                        buildInputs[i].triangleArray.preTransform = 0;
-                        buildInputs[i].triangleArray.transformFormat = OPTIX_TRANSFORM_FORMAT_NONE;
-                        buildInputs[i].triangleArray.flags = &geometryFlags[i];
+                auto buildInputSize = size_t(0);
+                
+                for (auto&   geometryName : geometryNames) {
+                    auto  geometryJson = sceneJson.at("World").at("Geometries").at(geometryName);
+                    auto& objAsset     = objAssetLoader.GetAsset(geometryJson.at("Base"));
+                    auto uniqueNames   = objAsset.meshGroup->GetUniqueNames();
+                    for (auto&   uniqueName : uniqueNames) {
+                        auto mesh = objAsset.meshGroup->LoadMesh(uniqueName);
+                        blasLayouts[geometryASJson.key()]->SetDwGeometry(OPX7ShaderTableLayoutGeometry(uniqueName, mesh->GetUniqueResource()->materials.size()));
                     }
+                    buildInputSize += uniqueNames.size();
                 }
-                auto accelOutput = OPX7Natives::BuildAccelerationStructure(opx7Context.get(), accelBuildOptions, buildInputs);
-                blasHandles[geometryASJson.key()] = accelOutput.handle;
-                blasBuffers[geometryASJson.key()] = std::move(accelOutput.buffer);
+
+                {
+                    auto buildInputs   = std::vector<OptixBuildInput>(buildInputSize);
+                    auto    d_Vertices = std::vector<CUdeviceptr>(buildInputSize);
+                    auto geometryFlags = std::vector<unsigned int>(buildInputSize);
+                    auto buildInputOffset = size_t(0);
+                    for (auto& geometryName : geometryNames) {
+                        auto         geometryJson = sceneJson.at("World").at("Geometries").at(geometryName);
+                        auto& objAsset = objAssetLoader.GetAsset(geometryJson.at("Base"));
+                        auto uniqueNames = objAsset.meshGroup->GetUniqueNames();
+                        for (size_t i = 0; i < uniqueNames.size(); ++i) {
+                            auto mesh = objAsset.meshGroup->LoadMesh(uniqueNames[i]);
+                            auto extSharedData = static_cast<rtlib::test::OPX7MeshSharedResourceExtData*>(mesh->GetSharedResource()->extData.get());
+                            auto extUniqueData = static_cast<rtlib::test::OPX7MeshUniqueResourceExtData*>(mesh->GetUniqueResource()->extData.get());
+                            d_Vertices[buildInputOffset+i]         = extSharedData->GetVertexBuffer();
+                            geometryFlags[buildInputOffset + i]    = OPTIX_GEOMETRY_FLAG_DISABLE_ANYHIT;
+                            buildInputs[buildInputOffset + i].type = OPTIX_BUILD_INPUT_TYPE_TRIANGLES;
+                            {
+                                buildInputs[buildInputOffset + i].triangleArray.vertexBuffers        = &d_Vertices[buildInputOffset + i];
+                                buildInputs[buildInputOffset + i].triangleArray.numVertices          = extSharedData->GetVertexCount();
+                                buildInputs[buildInputOffset + i].triangleArray.vertexFormat         = extSharedData->GetVertexFormat();
+                                buildInputs[buildInputOffset + i].triangleArray.vertexStrideInBytes  = extSharedData->GetVertexStrideInBytes();
+                                buildInputs[buildInputOffset + i].triangleArray.indexBuffer          = extUniqueData->GetTriIdxBuffer();
+                                buildInputs[buildInputOffset + i].triangleArray.numIndexTriplets     = extUniqueData->GetTriIdxCount();
+                                buildInputs[buildInputOffset + i].triangleArray.indexFormat          = extUniqueData->GetTriIdxFormat();
+                                buildInputs[buildInputOffset + i].triangleArray.indexStrideInBytes   = extUniqueData->GetTriIdxStrideInBytes();
+                                buildInputs[buildInputOffset + i].triangleArray.sbtIndexOffsetBuffer = extUniqueData->GetMatIdxBuffer();
+                                buildInputs[buildInputOffset + i].triangleArray.sbtIndexOffsetStrideInBytes = 0;
+                                buildInputs[buildInputOffset + i].triangleArray.sbtIndexOffsetSizeInBytes = sizeof(uint32_t);
+                                buildInputs[buildInputOffset + i].triangleArray.numSbtRecords        = blasLayouts[geometryASJson.key()]->GetDwGeometries()[buildInputOffset + i].GetBaseRecordCount();
+                                buildInputs[buildInputOffset + i].triangleArray.preTransform         = 0;
+                                buildInputs[buildInputOffset + i].triangleArray.transformFormat      = OPTIX_TRANSFORM_FORMAT_NONE;
+                                buildInputs[buildInputOffset + i].triangleArray.flags                = &geometryFlags[buildInputOffset + i];
+
+                            }
+                        }
+                        buildInputOffset += uniqueNames.size();
+                    }
+
+                    auto accelOutput = OPX7Natives::BuildAccelerationStructure(opx7Context.get(), accelBuildOptions, buildInputs);
+                    blasHandles[geometryASJson.key()] = accelOutput.handle;
+                    blasBuffers[geometryASJson.key()] = std::move(accelOutput.buffer);
+                }
             }
         }
         auto blasInstBuffer = std::unique_ptr<CUDABuffer>();
         auto tlasHandle = OptixTraversableHandle();
         auto tlasLayout = OPX7ShaderTableLayoutInstanceAS("Root");
         auto tlasBuffer = std::unique_ptr<CUDABuffer>();
-        /*    {
-                auto  instance = OptixInstance();
-                float transforms[12] = {
-                    1.0f,0.0f,0.0f,0.0f,
-                    0.0f,1.0f,0.0f,0.0f,
-                    0.0f,0.0f,1.0f,0.0f
-                };
-                std::memcpy(instance.transform, transforms, sizeof(float) * 12);
-                instance.traversableHandle = blasHandle;
-                instance.visibilityMask    = OptixVisibilityMask(255);
-                instance.flags             = OPTIX_INSTANCE_FLAG_NONE;
-                instance.sbtOffset         = 0;
-                instance.instanceId        = 0;
-
-                opx7Context->CopyMemoryToBuffer(blasInstBuffer.get(), { {&instance,(size_t)0,(size_t)sizeof(instance)}});
-
-                auto buildInputs = std::vector<OptixBuildInput>(1);
-                buildInputs[0].type = OPTIX_BUILD_INPUT_TYPE_INSTANCES;
-                buildInputs[0].instanceArray.instances    = CUDANatives::GetCUdeviceptr(blasInstBuffer.get());
-                buildInputs[0].instanceArray.numInstances = 1;
-
-                auto accelOutput = OPX7Natives::BuildAccelerationStructure(opx7Context.get(), accelBuildOptions, buildInputs);
-                tlasHandle = accelOutput.handle;
-                tlasBuffer = std::move(accelOutput.buffer);
-
-
-            }*/
         {
             auto rootInstanceNames = sceneJson.at("World").at("InstanceASs").at("Root").at("Instances").get<std::vector<std::string>>();
             for (auto &instanceName : rootInstanceNames)
             {
                 auto baseGeometryASName = sceneJson.at("World").at("Instances").at(instanceName).at("Base").get<std::string>();
-                tlasLayout.SetInstance(OPX7ShaderTableLayoutInstance("Instance0", blasLayouts[baseGeometryASName].get()));
+                tlasLayout.SetInstance(OPX7ShaderTableLayoutInstance(instanceName, blasLayouts[baseGeometryASName].get()));
             }
 
             tlasLayout.SetRecordStride(1);
@@ -233,37 +224,40 @@ int OnlineSample()
                 missRecord.data.bgColor = float4{1.0f, 1.0f, 1.0f, 1.0f};
                 shaderTable->SetHostMissRecordTypeData(0, missRecord);
             }
-            {
-                auto &objAsset = objAssetLoader.GetAsset("Bistro-Exterior");
-                auto instLayout = shaderTableLayout.FindInstance("Instance0");
-                auto gasLayout = shaderTableLayout.FindGeometryAS(instLayout, "Bistro-Exterior");
-
-                auto sbtStride = shaderTableLayout.GetRecordStride();
-                auto sbtOffset = instLayout->GetRecordOffset();
-
-                for (auto &geometryLayout : gasLayout->GetDwGeometries())
-                {
-                    auto mesh = objAsset.meshGroup->LoadMesh(geometryLayout.GetName());
-                    auto extSharedData = mesh->GetSharedResource()->GetExtData<rtlib::test::OPX7MeshSharedResourceExtData>();
-                    auto extUniqueData = mesh->GetUniqueResource()->GetExtData<rtlib::test::OPX7MeshUniqueResourceExtData>();
-                    auto hitgroupRecord = hitgroupPG->GetRecord<HitgroupData>();
-                    hitgroupRecord.data.vertices = reinterpret_cast<float3 *>(extSharedData->GetVertexBuffer());
-                    hitgroupRecord.data.indices = reinterpret_cast<uint3 *>(extUniqueData->GetTriIdxBuffer());
-                    hitgroupRecord.data.diffuse = make_float3(1.0f, 1.0f, 1.0f);
-                    hitgroupRecord.data.emission = make_float3(0.3f, 0.3f, 0.3f);
-                    for (auto i = 0; i < geometryLayout.GetBaseRecordCount(); ++i)
-                    {
-                        for (auto j = 0; j < sbtStride; ++j)
+            auto sbtStride = shaderTableLayout.GetRecordStride();
+            for (auto& instanceName :sceneJson.at("World").at("InstanceASs").at("Root").at("Instances").get<std::vector<std::string>>()) {
+                auto instanceJson  = sceneJson.at("World").at("Instances").at(instanceName);
+                auto instanceLayout = shaderTableLayout.FindInstance(instanceName);
+                if ( instanceJson.at("ASType").get<std::string>() == "Geometry") {
+                    auto baseGasName = instanceJson.at("Base").get<std::string>();
+                    auto baseGasJson = sceneJson.at("World").at("GeometryASs").at(baseGasName);
+                    auto gasLayout   = shaderTableLayout.FindGeometryAS(instanceLayout, baseGasName);
+                    auto sbtOffset   = instanceLayout->GetRecordOffset();
+                    for (auto& geometryName : baseGasJson.at("Geometries").get<std::vector<std::string>>()) {
+                        auto  geometryJson = sceneJson.at("World").at("Geometries").at(geometryName);
+                        for (auto& geometryLayout : gasLayout->GetDwGeometries())
                         {
-                            shaderTable->SetHostHitgroupRecordTypeData(
-                                sbtOffset + sbtStride * (geometryLayout.GetBaseRecordOffset() + i) + j,
-                                hitgroupRecord);
+                            auto objAsset = objAssetLoader.GetAsset(geometryJson.at("Base").get<std::string>());
+                            auto mesh = objAsset.meshGroup->LoadMesh(geometryLayout.GetName());
+                            auto extSharedData = mesh->GetSharedResource()->GetExtData<rtlib::test::OPX7MeshSharedResourceExtData>();
+                            auto extUniqueData = mesh->GetUniqueResource()->GetExtData<rtlib::test::OPX7MeshUniqueResourceExtData>();
+                            auto hitgroupRecord = hitgroupPG->GetRecord<HitgroupData>();
+                            hitgroupRecord.data.vertices = reinterpret_cast<float3*>(extSharedData->GetVertexBuffer());
+                            hitgroupRecord.data.indices = reinterpret_cast<uint3*>(extUniqueData->GetTriIdxBuffer());
+                            hitgroupRecord.data.diffuse = make_float3(1.0f, 1.0f, 1.0f);
+                            hitgroupRecord.data.emission = make_float3(0.3f, 0.3f, 0.3f);
+                            for (auto i = 0; i < geometryLayout.GetBaseRecordCount(); ++i)
+                            {
+                                for (auto j = 0; j < sbtStride; ++j)
+                                {
+                                    shaderTable->SetHostHitgroupRecordTypeData( sbtOffset + sbtStride * (geometryLayout.GetBaseRecordOffset() + i) + j,hitgroupRecord);
+                                }
+                            }
                         }
                     }
                 }
                 auto pCpuHitgroupRecord = shaderTable->GetHostHitgroupRecordTypeData<HitgroupData>(0);
-                auto cpuHitgroupRecordArray = std::vector<RTLib::Ext::OPX7::OPX7ShaderRecord<HitgroupData>>(
-                    pCpuHitgroupRecord, pCpuHitgroupRecord + shaderTable->GetHitgroupRecordCount());
+                auto cpuHitgroupRecordArray = std::vector<RTLib::Ext::OPX7::OPX7ShaderRecord<HitgroupData>>(pCpuHitgroupRecord, pCpuHitgroupRecord + shaderTable->GetHitgroupRecordCount());
             }
             shaderTable->Upload();
         }
@@ -333,10 +327,13 @@ int OnlineSample()
                 {
                     auto params = Params();
                     {
-                        params.image = reinterpret_cast<uchar4 *>(CUDANatives::GetCUdeviceptr(frameBufferCUDA));
-                        params.width = width;
-                        params.height = height;
-                        params.gasHandle = blasHandles["Bistro-Exterior"];
+                        params.image     = reinterpret_cast<uchar4 *>(CUDANatives::GetCUdeviceptr(frameBufferCUDA));
+                        params.width     = width;
+                        params.height    = height;
+                        auto instanceName= sceneJson.at("World").at("InstanceASs").at("Root").at("Instances").get<std::vector<std::string>>()[0];
+                        auto baseGasName = sceneJson.at("World").at("Instances").at(instanceName).at("Base").get<std::string>();
+                        params.gasHandle = blasHandles[baseGasName];
+
                     }
                     stream->CopyMemoryToBuffer(dParams.get(), {{&params, 0, sizeof(params)}});
                     pipeline->Launch(stream.get(), CUDABufferView(dParams.get(), 0, dParams->GetSizeInBytes()), shaderTable.get(), width, height, 1);
@@ -400,7 +397,7 @@ int OnlineSample()
                 sceneJson["Width"] = width;
                 sceneJson["Height"] = height;
             }
-            auto sceneJsonFile = std::ofstream("./scene.json", std::ios::binary);
+            auto sceneJsonFile = std::ofstream(RTLIB_EXT_OPX7_TEST_CUDA_PATH"/../scene.json", std::ios::binary);
             sceneJsonFile << sceneJson;
             sceneJsonFile.close();
         }

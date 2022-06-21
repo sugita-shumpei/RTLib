@@ -2,6 +2,7 @@
 #define RTLIB_EXT_OPX7_OPX7_SHADER_LAYOUT_H
 #include <unordered_map>
 #include <unordered_set>
+#include <array>
 #include <memory>
 #include <vector>
 namespace RTLib {
@@ -94,13 +95,12 @@ namespace RTLib {
 				void Internal_SetUpInstanceAS(InstanceAS*    instanceAS)noexcept;
 			private:
 				std::string m_Name = "";
-				InstanceAS*       m_UpInstanceAS = nullptr;
-				InstanceAS*       m_DwInstanceAS = nullptr;
-				const GeometryAS* m_DwGeometryAS = nullptr;
-
-				unsigned int      m_RecordStride = 0;
-				unsigned int      m_RecordCount  = 0;
-				unsigned int      m_RecordOffset = 0;
+				InstanceAS*           m_UpInstanceAS = nullptr;
+				InstanceAS*           m_DwInstanceAS = nullptr;
+				const GeometryAS*     m_DwGeometryAS = nullptr;
+				unsigned int          m_RecordStride = 0;
+				unsigned int          m_RecordCount  = 0;
+				unsigned int          m_RecordOffset = 0;
 			};
 			class OPX7ShaderTableLayoutInstanceAS {
 			private:
@@ -220,8 +220,10 @@ namespace RTLib {
 				std::vector<std::unique_ptr<OPX7ShaderTableLayoutGeometryAS>> m_GeometryASLayouts;
 				std::vector<std::unique_ptr<OPX7ShaderTableLayoutInstanceAS>> m_InstanceASLayouts;
 			};
+		}
+		namespace OPX7_experimental
+		{
 
-			
 		}
 	}
 }

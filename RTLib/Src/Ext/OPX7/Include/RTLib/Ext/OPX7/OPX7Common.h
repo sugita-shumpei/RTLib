@@ -309,6 +309,13 @@ namespace RTLib
 				eUInt16x3 = static_cast<uint64_t>(Core::SizedTypeFlagBits::eUInt16X3),
 				eUInt32x3 = static_cast<uint64_t>(Core::SizedTypeFlagBits::eUInt32X3)
 			};
+			enum class OPX7OffsetFormat : uint64_t
+			{
+				eNone   = 0,
+				eUInt8  = static_cast<uint64_t>(Core::SizedTypeFlagBits::eUInt8 ),
+				eUInt16 = static_cast<uint64_t>(Core::SizedTypeFlagBits::eUInt16),
+				eUInt32 = static_cast<uint64_t>(Core::SizedTypeFlagBits::eUInt32),
+			};
 			enum class OPX7SbtOffsetFormat : uint64_t
 			{
 				eNone = 0,
@@ -336,7 +343,36 @@ namespace RTLib
 				eInstancePointers = OPTIX_BUILD_INPUT_TYPE_INSTANCE_POINTERS,
 				eCurves           = OPTIX_BUILD_INPUT_TYPE_CURVES,
 			};
-
+			struct OPX7TriangleVertexBufferView
+			{
+				CUDA::CUDABufferView   view   = {};
+				OPX7::OPX7VertexFormat format = OPX7::OPX7VertexFormat::eNone;
+			};
+			struct OPX7TriangleTriIdxBufferView
+			{
+				CUDA::CUDABufferView   view = {};
+				OPX7::OPX7TriIdxFormat format = OPX7::OPX7TriIdxFormat::eNone;
+			};
+			struct OPX7OffsetBufferView
+			{
+				CUDA::CUDABufferView   view = {};
+				OPX7::OPX7OffsetFormat format = OPX7::OPX7OffsetFormat::eNone;
+			};
+			struct OPX7TransformBufferView
+			{
+				CUDA::CUDABufferView      view   = {};
+				OPX7::OPX7TransformFormat format = OPX7::OPX7TransformFormat::eNone;
+			};
+			struct OPX7CustomAabbBufferView
+			{
+				CUDA::CUDABufferView      view   = {};
+				unsigned int              stride = 0;
+			};
+			enum class OPX7AccelerationStuctureType
+			{
+				eGAS,
+				eIAS
+			};
 		}
 	}
 }

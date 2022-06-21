@@ -117,20 +117,20 @@ namespace rtlib
                     {
                         {"CacheDir", std::filesystem::absolute(".").string()},
                         {"Assets",
-                            {{"Bistro-Exterior", RTLIB_EXT_OPX7_TEST_DATA_PATH "/Models/Bistro/Exterior/exterior.obj"}}
+                            {{"CornellBox-Original", RTLIB_EXT_OPX7_TEST_DATA_PATH "/Models/CornellBox/CornellBox-Original.obj"}}
                         }
                     }
                 },
                 {"World",
                  {
                      {"Geometries",
-                        {{"Bistro-Exterior", {{"Type", "ObjModel"},{"Base", "Bistro-Exterior"}}}}
+                        {{"CornellBox-Original", {{"Type", "ObjModel"},{"Base", "CornellBox-Original"}}}}
                      },
                      {"GeometryASs",
-                        {{"Bistro-Exterior", {{"Type", "GeometryAS"}, {"Geometries", std::vector<std::string>{"Bistro-Exterior"}}}}}
+                        {{"CornellBox-Original", {{"Type", "GeometryAS"}, {"Geometries", std::vector<std::string>{"CornellBox-Original"}}}}}
                       },
                      {"Instances",
-                        {{"Instance0",{{"Type", "Instance"}, {"ASType", "Geometry"},{"Base", "Bistro-Exterior"}}}}
+                        {{"Instance0",{{"Type", "Instance"}, {"ASType", "Geometry"},{"Base", "CornellBox-Original"}}}}
                      },
                      {"InstanceASs",
                       {{"Root",{{"Type", "InstanceAS"},{"Instances", std::vector<std::string>{"Instance0"}}}}}

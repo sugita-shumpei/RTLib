@@ -123,6 +123,8 @@ auto RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstance::operator=(const OPX7Shader
 	return *this;
 }
 
+
+
 auto RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstance::GetName() const noexcept -> std::string { return m_Name; }
 
 auto RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstance::GetRecordStride() const noexcept -> unsigned int
@@ -576,3 +578,4 @@ auto RTLib::Ext::OPX7::OPX7ShaderTableLayout::FindChildGeometry(const OPX7Shader
 	}
 	return nullptr;
 }
+
