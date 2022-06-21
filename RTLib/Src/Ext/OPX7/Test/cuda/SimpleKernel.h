@@ -21,9 +21,13 @@ struct ParallelLight {
     float3 emission;
 };
 struct Params {
-    uchar4* image;
+    unsigned int*           seedBuffer;
+    float3*                accumBuffer;
+    uchar4*                frameBuffer;
     unsigned int           width;
     unsigned int           height;
+    unsigned int           samplesForLaunch;
+    unsigned int           samplesForAccum;
     OptixTraversableHandle gasHandle;
 };
 struct RayGenData {

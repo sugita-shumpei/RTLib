@@ -12,6 +12,8 @@
 #include <RTLib/Ext/OPX7/OPX7Natives.h>
 #include <RTLib/Ext/OPX7/OPX7Exceptions.h>
 #include <RTLib/Ext/CUDA/CUDAExceptions.h>
+#include <RTLib/Ext/CUDA/CUDAImage.h>
+#include <RTLib/Ext/CUDA/CUDATexture.h>
 #include <RTLib/Ext/CUDA/CUDAStream.h>
 #include <RTLib/Ext/CUDA/CUDANatives.h>
 #include <RTLib/Ext/CUDA/Math/VectorFunction.h>
@@ -30,6 +32,7 @@
 #include <RTLibExtOPX7TestConfig.h>
 #include <iostream>
 #include <filesystem>
+#include <random>
 #include <fstream>
 #include <unordered_map>
 #include <array>
@@ -130,15 +133,23 @@ namespace rtlib
                         {{"CornellBox-Original", {{"Type", "GeometryAS"}, {"Geometries", std::vector<std::string>{"CornellBox-Original"}}}}}
                       },
                      {"Instances",
-                        {{"Instance0",{{"Type", "Instance"}, {"ASType", "Geometry"},{"Base", "CornellBox-Original"}}}}
+                        {{"Instance0",{{"Type", "Instance"}, {"ASType", "Geometry"},{"Base", "CornellBox-Original"},{"Transform",std::vector<float>{
+                            1.0f,0.0f,0.0f,0.0f,
+                            0.0f,1.0f,0.0f,0.0f,
+                            0.0f,0.0f,1.0f,0.0f
+                        }}}}}
                      },
                      {"InstanceASs",
                       {{"Root",{{"Type", "InstanceAS"},{"Instances", std::vector<std::string>{"Instance0"}}}}}
                      },
                  }},
                 {"CameraController", cameraController},
-                {"Width" ,1024},
-                {"Height",1024}
+                {"Config",{
+                    {"Width" ,1024},
+                    {"Height",1024},
+                    {"Samples",1},
+                    {"MaxSamples",10000},
+                }}
             };
         }
 
@@ -150,23 +161,23 @@ namespace rtlib
             float delCurPosX, 
             float delCurPosY){
             bool isMovedCamera = false;
-            const bool pressKeyLeft = (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_A) == GLFW_PRESS) || (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_LEFT) == GLFW_PRESS);
-            const bool pressKeyRight = (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_D) == GLFW_PRESS) || (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_RIGHT) == GLFW_PRESS);
-            const bool pressKeyForward = (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_W) == GLFW_PRESS);
+            const bool pressKeyLeft     = (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_A) == GLFW_PRESS) || (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_LEFT) == GLFW_PRESS);
+            const bool pressKeyRight    = (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_D) == GLFW_PRESS) || (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_RIGHT) == GLFW_PRESS);
+            const bool pressKeyForward  = (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_W) == GLFW_PRESS);
             const bool pressKeyBackward = (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_S) == GLFW_PRESS);
-            const bool pressKeyUp = (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_UP) == GLFW_PRESS);
-            const bool pressKeyDown = (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_DOWN) == GLFW_PRESS);
-            if (pressKeyLeft)
+            const bool pressKeyUp       = (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_UP) == GLFW_PRESS);
+            const bool pressKeyDown     = (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_DOWN) == GLFW_PRESS);
+            if (pressKeyLeft    )
             {
                 cameraController.ProcessKeyboard(RTLib::Utils::CameraMovement::eLeft, delTime);
                 isMovedCamera = true;
             }
-            if (pressKeyRight)
+            if (pressKeyRight   )
             {
                 cameraController.ProcessKeyboard(RTLib::Utils::CameraMovement::eRight, delTime);
                 isMovedCamera = true;
             }
-            if (pressKeyForward)
+            if (pressKeyForward )
             {
                 cameraController.ProcessKeyboard(RTLib::Utils::CameraMovement::eForward, delTime);
                 isMovedCamera = true;
@@ -176,12 +187,12 @@ namespace rtlib
                 cameraController.ProcessKeyboard(RTLib::Utils::CameraMovement::eBackward,  delTime);
                 isMovedCamera = true;
             }
-            if (pressKeyUp)
+            if (pressKeyUp      )
             {
                 cameraController.ProcessKeyboard(RTLib::Utils::CameraMovement::eUp,  delTime);
                 isMovedCamera = true;
             }
-            if (pressKeyDown)
+            if (pressKeyDown    )
             {
                 cameraController.ProcessKeyboard(RTLib::Utils::CameraMovement::eDown,  delTime);
                 isMovedCamera = true;
@@ -193,7 +204,6 @@ namespace rtlib
             }
             return isMovedCamera;
         }
-
 
         class OPX7MeshSharedResourceExtData:public RTLib::Core::MeshSharedResourceExtData {
         public:
@@ -242,6 +252,7 @@ namespace rtlib
             size_t m_VertexStrideInBytes = 0;
             OptixVertexFormat m_VertexFormat = OPTIX_VERTEX_FORMAT_NONE;
         };
+
         class OPX7MeshUniqueResourceExtData : public RTLib::Core::MeshUniqueResourceExtData {
         public:
             static auto New(MeshUniqueResource* pMeshUniqueResource, OPX7::OPX7Context* context)noexcept->OPX7MeshUniqueResourceExtData* {

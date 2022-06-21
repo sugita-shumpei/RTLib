@@ -5,6 +5,17 @@ struct RTLib::Ext::GLFW::GLFWWindow::Impl {
 	{
 		return;
 	}
+	static void Def_CursorPosCallback(RTLib::Core::Window* window, double x, double y)
+	{
+		return;
+	}
+	static void GLFWCursorPosCallback(GLFWwindow* window, double  x, double    y) {
+		if (!window) { return; }
+		auto handle = reinterpret_cast<RTLib::Ext::GLFW::GLFWWindow*>(
+			glfwGetWindowUserPointer(window)
+		);
+		handle->m_Impl->cursorPosCallback(handle, x, y);
+	}
 	static void GLFWWindowSizeCallback(GLFWwindow* window, int width, int height)
 	{
 		if (!window) { return; }
@@ -24,6 +35,7 @@ struct RTLib::Ext::GLFW::GLFWWindow::Impl {
 	}
 	GLFWwindow* window = nullptr;
 	RTLib::Core::PfnWindowSizeCallback windowSizeCallback = Def_WindowSizeCallback;
+	RTLib::Core::PfnCursorPosCallback  cursorPosCallback  = Def_CursorPosCallback;
 	std::string    title   = "";
 	Core::Extent2D size    = {};
 	Core::Extent2D fbSize  = {};
@@ -54,11 +66,12 @@ RTLib::Ext::GLFW::GLFWWindow::GLFWWindow(GLFWwindow* glfwNativeHandle)noexcept
 }
 
 void RTLib::Ext::GLFW::GLFWWindow::Initialize() {
-	if (m_Impl->window) {
+	if (!m_Impl->window) {
 		return;
 	}
 	glfwSetWindowUserPointer(m_Impl->window, this);
 	glfwSetWindowSizeCallback(m_Impl->window, Impl::GLFWWindowSizeCallback);
+	glfwSetCursorPosCallback(m_Impl->window, Impl::GLFWCursorPosCallback);
 	int wid, hei;
 	glfwGetWindowSize(m_Impl->window, &wid, &hei);
 	m_Impl->size.width  = wid;	
@@ -117,9 +130,15 @@ void RTLib::Ext::GLFW::GLFWWindow::SetSizeCallback(Core::PfnWindowSizeCallback c
 	if (!callback) { return; }
 	m_Impl->windowSizeCallback = callback;
 }
+void RTLib::Ext::GLFW::GLFWWindow::SetCursorPosCallback(Core::PfnCursorPosCallback callback)
+{
+	m_Impl->cursorPosCallback = callback;
+}
 void RTLib::Ext::GLFW::GLFWWindow::SetUserPointer(void* pCustomData) {
 	m_Impl->pCustomData = pCustomData;
 }
+
+inline auto RTLib::Ext::GLFW::GLFWWindow::GetUserPointer() const -> void* { return m_Impl->pCustomData; }
 
 void RTLib::Ext::GLFW::GLFWWindow::SetResizable(bool resizable)
 {

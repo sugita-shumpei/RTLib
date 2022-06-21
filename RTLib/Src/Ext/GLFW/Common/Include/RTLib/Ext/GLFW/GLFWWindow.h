@@ -25,8 +25,9 @@ namespace RTLib
 				virtual auto GetSize()->Core::Extent2D override;
 				virtual auto GetFramebufferSize()->Core::Extent2D override;
 				virtual void SetSizeCallback(Core::PfnWindowSizeCallback callback) override;
+				virtual void SetCursorPosCallback(Core::PfnCursorPosCallback callback) override;
 				virtual void SetUserPointer(void* pCustomData) override;
-				virtual auto GetUserPointer()const -> void* { return nullptr; }
+				virtual auto GetUserPointer()const -> void*;
 				virtual void SetResizable(bool resizable) override;
 				virtual void SetVisibility(bool visible) override;
 				auto GetGLFWwindow()->GLFWwindow*;

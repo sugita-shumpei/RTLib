@@ -8,6 +8,7 @@ namespace RTLib
 {
 	namespace Core {
 		class Window;
+		using PfnCursorPosCallback  = void(*)(Window* window, double  x, double   y);
 		using PfnWindowSizeCallback = void(*)(Window* window, int width, int height);
 		class Window :public BaseObject
 		{
@@ -25,6 +26,7 @@ namespace RTLib
 			virtual auto GetSize()->Core::Extent2D = 0;
 			virtual auto GetFramebufferSize()->Core::Extent2D = 0;
 			virtual void SetSizeCallback(PfnWindowSizeCallback callback) = 0;
+			virtual void SetCursorPosCallback(PfnCursorPosCallback callback) = 0;
 			virtual void SetUserPointer(void* pCustomData) = 0;
 			virtual auto GetUserPointer()const -> void* { return nullptr; }
 			virtual void SetResizable(bool resizable) = 0;
