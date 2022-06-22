@@ -343,44 +343,115 @@ void RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstanceAS::Internal_SetRecordOffset
 }
 
 RTLib::Ext::OPX7::OPX7ShaderTableLayout::OPX7ShaderTableLayout(const OPX7ShaderTableLayoutInstanceAS& tlas) noexcept {
-	auto gasSet = std::unordered_set<const OPX7ShaderTableLayoutGeometryAS*>();
-	auto iasSet = std::unordered_set<const OPX7ShaderTableLayoutInstanceAS*>();
-	auto gasMap = std::unordered_map<const OPX7ShaderTableLayoutGeometryAS*, uint32_t>();
-	auto iasMap = std::unordered_map<const OPX7ShaderTableLayoutInstanceAS*, uint32_t>();
-	EnumerateImpl(&tlas, gasSet, iasSet);
-	m_GeometryASLayouts.reserve(std::size(gasSet));
-	for (auto& pGAS : gasSet) {
-		gasMap[pGAS] = m_GeometryASLayouts.size();
-		m_GeometryASLayouts.push_back(std::make_unique<OPX7ShaderTableLayoutGeometryAS>(*pGAS));
-		m_GeometryASLayouts.back()->m_Name = pGAS->m_Name;
-	}
-	m_InstanceASLayouts.reserve(std::size(iasSet) + 1);
-	iasMap[&tlas] = 0;
-	m_InstanceASLayouts.push_back(std::make_unique<OPX7ShaderTableLayoutInstanceAS>(tlas));
-	m_InstanceASLayouts.front()->SetName("Root");
+	{
+		auto gasSet = std::unordered_set<const OPX7ShaderTableLayoutGeometryAS*>();
+		auto iasSet = std::unordered_set<const OPX7ShaderTableLayoutInstanceAS*>();
+		auto gasMap = std::unordered_map<const OPX7ShaderTableLayoutGeometryAS*, uint32_t>();
+		auto iasMap = std::unordered_map<const OPX7ShaderTableLayoutInstanceAS*, uint32_t>();
+		EnumerateImpl(&tlas, gasSet, iasSet);
+		m_GeometryASLayouts.reserve(std::size(gasSet));
+		for (auto& pGAS : gasSet) {
+			gasMap[pGAS] = m_GeometryASLayouts.size();
+			m_GeometryASLayouts.push_back(std::make_unique<OPX7ShaderTableLayoutGeometryAS>(*pGAS));
+			m_GeometryASLayouts.back()->m_Name = pGAS->m_Name;
+		}
+		m_InstanceASLayouts.reserve(std::size(iasSet) + 1);
+		iasMap[&tlas] = 0;
+		m_InstanceASLayouts.push_back(std::make_unique<OPX7ShaderTableLayoutInstanceAS>(tlas));
+		m_InstanceASLayouts.front()->SetName("Root");
 
-	for (auto& pIAS : iasSet) {
-		iasMap[pIAS] = m_InstanceASLayouts.size();
-		m_InstanceASLayouts.push_back(std::make_unique<OPX7ShaderTableLayoutInstanceAS>(*pIAS));
-	}
-	iasSet.insert(&tlas);
-	for (auto& pIAS : iasSet) {
-		for (auto& instance : m_InstanceASLayouts[iasMap[pIAS]]->m_DwInstances)
-		{
-			if (instance.m_UpInstanceAS) {
-				instance.m_UpInstanceAS = m_InstanceASLayouts[iasMap[instance.m_UpInstanceAS]].get();
-			}
-			if (instance.m_DwGeometryAS) {
-				instance.m_DwGeometryAS = m_GeometryASLayouts[gasMap[instance.m_DwGeometryAS]].get();
-			}
-			if (instance.m_DwInstanceAS) {
-				instance.m_DwInstanceAS = m_InstanceASLayouts[iasMap[instance.m_DwInstanceAS]].get();
-				instance.m_DwInstanceAS->m_UpInstance = &instance;
+		for (auto& pIAS : iasSet) {
+			iasMap[pIAS] = m_InstanceASLayouts.size();
+			m_InstanceASLayouts.push_back(std::make_unique<OPX7ShaderTableLayoutInstanceAS>(*pIAS));
+		}
+		iasSet.insert(&tlas);
+		for (auto& pIAS : iasSet) {
+			for (auto& instance : m_InstanceASLayouts[iasMap[pIAS]]->m_DwInstances)
+			{
+				if (instance.m_UpInstanceAS) {
+					instance.m_UpInstanceAS = m_InstanceASLayouts[iasMap[instance.m_UpInstanceAS]].get();
+				}
+				if (instance.m_DwGeometryAS) {
+					instance.m_DwGeometryAS = m_GeometryASLayouts[gasMap[instance.m_DwGeometryAS]].get();
+				}
+				if (instance.m_DwInstanceAS) {
+					instance.m_DwInstanceAS = m_InstanceASLayouts[iasMap[instance.m_DwInstanceAS]].get();
+					instance.m_DwInstanceAS->m_UpInstance = &instance;
+				}
 			}
 		}
+		m_InstanceASLayouts[0]->SetRecordStride(tlas.GetRecordStride());
 	}
-	m_InstanceASLayouts[0]->SetRecordStride(tlas.GetRecordStride());
+	{
+		for (auto& geometryAS : m_GeometryASLayouts) {
+			m_BaseGeometryASNames.push_back(geometryAS->GetName());
+			m_BaseDescs[geometryAS->GetName()].pData = geometryAS.get();
+			m_BaseDescs[geometryAS->GetName()].baseRecordOffset = 0;
+			m_BaseDescs[geometryAS->GetName()].baseRecordCount  = geometryAS->GetBaseRecordCount();
+			for (auto& geometry : geometryAS->GetDwGeometries()) {
+				m_BaseGeometryNames.push_back(geometryAS->GetName() + "/" + geometry.GetName());
+				m_BaseDescs[geometryAS->GetName() + "/" + geometry.GetName()].pData = &geometry;
+				m_BaseDescs[geometryAS->GetName() + "/" + geometry.GetName()].baseRecordOffset = geometry.GetBaseRecordOffset();
+				m_BaseDescs[geometryAS->GetName() + "/" + geometry.GetName()].baseRecordCount  = geometry.GetBaseRecordCount();
+			}
+		}
 
+	}
+	{
+		m_Descs["Root"].pData = m_InstanceASLayouts[0].get();
+		m_Descs["Root"].recordOffset = 0;
+		m_Descs["Root"].recordCount  = m_InstanceASLayouts[0]->GetRecordCount();
+		m_Descs["Root"].recordStride = m_InstanceASLayouts[0]->GetRecordStride();
+		auto instanceASMap = std::unordered_map<std::string, const OPX7ShaderTableLayoutInstanceAS*>();
+		for (auto& instance : m_InstanceASLayouts[0]->GetInstances()) {
+			m_InstanceNames.push_back("Root/" + instance.GetName());
+			m_Descs["Root/" + instance.GetName()].pData = &instance;
+			m_Descs["Root/" + instance.GetName()].recordCount  = instance.GetRecordCount ();
+			m_Descs["Root/" + instance.GetName()].recordOffset = instance.GetRecordOffset();
+			m_Descs["Root/" + instance.GetName()].recordStride = instance.GetRecordStride();
+			if (instance.GetDwGeometryAS()) {
+				for (auto& geometry : instance.GetDwGeometryAS()->GetDwGeometries()) {
+					m_GeometryNames.push_back("Root/" + instance.GetName() + "/" + geometry.GetName());
+					m_Descs["Root/" + instance.GetName()+"/"+geometry.GetName()].pData        = &geometry;
+					m_Descs["Root/" + instance.GetName()+"/"+geometry.GetName()].recordCount  = geometry.GetBaseRecordCount() * instance.GetRecordStride();
+					m_Descs["Root/" + instance.GetName()+"/"+geometry.GetName()].recordOffset = instance.GetRecordOffset()    + geometry.GetBaseRecordOffset() * instance.GetRecordStride();
+					m_Descs["Root/" + instance.GetName()+"/"+geometry.GetName()].recordStride = instance.GetRecordStride() ;
+				}
+			}
+			else {
+				instanceASMap["Root/" + instance.GetName()] = instance.GetDwInstanceAS();
+			}
+		}
+		while (!instanceASMap.empty()) {
+			auto newInstanceASMap = std::unordered_map<std::string, const OPX7ShaderTableLayoutInstanceAS*>();
+			for (auto& [name, instanceAS] : instanceASMap) {
+				for (auto& instance : instanceAS->GetInstances()) {
+					m_InstanceNames.push_back(name + "/" + instance.GetName());
+					auto& desc = m_Descs[name + "/" + instance.GetName()];
+					desc.pData        = &instance;
+					desc.recordCount  = instance.GetRecordCount();
+					desc.recordOffset = instance.GetRecordOffset();
+					desc.recordStride = instance.GetRecordStride();
+					if (instance.GetDwGeometryAS())
+					{
+						auto baseGASName = instance.GetDwGeometryAS()->GetName();
+						for (auto& geometry : instance.GetDwGeometryAS()->GetDwGeometries()) {
+							m_GeometryNames.push_back(baseGASName + "/" + geometry.GetName());
+							auto& baseDesc = m_BaseDescs[baseGASName + "/" + geometry.GetName()];
+							m_Descs[name + "/" + instance.GetName() + "/" + geometry.GetName()].pData = &geometry;
+							m_Descs[name + "/" + instance.GetName() + "/" + geometry.GetName()].recordCount  = baseDesc.baseRecordCount  * desc.recordStride;
+							m_Descs[name + "/" + instance.GetName() + "/" + geometry.GetName()].recordOffset = baseDesc.baseRecordOffset * desc.recordStride + desc.recordOffset;
+							m_Descs[name + "/" + instance.GetName() + "/" + geometry.GetName()].recordStride = desc.recordStride;
+						}
+					}
+					else {
+						newInstanceASMap[name + "/" + instance.GetName()] = instance.GetDwInstanceAS();
+					}
+				}
+			}
+			instanceASMap = newInstanceASMap;
+		}
+	}
 }
 
 auto RTLib::Ext::OPX7::OPX7ShaderTableLayout::GetRecordCount() const noexcept -> unsigned int

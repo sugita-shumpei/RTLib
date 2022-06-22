@@ -153,7 +153,27 @@ namespace rtlib
                 }}
             };
         }
-
+        
+        inline void RenderFrameGL(
+            RTLib::Ext::GL::GLContext*      context,
+            RTLib::Ext::GL::GLRectRenderer* rectRenderer,
+            RTLib::Ext::GL::GLBuffer *      frameBuffer,
+            RTLib::Ext::GL::GLTexture*      frameTexture
+        ) {
+            auto extent = frameTexture->GetImage()->GetExtent();
+            context->SetClearBuffer(RTLib::Ext::GL::GLClearBufferFlagsColor);
+            context->SetClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+            context->CopyBufferToImage(frameBuffer, frameTexture->GetImage(),
+                { RTLib::Ext::GL::GLBufferImageCopy{
+                    ((size_t)0),
+                    ((size_t)0),
+                    ((size_t)0),
+                    {((uint32_t)0), ((uint32_t)0), ((uint32_t)1)},
+                    {0, 0, 0},
+                    {((uint32_t)extent.width), ((uint32_t)extent.height), ((uint32_t)1)},
+                } });
+            rectRenderer->DrawTexture(frameTexture);
+        }
 
         inline auto UpdateCameraMovement(
             RTLib::Utils::CameraController& cameraController,
@@ -298,6 +318,23 @@ namespace rtlib
             size_t m_TriIdxStride = 0;
         };
 
+        void InitMeshGroupExtData(RTLib::Ext::OPX7::OPX7Context* opx7Context, RTLib::Core::MeshGroupPtr meshGroup)
+        {
+            {
+                auto sharedResource = meshGroup->GetSharedResource();
+                sharedResource->AddExtData<rtlib::test::OPX7MeshSharedResourceExtData>(opx7Context );
+                auto extData = static_cast<rtlib::test::OPX7MeshSharedResourceExtData*>(sharedResource->extData.get());
+                extData->SetVertexFormat(OPTIX_VERTEX_FORMAT_FLOAT3);
+                extData->SetVertexStrideInBytes(sizeof(float) * 3);
+            }
+            for (auto& [name, uniqueResource] : meshGroup->GetUniqueResources())
+            {
+                uniqueResource->AddExtData<rtlib::test::OPX7MeshUniqueResourceExtData>(opx7Context );
+                auto extData = static_cast<rtlib::test::OPX7MeshUniqueResourceExtData*>(uniqueResource->extData.get());
+                extData->SetTriIdxFormat(OPTIX_INDICES_FORMAT_UNSIGNED_INT3);
+                extData->SetTriIdxStrideInBytes(sizeof(uint32_t) * 3);
+            }
+        }
     }
 
 }

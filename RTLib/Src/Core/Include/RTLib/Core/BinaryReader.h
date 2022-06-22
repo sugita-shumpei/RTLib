@@ -387,14 +387,15 @@ namespace RTLib {
         }
         struct WorldElementGeometryObjModel
         {
-            std::string base;
-            std::unordered_map<std::string, WorldElementGeometryObjModelMesh> meshes;
+            std::string base = "";
+            std::unordered_map<std::string, WorldElementGeometryObjModelMesh> meshes = {};
+            bool useMeshes = false;
         };
         template<typename JsonType>
         inline void   to_json(JsonType& j, const WorldElementGeometryObjModel& v) {
             j["Type"] = "ObjModel";
             j["Base"] = v.base;
-            if (!v.meshes.empty()) {
+            if (!v.meshes.empty() && v.useMeshes) {
                 auto meshJsons = std::vector<JsonType>();
                 meshJsons.reserve(v.meshes.size());
                 for (auto& mesh : meshes) {
@@ -407,10 +408,15 @@ namespace RTLib {
         inline void from_json(const JsonType& j, WorldElementGeometryObjModel& v) {
             v.base   = j.at("Base").get<std::string>();
             v.meshes.clear();
-            if (j.count("Meshes") > 0) {
+            if ((j.count("Meshes") > 0)) {
                 for (auto& meshElem : j.at("Meshes").items()) {
                     v.meshes[meshElem.key()] = meshElem.value().get<WorldElementGeometryObjModelMesh>();
-                }
+                   
+                } 
+                v.useMeshes = true;
+            }
+            else {
+                v.useMeshes = false;
             }
         }
 
@@ -432,7 +438,7 @@ namespace RTLib {
             std::string base;
             std::string asType;
             std::array<float, 12> transform;
-
+            
         };
         template<typename JsonType>
         inline void   to_json(JsonType& j, const WorldElementInstance& v) {

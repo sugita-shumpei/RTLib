@@ -145,7 +145,17 @@ namespace RTLib {
 				unsigned int m_RecordStride = 0;
 				unsigned int m_RecordCount  = 0;
 			};
-
+			struct OPX7ShaderTableLayoutDesc {
+				const void*  pData = nullptr;
+				unsigned int recordStride;
+				unsigned int recordCount;
+				unsigned int recordOffset;
+			};
+			struct OPX7ShaderTableLayoutBaseDesc {
+				const void*  pData = nullptr;
+				unsigned int baseRecordCount;
+				unsigned int baseRecordOffset;
+			};
 			class OPX7ShaderTableLayout
 			{
 			public: 
@@ -177,6 +187,18 @@ namespace RTLib {
 				auto GetGeometryASs()const noexcept -> const std::vector<std::unique_ptr<OPX7ShaderTableLayoutGeometryAS>>& {
 					return m_GeometryASLayouts;
 				}
+
+				auto GetDesc(std::string name)const noexcept -> OPX7ShaderTableLayoutDesc {
+					return m_Descs.at(name);
+				}
+				auto GetBaseDesc(std::string name)const noexcept -> OPX7ShaderTableLayoutBaseDesc {
+					return m_BaseDescs.at(name);
+				}
+
+				auto GetBaseGeometryNames()const noexcept -> std::vector<std::string> { return m_BaseGeometryNames; }
+				auto GetBaseGeometryASNames()const noexcept -> std::vector<std::string> { return m_BaseGeometryASNames; }
+				auto GetGeometryNames()const noexcept -> std::vector<std::string>   { return m_GeometryNames; }
+				auto GetInstanceNames()const noexcept -> std::vector<std::string>   { return m_InstanceNames; }
 			private:
 				static auto SplitFirstOf(const std::string& name)->std::pair<std::string, std::string> {
 					auto pos = name.find("/");
@@ -223,8 +245,14 @@ namespace RTLib {
 				auto FindChildGeometryAS(const OPX7ShaderTableLayoutInstance* instance    , const std::string& name)const -> const OPX7ShaderTableLayoutGeometryAS*;
 				auto FindChildGeometry  (const OPX7ShaderTableLayoutGeometryAS* gas       , const std::string& name)const -> const OPX7ShaderTableLayoutGeometry  *;
 			private:
-				std::vector<std::unique_ptr<OPX7ShaderTableLayoutGeometryAS>> m_GeometryASLayouts;
-				std::vector<std::unique_ptr<OPX7ShaderTableLayoutInstanceAS>> m_InstanceASLayouts;
+				std::vector<std::unique_ptr<OPX7ShaderTableLayoutGeometryAS>>  m_GeometryASLayouts;
+				std::vector<std::unique_ptr<OPX7ShaderTableLayoutInstanceAS>>  m_InstanceASLayouts;
+				std::unordered_map<std::string, OPX7ShaderTableLayoutDesc>     m_Descs;
+				std::unordered_map<std::string, OPX7ShaderTableLayoutBaseDesc> m_BaseDescs;
+				std::vector<std::string> m_BaseGeometryNames;
+				std::vector<std::string> m_BaseGeometryASNames;
+				std::vector<std::string> m_GeometryNames;
+				std::vector<std::string> m_InstanceNames;
 			};
 		}
 		namespace OPX7_experimental
