@@ -171,6 +171,12 @@ namespace RTLib {
 				auto FindGeometry  (const OPX7ShaderTableLayoutInstance  * instance  , const std::string& name)const ->const OPX7ShaderTableLayoutGeometry*;
 				auto FindGeometry  (const OPX7ShaderTableLayoutGeometryAS* gas       , const std::string& name)const ->const OPX7ShaderTableLayoutGeometry*;
 
+				auto GetInstanceASs()const noexcept -> const std::vector<std::unique_ptr<OPX7ShaderTableLayoutInstanceAS>>& {
+					return m_InstanceASLayouts;
+				}
+				auto GetGeometryASs()const noexcept -> const std::vector<std::unique_ptr<OPX7ShaderTableLayoutGeometryAS>>& {
+					return m_GeometryASLayouts;
+				}
 			private:
 				static auto SplitFirstOf(const std::string& name)->std::pair<std::string, std::string> {
 					auto pos = name.find("/");

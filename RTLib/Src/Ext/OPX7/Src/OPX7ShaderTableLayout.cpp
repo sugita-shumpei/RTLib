@@ -352,6 +352,7 @@ RTLib::Ext::OPX7::OPX7ShaderTableLayout::OPX7ShaderTableLayout(const OPX7ShaderT
 	for (auto& pGAS : gasSet) {
 		gasMap[pGAS] = m_GeometryASLayouts.size();
 		m_GeometryASLayouts.push_back(std::make_unique<OPX7ShaderTableLayoutGeometryAS>(*pGAS));
+		m_GeometryASLayouts.back()->m_Name = pGAS->m_Name;
 	}
 	m_InstanceASLayouts.reserve(std::size(iasSet) + 1);
 	iasMap[&tlas] = 0;
@@ -362,8 +363,7 @@ RTLib::Ext::OPX7::OPX7ShaderTableLayout::OPX7ShaderTableLayout(const OPX7ShaderT
 		iasMap[pIAS] = m_InstanceASLayouts.size();
 		m_InstanceASLayouts.push_back(std::make_unique<OPX7ShaderTableLayoutInstanceAS>(*pIAS));
 	}
-
-
+	iasSet.insert(&tlas);
 	for (auto& pIAS : iasSet) {
 		for (auto& instance : m_InstanceASLayouts[iasMap[pIAS]]->m_DwInstances)
 		{

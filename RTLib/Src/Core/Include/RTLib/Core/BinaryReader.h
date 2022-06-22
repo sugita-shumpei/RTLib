@@ -1,5 +1,6 @@
 #ifndef RTLIB_CORE_BINARY_READER_H
 #define RTLIB_CORE_BINARY_READER_H
+#include <RTLib/Core/Exceptions.h>
 #include <tiny_obj_loader.h>
 #include <unordered_map>
 #include <nlohmann/json.hpp>
@@ -256,9 +257,28 @@ namespace RTLib {
             std::string                               m_CacheDir  = {};
             std::unordered_map<std::string, ObjModel> m_ObjModels = {};
         };
-
+        //ObjModelAssetManager
         template<typename JsonType>
-        inline void   to_json(JsonType& j, const RTLib::Core::VariableMap& v) {
+        inline void   to_json(JsonType& j, const RTLib::Core::ObjModelAssetManager& obj)
+        {
+            j["CacheDir"] = obj.GetCacheDir();
+            for (auto& [name, objAsset] : obj.GetAssets()) {
+                j["Assets"][name] = objAsset.meshGroup->GetSharedResource()->variables.GetString("path");
+            }
+        }
+        template<typename JsonType>
+        inline void from_json(const JsonType& j, RTLib::Core::ObjModelAssetManager& obj)
+        {
+            obj = ObjModelAssetManager(j.at("CacheDir").get<std::string>());
+            for (auto& assetJson : j.at("Assets").items())
+            {
+                RTLIB_CORE_ASSERT_IF_FAILED(obj.LoadAsset(assetJson.key(), assetJson.value().get<std::string>()));
+            }
+
+        }
+        //Variable
+        template<typename JsonType>
+        inline void   to_json(      JsonType& j, const RTLib::Core::VariableMap& v) {
 
             for (auto& [key, value] : v.EnumerateBoolData()) {
                 j[key] = value;
@@ -285,7 +305,7 @@ namespace RTLib {
 
         }
         template<typename JsonType>
-        inline void from_json(const JsonType& j, RTLib::Core::VariableMap& v) {
+        inline void from_json(const JsonType& j, RTLib::Core::VariableMap&       v) {
             for (auto& elem : j.items()) {
                 if (elem.value().is_string()) {
                     v.SetString(elem.key(), elem.value().get<std::string>());
@@ -317,6 +337,170 @@ namespace RTLib {
                 }
             }
         }
-	}
+        //VariableArray
+        template<typename JsonType>
+        inline void   to_json(JsonType& j, const std::vector<RTLib::Core::VariableMap>& v) {
+            for (auto& elem : v) {
+                auto elemJson = JsonType(v);
+                j.push_back(elemJson);
+            }
+        }
+        template<typename JsonType>
+        inline void from_json(const JsonType& j, std::vector<RTLib::Core::VariableMap>& v) {
+            v.clear();
+            v.reserve(j.size());
+            for (auto& elem : j) {
+                v.push_back(elem.get<RTLib::Core::VariableMap>());
+            }
+        }
+        
+        struct WorldElementGeometryObjModelMesh
+        {
+            std::string base = {};
+            std::vector<RTLib::Core::VariableMap> materials = {};
+            std::array<float, 12> transform = {};
+            bool useTransform = false;
+            bool useMaterials = false;
+        };
+        //VariableArray
+        template<typename JsonType>
+        inline void   to_json(JsonType& j, const WorldElementGeometryObjModelMesh& v) {
+            j["Base"] = v.base;
+            if (v.useTransform) {
+                j["Transform"] = v.transform;
+            }
+            if (v.useMaterials) {
+                j["Materials"] = v.materials;
+            }
+        }
+        template<typename JsonType>
+        inline void from_json(const JsonType& j, WorldElementGeometryObjModelMesh& v) {
+            v.base = j.at("Base").get<std::string>();
+            v.useMaterials = j.count("Materials") > 0;
+            v.useTransform = j.count("Transform") > 0;
+            if (v.useMaterials) {
+                v.materials = j.at("Materials").get<std::vector<RTLib::Core::VariableMap>>();
+            }
+            if (v.useTransform) {
+                v.transform = j.at("Transform").get<std::array<float, 12>>();
+            }
+        }
+        struct WorldElementGeometryObjModel
+        {
+            std::string base;
+            std::unordered_map<std::string, WorldElementGeometryObjModelMesh> meshes;
+        };
+        template<typename JsonType>
+        inline void   to_json(JsonType& j, const WorldElementGeometryObjModel& v) {
+            j["Type"] = "ObjModel";
+            j["Base"] = v.base;
+            if (!v.meshes.empty()) {
+                auto meshJsons = std::vector<JsonType>();
+                meshJsons.reserve(v.meshes.size());
+                for (auto& mesh : meshes) {
+                    meshJsons.push_back(nlohmann::json(mesh));
+                }
+                j["Meshes"] = meshJsons;
+            }
+        }
+        template<typename JsonType>
+        inline void from_json(const JsonType& j, WorldElementGeometryObjModel& v) {
+            v.base   = j.at("Base").get<std::string>();
+            v.meshes.clear();
+            if (j.count("Meshes") > 0) {
+                for (auto& meshElem : j.at("Meshes").items()) {
+                    v.meshes[meshElem.key()] = meshElem.value().get<WorldElementGeometryObjModelMesh>();
+                }
+            }
+        }
+
+        struct WorldElementGeometryAS
+        {
+            std::vector<std::string> geometries = {};
+        };
+        template<typename JsonType>
+        inline void   to_json(JsonType& j, const WorldElementGeometryAS& v) {
+            j["Type"] = "GeometryAS";
+            j["Geometries"] = v.geometries;
+        }
+        template<typename JsonType>
+        inline void from_json(const JsonType& j, WorldElementGeometryAS& v) {
+            v.geometries = j.at("Geometries").get<std::vector<std::string>>();
+        }
+        struct WorldElementInstance
+        {
+            std::string base;
+            std::string asType;
+            std::array<float, 12> transform;
+
+        };
+        template<typename JsonType>
+        inline void   to_json(JsonType& j, const WorldElementInstance& v) {
+            j["Type"]      ="Instance";
+            j["Base"]      = v.base;
+            j["ASType"]    = v.asType;
+            j["Transform"] = v.transform;
+        }
+        template<typename JsonType>
+        inline void from_json(const JsonType& j, WorldElementInstance& v) {
+            v.base         = j.at("Base").get<std::string>();
+            v.asType       = j.at("ASType").get<std::string>();
+            v.transform    = j.at("Transform").get<std::array<float, 12>>();
+        }
+        struct WorldElementInstanceAS
+        {
+            std::vector<std::string> instances = {};
+        };
+        template<typename JsonType>
+        inline void   to_json(JsonType& j, const WorldElementInstanceAS& v) {
+            j["Type"] = "InstanceAS";
+            j["Instances"] = v.instances;
+        }
+        template<typename JsonType>
+        inline void from_json(const JsonType& j, WorldElementInstanceAS& v) {
+            v.instances = j.at("Instances").get<std::vector<std::string>>();
+        }
+        struct WorldData
+        {
+            std::unordered_map<std::string, WorldElementGeometryObjModel>     geometryObjModels;
+            std::unordered_map<std::string, WorldElementGeometryAS>           geometryASs;
+            std::unordered_map<std::string, WorldElementInstance>             instances;
+            std::unordered_map<std::string, WorldElementInstanceAS>           instanceASs;
+        };
+
+        template<typename JsonType>
+        inline void   to_json(JsonType& j, const WorldData& v) {
+            for (auto& [name,geometry] : v.geometryObjModels) {
+                j["Geometries"][name]  = geometry;
+            }
+            for (auto& [name, geometryAS] : v.geometryASs) {
+                j["GeometryASs"][name] = geometryAS;
+            }
+            for (auto& [name, instance] : v.instances) {
+                j["Instances"][name]   = instance;
+            }
+            for (auto& [name, instanceAS] : v.instanceASs) {
+                j["InstanceASs"][name] = instanceAS;
+            }
+        }
+        template<typename JsonType>
+        inline void from_json(const JsonType& j, WorldData& v) {
+            for (auto& elem : j.at("Geometries" ).items()) {
+                if (elem.value().at("Type").get<std::string>() == "ObjModel") {
+                    v.geometryObjModels[elem.key()] = elem.value().get<WorldElementGeometryObjModel>();
+                }
+            }
+            for (auto& elem : j.at("GeometryASs").items()) {
+                v.geometryASs[elem.key()] = elem.value().get<WorldElementGeometryAS>();
+            }
+            for (auto& elem : j.at("Instances"  ).items()) {
+                v.instances[elem.key()] = elem.value().get<WorldElementInstance>();
+            }
+            for (auto& elem : j.at("InstanceASs").items()) {
+                v.instanceASs[elem.key()] = elem.value().get<WorldElementInstanceAS>();
+            }
+        }
+
+    }
 }
 #endif
