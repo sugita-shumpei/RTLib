@@ -8,6 +8,7 @@
 #include <RTLib/Ext/OPX7/OPX7ProgramGroup.h>
 #include <RTLib/Ext/OPX7/OPX7ShaderTable.h>
 #include <RTLib/Ext/OPX7/OPX7ShaderTableLayout.h>
+#include <RTLib/Ext/OPX7/OPX7AccelerationStructure.h>
 #include <RTLib/Ext/OPX7/OPX7Pipeline.h>
 #include <RTLib/Ext/OPX7/OPX7Natives.h>
 #include <RTLib/Ext/OPX7/OPX7Exceptions.h>
@@ -30,6 +31,7 @@
 #include <stb_image_write.h>
 #include <cuda/SimpleKernel.h>
 #include <RTLibExtOPX7TestConfig.h>
+#include <memory>
 #include <iostream>
 #include <filesystem>
 #include <random>
@@ -57,8 +59,99 @@ namespace rtlib
 {
     namespace test {
         using namespace RTLib::Core;
+        using namespace RTLib::Utils;
         using namespace RTLib::Ext;
         using namespace RTLib::Ext::CUDA::Math;
+
+
+        struct TraceConfigData
+        {
+            unsigned int width;
+            unsigned int height;
+            unsigned int samples;
+            unsigned int maxSamples;
+        };
+
+        template<typename JsonType>
+        inline void   to_json(JsonType& j, const TraceConfigData& v) {
+            j["Width"     ] = v.width;
+            j["Height"    ] = v.height;
+            j["Samples"   ] = v.samples;
+            j["MaxSamples"] = v.maxSamples;
+        }
+        template<typename JsonType>
+        inline void from_json(const JsonType& j, TraceConfigData& v) {
+            v.width      = j.at("Width"     ).get<unsigned int>();
+            v.height     = j.at("Height"    ).get<unsigned int>();
+            v.samples    = j.at("Samples"   ).get<unsigned int>();
+            v.maxSamples = j.at("MaxSamples").get<unsigned int>();
+        }
+
+        struct SceneData
+        {
+            ObjModelAssetManager objAssetManager;
+            WorldData            world ;
+            TraceConfigData      config;
+            CameraController     cameraController;
+            auto GetFrameBufferSizeInBytes()const noexcept -> size_t
+            {
+                return static_cast<size_t>(config.width * config.height);
+            }
+            auto GetCamera()const noexcept -> Camera
+            {
+                return cameraController.GetCamera(static_cast<float>(config.width) / static_cast<float>(config.height));
+            }
+        };
+        template<typename JsonType>
+        inline void   to_json(JsonType& j, const SceneData& v) {
+            j["CameraController"] = v.cameraController;
+            j["ObjModels"]        = v.objAssetManager;
+            j["World" ]           = v.world;
+            j["Config"]           = v.config;
+        }
+        template<typename JsonType>
+        inline void from_json(const JsonType& j, SceneData& v) {
+            v.cameraController = j.at("CameraController").get<RTLib::Utils::CameraController>();
+            v.objAssetManager  = j.at("ObjModels"       ).get<RTLib::Core::ObjModelAssetManager>();
+            v.world            = j.at("World"           ).get<RTLib::Core::WorldData>();
+            v.config           = j.at("Config"          ).get<TraceConfigData>();
+            for (auto& [geometryASName, geometryAS] : v.world.geometryASs)
+            {
+                for (auto& geometryName : geometryAS.geometries) {
+                    if (v.world.geometryObjModels.count(geometryName) > 0) {
+                        auto& geometryObjModel = v.world.geometryObjModels.at(geometryName);
+                        auto& objAsset         = v.objAssetManager.GetAsset(geometryObjModel.base);
+                        if (geometryObjModel.meshes.empty()) {
+                            auto meshNames = objAsset.meshGroup->GetUniqueNames();
+                            for (auto& meshName : meshNames)
+                            {
+                                auto mesh = objAsset.meshGroup->LoadMesh(meshName);
+                                geometryObjModel.meshes[meshName].base = meshName;
+                                geometryObjModel.meshes[meshName].transform = {};
+                                geometryObjModel.meshes[meshName].materials.reserve(mesh->GetUniqueResource()->materials.size());
+                                for (auto& matIdx : mesh->GetUniqueResource()->materials) {
+                                    geometryObjModel.meshes[meshName].materials.push_back(objAsset.materials[matIdx]);
+                                }
+                            }
+                        }
+                        else {
+                            for (auto& [meshName, meshData] : geometryObjModel.meshes)
+                            {
+                                auto mesh = objAsset.meshGroup->LoadMesh(meshData.base);
+                                if (meshData.materials.empty()) {
+                                    meshData.materials.reserve(mesh->GetUniqueResource()->materials.size());
+                                    for (auto& matIdx : mesh->GetUniqueResource()->materials) {
+                                        meshData.materials.push_back(objAsset.materials[matIdx]);
+                                    }
+                                }
+
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
 
         inline auto CreateGLFWWindow(RTLib::Ext::GLFW::GLFWContext* glfwContext,int width, int height, const char* title)->RTLib::Ext::GLFW::GL::GLFWOpenGLWindow* {
             auto desc          = RTLib::Ext::GLFW::GL::GLFWOpenGLWindowCreateDesc();
@@ -258,12 +351,22 @@ namespace rtlib
                 if (m_VertexBuffer && m_VertexStrideInBytes > 0) { return m_VertexBuffer->GetSizeInBytes() / m_VertexStrideInBytes; }
                 return 0;
             }
-            auto GetVertexBuffer()const noexcept -> CUdeviceptr { return CUDA::CUDANatives::GetCUdeviceptr(m_VertexBuffer.get()); }
-            auto GetNormalBuffer()const noexcept -> CUdeviceptr { return CUDA::CUDANatives::GetCUdeviceptr(m_NormalBuffer.get()); }
-            auto GetTexCrdBuffer()const noexcept -> CUdeviceptr { return CUDA::CUDANatives::GetCUdeviceptr(m_TexCrdBuffer.get()); }
+            auto GetVertexBufferGpuAddress()const noexcept -> CUdeviceptr { return CUDA::CUDANatives::GetCUdeviceptr(m_VertexBuffer.get()); }
+            auto GetNormalBufferGpuAddress()const noexcept -> CUdeviceptr { return CUDA::CUDANatives::GetCUdeviceptr(m_NormalBuffer.get()); }
+            auto GetTexCrdBufferGpuAddress()const noexcept -> CUdeviceptr { return CUDA::CUDANatives::GetCUdeviceptr(m_TexCrdBuffer.get()); }
 
-
-
+            auto GetVertexBufferView()const noexcept -> CUDA::CUDABufferView
+            {
+                return CUDA::CUDABufferView(m_VertexBuffer.get());
+            }
+            auto GetNormalBufferView()const noexcept -> CUDA::CUDABufferView
+            {
+                return CUDA::CUDABufferView(m_NormalBuffer.get());
+            }
+            auto GetTexCrdBufferView()const noexcept -> CUDA::CUDABufferView
+            {
+                return CUDA::CUDABufferView(m_TexCrdBuffer.get());
+            }
         private:
             OPX7MeshSharedResourceExtData(MeshSharedResource* pMeshSharedResource) noexcept :MeshSharedResourceExtData(pMeshSharedResource) {}
         private:
@@ -296,7 +399,7 @@ namespace rtlib
             void SetTriIdxStrideInBytes(size_t indexStride)noexcept { m_TriIdxStride = indexStride; }
             void SetTriIdxFormat(OptixIndicesFormat format)noexcept { m_IndicesFormat = format; }
             //GET
-            auto GetTriIdxBuffer()const noexcept -> CUdeviceptr { return CUDA::CUDANatives::GetCUdeviceptr(m_TriIdxBuffer.get()); }
+            auto GetTriIdxBufferGpuAddress()const noexcept -> CUdeviceptr { return CUDA::CUDANatives::GetCUdeviceptr(m_TriIdxBuffer.get()); }
             auto GetTriIdxCount()const noexcept -> size_t {
                 if (m_TriIdxBuffer && m_TriIdxStride > 0) { return m_TriIdxBuffer->GetSizeInBytes() / m_TriIdxStride; }
                 return 0;
@@ -304,10 +407,19 @@ namespace rtlib
             auto GetTriIdxStrideInBytes()const noexcept -> size_t { return m_TriIdxStride; }
             auto GetTriIdxFormat()const noexcept -> OptixIndicesFormat { return m_IndicesFormat; }
             //
-            auto GetMatIdxBuffer()const noexcept -> CUdeviceptr { return CUDA::CUDANatives::GetCUdeviceptr(m_MatIdxBuffer.get()); };
+            auto GetMatIdxBufferGpuAddress()const noexcept -> CUdeviceptr { return CUDA::CUDANatives::GetCUdeviceptr(m_MatIdxBuffer.get()); };
             auto GetMatIdxCount()const noexcept -> size_t {
                 if (m_MatIdxBuffer) { return m_MatIdxBuffer->GetSizeInBytes() / sizeof(uint32_t); }
                 return 0;
+            }
+            //
+            auto GetTriIdxBufferView()const noexcept -> CUDA::CUDABufferView
+            {
+                return CUDA::CUDABufferView(m_TriIdxBuffer.get());
+            }
+            auto GetMatIdxBufferView()const noexcept -> CUDA::CUDABufferView
+            {
+                return CUDA::CUDABufferView(m_MatIdxBuffer.get());
             }
         private:
             OPX7MeshUniqueResourceExtData(MeshUniqueResource* pMeshUniqueResource) noexcept :MeshUniqueResourceExtData(pMeshUniqueResource) {}

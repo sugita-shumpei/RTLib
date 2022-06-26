@@ -46,15 +46,15 @@ int OnlineSample()
             sceneJson = rtlib::test::GetDefaultSceneJson();
         }
     }
-
-    int  width             = sceneJson.at("Config").at("Width").get<int>();
-    int  height            = sceneJson.at("Config").at("Height").get<int>();
-    int  samplesForLaunch  = sceneJson.at("Config").at("Samples").get<int>();
-    int  maxSamples        = sceneJson.at("Config").at("MaxSamples").get<int>();
+    auto   sceneData = sceneJson.get<rtlib::test::SceneData>();
+    int  width             = sceneData.config.width;
+    int  height            = sceneData.config.height;
+    int  samplesForLaunch  = sceneData.config.samples;
+    int  maxSamples        = sceneData.config.maxSamples;
     int  samplesForAccum   = 0;
-    auto cameraController  = sceneJson.at("CameraController").get<RTLib::Utils::CameraController>();
-    auto objAssetLoader    = sceneJson.at("ObjModels").get<RTLib::Core::ObjModelAssetManager>();
-    auto worldData = sceneJson.at("World").get<RTLib::Core::WorldData>();
+    auto& cameraController = sceneData.cameraController;
+    auto& objAssetLoader = sceneData.objAssetManager;
+    auto& worldData = sceneData.world;
     try
     {
         auto glfwContext = std::unique_ptr<GLFWContext>(GLFWContext::New());
@@ -63,11 +63,13 @@ int OnlineSample()
         auto window = std::unique_ptr<GL::GLFWOpenGLWindow>(rtlib::test::CreateGLFWWindow(glfwContext.get(), width, height, "title"));
 
         // contextはcopy/move不可
-        auto contextCreateDesc           = OPX7ContextCreateDesc();
-        contextCreateDesc.validationMode = OPX7ContextValidationMode::eALL;
-        contextCreateDesc.level          = OPX7ContextValidationLogLevel::ePrint;
-        auto opx7Context                 = std::make_unique<OPX7Context>(contextCreateDesc);
-        auto ogl4Context                 = window->GetOpenGLContext();
+        auto contextCreateDesc = OPX7ContextCreateDesc();
+        {
+            contextCreateDesc.validationMode = OPX7ContextValidationMode::eALL;
+            contextCreateDesc.level = OPX7ContextValidationLogLevel::ePrint;
+        }
+        auto opx7Context = std::make_unique<OPX7Context>(contextCreateDesc);
+        auto ogl4Context = window->GetOpenGLContext();
 
         opx7Context->Initialize();
 
@@ -80,14 +82,10 @@ int OnlineSample()
                 auto buildInputSize = size_t(0);
                 for (auto& geometryName : geometryAS.geometries)
                 {
-                    auto& objAsset = objAssetLoader.GetAsset(worldData.geometryObjModels[geometryName].base);
-                    auto uniqueNames = objAsset.meshGroup->GetUniqueNames();
-                    for (auto& uniqueName : uniqueNames)
+                    for (auto& [meshName,meshData] : worldData.geometryObjModels[geometryName].meshes)
                     {
-                        auto mesh = objAsset.meshGroup->LoadMesh(uniqueName);
-                        blasLayouts[geometryASName]->SetDwGeometry(OPX7ShaderTableLayoutGeometry(uniqueName, mesh->GetUniqueResource()->materials.size()));
+                        blasLayouts[geometryASName]->SetDwGeometry(OPX7ShaderTableLayoutGeometry(meshName, meshData.materials.size()));
                     }
-                    buildInputSize += uniqueNames.size();
                 }
             }
 
@@ -121,42 +119,51 @@ int OnlineSample()
                 auto& gasBaseDesc = shaderTableLayout->GetBaseDesc(geometryASName);
                 {
                     auto* gasLayout = reinterpret_cast<const RTLib::Ext::OPX7::OPX7ShaderTableLayoutGeometryAS*>(gasBaseDesc.pData);
-                    auto buildInputs = std::vector<OptixBuildInput>(gasLayout->GetDwGeometries().size());
-                    auto vertexBufferPtrs = std::vector<CUdeviceptr>(gasLayout->GetDwGeometries().size());
-                    auto geometryFlags    = std::vector<unsigned int>(gasLayout->GetDwGeometries().size());
-                    auto buildInputOffset = size_t(0);
-                    auto geometryAS       = worldData.geometryASs[geometryASName];
+                    auto buildInputs = std::vector<OptixBuildInput>();
+                    auto holders    = std::vector<std::unique_ptr<OPX7Geometry::Holder>>();
+                    auto geometryAS = worldData.geometryASs[geometryASName];
                     for (auto& geometryName : geometryAS.geometries)
                     {
                         auto &objAsset   = objAssetLoader.GetAsset(worldData.geometryObjModels[geometryName].base);
-                        auto uniqueNames = objAsset.meshGroup->GetUniqueNames();
-                        for (size_t i = 0; i < uniqueNames.size(); ++i)
+                        for (auto& [meshName, meshData] : worldData.geometryObjModels[geometryName].meshes)
                         {
-                            auto mesh = objAsset.meshGroup->LoadMesh(uniqueNames[i]);
+                            auto mesh = objAsset.meshGroup->LoadMesh(meshData.base);
                             auto extSharedData = static_cast<rtlib::test::OPX7MeshSharedResourceExtData *>(mesh->GetSharedResource()->extData.get());
                             auto extUniqueData = static_cast<rtlib::test::OPX7MeshUniqueResourceExtData *>(mesh->GetUniqueResource()->extData.get());
-                            vertexBufferPtrs[buildInputOffset + i] = extSharedData->GetVertexBuffer();
-                            geometryFlags[buildInputOffset + i]    = OPTIX_GEOMETRY_FLAG_DISABLE_ANYHIT;
-                            buildInputs[buildInputOffset + i].type = OPTIX_BUILD_INPUT_TYPE_TRIANGLES;
-                            {
-                                buildInputs[buildInputOffset + i].triangleArray.vertexBuffers = &vertexBufferPtrs[buildInputOffset + i];
-                                buildInputs[buildInputOffset + i].triangleArray.numVertices = extSharedData->GetVertexCount();
-                                buildInputs[buildInputOffset + i].triangleArray.vertexFormat = extSharedData->GetVertexFormat();
-                                buildInputs[buildInputOffset + i].triangleArray.vertexStrideInBytes = extSharedData->GetVertexStrideInBytes();
-                                buildInputs[buildInputOffset + i].triangleArray.indexBuffer = extUniqueData->GetTriIdxBuffer();
-                                buildInputs[buildInputOffset + i].triangleArray.numIndexTriplets = extUniqueData->GetTriIdxCount();
-                                buildInputs[buildInputOffset + i].triangleArray.indexFormat = extUniqueData->GetTriIdxFormat();
-                                buildInputs[buildInputOffset + i].triangleArray.indexStrideInBytes = extUniqueData->GetTriIdxStrideInBytes();
-                                buildInputs[buildInputOffset + i].triangleArray.sbtIndexOffsetBuffer = extUniqueData->GetMatIdxBuffer();
-                                buildInputs[buildInputOffset + i].triangleArray.sbtIndexOffsetStrideInBytes = 0;
-                                buildInputs[buildInputOffset + i].triangleArray.sbtIndexOffsetSizeInBytes = sizeof(uint32_t);
-                                buildInputs[buildInputOffset + i].triangleArray.numSbtRecords = shaderTableLayout->GetBaseDesc(geometryASName +"/"+uniqueNames[i]).baseRecordCount;
-                                buildInputs[buildInputOffset + i].triangleArray.preTransform = 0;
-                                buildInputs[buildInputOffset + i].triangleArray.transformFormat = OPTIX_TRANSFORM_FORMAT_NONE;
-                                buildInputs[buildInputOffset + i].triangleArray.flags = &geometryFlags[buildInputOffset + i];
-                            }
+                            auto& geometry = OPX7GeometryTriangle();
+
+                            geometry.SetVertexView(
+                                {
+                                    extSharedData->GetVertexBufferView(),
+                                    (unsigned int)extSharedData->GetVertexStrideInBytes(),
+                                    RTLib::Ext::OPX7::OPX7VertexFormat::eFloat32x3
+                                }
+                            );
+                            geometry.SetTriIdxView(
+                                {
+                                    extUniqueData->GetTriIdxBufferView(),
+                                    (unsigned int)extUniqueData->GetTriIdxStrideInBytes(),
+                                    RTLib::Ext::OPX7::OPX7TriIdxFormat::eUInt32x3
+                                }
+                            );
+                            geometry.SetSbtOffsetView(
+                                {
+                                    extUniqueData->GetMatIdxBufferView(),
+                                    (unsigned int)sizeof(uint32_t),
+                                    RTLib::Ext::OPX7::OPX7SbtOffsetFormat::eUInt32,
+                                    (unsigned int)mesh->GetUniqueResource()->materials.size()
+                                }
+                            );
+                            geometry.SetGeometryFlags(
+                                OPTIX_GEOMETRY_FLAG_DISABLE_ANYHIT
+                            );
+                            geometry.SetTransformView({});
+                            geometry.SetPrimIdxOffset(0 );
+
+                            auto [buildInput, holder] = geometry.GetOptixBuildInputWithHolder();
+                            buildInputs.push_back(buildInput);
+                            holders.push_back(std::move(holder));
                         }
-                        buildInputOffset += uniqueNames.size();
                     }
                     auto accelOutput = OPX7Natives::BuildAccelerationStructure(opx7Context.get(), accelBuildOptions, buildInputs);
                     blasHandles[geometryASName] = accelOutput.handle;
@@ -284,19 +291,19 @@ int OnlineSample()
                     for (auto &geometryName : worldData.geometryASs[baseGasName].geometries)
                     {
                         auto objAsset = objAssetLoader.GetAsset(worldData.geometryObjModels[geometryName].base);
-                        for (auto& uniqueName : objAsset.meshGroup->GetUniqueNames()) {
-                            auto mesh = objAsset.meshGroup->LoadMesh(uniqueName);
-                            auto extSharedData = mesh->GetSharedResource()->GetExtData<rtlib::test::OPX7MeshSharedResourceExtData>();
-                            auto extUniqueData = mesh->GetUniqueResource()->GetExtData<rtlib::test::OPX7MeshUniqueResourceExtData>();
-                            auto desc = shaderTableLayout->GetDesc("Root/" + instanceName + "/" + uniqueName);
+                        for (auto& [meshName,meshData] : worldData.geometryObjModels[geometryName].meshes) {
+                            auto mesh = objAsset.meshGroup->LoadMesh(meshName);
+                            auto desc = shaderTableLayout->GetDesc("Root/" + instanceName + "/" + meshName);
+                            auto extSharedData = static_cast<rtlib::test::OPX7MeshSharedResourceExtData*>(mesh->GetSharedResource()->extData.get());
+                            auto extUniqueData = static_cast<rtlib::test::OPX7MeshUniqueResourceExtData*>(mesh->GetUniqueResource()->extData.get());
                             for (auto i = 0; i < desc.recordCount; ++i)
                             {
                                 auto hitgroupRecord = hitgPG->GetRecord<HitgroupData>();
                                 {
                                     auto matIdx = i / desc.recordStride;
-                                    auto material = objAsset.materials[mesh->GetUniqueResource()->materials[matIdx]];
-                                    hitgroupRecord.data.vertices = reinterpret_cast<float3*>(extSharedData->GetVertexBuffer());
-                                    hitgroupRecord.data.indices = reinterpret_cast<uint3*>(extUniqueData->GetTriIdxBuffer());
+                                    auto material = meshData.materials[matIdx];
+                                    hitgroupRecord.data.vertices = reinterpret_cast<float3*>(CUDANatives::GetCUdeviceptr(extSharedData->GetVertexBufferView()));
+                                    hitgroupRecord.data.indices  = reinterpret_cast<uint3*>( CUDANatives::GetCUdeviceptr(extUniqueData->GetTriIdxBufferView()));
                                     hitgroupRecord.data.diffuse  = material.GetFloat3As<float3>("diffCol");
                                     hitgroupRecord.data.emission = material.GetFloat3As<float3>("emitCol");
                                 }

@@ -398,7 +398,7 @@ namespace RTLib {
             if (!v.meshes.empty() && v.useMeshes) {
                 auto meshJsons = std::vector<JsonType>();
                 meshJsons.reserve(v.meshes.size());
-                for (auto& mesh : meshes) {
+                for (auto& mesh : v.meshes) {
                     meshJsons.push_back(nlohmann::json(mesh));
                 }
                 j["Meshes"] = meshJsons;
@@ -506,6 +506,7 @@ namespace RTLib {
                 v.instanceASs[elem.key()] = elem.value().get<WorldElementInstanceAS>();
             }
         }
+        
 
     }
 }
