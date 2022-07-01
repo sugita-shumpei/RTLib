@@ -5,7 +5,7 @@ struct HitRecordUserData
     float3 radiance;
     float3 throughPut;
     float3 bsdfVal;
-    float3 bsdfPdf;
+    float  bsdfPdf;
     unsigned int depth;
 };
 extern "C" {
@@ -29,23 +29,24 @@ extern "C" __global__ void       __raygen__rg() {
         (2.0f * static_cast<float>(idx.x + gitter.x) / static_cast<float>(dim.x)) - 1.0,
         (2.0f * static_cast<float>(idx.y + gitter.y) / static_cast<float>(dim.y)) - 1.0);
 
-    hrec.rayOrigin = rgData->GetRayOrigin();
+    hrec.rayOrigin    = rgData->GetRayOrigin();
     hrec.rayDirection = rgData->GetRayDirection(d);
-    hrec.rayDistance = 1.0e20f;
-    hrec.seed = xor32.m_seed;
-    hrec.flags = 0;
+    hrec.rayDistance  = 0.0f;
+    hrec.cosine       = 0.0f;
+    hrec.seed         = xor32.m_seed;
+    hrec.flags        = 0;
 
     hrec.userData.throughPut = make_float3(1.0f);
-    hrec.userData.radiance = make_float3(0.0f);
-    hrec.userData.depth = 0;
-
+    hrec.userData.radiance   = make_float3(0.0f);
+    hrec.userData.bsdfVal    = make_float3(0.0f);
+    hrec.userData.bsdfPdf    = 0.0f;
+    hrec.userData.depth      = 0;
     while (true) {
-
         TraceRadiance(params.gasHandle, hrec.rayOrigin, hrec.rayDirection, 0.01f, 1.0e20f, hrec);
         color += hrec.userData.radiance;
         ++hrec.userData.depth;
 
-        if ((isnan(hrec.rayDirection.x))) {
+        if (isnan(hrec.rayDirection.x)|| isnan(hrec.rayDirection.y)|| isnan(hrec.rayDirection.z)) {
             printf("error\n");
             break;
         }
@@ -54,12 +55,14 @@ extern "C" __global__ void       __raygen__rg() {
             break;
         }
     }
+    
     result += color;
     result /= static_cast<float>(params.samplesForLaunch + params.samplesForAccum);
+
     // printf("%f, %lf\n", texCoord.x, texCoord.y);
     params.accumBuffer[params.width * idx.y + idx.x] = result;
     params.frameBuffer[params.width * idx.y + idx.x] = rtlib::rgba_to_srgb(make_uchar4(static_cast<unsigned char>(255.99 * result.x), static_cast<unsigned char>(255.99 * result.y), static_cast<unsigned char>(255.99 * result.z), 255));
-    params.seedBuffer[ params.width * idx.y + idx.x] = hrec.seed;
+    params.seedBuffer [params.width * idx.y + idx.x] = hrec.seed;
 }
 extern "C" __global__ void       __miss__radiance() {
     auto* hrec = BasicHitRecord<HitRecordUserData>::GetGlobalPointer();
@@ -80,21 +83,20 @@ extern "C" __global__ void __closesthit__radiance() {
     auto primitiveId = optixGetPrimitiveIndex();
     auto uv = optixGetTriangleBarycentrics();
 
-    auto distance = optixGetRayTmax();
-    auto position = optixGetWorldRayOrigin() + distance * optixGetWorldRayDirection();
-    auto texCrd   = hgData->GetTexCrd(uv,primitiveId);
-    auto normal   = hgData->GetNormal(uv,primitiveId);
+    auto distance  = optixGetRayTmax();
+    auto position  = optixGetWorldRayOrigin() + distance * optixGetWorldRayDirection();
+    auto texCrd    = hgData->GetTexCrd(uv,primitiveId);
+    auto normal    = hgData->GetNormal(uv,primitiveId);
 
-    auto diffuse  = hgData->SampleDiffuse(texCrd);
+    auto diffuse   = hgData->SampleDiffuse(texCrd);
     //auto specualr = hgData->SampleSpecular(texCrd);
-    auto emission = hgData->SampleEmission(texCrd);
+    auto emission  = hgData->SampleEmission(texCrd);
 
     auto xor32 = rtlib::Xorshift32(hrec->seed);
-    auto onb = rtlib::ONB(normal);
+    auto   onb  = rtlib::ONB(normal);
 
     auto direction = rtlib::normalize(onb.local(rtlib::random_cosine_direction(xor32)));
-
-    auto cosine     = rtlib::dot(direction, normal);
+    auto  cosine    = rtlib::dot(direction, normal);
     auto bsdfVal   = diffuse * RTLIB_M_INV_PI;
     auto bsdfPdf   = cosine  * RTLIB_M_INV_PI;
 
@@ -121,4 +123,11 @@ extern "C" __global__ void __closesthit__occluded() {
 }
 extern "C" __global__ void     __anyhit__ah() {
     auto* hgData = reinterpret_cast<HitgroupData*>(optixGetSbtDataPointer());
+}
+extern "C" __global__ void __exception__ep() {
+    auto code = optixGetExceptionCode();
+    if (code == OPTIX_EXCEPTION_CODE_TRAVERSAL_DEPTH_EXCEEDED)
+    {
+        printf("%d\n", optixGetTransformListSize());
+    }
 }

@@ -34,6 +34,7 @@ namespace RTLib {
 					record.data = v;
 					return record;
 				}
+				auto GetStackSize()const->OptixStackSizes;
 			private:
 				OPX7ProgramGroup()noexcept;
 				auto GetOptixProgramGroup()const noexcept -> OptixProgramGroup;

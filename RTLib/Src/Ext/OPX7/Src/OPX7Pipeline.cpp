@@ -93,6 +93,11 @@ void RTLib::Ext::OPX7::OPX7Pipeline::Launch(CUDA::CUDABufferView paramsBufferVie
     OPX7::OPX7Context::Launch(this, paramsBufferView, shaderTable, width, height, depth);
 }
 
+void RTLib::Ext::OPX7::OPX7Pipeline::SetStackSize(unsigned int directCallableStackSizeFromTraversal, unsigned int directCallableStackSizeFromState, unsigned int continuationStackSize, unsigned int maxTraversalDepth)
+{
+    RTLIB_EXT_OPX7_THROW_IF_FAILED(optixPipelineSetStackSize(m_Impl->opxPipeline, directCallableStackSizeFromTraversal, directCallableStackSizeFromState, continuationStackSize, maxTraversalDepth));
+}
+
 RTLib::Ext::OPX7::OPX7Pipeline::OPX7Pipeline(const OPX7PipelineCreateDesc& desc) noexcept:m_Impl{new Impl(desc)}
 {
 }

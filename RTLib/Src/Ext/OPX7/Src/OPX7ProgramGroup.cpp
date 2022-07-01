@@ -118,8 +118,16 @@ auto RTLib::Ext::OPX7::OPX7ProgramGroup::GetKind() const noexcept -> OPX7Program
     return m_Impl->kind;
 }
 
+auto RTLib::Ext::OPX7::OPX7ProgramGroup::GetStackSize() const -> OptixStackSizes
+{
+    OptixStackSizes stackSizes;
+    RTLIB_EXT_OPX7_THROW_IF_FAILED(optixProgramGroupGetStackSize(m_Impl->programGroup, &stackSizes));
+    return stackSizes;
+}
+
 RTLib::Ext::OPX7::OPX7ProgramGroup::OPX7ProgramGroup() noexcept : m_Impl{new Impl()}
 {
+    
 }
 
 auto RTLib::Ext::OPX7::OPX7ProgramGroup::GetOptixProgramGroup() const noexcept -> OptixProgramGroup

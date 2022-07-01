@@ -47,6 +47,7 @@ namespace RTLib {
 					unsigned int          height,
 					unsigned int          depth
 				);
+				void SetStackSize(unsigned int directCallableStackSizeFromTraversal, unsigned int directCallableStackSizeFromState, unsigned int continuationStackSize, unsigned int maxTraceDepth);
 			private:
 				OPX7Pipeline(const OPX7PipelineCreateDesc& desc)noexcept;
 				auto GetOptixPipeline()const noexcept ->OptixPipeline;

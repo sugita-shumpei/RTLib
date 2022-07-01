@@ -38,6 +38,7 @@
 #include <fstream>
 #include <unordered_map>
 #include <unordered_set>
+#include <stack>
 #include <array>
 #include <string>
 #include <string_view>
@@ -62,7 +63,60 @@ namespace rtlib
         using namespace RTLib::Utils;
         using namespace RTLib::Ext;
         using namespace RTLib::Ext::CUDA::Math;
-        using AccelerationStructureData = RTLib::Ext::OPX7::OPX7Natives::AccelBuildOutput;
+        using BottomLevelAccelerationStructureData = RTLib::Ext::OPX7::OPX7Natives::AccelBuildOutput;
+
+        struct GeometryAccelerationStructureData
+        {
+            std::unique_ptr<CUDA::CUDABuffer> buffer;
+            OptixTraversableHandle            handle;
+        };
+        struct InstanceAccelerationStructureData 
+        {
+            std::unique_ptr<CUDA::CUDABuffer> buffer;
+            OptixTraversableHandle            handle;
+            std::unique_ptr<CUDA::CUDABuffer> instanceBuffer;
+            std::vector<OptixInstance>        instanceArray;
+            void Build(RTLib::Ext::OPX7::OPX7Context* context, const OptixAccelBuildOptions& options)
+            {
+                if (buffer) { return; }
+                if (instanceBuffer) {
+                    if (instanceBuffer->GetSizeInBytes() != instanceArray.size() * sizeof(instanceArray[0])) {
+                        instanceBuffer->Destroy();
+                        instanceBuffer = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(context->CreateBuffer(
+                            RTLib::Ext::CUDA::CUDABufferCreateDesc{
+                                RTLib::Ext::CUDA::CUDAMemoryFlags::eDefault,
+                                sizeof(instanceArray[0])* instanceArray.size(),
+                                instanceArray.data()
+                            })
+                        );
+                    }
+                    else {
+                        RTLIB_CORE_ASSERT_IF_FAILED(context->CopyMemoryToBuffer(instanceBuffer.get(), { {instanceArray.data(),(size_t)0, instanceArray.size()*sizeof(instanceArray[0])}}));
+                    }
+                }
+                else {
+                    instanceBuffer = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(context->CreateBuffer(
+                        RTLib::Ext::CUDA::CUDABufferCreateDesc{
+                            RTLib::Ext::CUDA::CUDAMemoryFlags::eDefault,
+                            sizeof(instanceArray[0]) * instanceArray.size(),
+                            instanceArray.data()
+                        })
+                    );
+                }
+
+                auto buildInputs = std::vector<OptixBuildInput>(1);
+                {
+                    buildInputs[0].type = OPTIX_BUILD_INPUT_TYPE_INSTANCES;
+                    buildInputs[0].instanceArray.instances = RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(instanceBuffer.get());
+                    buildInputs[0].instanceArray.numInstances = instanceArray.size();
+                }
+
+                auto [tmpBuffer, tmpHandle] = RTLib::Ext::OPX7::OPX7Natives::BuildAccelerationStructure(context, options, buildInputs);
+                
+                buffer = std::move(tmpBuffer);
+                handle = tmpHandle;
+            }
+        };
 
 
         struct TraceConfigData
@@ -218,6 +272,137 @@ namespace rtlib
             }
         }
 
+        struct TextureData
+        {
+            std::unique_ptr<RTLib::Ext::CUDA::CUDATexture> handle;
+            std::unique_ptr<RTLib::Ext::CUDA::CUDAImage>   image;
+
+            void LoadFromPath(RTLib::Ext::CUDA::CUDAContext* context, const std::string& filePath)
+            {
+                int  texWid, texHei, texComp;
+                auto pixelData = stbi_load(filePath.c_str(), &texWid, &texHei, &texComp, 4);
+                auto imgData = std::vector<unsigned char>(texWid * texHei * 4, 255);
+                {
+                    for (size_t i = 0; i < texHei; ++i) {
+                        auto srcData = pixelData + 4 * texWid * (texHei - 1 - i);
+                        auto dstData = imgData.data() + 4 * texWid * i;
+                        std::memcpy(dstData, srcData, 4 * texWid);
+                    }
+                }
+                stbi_image_free(pixelData);
+
+                {
+                    auto imgDesc = RTLib::Ext::CUDA::CUDAImageCreateDesc();
+                    imgDesc.imageType = RTLib::Ext::CUDA::CUDAImageType::e2D;
+                    imgDesc.extent.width = texWid;
+                    imgDesc.extent.height = texHei;
+                    imgDesc.extent.depth = 0;
+                    imgDesc.format = RTLib::Ext::CUDA::CUDAImageFormat::eUInt8X4;
+                    imgDesc.mipLevels = 1;
+                    imgDesc.arrayLayers = 1;
+                    imgDesc.flags = RTLib::Ext::CUDA::CUDAImageCreateFlagBitsDefault;
+                    image = std::unique_ptr<RTLib::Ext::CUDA::CUDAImage>(context->CreateImage(imgDesc));
+                    std::cout << "Image: " << RTLib::Ext::CUDA::CUDANatives::GetCUarray(image.get()) << std::endl;
+                }
+                {
+                    auto memoryImageCopy = RTLib::Ext::CUDA::CUDAMemoryImageCopy();
+                    memoryImageCopy.srcData = imgData.data();
+                    memoryImageCopy.dstImageExtent = { (uint32_t)texWid, (uint32_t)texHei, (uint32_t)0 };
+                    memoryImageCopy.dstImageOffset = {};
+                    memoryImageCopy.dstImageSubresources.baseArrayLayer = 0;
+                    memoryImageCopy.dstImageSubresources.layerCount = 1;
+                    memoryImageCopy.dstImageSubresources.mipLevel = 0;
+                    RTLIB_CORE_ASSERT_IF_FAILED(context->CopyMemoryToImage(image.get(), { memoryImageCopy }));
+                }
+                {
+                    auto texImgDesc = RTLib::Ext::CUDA::CUDATextureImageCreateDesc();
+                    texImgDesc.image = image.get();
+                    texImgDesc.sampler.addressMode[0] = RTLib::Ext::CUDA::CUDATextureAddressMode::eWarp;
+                    texImgDesc.sampler.addressMode[1] = RTLib::Ext::CUDA::CUDATextureAddressMode::eWarp;
+                    texImgDesc.sampler.addressMode[2] = RTLib::Ext::CUDA::CUDATextureAddressMode::eWarp;
+                    texImgDesc.sampler.borderColor[0] = 1.0f;
+                    texImgDesc.sampler.borderColor[1] = 1.0f;
+                    texImgDesc.sampler.borderColor[2] = 1.0f;
+                    texImgDesc.sampler.borderColor[3] = 1.0f;
+                    texImgDesc.sampler.filterMode = RTLib::Ext::CUDA::CUDATextureFilterMode::eLinear;
+                    texImgDesc.sampler.mipmapFilterMode = RTLib::Ext::CUDA::CUDATextureFilterMode::eLinear;
+                    texImgDesc.sampler.mipmapLevelBias = 0.0f;
+                    texImgDesc.sampler.maxMipmapLevelClamp = 99.0f;
+                    texImgDesc.sampler.minMipmapLevelClamp = 0.0f;
+                    texImgDesc.sampler.maxAnisotropy = 1;
+                    texImgDesc.sampler.flags = RTLib::Ext::CUDA::CUDATextureFlagBitsNormalizedCordinates;
+                    handle = std::unique_ptr<RTLib::Ext::CUDA::CUDATexture>(context->CreateTexture(texImgDesc));
+                }
+            }
+            void Destroy() {
+                if (handle) {
+                    handle->Destroy();
+                    handle = nullptr;
+                }
+                if (image) {
+                    image->Destroy();
+                    image = nullptr;
+                }
+            }
+
+            static auto Color(RTLib::Ext::CUDA::CUDAContext* context, const uchar4 col)->TextureData
+            {
+                auto imgData = std::vector<uchar4>(32 * 32, col);
+                auto texData = rtlib::test::TextureData();
+                {
+                    auto imgDesc = RTLib::Ext::CUDA::CUDAImageCreateDesc();
+                    imgDesc.imageType = RTLib::Ext::CUDA::CUDAImageType::e2D;
+                    imgDesc.extent.width = 32;
+                    imgDesc.extent.height = 32;
+                    imgDesc.extent.depth = 0;
+                    imgDesc.format = RTLib::Ext::CUDA::CUDAImageFormat::eUInt8X4;
+                    imgDesc.mipLevels = 1;
+                    imgDesc.arrayLayers = 1;
+                    imgDesc.flags = RTLib::Ext::CUDA::CUDAImageCreateFlagBitsDefault;
+                    texData.image = std::unique_ptr<RTLib::Ext::CUDA::CUDAImage>(context->CreateImage(imgDesc));
+                    std::cout << "Image: " << RTLib::Ext::CUDA::CUDANatives::GetCUarray(texData.image.get()) << std::endl;
+                }
+                {
+                    auto memoryImageCopy = RTLib::Ext::CUDA::CUDAMemoryImageCopy();
+                    memoryImageCopy.srcData = imgData.data();
+                    memoryImageCopy.dstImageExtent = { (uint32_t)32, (uint32_t)32, (uint32_t)0 };
+                    memoryImageCopy.dstImageOffset = {};
+                    memoryImageCopy.dstImageSubresources.baseArrayLayer = 0;
+                    memoryImageCopy.dstImageSubresources.layerCount = 1;
+                    memoryImageCopy.dstImageSubresources.mipLevel = 0;
+                    RTLIB_CORE_ASSERT_IF_FAILED(context->CopyMemoryToImage(texData.image.get(), { memoryImageCopy }));
+                }
+                {
+                    auto texImgDesc = RTLib::Ext::CUDA::CUDATextureImageCreateDesc();
+                    texImgDesc.image = texData.image.get();
+                    texImgDesc.sampler.addressMode[0] = RTLib::Ext::CUDA::CUDATextureAddressMode::eClamp;
+                    texImgDesc.sampler.addressMode[1] = RTLib::Ext::CUDA::CUDATextureAddressMode::eClamp;
+                    texImgDesc.sampler.addressMode[2] = RTLib::Ext::CUDA::CUDATextureAddressMode::eClamp;
+                    texImgDesc.sampler.borderColor[0] = 1.0f;
+                    texImgDesc.sampler.borderColor[1] = 1.0f;
+                    texImgDesc.sampler.borderColor[2] = 1.0f;
+                    texImgDesc.sampler.borderColor[3] = 1.0f;
+                    texImgDesc.sampler.filterMode = RTLib::Ext::CUDA::CUDATextureFilterMode::eLinear;
+                    texImgDesc.sampler.mipmapFilterMode = RTLib::Ext::CUDA::CUDATextureFilterMode::eLinear;
+                    texImgDesc.sampler.mipmapLevelBias = 0.0f;
+                    texImgDesc.sampler.maxMipmapLevelClamp = 0.0f;
+                    texImgDesc.sampler.minMipmapLevelClamp = 0.0f;
+                    texImgDesc.sampler.maxAnisotropy = 0;
+                    texImgDesc.sampler.flags = RTLib::Ext::CUDA::CUDATextureFlagBitsNormalizedCordinates;
+                    texData.handle = std::unique_ptr<RTLib::Ext::CUDA::CUDATexture>(context->CreateTexture(texImgDesc));
+                }
+                return texData;
+            }
+            static auto Black(RTLib::Ext::CUDA::CUDAContext* context)->TextureData
+            {
+                return Color(context, make_uchar4(0, 0, 0, 0));
+            }
+            static auto White(RTLib::Ext::CUDA::CUDAContext* context)->TextureData
+            {
+                return Color(context, make_uchar4(255, 255, 255, 255));
+            }
+        };
+
         struct SceneData
         {
             ObjModelAssetManager objAssetManager;
@@ -232,9 +417,9 @@ namespace rtlib
                 }
             }
 
-            auto BuildGeometryASs(RTLib::Ext::OPX7::OPX7Context* opx7Context, const OptixAccelBuildOptions& accelBuildOptions)const noexcept -> std::unordered_map<std::string, AccelerationStructureData>
+            auto BuildGeometryASs(RTLib::Ext::OPX7::OPX7Context* opx7Context, const OptixAccelBuildOptions& accelBuildOptions)const noexcept -> std::unordered_map<std::string, GeometryAccelerationStructureData>
             {
-                std::unordered_map<std::string, AccelerationStructureData> geometryASs = {};
+                std::unordered_map<std::string, GeometryAccelerationStructureData> geometryASs = {};
                 for (auto& [geometryASName,geometryASData] : world.geometryASs)
                 {
                     auto buildInputs = std::vector<OptixBuildInput>();
@@ -262,9 +447,122 @@ namespace rtlib
                             holders.push_back(std::move(holder));
                         }
                     }
-                    geometryASs[geometryASName] = RTLib::Ext::OPX7::OPX7Natives::BuildAccelerationStructure(opx7Context, accelBuildOptions, buildInputs);
+                    auto [buffer, handle] = RTLib::Ext::OPX7::OPX7Natives::BuildAccelerationStructure(opx7Context, accelBuildOptions, buildInputs);
+                    geometryASs[geometryASName].buffer = std::move(buffer);
+                    geometryASs[geometryASName].handle = handle;
                 }
                 return geometryASs;
+            }
+            auto BuildInstanceASs(RTLib::Ext::OPX7::OPX7Context* opx7Context, const OptixAccelBuildOptions& accelBuildOptions,const RTLib::Ext::OPX7::OPX7ShaderTableLayout* shaderTableLayout, std::unordered_map<std::string, GeometryAccelerationStructureData>& geometryASs)const ->std::unordered_map<std::string, InstanceAccelerationStructureData>
+            {
+                auto instanceASs = std::unordered_map<std::string, rtlib::test::InstanceAccelerationStructureData>();
+
+                {
+                    auto instIndices = std::unordered_map<std::string, unsigned int>();
+                    {
+                        unsigned int i = 0;
+                        for (auto& name : shaderTableLayout->GetInstanceNames()) {
+                            instIndices[name] = i;
+                            ++i;
+                        }
+                    }
+                    auto  dependentInstanceASs = std::unordered_map<std::string, std::pair<std::string, size_t>>();
+                    auto instanceNamesWithLevels = std::vector<std::vector<std::string>>();
+                    instanceNamesWithLevels.push_back(std::vector<std::string>{"Root"});
+                    dependentInstanceASs["Root"] = std::make_pair("Root", 0);
+                    {
+                        auto tempInstanceASNames = std::stack<std::pair<std::string, std::string>>();
+                        tempInstanceASNames.push({ "Root","Root" });
+                        while (!tempInstanceASNames.empty()) {
+                            auto [instanceASUrl, instanceASName] = tempInstanceASNames.top();
+                            auto& instanceASElement = world.instanceASs.at(instanceASName);
+                            tempInstanceASNames.pop();
+                            for (auto& instanceName : instanceASElement.instances)
+                            {
+                                auto& instance = world.instances.at(instanceName);
+                                if (instance.asType != "Geometry") {
+                                    tempInstanceASNames.push({ instanceASUrl + "/" + instanceName, instance.base });
+                                    dependentInstanceASs[instanceASUrl + "/" + instanceName] = std::make_pair(instance.base, dependentInstanceASs[instanceASUrl].second + 1);
+                                    if (instanceNamesWithLevels.size() <= dependentInstanceASs[instanceASUrl].second + 1) {
+                                        instanceNamesWithLevels.push_back(std::vector<std::string>{instanceASUrl + "/" + instanceName});
+                                    }
+                                    else {
+                                        instanceNamesWithLevels[dependentInstanceASs[instanceASUrl].second + 1].push_back(instanceASUrl + "/" + instanceName);
+                                    }
+                                }
+                            }
+                        }
+                        for (auto i = 0; i < instanceNamesWithLevels.size(); ++i) {
+                            for (auto& instanceASName : instanceNamesWithLevels[instanceNamesWithLevels.size() - 1 - i]) {
+                                auto& instanceASElement = world.instanceASs.at(dependentInstanceASs[instanceASName].first);
+                                instanceASs[instanceASName].instanceArray.reserve(instanceASElement.instances.size());
+                                for (auto& instanceName : instanceASElement.instances)
+                                {
+                                    auto& instanceElement = world.instances.at(instanceName);
+                                    auto opx7Instance = OptixInstance();
+                                    if (instanceElement.asType == "Geometry") {
+                                        opx7Instance.traversableHandle = geometryASs.at(instanceElement.base).handle;
+                                        opx7Instance.sbtOffset = shaderTableLayout->GetDesc(instanceASName + "/" + instanceName).recordOffset;
+                                    }
+                                    else {
+                                        opx7Instance.traversableHandle = instanceASs.at(instanceASName + "/" + instanceName).handle;
+                                        opx7Instance.sbtOffset = 0;
+                                    }
+                                    opx7Instance.instanceId = instIndices.at(instanceASName + "/" + instanceName);
+                                    opx7Instance.visibilityMask = 255;
+                                    opx7Instance.flags = OPTIX_INSTANCE_FLAG_NONE;
+
+                                    auto transforms = instanceElement.transform;
+                                    std::memcpy(opx7Instance.transform, transforms.data(), transforms.size() * sizeof(float));
+                                    instanceASs[instanceASName].instanceArray.push_back(opx7Instance);
+                                }
+                                instanceASs[instanceASName].Build(opx7Context, accelBuildOptions);
+                            }
+                        }
+                    }
+                }
+                return instanceASs;
+            }
+
+            auto LoadCudaTextures(RTLib::Ext::CUDA::CUDAContext* cudaContext)const -> std::unordered_map<std::string, rtlib::test::TextureData> {
+                std::unordered_map<std::string, rtlib::test::TextureData> cudaTextures = {};
+                {
+                    std::unordered_set< std::string> texturePathSet = {};
+                    for (auto& [geometryName, geometryData] : world.geometryObjModels)
+                    {
+                        for (auto& [meshName, meshData] : geometryData.meshes)
+                        {
+                            for (auto& material : meshData.materials)
+                            {
+                                if (material.HasString("diffTex"))
+                                {
+                                    if (material.GetString("diffTex") != "") {
+                                        texturePathSet.insert(material.GetString("diffTex"));
+                                    }
+                                }
+                                if (material.HasString("specTex"))
+                                {
+                                    if (material.GetString("specTex") != "") {
+                                        texturePathSet.insert(material.GetString("specTex"));
+                                    }
+                                }
+                                if (material.HasString("emitTex"))
+                                {
+                                    if (material.GetString("emitTex") != "") {
+                                        texturePathSet.insert(material.GetString("emitTex"));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    for (auto& texturePath : texturePathSet)
+                    {
+                        cudaTextures[texturePath].LoadFromPath(cudaContext, texturePath);
+                    }
+                    cudaTextures["White"] = rtlib::test::TextureData::White(cudaContext);
+                    cudaTextures["Black"] = rtlib::test::TextureData::Black(cudaContext);
+                }
+                return cudaTextures;
             }
             
             auto GetFrameBufferSizeInBytes()const noexcept -> size_t
@@ -533,151 +831,73 @@ namespace rtlib
                     }
                 }
             }
-            auto tlasLayout = RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstanceAS("Root");
-            for (auto& instanceName : worldData.instanceASs.at("Root").instances)
+            auto instanceASs = std::unordered_map<std::string,std::unique_ptr<RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstanceAS>>();
             {
-                auto& instanceData = worldData.instances.at(instanceName);
-                if (instanceData.asType == "Geometry")
+                auto  dependentInstanceASs = std::unordered_map<std::string, std::pair<std::string, size_t>>();
+                auto instanceNamesWithLevels = std::vector<std::vector<std::string>>();
+                instanceNamesWithLevels.push_back(std::vector<std::string>{"Root"});
+                dependentInstanceASs["Root"] = std::make_pair("Root", 0);
                 {
-                    auto baseGeometryASName = instanceData.base;
-                    tlasLayout.SetInstance(RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstance(instanceName, blasLayouts[baseGeometryASName].get()));
-                }
-
-            }
-            tlasLayout.SetRecordStride(stride);
-            return std::make_unique<RTLib::Ext::OPX7::OPX7ShaderTableLayout>(tlasLayout);
-        }
-
-        struct TextureData
-        {
-            std::unique_ptr<RTLib::Ext::CUDA::CUDATexture> handle;
-            std::unique_ptr<RTLib::Ext::CUDA::CUDAImage>   image ;
-            
-            void LoadFromPath(RTLib::Ext::OPX7::OPX7Context* context, const std::string& filePath)
-            {
-                int  texWid, texHei, texComp;
-                auto pixelData = stbi_load(filePath.c_str(), &texWid, &texHei, &texComp, 4);
-                auto imgData = std::vector<unsigned char>(texWid * texHei * 4, 255);
-                {
-                    for (size_t i = 0; i < texHei; ++i) {
-                        auto srcData = pixelData + 4 * texWid * (texHei - 1 - i);
-                        auto dstData = imgData.data() + 4 * texWid * i;
-                        std::memcpy(dstData, srcData, 4 * texWid);
+                    auto tempInstanceASNames = std::stack<std::pair<std::string, std::string>>();
+                    tempInstanceASNames.push({ "Root","Root" });
+                    while (!tempInstanceASNames.empty()) {
+                        auto [instanceASUrl, instanceASName] = tempInstanceASNames.top();
+                        auto& instanceASElement = worldData.instanceASs.at(instanceASName);
+                        tempInstanceASNames.pop();
+                        for (auto& instanceName : instanceASElement.instances)
+                        {
+                            auto& instance = worldData.instances.at(instanceName);
+                            if (instance.asType != "Geometry") {
+                                tempInstanceASNames.push({ instanceASUrl + "/" + instanceName, instance.base });
+                                dependentInstanceASs[instanceASUrl + "/" + instanceName] = std::make_pair(instance.base, dependentInstanceASs[instanceASUrl].second + 1);
+                                if (instanceNamesWithLevels.size() <= dependentInstanceASs[instanceASUrl].second + 1) {
+                                    instanceNamesWithLevels.push_back(std::vector<std::string>{instanceASUrl + "/" + instanceName});
+                                }
+                                else {
+                                    instanceNamesWithLevels[dependentInstanceASs[instanceASUrl].second + 1].push_back(instanceASUrl + "/" + instanceName);
+                                }
+                            }
+                        }
+                    }
+                    for (auto i = 0; i < instanceNamesWithLevels.size(); ++i) {
+                        for (auto& instanceASName : instanceNamesWithLevels[instanceNamesWithLevels.size() - 1 - i]) {
+                            auto& instanceASElement = worldData.instanceASs.at(dependentInstanceASs[instanceASName].first);
+                            instanceASs[instanceASName] = std::make_unique<RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstanceAS>(instanceASName);
+                            for (auto& instanceName : instanceASElement.instances)
+                            {
+                                auto& instanceElement = worldData.instances.at(instanceName);
+                                auto opx7Instance = OptixInstance();
+                                if (instanceElement.asType == "Geometry") {
+                                    instanceASs[instanceASName]->SetInstance(RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstance(instanceName, blasLayouts.at(instanceElement.base).get()));
+                                }
+                                else {
+                                    instanceASs[instanceASName]->SetInstance(RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstance(instanceName, instanceASs.at(instanceASName+"/"+instanceName).get()));
+                                }
+                            }
+                        }
                     }
                 }
-                stbi_image_free(pixelData);
+            }
+            instanceASs["Root"]->SetRecordStride(stride);
+            return std::make_unique<RTLib::Ext::OPX7::OPX7ShaderTableLayout>(*instanceASs["Root"].get());
+        }
 
-                {
-                    auto imgDesc = RTLib::Ext::CUDA::CUDAImageCreateDesc();
-                    imgDesc.imageType = RTLib::Ext::CUDA::CUDAImageType::e2D;
-                    imgDesc.extent.width = texWid;
-                    imgDesc.extent.height = texHei;
-                    imgDesc.extent.depth = 0;
-                    imgDesc.format = RTLib::Ext::CUDA::CUDAImageFormat::eUInt8X4;
-                    imgDesc.mipLevels = 1;
-                    imgDesc.arrayLayers = 1;
-                    imgDesc.flags = RTLib::Ext::CUDA::CUDAImageCreateFlagBitsDefault;
-                    image = std::unique_ptr<RTLib::Ext::CUDA::CUDAImage>(context->CreateImage(imgDesc));
-                    std::cout << "Image: " << RTLib::Ext::CUDA::CUDANatives::GetCUarray(image.get()) << std::endl;
-                }
-                {
-                    auto memoryImageCopy = RTLib::Ext::CUDA::CUDAMemoryImageCopy();
-                    memoryImageCopy.srcData = imgData.data();
-                    memoryImageCopy.dstImageExtent = { (uint32_t)texWid, (uint32_t)texHei, (uint32_t)0 };
-                    memoryImageCopy.dstImageOffset = {};
-                    memoryImageCopy.dstImageSubresources.baseArrayLayer = 0;
-                    memoryImageCopy.dstImageSubresources.layerCount = 1;
-                    memoryImageCopy.dstImageSubresources.mipLevel = 0;
-                    RTLIB_CORE_ASSERT_IF_FAILED(context->CopyMemoryToImage(image.get(), { memoryImageCopy }));
-                }
-                {
-                    auto texImgDesc = RTLib::Ext::CUDA::CUDATextureImageCreateDesc();
-                    texImgDesc.image = image.get();
-                    texImgDesc.sampler.addressMode[0] = RTLib::Ext::CUDA::CUDATextureAddressMode::eWarp;
-                    texImgDesc.sampler.addressMode[1] = RTLib::Ext::CUDA::CUDATextureAddressMode::eWarp;
-                    texImgDesc.sampler.addressMode[2] = RTLib::Ext::CUDA::CUDATextureAddressMode::eWarp;
-                    texImgDesc.sampler.borderColor[0] = 1.0f;
-                    texImgDesc.sampler.borderColor[1] = 1.0f;
-                    texImgDesc.sampler.borderColor[2] = 1.0f;
-                    texImgDesc.sampler.borderColor[3] = 1.0f;
-                    texImgDesc.sampler.filterMode = RTLib::Ext::CUDA::CUDATextureFilterMode::eLinear;
-                    texImgDesc.sampler.mipmapFilterMode = RTLib::Ext::CUDA::CUDATextureFilterMode::eLinear;
-                    texImgDesc.sampler.mipmapLevelBias = 0.0f;
-                    texImgDesc.sampler.maxMipmapLevelClamp = 99.0f;
-                    texImgDesc.sampler.minMipmapLevelClamp = 0.0f;
-                    texImgDesc.sampler.maxAnisotropy = 1;
-                    texImgDesc.sampler.flags = RTLib::Ext::CUDA::CUDATextureFlagBitsNormalizedCordinates;
-                    handle = std::unique_ptr<RTLib::Ext::CUDA::CUDATexture>(context->CreateTexture(texImgDesc));
-                }
-            }
-            void Destroy() {
-                if (handle) {
-                    handle->Destroy();
-                    handle = nullptr ;
-                }
-                if (image) {
-                    image->Destroy();
-                    image = nullptr;
-                }
-            }
+        inline auto CreateFrameTextureGL(RTLib::Ext::GL::GLContext* context, int width, int height)->std::unique_ptr<RTLib::Ext::GL::GLTexture>
+        {
+            auto frameTextureDesc = RTLib::Ext::GL::GLTextureCreateDesc();
+            frameTextureDesc.image.imageType = RTLib::Ext::GL::GLImageType::e2D;
+            frameTextureDesc.image.extent.width = width;
+            frameTextureDesc.image.extent.height = height;
+            frameTextureDesc.image.extent.depth = 0;
+            frameTextureDesc.image.arrayLayers = 0;
+            frameTextureDesc.image.mipLevels = 1;
+            frameTextureDesc.image.format = RTLib::Ext::GL::GLFormat::eRGBA8;
+            frameTextureDesc.sampler.magFilter = RTLib::Core::FilterMode::eLinear;
+            frameTextureDesc.sampler.minFilter = RTLib::Core::FilterMode::eLinear;
 
-            static auto Color(RTLib::Ext::OPX7::OPX7Context* context, const uchar4 col)->TextureData
-            {
-                auto imgData = std::vector<uchar4>(32 * 32, col);
-                auto texData = rtlib::test::TextureData();
-                {
-                    auto imgDesc = RTLib::Ext::CUDA::CUDAImageCreateDesc();
-                    imgDesc.imageType = RTLib::Ext::CUDA::CUDAImageType::e2D;
-                    imgDesc.extent.width = 32;
-                    imgDesc.extent.height = 32;
-                    imgDesc.extent.depth = 0;
-                    imgDesc.format = RTLib::Ext::CUDA::CUDAImageFormat::eUInt8X4;
-                    imgDesc.mipLevels = 1;
-                    imgDesc.arrayLayers = 1;
-                    imgDesc.flags = RTLib::Ext::CUDA::CUDAImageCreateFlagBitsDefault;
-                    texData.image = std::unique_ptr<RTLib::Ext::CUDA::CUDAImage>(context->CreateImage(imgDesc));
-                    std::cout << "Image: " << RTLib::Ext::CUDA::CUDANatives::GetCUarray(texData.image.get()) << std::endl;
-                }
-                {
-                    auto memoryImageCopy = RTLib::Ext::CUDA::CUDAMemoryImageCopy();
-                    memoryImageCopy.srcData = imgData.data();
-                    memoryImageCopy.dstImageExtent = { (uint32_t)32, (uint32_t)32, (uint32_t)0 };
-                    memoryImageCopy.dstImageOffset = {};
-                    memoryImageCopy.dstImageSubresources.baseArrayLayer = 0;
-                    memoryImageCopy.dstImageSubresources.layerCount = 1;
-                    memoryImageCopy.dstImageSubresources.mipLevel = 0;
-                    RTLIB_CORE_ASSERT_IF_FAILED(context->CopyMemoryToImage(texData.image.get(), { memoryImageCopy }));
-                }
-                {
-                    auto texImgDesc = RTLib::Ext::CUDA::CUDATextureImageCreateDesc();
-                    texImgDesc.image = texData.image.get();
-                    texImgDesc.sampler.addressMode[0] = RTLib::Ext::CUDA::CUDATextureAddressMode::eClamp;
-                    texImgDesc.sampler.addressMode[1] = RTLib::Ext::CUDA::CUDATextureAddressMode::eClamp;
-                    texImgDesc.sampler.addressMode[2] = RTLib::Ext::CUDA::CUDATextureAddressMode::eClamp;
-                    texImgDesc.sampler.borderColor[0] = 1.0f;
-                    texImgDesc.sampler.borderColor[1] = 1.0f;
-                    texImgDesc.sampler.borderColor[2] = 1.0f;
-                    texImgDesc.sampler.borderColor[3] = 1.0f;
-                    texImgDesc.sampler.filterMode = RTLib::Ext::CUDA::CUDATextureFilterMode::eLinear;
-                    texImgDesc.sampler.mipmapFilterMode = RTLib::Ext::CUDA::CUDATextureFilterMode::eLinear;
-                    texImgDesc.sampler.mipmapLevelBias = 0.0f;
-                    texImgDesc.sampler.maxMipmapLevelClamp = 0.0f;
-                    texImgDesc.sampler.minMipmapLevelClamp = 0.0f;
-                    texImgDesc.sampler.maxAnisotropy = 0;
-                    texImgDesc.sampler.flags = RTLib::Ext::CUDA::CUDATextureFlagBitsNormalizedCordinates;
-                    texData.handle = std::unique_ptr<RTLib::Ext::CUDA::CUDATexture>(context->CreateTexture(texImgDesc));
-                }
-                return texData;
-            }
-            static auto Black(RTLib::Ext::OPX7::OPX7Context* context)->TextureData
-            {
-                return Color(context, make_uchar4(0, 0, 0, 0));
-            }
-            static auto White(RTLib::Ext::OPX7::OPX7Context* context)->TextureData
-            {
-                return Color(context, make_uchar4(255, 255, 255, 255));
-            }
-        };
+            return std::unique_ptr<RTLib::Ext::GL::GLTexture>(context->CreateTexture(frameTextureDesc));
+        }
+
     }
 
 }

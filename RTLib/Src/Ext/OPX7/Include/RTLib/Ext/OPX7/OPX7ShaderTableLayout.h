@@ -167,20 +167,6 @@ namespace RTLib {
 				auto RootInstanceAS()      noexcept ->      OPX7ShaderTableLayoutInstanceAS*;
 				auto RootInstanceAS()const noexcept ->const OPX7ShaderTableLayoutInstanceAS*;
 				
-				auto FindInstance  (const std::string& name)const ->const OPX7ShaderTableLayoutInstance  *;
-				auto FindInstanceAS(const std::string& name)const ->const OPX7ShaderTableLayoutInstanceAS*;
-				auto FindGeometryAS(const std::string& name)const ->const OPX7ShaderTableLayoutGeometryAS*;
-				auto FindGeometry  (const std::string& name)const ->const OPX7ShaderTableLayoutGeometry  *;
-
-				auto FindInstance  (const OPX7ShaderTableLayoutInstanceAS* instanceAS, const std::string& name)const ->const OPX7ShaderTableLayoutInstance  *;
-				auto FindInstanceAS(const OPX7ShaderTableLayoutInstanceAS* instanceAS, const std::string& name)const ->const OPX7ShaderTableLayoutInstanceAS*;
-				auto FindInstanceAS(const OPX7ShaderTableLayoutInstance  * instance  , const std::string& name)const ->const OPX7ShaderTableLayoutInstanceAS*;
-				auto FindGeometryAS(const OPX7ShaderTableLayoutInstanceAS* instanceAS, const std::string& name)const ->const OPX7ShaderTableLayoutGeometryAS*;
-				auto FindGeometryAS(const OPX7ShaderTableLayoutInstance  * instance  , const std::string& name)const ->const OPX7ShaderTableLayoutGeometryAS*;
-				auto FindGeometry  (const OPX7ShaderTableLayoutInstanceAS* instanceAS, const std::string& name)const ->const OPX7ShaderTableLayoutGeometry*;
-				auto FindGeometry  (const OPX7ShaderTableLayoutInstance  * instance  , const std::string& name)const ->const OPX7ShaderTableLayoutGeometry*;
-				auto FindGeometry  (const OPX7ShaderTableLayoutGeometryAS* gas       , const std::string& name)const ->const OPX7ShaderTableLayoutGeometry*;
-
 				auto GetInstanceASs()const noexcept -> const std::vector<std::unique_ptr<OPX7ShaderTableLayoutInstanceAS>>& {
 					return m_InstanceASLayouts;
 				}
@@ -199,6 +185,7 @@ namespace RTLib {
 				auto GetBaseGeometryASNames()const noexcept -> std::vector<std::string> { return m_BaseGeometryASNames; }
 				auto GetGeometryNames()const noexcept -> std::vector<std::string>   { return m_GeometryNames; }
 				auto GetInstanceNames()const noexcept -> std::vector<std::string>   { return m_InstanceNames; }
+				auto GetMaxTraversableDepth()const noexcept -> unsigned int { return m_MaxTraversalDepth; }
 			private:
 				static auto SplitFirstOf(const std::string& name)->std::pair<std::string, std::string> {
 					auto pos = name.find("/");
@@ -240,10 +227,6 @@ namespace RTLib {
 					}
 				}
 
-				auto FindChildInstance  (const OPX7ShaderTableLayoutInstanceAS* instanceAS, const std::string& name)const -> const OPX7ShaderTableLayoutInstance  *;
-				auto FindChildInstanceAS(const OPX7ShaderTableLayoutInstance* instance    , const std::string& name)const -> const OPX7ShaderTableLayoutInstanceAS*;
-				auto FindChildGeometryAS(const OPX7ShaderTableLayoutInstance* instance    , const std::string& name)const -> const OPX7ShaderTableLayoutGeometryAS*;
-				auto FindChildGeometry  (const OPX7ShaderTableLayoutGeometryAS* gas       , const std::string& name)const -> const OPX7ShaderTableLayoutGeometry  *;
 			private:
 				std::vector<std::unique_ptr<OPX7ShaderTableLayoutGeometryAS>>  m_GeometryASLayouts;
 				std::vector<std::unique_ptr<OPX7ShaderTableLayoutInstanceAS>>  m_InstanceASLayouts;
@@ -253,6 +236,7 @@ namespace RTLib {
 				std::vector<std::string> m_BaseGeometryASNames;
 				std::vector<std::string> m_GeometryNames;
 				std::vector<std::string> m_InstanceNames;
+				unsigned int m_MaxTraversalDepth = 1;
 			};
 		}
 		namespace OPX7_experimental

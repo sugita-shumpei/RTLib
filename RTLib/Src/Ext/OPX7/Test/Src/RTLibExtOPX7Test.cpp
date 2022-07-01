@@ -34,7 +34,7 @@ int OnlineSample()
 {
     using namespace RTLib::Ext::CUDA;
     using namespace RTLib::Ext::OPX7;
-    using namespace RTLib::Ext::GL;
+    using namespace RTLib::Ext::GL  ;
     using namespace RTLib::Ext::CUGL;
     using namespace RTLib::Ext::GLFW;
 
@@ -89,97 +89,14 @@ int OnlineSample()
         }
         sceneData.InitExtData(opx7Context.get());
 
-        auto textures = std::unordered_map<std::string, rtlib::test::TextureData>();
-        {
-            std::unordered_set< std::string> texturePathSet = {};
-            for (auto& [geometryName, geometryData] : sceneData.world.geometryObjModels)
-            {
-                for (auto& [meshName, meshData]: geometryData.meshes)
-                {
-                    for (auto& material : meshData.materials)
-                    {
-                        if (material.HasString("diffTex"))
-                        {
-                            if (material.GetString("diffTex")!="") {
-                                texturePathSet.insert(material.GetString("diffTex"));
-                            }
-                        }
-                        if (material.HasString("specTex"))
-                        {
-                            if (material.GetString("specTex") != "") {
-                                texturePathSet.insert(material.GetString("specTex"));
-                            }
-                        }
-                        if (material.HasString("emitTex"))
-                        {
-                            if (material.GetString("emitTex") != "") {
-                                texturePathSet.insert(material.GetString("emitTex"));
-                            }
-                        }
-                    }
-                }
-            }
-            for (auto& texturePath : texturePathSet)
-            {
-                textures[texturePath].LoadFromPath(opx7Context.get(), texturePath);
-            }
-            textures["White"] = rtlib::test::TextureData::White(opx7Context.get());
-            textures["Black"] = rtlib::test::TextureData::Black(opx7Context.get());
-        }
+        auto cudaTextures = sceneData.LoadCudaTextures(opx7Context.get());
         auto geometryASs  = sceneData.BuildGeometryASs(opx7Context.get(), accelBuildOptions);
-        auto instBuffers  = std::unordered_map<std::string, std::unique_ptr<CUDABuffer>>();
-        auto topLevelAS   = rtlib::test::AccelerationStructureData();
-
-        {
-            auto instIndices = std::unordered_map<std::string, unsigned int>();
-            {
-                unsigned int i = 0;
-                for (auto& [name, instance] : worldData.instances) {
-                    instIndices[name] = i;
-                    ++i;
-                }
-            }
-            auto& rootInstanceAS = worldData.instanceASs["Root"];
-            auto  opx7Instances  = std::vector<OptixInstance>();
-            {
-                opx7Instances.reserve(rootInstanceAS.instances.size());
-                for (auto& instanceName : rootInstanceAS.instances)
-                {
-                    auto& instanceData = worldData.instances[instanceName];
-                    auto opx7Instance   = OptixInstance();
-                    opx7Instance.traversableHandle = geometryASs.at(instanceData.base).handle;
-                    opx7Instance.visibilityMask    = 255;
-                    opx7Instance.instanceId        = instIndices[instanceName];
-                    opx7Instance.sbtOffset         = shaderTableLayout->GetDesc("Root/" + instanceName).recordOffset;
-                    opx7Instance.flags             = OPTIX_INSTANCE_FLAG_NONE;
-                    auto transforms = instanceData.transform;
-                    std::memcpy(opx7Instance.transform, transforms.data(), transforms.size() * sizeof(float));
-                    opx7Instances.push_back(opx7Instance);
-                }
-            }
-
-            instBuffers["Root"] = std::unique_ptr<CUDABuffer>(opx7Context->CreateBuffer(
-                CUDABufferCreateDesc{
-                    CUDAMemoryFlags::eDefault,
-                    sizeof(OptixInstance) * opx7Instances.size(),
-                    opx7Instances.data()
-                })
-            );
-
-            {
-                auto buildInputs = std::vector<OptixBuildInput>(1);
-                buildInputs[0].type = OPTIX_BUILD_INPUT_TYPE_INSTANCES;
-                buildInputs[0].instanceArray.instances = CUDANatives::GetCUdeviceptr(instBuffers["Root"].get());
-                buildInputs[0].instanceArray.numInstances = opx7Instances.size();
-
-                topLevelAS = OPX7Natives::BuildAccelerationStructure(opx7Context.get(), accelBuildOptions, buildInputs);
-            }
-        }
+        auto instanceASs  = sceneData.BuildInstanceASs(opx7Context.get(), accelBuildOptions, shaderTableLayout.get(), geometryASs);
 
         auto pipelineCompileOptions = OPX7PipelineCompileOptions{};
         {
             pipelineCompileOptions.usesMotionBlur            = false;
-            pipelineCompileOptions.traversableGraphFlags     = OPX7TraversableGraphFlagsAllowSingleLevelInstancing;
+            pipelineCompileOptions.traversableGraphFlags     = 0;
             pipelineCompileOptions.numAttributeValues        = 3;
             pipelineCompileOptions.numPayloadValues          = 8;
             pipelineCompileOptions.launchParamsVariableNames = "params";
@@ -199,10 +116,13 @@ int OnlineSample()
         }
         auto module = std::unique_ptr<RTLib::Ext::OPX7::OPX7Module>(opx7Context->CreateOPXModule(moduleCreateDesc));
         auto raygPG = std::unique_ptr<OPX7ProgramGroup>(opx7Context->CreateOPXProgramGroup(OPX7ProgramGroupCreateDesc::Raygen(  {module.get(), "__raygen__rg"})));
-        auto missPGForRadiance = std::unique_ptr<OPX7ProgramGroup>(opx7Context->CreateOPXProgramGroup(OPX7ProgramGroupCreateDesc::Miss({ module.get(), "__miss__radiance" })));
-        auto missPGForOccluded = std::unique_ptr<OPX7ProgramGroup>(opx7Context->CreateOPXProgramGroup(OPX7ProgramGroupCreateDesc::Miss({ module.get(), "__miss__occluded" })));
-        auto hitgPGForRadiance = std::unique_ptr<OPX7ProgramGroup>(opx7Context->CreateOPXProgramGroup(OPX7ProgramGroupCreateDesc::Hitgroup({module.get(), "__closesthit__radiance"})));
-        auto hitgPGForOccluded = std::unique_ptr<OPX7ProgramGroup>(opx7Context->CreateOPXProgramGroup(OPX7ProgramGroupCreateDesc::Hitgroup({ module.get(),"__closesthit__occluded" })));
+        auto missPGs = std::vector<std::unique_ptr<OPX7ProgramGroup>>(RAY_TYPE_COUNT);
+        missPGs[RAY_TYPE_RADIANCE] = std::unique_ptr<OPX7ProgramGroup>(opx7Context->CreateOPXProgramGroup(OPX7ProgramGroupCreateDesc::Miss({ module.get(), "__miss__radiance" })));
+        missPGs[RAY_TYPE_OCCLUDED] = std::unique_ptr<OPX7ProgramGroup>(opx7Context->CreateOPXProgramGroup(OPX7ProgramGroupCreateDesc::Miss({ module.get(), "__miss__occluded" })));
+        auto hitgPGs = std::vector<std::unique_ptr<OPX7ProgramGroup>>(RAY_TYPE_COUNT);
+        hitgPGs[RAY_TYPE_RADIANCE] = std::unique_ptr<OPX7ProgramGroup>(opx7Context->CreateOPXProgramGroup(OPX7ProgramGroupCreateDesc::Hitgroup({module.get(), "__closesthit__radiance"})));
+        hitgPGs[RAY_TYPE_OCCLUDED] = std::unique_ptr<OPX7ProgramGroup>(opx7Context->CreateOPXProgramGroup(OPX7ProgramGroupCreateDesc::Hitgroup({ module.get(),"__closesthit__occluded" })));
+        auto excpPG = std::unique_ptr<OPX7ProgramGroup>(opx7Context->CreateOPXProgramGroup(OPX7ProgramGroupCreateDesc::Exception({ module.get(), "__exception__ep" })));
         auto pipelineCreateDesc = OPX7PipelineCreateDesc{};
         {
             pipelineCreateDesc.linkOptions.maxTraceDepth = 1;
@@ -210,13 +130,27 @@ int OnlineSample()
             pipelineCreateDesc.compileOptions = pipelineCompileOptions;
             pipelineCreateDesc.programGroups  = {
                 raygPG.get(), 
-                missPGForRadiance.get(), 
-                missPGForOccluded.get(),
-                hitgPGForRadiance.get(),
-                hitgPGForOccluded.get()
+                missPGs[RAY_TYPE_RADIANCE].get(),
+                missPGs[RAY_TYPE_OCCLUDED].get(),
+                hitgPGs[RAY_TYPE_RADIANCE].get(),
+                hitgPGs[RAY_TYPE_OCCLUDED].get(),
+                excpPG.get()
             };
         }
         auto pipeline = std::unique_ptr<OPX7Pipeline>(opx7Context->CreateOPXPipeline(pipelineCreateDesc));
+        {
+            auto cssRG = raygPG->GetStackSize().cssRG;
+            auto cssMS = std::max(missPGs[RAY_TYPE_RADIANCE]->GetStackSize().cssMS, missPGs[RAY_TYPE_OCCLUDED]->GetStackSize().cssMS);
+            auto cssCH = std::max(hitgPGs[RAY_TYPE_RADIANCE]->GetStackSize().cssCH, hitgPGs[RAY_TYPE_OCCLUDED]->GetStackSize().cssCH);
+            auto cssIS = std::max(hitgPGs[RAY_TYPE_RADIANCE]->GetStackSize().cssIS, hitgPGs[RAY_TYPE_OCCLUDED]->GetStackSize().cssIS);
+            auto cssAH = std::max(hitgPGs[RAY_TYPE_RADIANCE]->GetStackSize().cssAH, hitgPGs[RAY_TYPE_OCCLUDED]->GetStackSize().cssAH);
+            auto cssCCTree = 0;
+            auto cssCHOrMsPlusCCTree = std::max(cssMS, cssCH) + cssCCTree;
+            auto continuationStackSizes = cssRG + cssCCTree +
+                (std::max<unsigned int>(1, pipeline->GetLinkOptions().maxTraceDepth) - 1) * cssCHOrMsPlusCCTree +
+                (std::min<unsigned int>(1, pipeline->GetLinkOptions().maxTraceDepth)) * std::max(cssCHOrMsPlusCCTree, cssIS + cssAH);
+            pipeline->SetStackSize(0, 0, continuationStackSizes, shaderTableLayout->GetMaxTraversableDepth());
+        }
 
         auto shaderTable = std::unique_ptr<OPX7ShaderTable>();
         {
@@ -224,11 +158,12 @@ int OnlineSample()
             auto shaderTableDesc = OPX7ShaderTableCreateDesc();
             {
 
-                shaderTableDesc.raygenRecordSizeInBytes = sizeof(RTLib::Ext::OPX7::OPX7ShaderRecord<RayGenData>);
-                shaderTableDesc.missRecordStrideInBytes = sizeof(RTLib::Ext::OPX7::OPX7ShaderRecord<MissData>);
-                shaderTableDesc.missRecordCount = shaderTableLayout->GetRecordStride();
+                shaderTableDesc.raygenRecordSizeInBytes     = sizeof(RTLib::Ext::OPX7::OPX7ShaderRecord<RayGenData>);
+                shaderTableDesc.missRecordStrideInBytes     = sizeof(RTLib::Ext::OPX7::OPX7ShaderRecord<MissData>);
+                shaderTableDesc.missRecordCount             = shaderTableLayout->GetRecordStride();
                 shaderTableDesc.hitgroupRecordStrideInBytes = sizeof(RTLib::Ext::OPX7::OPX7ShaderRecord<HitgroupData>);
-                shaderTableDesc.hitgroupRecordCount = shaderTableLayout->GetRecordCount();
+                shaderTableDesc.hitgroupRecordCount         = shaderTableLayout->GetRecordCount();
+                shaderTableDesc.exceptionRecordSizeInBytes  = sizeof(RTLib::Ext::OPX7::OPX7ShaderRecord<unsigned int>);
             }
             shaderTable = std::unique_ptr<OPX7ShaderTable>(opx7Context->CreateOPXShaderTable(shaderTableDesc));
         }
@@ -239,39 +174,35 @@ int OnlineSample()
                 shaderTable->SetHostRaygenRecordTypeData<RayGenData>(raygenRecord);
             }
             {
-                auto missRecord = missPGForRadiance->GetRecord<MissData>();
-                missRecord.data.bgColor = float4{ 0.005f,0.005f,0.005f,0.005f };
-                shaderTable->SetHostMissRecordTypeData(RAY_TYPE_RADIANCE , missRecord);
-                shaderTable->SetHostMissRecordTypeData(RAY_TYPE_OCCLUDED, missPGForOccluded->GetRecord<MissData>());
+                shaderTable->SetHostMissRecordTypeData(RAY_TYPE_RADIANCE, missPGs[RAY_TYPE_RADIANCE]->GetRecord<MissData>({ {} }));
+                shaderTable->SetHostMissRecordTypeData(RAY_TYPE_OCCLUDED, missPGs[RAY_TYPE_OCCLUDED]->GetRecord<MissData>({ }));
             }
-            for (auto &instanceName : worldData.instanceASs["Root"].instances)
             {
-                auto& instanceData = worldData.instances.at(instanceName);
-                if (instanceData.asType == "Geometry")
+                shaderTable->SetHostExceptionRecordTypeData(excpPG->GetRecord<unsigned int>());
+            }
+            for (auto &instanceName : shaderTableLayout->GetInstanceNames())
+            {
+                auto& instanceDesc = shaderTableLayout->GetDesc(instanceName);
+                auto* instanceData = reinterpret_cast<const RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstance*>(instanceDesc.pData);
+                auto  geometryAS   = instanceData->GetDwGeometryAS();
+                if   (geometryAS)
                 {
-                    for (auto &geometryName : worldData.geometryASs[instanceData.base].geometries)
+                    for (auto &geometryName : worldData.geometryASs[geometryAS->GetName()].geometries)
                     {
                         auto& geometry = worldData.geometryObjModels[geometryName];
                         auto objAsset  = objAssetLoader.GetAsset(geometry.base);
                         for (auto& [meshName,meshData] : geometry.meshes) {
                             auto mesh = objAsset.meshGroup->LoadMesh(meshName);
-                            auto desc = shaderTableLayout->GetDesc("Root/" + instanceName + "/" + meshName);
+                            auto desc = shaderTableLayout->GetDesc(instanceName + "/" + meshName);
                             auto extSharedData = static_cast<rtlib::test::OPX7MeshSharedResourceExtData*>(mesh->GetSharedResource()->extData.get());
                             auto extUniqueData = static_cast<rtlib::test::OPX7MeshUniqueResourceExtData*>(mesh->GetUniqueResource()->extData.get());
                             for (auto i = 0; i < desc.recordCount; ++i)
                             {
-                                auto hitgroupRecord = RTLib::Ext::OPX7::OPX7ShaderRecord<HitgroupData>();
-                                if (i % desc.recordStride == RAY_TYPE_RADIANCE) {
-                                    hitgroupRecord = hitgPGForRadiance->GetRecord<HitgroupData>();
-                                }
-                                if (i % desc.recordStride == RAY_TYPE_OCCLUDED) {
-                                    hitgroupRecord = hitgPGForOccluded->GetRecord<HitgroupData>();
-                                }
-
-                                {
+                                auto hitgroupRecord = hitgPGs[i%desc.recordStride]->GetRecord<HitgroupData>();
+                                if ((i%desc.recordStride)==RAY_TYPE_RADIANCE) {
                                     auto material = meshData.materials[i / desc.recordStride];
                                     hitgroupRecord.data.vertices = reinterpret_cast<float3*>(CUDANatives::GetCUdeviceptr(extSharedData->GetVertexBufferView()));
-                                    hitgroupRecord.data.indices  = reinterpret_cast<uint3*>( CUDANatives::GetCUdeviceptr(extUniqueData->GetTriIdxBufferView()));
+                                    hitgroupRecord.data.indices  = reinterpret_cast< uint3*>(CUDANatives::GetCUdeviceptr(extUniqueData->GetTriIdxBufferView()));
                                     hitgroupRecord.data.texCrds  = reinterpret_cast<float2*>(CUDANatives::GetCUdeviceptr(extSharedData->GetTexCrdBufferView()));
                                     hitgroupRecord.data.diffuse  = material.GetFloat3As<float3>("diffCol");
                                     hitgroupRecord.data.emission = material.GetFloat3As<float3>("emitCol");
@@ -288,9 +219,9 @@ int OnlineSample()
                                     if (emitTexStr == "") {
                                         emitTexStr = "White";
                                     }
-                                    hitgroupRecord.data.diffuseTex  = RTLib::Ext::CUDA::CUDANatives::GetCUtexObject(textures.at(diffTexStr).handle.get());
-                                    hitgroupRecord.data.specularTex = RTLib::Ext::CUDA::CUDANatives::GetCUtexObject(textures.at(specTexStr).handle.get());
-                                    hitgroupRecord.data.emissionTex = RTLib::Ext::CUDA::CUDANatives::GetCUtexObject(textures.at(emitTexStr).handle.get());
+                                    hitgroupRecord.data.diffuseTex  = RTLib::Ext::CUDA::CUDANatives::GetCUtexObject(cudaTextures.at(diffTexStr).handle.get());
+                                    hitgroupRecord.data.specularTex = RTLib::Ext::CUDA::CUDANatives::GetCUtexObject(cudaTextures.at(specTexStr).handle.get());
+                                    hitgroupRecord.data.emissionTex = RTLib::Ext::CUDA::CUDANatives::GetCUtexObject(cudaTextures.at(emitTexStr).handle.get());
                                 }
                                 shaderTable->SetHostHitgroupRecordTypeData(desc.recordOffset + i, hitgroupRecord);
                             }
@@ -304,7 +235,7 @@ int OnlineSample()
 
         auto  seedBufferCUDA = std::unique_ptr<CUDABuffer>();
         {
-            auto mt19937 = std::mt19937();
+            auto mt19937  = std::mt19937();
             auto seedData = std::vector<unsigned int>(width * height * sizeof(unsigned int));
             std::generate(std::begin(seedData), std::end(seedData), mt19937);
             seedBufferCUDA = std::unique_ptr<CUDABuffer>(opx7Context->CreateBuffer(
@@ -315,21 +246,7 @@ int OnlineSample()
         auto accumBufferCUDA = std::unique_ptr<CUDABuffer>(opx7Context->CreateBuffer(  { CUDAMemoryFlags::eDefault,width* height * sizeof(float)*3,nullptr }  ));
         auto frameBufferGL   = std::unique_ptr<GLBuffer  >(ogl4Context->CreateBuffer(GLBufferCreateDesc{sizeof(uchar4) * width * height, GLBufferUsageImageCopySrc, GLMemoryPropertyDefault, nullptr}));
         auto frameBufferCUGL = std::unique_ptr<CUGLBuffer>(CUGLBuffer::New(opx7Context.get(), frameBufferGL.get(), CUGLGraphicsRegisterFlagsWriteDiscard));
-        auto frameTextureGL  = std::unique_ptr<GLTexture>();
-        {
-            auto frameTextureDesc = RTLib::Ext::GL::GLTextureCreateDesc();
-            frameTextureDesc.image.imageType     = RTLib::Ext::GL::GLImageType::e2D;
-            frameTextureDesc.image.extent.width  = width;
-            frameTextureDesc.image.extent.height = height;
-            frameTextureDesc.image.extent.depth  = 0;
-            frameTextureDesc.image.arrayLayers   = 0;
-            frameTextureDesc.image.mipLevels     = 1;
-            frameTextureDesc.image.format        = RTLib::Ext::GL::GLFormat::eRGBA8;
-            frameTextureDesc.sampler.magFilter   = RTLib::Core::FilterMode::eLinear;
-            frameTextureDesc.sampler.minFilter   = RTLib::Core::FilterMode::eLinear;
-
-            frameTextureGL = std::unique_ptr<GLTexture>(ogl4Context->CreateTexture(frameTextureDesc));
-        }
+        auto frameTextureGL  = rtlib::test::CreateFrameTextureGL(ogl4Context, width, height);
         auto rectRendererGL = std::unique_ptr<GLRectRenderer>(ogl4Context->CreateRectRenderer({1, false, true}));
 
         auto paramsBuffer = std::unique_ptr<CUDABuffer>(opx7Context->CreateBuffer({CUDAMemoryFlags::eDefault, static_cast<size_t>(sizeof(Params)), nullptr}));
@@ -359,20 +276,7 @@ int OnlineSample()
                     frameTextureGL->Destroy();
                     frameBufferGL   = std::unique_ptr<GLBuffer>(ogl4Context->CreateBuffer(GLBufferCreateDesc{sizeof(uchar4) * width * height, GLBufferUsageImageCopySrc, GLMemoryPropertyDefault, nullptr}));
                     frameBufferCUGL = std::unique_ptr<CUGLBuffer>(CUGLBuffer::New(opx7Context.get(), frameBufferGL.get(), CUGLGraphicsRegisterFlagsWriteDiscard));
-                    {
-                        auto frameTextureDesc = RTLib::Ext::GL::GLTextureCreateDesc();
-                        frameTextureDesc.image.imageType = RTLib::Ext::GL::GLImageType::e2D;
-                        frameTextureDesc.image.extent.width = width;
-                        frameTextureDesc.image.extent.height = height;
-                        frameTextureDesc.image.extent.depth = 0;
-                        frameTextureDesc.image.arrayLayers = 0;
-                        frameTextureDesc.image.mipLevels = 1;
-                        frameTextureDesc.image.format = RTLib::Ext::GL::GLFormat::eRGBA8;
-                        frameTextureDesc.sampler.magFilter = RTLib::Core::FilterMode::eLinear;
-                        frameTextureDesc.sampler.minFilter = RTLib::Core::FilterMode::eLinear;
-
-                        frameTextureGL = std::unique_ptr<GLTexture>(ogl4Context->CreateTexture(frameTextureDesc));
-                    }
+                    frameTextureGL  = rtlib::test::CreateFrameTextureGL(ogl4Context, width, height);
                 }
                 if (isUpdated    ) {
                     auto zeroClearData = std::vector<float>(width * height * 3, 0.0f);
@@ -402,7 +306,7 @@ int OnlineSample()
                         params.height           = height;
                         params.samplesForAccum  = samplesForAccum;
                         params.samplesForLaunch = samplesForLaunch;
-                        params.gasHandle        = topLevelAS.handle;
+                        params.gasHandle        = instanceASs["Root"].handle;
                     }
                     stream->CopyMemoryToBuffer(paramsBuffer.get(), {{&params, 0, sizeof(params)}});
                     pipeline->Launch(stream.get(), CUDABufferView(paramsBuffer.get(), 0, paramsBuffer->GetSizeInBytes()), shaderTable.get(), width, height, 1);
@@ -467,10 +371,10 @@ int OnlineSample()
        
         {
             {
-                for (auto& [name, texture] : textures) {
+                for (auto& [name, texture] : cudaTextures) {
                     texture.Destroy();
                 }
-                textures.clear();
+                cudaTextures.clear();
             }
             {
                 for (auto& [name, geometryAS] : geometryASs) {
@@ -480,12 +384,13 @@ int OnlineSample()
                 geometryASs.clear();
             }
             {
-                for (auto& [name, instBuffer] : instBuffers) {
-                    instBuffer->Destroy();
+                for (auto& [name, instanceAS] : instanceASs) {
+                    auto& [buffer, handle, instanceBuffer,instanceArray] = instanceAS;
+                    instanceBuffer->Destroy();
+                    buffer->Destroy();
                 }
-                instBuffers.clear();
+                instanceASs.clear();
             }
-            topLevelAS.buffer->Destroy();
             paramsBuffer->Destroy();
             accumBufferCUDA->Destroy();
             frameBufferCUGL->Destroy();

@@ -181,7 +181,7 @@ namespace RTLib {
 			template<typename T>
 			inline auto OPX7ShaderTable::GetHostExceptionRecordTypeData() noexcept -> OPX7::OPX7ShaderRecord<T>*
 			{
-				if (sizeof(OPX7::OPX7ShaderRecord<T>) != GetExcepitonRecordSizeInBytes()) { return nullptr; }
+				if (sizeof(OPX7::OPX7ShaderRecord<T>) != GetExceptionRecordSizeInBytes()) { return nullptr; }
 				auto data = GetHostExceptionRecordData();
 				return static_cast< OPX7::OPX7ShaderRecord<T>*>(data);
 			}
