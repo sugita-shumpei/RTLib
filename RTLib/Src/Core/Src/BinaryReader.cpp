@@ -249,6 +249,7 @@ bool RTLib::Core::ObjModelAssetManager::LoadAsset(const std::string& keyName, co
     auto mtlBaseDir = std::filesystem::canonical(std::filesystem::path(objPath).parent_path());
     tinyobj::ObjReaderConfig readerConfig = {};
     readerConfig.mtl_search_path = mtlBaseDir.string() + "\\";
+    readerConfig.triangulate     = true;
 
     tinyobj::ObjReader reader = {};
     if (!reader.ParseFromFile(objPath, readerConfig)) {
@@ -726,7 +727,7 @@ void RTLib::Core::ObjModelAssetManager::SaveAssetCache(const std::string& keyNam
             }
         }
         else {
-            auto file = std::ofstream(savePath, std::ios::binary);
+            auto file = std::ofstream(savePath, std::ios::binary | std::ios::ate);
             if (file.is_open()) {
                 file.write((const char*)buffer.data(), sizeInBytes);
             }
@@ -736,11 +737,12 @@ void RTLib::Core::ObjModelAssetManager::SaveAssetCache(const std::string& keyNam
         json["SizeInBytes"] = sizeInBytes;
         json["StrideInBytes"] = strideInBytes;
 
+        std::cout << savePath << ":" << strideInBytes << std::endl;
         return json;
     };
     cacheJsonData["MeshGroup"]["SharedResource"]["VertexBuffer"] = SaveBuffer(sharedResource->vertexBuffer, cacheRootDir + "\\VertexBuffer.bin");
     cacheJsonData["MeshGroup"]["SharedResource"]["NormalBuffer"] = SaveBuffer(sharedResource->normalBuffer, cacheRootDir + "\\NormalBuffer.bin");
-    cacheJsonData["MeshGroup"]["SharedResource"]["TexCrdBuffer"] = SaveBuffer(sharedResource->normalBuffer, cacheRootDir + "\\TexCrdBuffer.bin");
+    cacheJsonData["MeshGroup"]["SharedResource"]["TexCrdBuffer"] = SaveBuffer(sharedResource->texCrdBuffer, cacheRootDir + "\\TexCrdBuffer.bin");
     cacheJsonData["MeshGroup"]["SharedResource"][   "Variables"] = sharedResource->variables;
     for (auto& [uniqueName, uniqueResource] : meshGroup->GetUniqueResources()) {
         cacheJsonData["MeshGroup"]["UniqueResources"][uniqueName]["TriIndBuffer"] = SaveBuffer(uniqueResource->triIndBuffer, cacheRootDir + "\\"+ uniqueName  + "-TriIndBuffer.bin");

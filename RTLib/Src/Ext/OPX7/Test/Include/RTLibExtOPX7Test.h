@@ -62,6 +62,7 @@ namespace rtlib
         using namespace RTLib::Utils;
         using namespace RTLib::Ext;
         using namespace RTLib::Ext::CUDA::Math;
+        using AccelerationStructureData = RTLib::Ext::OPX7::OPX7Natives::AccelBuildOutput;
 
 
         struct TraceConfigData
@@ -87,21 +88,196 @@ namespace rtlib
             v.maxSamples = j.at("MaxSamples").get<unsigned int>();
         }
 
+
+        class OPX7MeshSharedResourceExtData :public RTLib::Core::MeshSharedResourceExtData {
+        public:
+            static auto New(MeshSharedResource* pMeshSharedResource, OPX7::OPX7Context* context)noexcept->OPX7MeshSharedResourceExtData* {
+                auto extData = new OPX7MeshSharedResourceExtData(pMeshSharedResource);
+                auto parent = extData->GetParent();
+                extData->m_VertexBuffer = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(context->CreateBuffer(
+                    { RTLib::Ext::CUDA::CUDAMemoryFlags::eDefault, sizeof(float3) * std::size(parent->vertexBuffer), std::data(parent->vertexBuffer) }
+                ));
+                extData->m_NormalBuffer = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(context->CreateBuffer(
+                    { RTLib::Ext::CUDA::CUDAMemoryFlags::eDefault, sizeof(float3) * std::size(parent->normalBuffer), std::data(parent->normalBuffer) }
+                ));
+                extData->m_TexCrdBuffer = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(context->CreateBuffer(
+                    { RTLib::Ext::CUDA::CUDAMemoryFlags::eDefault, sizeof(float2) * std::size(parent->texCrdBuffer), std::data(parent->texCrdBuffer) }
+                ));
+                return extData;
+            }
+            virtual ~OPX7MeshSharedResourceExtData()noexcept {}
+            void Destroy() {
+                m_VertexBuffer->Destroy();
+                m_NormalBuffer->Destroy();
+                m_TexCrdBuffer->Destroy();
+            }
+            //SET
+            void SetVertexStrideInBytes(size_t vertexStride)noexcept { m_VertexStrideInBytes = vertexStride; }
+            void SetVertexFormat(OptixVertexFormat format)noexcept { m_VertexFormat = format; }
+            //GET
+            auto GetVertexStrideInBytes()const noexcept -> size_t { return m_VertexStrideInBytes; }
+            auto GetVertexFormat()const noexcept -> OptixVertexFormat { return m_VertexFormat; }
+            auto GetVertexCount()const noexcept -> size_t {
+                if (m_VertexBuffer && m_VertexStrideInBytes > 0) { return m_VertexBuffer->GetSizeInBytes() / m_VertexStrideInBytes; }
+                return 0;
+            }
+            auto GetVertexBufferGpuAddress()const noexcept -> CUdeviceptr { return CUDA::CUDANatives::GetCUdeviceptr(m_VertexBuffer.get()); }
+            auto GetNormalBufferGpuAddress()const noexcept -> CUdeviceptr { return CUDA::CUDANatives::GetCUdeviceptr(m_NormalBuffer.get()); }
+            auto GetTexCrdBufferGpuAddress()const noexcept -> CUdeviceptr { return CUDA::CUDANatives::GetCUdeviceptr(m_TexCrdBuffer.get()); }
+
+            auto GetVertexBufferView()const noexcept -> CUDA::CUDABufferView
+            {
+                return CUDA::CUDABufferView(m_VertexBuffer.get());
+            }
+            auto GetNormalBufferView()const noexcept -> CUDA::CUDABufferView
+            {
+                return CUDA::CUDABufferView(m_NormalBuffer.get());
+            }
+            auto GetTexCrdBufferView()const noexcept -> CUDA::CUDABufferView
+            {
+                return CUDA::CUDABufferView(m_TexCrdBuffer.get());
+            }
+        private:
+            OPX7MeshSharedResourceExtData(MeshSharedResource* pMeshSharedResource) noexcept :MeshSharedResourceExtData(pMeshSharedResource) {}
+        private:
+            std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer> m_VertexBuffer = nullptr;
+            std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer> m_NormalBuffer = nullptr;
+            std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer> m_TexCrdBuffer = nullptr;
+            size_t m_VertexStrideInBytes = 0;
+            OptixVertexFormat m_VertexFormat = OPTIX_VERTEX_FORMAT_NONE;
+        };
+
+        class OPX7MeshUniqueResourceExtData : public RTLib::Core::MeshUniqueResourceExtData {
+        public:
+            static auto New(MeshUniqueResource* pMeshUniqueResource, OPX7::OPX7Context* context)noexcept->OPX7MeshUniqueResourceExtData* {
+                auto extData = new OPX7MeshUniqueResourceExtData(pMeshUniqueResource);
+                auto parent = extData->GetParent();
+                extData->m_TriIdxBuffer = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(context->CreateBuffer(
+                    { RTLib::Ext::CUDA::CUDAMemoryFlags::eDefault, sizeof(uint32_t) * 3 * std::size(parent->triIndBuffer), std::data(parent->triIndBuffer) }
+                ));
+                extData->m_MatIdxBuffer = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(context->CreateBuffer(
+                    { RTLib::Ext::CUDA::CUDAMemoryFlags::eDefault, sizeof(uint32_t) * std::size(parent->matIndBuffer), std::data(parent->matIndBuffer) }
+                ));
+
+                return extData;
+            }
+            virtual ~OPX7MeshUniqueResourceExtData()noexcept {}
+            void Destroy() {
+                m_TriIdxBuffer.reset();
+            }
+            //SET
+            void SetTriIdxStrideInBytes(size_t indexStride)noexcept { m_TriIdxStride = indexStride; }
+            void SetTriIdxFormat(OptixIndicesFormat format)noexcept { m_IndicesFormat = format; }
+            //GET
+            auto GetTriIdxBufferGpuAddress()const noexcept -> CUdeviceptr { return CUDA::CUDANatives::GetCUdeviceptr(m_TriIdxBuffer.get()); }
+            auto GetTriIdxCount()const noexcept -> size_t {
+                if (m_TriIdxBuffer && m_TriIdxStride > 0) { return m_TriIdxBuffer->GetSizeInBytes() / m_TriIdxStride; }
+                return 0;
+            }
+            auto GetTriIdxStrideInBytes()const noexcept -> size_t { return m_TriIdxStride; }
+            auto GetTriIdxFormat()const noexcept -> OptixIndicesFormat { return m_IndicesFormat; }
+            //
+            auto GetMatIdxBufferGpuAddress()const noexcept -> CUdeviceptr { return CUDA::CUDANatives::GetCUdeviceptr(m_MatIdxBuffer.get()); };
+            auto GetMatIdxCount()const noexcept -> size_t {
+                if (m_MatIdxBuffer) { return m_MatIdxBuffer->GetSizeInBytes() / sizeof(uint32_t); }
+                return 0;
+            }
+            //
+            auto GetTriIdxBufferView()const noexcept -> CUDA::CUDABufferView
+            {
+                return CUDA::CUDABufferView(m_TriIdxBuffer.get());
+            }
+            auto GetMatIdxBufferView()const noexcept -> CUDA::CUDABufferView
+            {
+                return CUDA::CUDABufferView(m_MatIdxBuffer.get());
+            }
+        private:
+            OPX7MeshUniqueResourceExtData(MeshUniqueResource* pMeshUniqueResource) noexcept :MeshUniqueResourceExtData(pMeshUniqueResource) {}
+        private:
+            std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer> m_TriIdxBuffer = nullptr;
+            std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer> m_MatIdxBuffer = nullptr;
+            OptixIndicesFormat m_IndicesFormat = OPTIX_INDICES_FORMAT_NONE;
+            size_t m_TriIdxStride = 0;
+        };
+
+        void InitMeshGroupExtData(RTLib::Ext::OPX7::OPX7Context* opx7Context, RTLib::Core::MeshGroupPtr meshGroup)
+        {
+            {
+                auto sharedResource = meshGroup->GetSharedResource();
+                sharedResource->AddExtData<rtlib::test::OPX7MeshSharedResourceExtData>(opx7Context);
+                auto extData = static_cast<rtlib::test::OPX7MeshSharedResourceExtData*>(sharedResource->extData.get());
+                extData->SetVertexFormat(OPTIX_VERTEX_FORMAT_FLOAT3);
+                extData->SetVertexStrideInBytes(sizeof(float) * 3);
+            }
+            for (auto& [name, uniqueResource] : meshGroup->GetUniqueResources())
+            {
+                uniqueResource->AddExtData<rtlib::test::OPX7MeshUniqueResourceExtData>(opx7Context);
+                auto extData = static_cast<rtlib::test::OPX7MeshUniqueResourceExtData*>(uniqueResource->extData.get());
+                extData->SetTriIdxFormat(OPTIX_INDICES_FORMAT_UNSIGNED_INT3);
+                extData->SetTriIdxStrideInBytes(sizeof(uint32_t) * 3);
+            }
+        }
+
         struct SceneData
         {
             ObjModelAssetManager objAssetManager;
+            CameraController     cameraController;
             WorldData            world ;
             TraceConfigData      config;
-            CameraController     cameraController;
+
+            void InitExtData(RTLib::Ext::OPX7::OPX7Context* opx7Context) {
+                for (auto& [name, geometry] : world.geometryObjModels)
+                {
+                    rtlib::test::InitMeshGroupExtData(opx7Context, objAssetManager.GetAsset(geometry.base).meshGroup);
+                }
+            }
+
+            auto BuildGeometryASs(RTLib::Ext::OPX7::OPX7Context* opx7Context, const OptixAccelBuildOptions& accelBuildOptions)const noexcept -> std::unordered_map<std::string, AccelerationStructureData>
+            {
+                std::unordered_map<std::string, AccelerationStructureData> geometryASs = {};
+                for (auto& [geometryASName,geometryASData] : world.geometryASs)
+                {
+                    auto buildInputs = std::vector<OptixBuildInput>();
+                    auto holders = std::vector<std::unique_ptr<RTLib::Ext::OPX7::OPX7Geometry::Holder>>();
+                    for (auto& geometryName : geometryASData.geometries)
+                    {
+                        auto& geometryObjModel = world.geometryObjModels.at(geometryName);
+                        auto& objAsset = objAssetManager.GetAsset(geometryObjModel.base);
+                        for (auto& [meshName, meshData] : geometryObjModel.meshes)
+                        {
+                            auto& geometry = RTLib::Ext::OPX7::OPX7GeometryTriangle();
+                            {
+                                auto mesh = objAsset.meshGroup->LoadMesh(meshData.base);
+                                auto extSharedData = static_cast<rtlib::test::OPX7MeshSharedResourceExtData*>(mesh->GetSharedResource()->extData.get());
+                                auto extUniqueData = static_cast<rtlib::test::OPX7MeshUniqueResourceExtData*>(mesh->GetUniqueResource()->extData.get());
+                                geometry.SetVertexView({ extSharedData->GetVertexBufferView(),(unsigned int)extSharedData->GetVertexStrideInBytes(),RTLib::Ext::OPX7::OPX7VertexFormat::eFloat32x3 });
+                                geometry.SetTriIdxView({ extUniqueData->GetTriIdxBufferView(),(unsigned int)extUniqueData->GetTriIdxStrideInBytes(),RTLib::Ext::OPX7::OPX7TriIdxFormat::eUInt32x3 });
+                                geometry.SetSbtOffsetView({ extUniqueData->GetMatIdxBufferView(),(unsigned int)sizeof(uint32_t),RTLib::Ext::OPX7::OPX7SbtOffsetFormat::eUInt32,(unsigned int)meshData.materials.size() });
+                                geometry.SetGeometryFlags(OPTIX_GEOMETRY_FLAG_DISABLE_ANYHIT);
+                                geometry.SetTransformView({});
+                                geometry.SetPrimIdxOffset(0);
+                            }
+                            auto [buildInput, holder] = geometry.GetOptixBuildInputWithHolder();
+                            buildInputs.push_back(buildInput);
+                            holders.push_back(std::move(holder));
+                        }
+                    }
+                    geometryASs[geometryASName] = RTLib::Ext::OPX7::OPX7Natives::BuildAccelerationStructure(opx7Context, accelBuildOptions, buildInputs);
+                }
+                return geometryASs;
+            }
+            
             auto GetFrameBufferSizeInBytes()const noexcept -> size_t
             {
                 return static_cast<size_t>(config.width * config.height);
             }
+
             auto GetCamera()const noexcept -> Camera
             {
                 return cameraController.GetCamera(static_cast<float>(config.width) / static_cast<float>(config.height));
             }
         };
+
         template<typename JsonType>
         inline void   to_json(JsonType& j, const SceneData& v) {
             j["CameraController"] = v.cameraController;
@@ -109,12 +285,14 @@ namespace rtlib
             j["World" ]           = v.world;
             j["Config"]           = v.config;
         }
+
         template<typename JsonType>
         inline void from_json(const JsonType& j, SceneData& v) {
             v.cameraController = j.at("CameraController").get<RTLib::Utils::CameraController>();
             v.objAssetManager  = j.at("ObjModels"       ).get<RTLib::Core::ObjModelAssetManager>();
             v.world            = j.at("World"           ).get<RTLib::Core::WorldData>();
             v.config           = j.at("Config"          ).get<TraceConfigData>();
+
             for (auto& [geometryASName, geometryAS] : v.world.geometryASs)
             {
                 for (auto& geometryName : geometryAS.geometries) {
@@ -142,6 +320,18 @@ namespace rtlib
                                     meshData.materials.reserve(mesh->GetUniqueResource()->materials.size());
                                     for (auto& matIdx : mesh->GetUniqueResource()->materials) {
                                         meshData.materials.push_back(objAsset.materials[matIdx]);
+                                        if (meshData.materials.back().HasString("diffCol")||
+                                            meshData.materials.back().GetString("diffCol")=="") {
+                                            meshData.materials.back().SetString("diffCol", "White");
+                                        }
+                                        if (meshData.materials.back().HasString("specCol") ||
+                                            meshData.materials.back().GetString("specCol") == "") {
+                                            meshData.materials.back().SetString("specCol", "White");
+                                        }
+                                        if (meshData.materials.back().HasString("emitCol") ||
+                                            meshData.materials.back().GetString("emitCol") == "") {
+                                            meshData.materials.back().SetString("emitCol", "White");
+                                        }
                                     }
                                 }
 
@@ -319,134 +509,175 @@ namespace rtlib
             return isMovedCamera;
         }
 
-        class OPX7MeshSharedResourceExtData:public RTLib::Core::MeshSharedResourceExtData {
-        public:
-            static auto New(MeshSharedResource* pMeshSharedResource, OPX7::OPX7Context* context)noexcept->OPX7MeshSharedResourceExtData* {
-                auto extData = new OPX7MeshSharedResourceExtData(pMeshSharedResource);
-                auto parent  = extData->GetParent();
-                extData->m_VertexBuffer = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(context->CreateBuffer(
-                    {RTLib::Ext::CUDA::CUDAMemoryFlags::eDefault, sizeof(float3) * std::size(parent->vertexBuffer), std::data(parent->vertexBuffer)}
-                ));
-                extData->m_NormalBuffer = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(context->CreateBuffer(
-                    { RTLib::Ext::CUDA::CUDAMemoryFlags::eDefault, sizeof(float3) * std::size(parent->normalBuffer), std::data(parent->normalBuffer) }
-                ));
-                extData->m_TexCrdBuffer = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(context->CreateBuffer(
-                    { RTLib::Ext::CUDA::CUDAMemoryFlags::eDefault, sizeof(float2) * std::size(parent->texCrdBuffer), std::data(parent->texCrdBuffer) }
-                ));
-                return extData;
-            }
-            virtual ~OPX7MeshSharedResourceExtData()noexcept {}
-            void Destroy() {
-                m_VertexBuffer->Destroy();
-                m_NormalBuffer->Destroy();
-                m_TexCrdBuffer->Destroy();
-            }
-            //SET
-            void SetVertexStrideInBytes(size_t vertexStride)noexcept {m_VertexStrideInBytes = vertexStride;}
-            void SetVertexFormat(OptixVertexFormat format)noexcept {m_VertexFormat = format;}
-            //GET
-            auto GetVertexStrideInBytes()const noexcept -> size_t { return m_VertexStrideInBytes; }
-            auto GetVertexFormat()const noexcept -> OptixVertexFormat { return m_VertexFormat; }
-            auto GetVertexCount()const noexcept -> size_t {
-                if (m_VertexBuffer && m_VertexStrideInBytes > 0) { return m_VertexBuffer->GetSizeInBytes() / m_VertexStrideInBytes; }
-                return 0;
-            }
-            auto GetVertexBufferGpuAddress()const noexcept -> CUdeviceptr { return CUDA::CUDANatives::GetCUdeviceptr(m_VertexBuffer.get()); }
-            auto GetNormalBufferGpuAddress()const noexcept -> CUdeviceptr { return CUDA::CUDANatives::GetCUdeviceptr(m_NormalBuffer.get()); }
-            auto GetTexCrdBufferGpuAddress()const noexcept -> CUdeviceptr { return CUDA::CUDANatives::GetCUdeviceptr(m_TexCrdBuffer.get()); }
 
-            auto GetVertexBufferView()const noexcept -> CUDA::CUDABufferView
-            {
-                return CUDA::CUDABufferView(m_VertexBuffer.get());
-            }
-            auto GetNormalBufferView()const noexcept -> CUDA::CUDABufferView
-            {
-                return CUDA::CUDABufferView(m_NormalBuffer.get());
-            }
-            auto GetTexCrdBufferView()const noexcept -> CUDA::CUDABufferView
-            {
-                return CUDA::CUDABufferView(m_TexCrdBuffer.get());
-            }
-        private:
-            OPX7MeshSharedResourceExtData(MeshSharedResource* pMeshSharedResource) noexcept :MeshSharedResourceExtData(pMeshSharedResource) {}
-        private:
-            std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer> m_VertexBuffer = nullptr;
-            std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer> m_NormalBuffer = nullptr;
-            std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer> m_TexCrdBuffer = nullptr;
-            size_t m_VertexStrideInBytes = 0;
-            OptixVertexFormat m_VertexFormat = OPTIX_VERTEX_FORMAT_NONE;
-        };
-
-        class OPX7MeshUniqueResourceExtData : public RTLib::Core::MeshUniqueResourceExtData {
-        public:
-            static auto New(MeshUniqueResource* pMeshUniqueResource, OPX7::OPX7Context* context)noexcept->OPX7MeshUniqueResourceExtData* {
-                auto extData = new OPX7MeshUniqueResourceExtData(pMeshUniqueResource);
-                auto parent  = extData->GetParent();
-                extData->m_TriIdxBuffer = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(context->CreateBuffer(
-                    { RTLib::Ext::CUDA::CUDAMemoryFlags::eDefault, sizeof(uint32_t)*3 * std::size(parent->triIndBuffer), std::data(parent->triIndBuffer) }
-                ));
-                extData->m_MatIdxBuffer = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(context->CreateBuffer(
-                    { RTLib::Ext::CUDA::CUDAMemoryFlags::eDefault, sizeof(uint32_t) * std::size(parent->matIndBuffer), std::data(parent->matIndBuffer) }
-                ));
-
-                return extData;
-            }
-            virtual ~OPX7MeshUniqueResourceExtData()noexcept {}
-            void Destroy() {
-                m_TriIdxBuffer.reset();
-            }
-            //SET
-            void SetTriIdxStrideInBytes(size_t indexStride)noexcept { m_TriIdxStride = indexStride; }
-            void SetTriIdxFormat(OptixIndicesFormat format)noexcept { m_IndicesFormat = format; }
-            //GET
-            auto GetTriIdxBufferGpuAddress()const noexcept -> CUdeviceptr { return CUDA::CUDANatives::GetCUdeviceptr(m_TriIdxBuffer.get()); }
-            auto GetTriIdxCount()const noexcept -> size_t {
-                if (m_TriIdxBuffer && m_TriIdxStride > 0) { return m_TriIdxBuffer->GetSizeInBytes() / m_TriIdxStride; }
-                return 0;
-            }
-            auto GetTriIdxStrideInBytes()const noexcept -> size_t { return m_TriIdxStride; }
-            auto GetTriIdxFormat()const noexcept -> OptixIndicesFormat { return m_IndicesFormat; }
-            //
-            auto GetMatIdxBufferGpuAddress()const noexcept -> CUdeviceptr { return CUDA::CUDANatives::GetCUdeviceptr(m_MatIdxBuffer.get()); };
-            auto GetMatIdxCount()const noexcept -> size_t {
-                if (m_MatIdxBuffer) { return m_MatIdxBuffer->GetSizeInBytes() / sizeof(uint32_t); }
-                return 0;
-            }
-            //
-            auto GetTriIdxBufferView()const noexcept -> CUDA::CUDABufferView
-            {
-                return CUDA::CUDABufferView(m_TriIdxBuffer.get());
-            }
-            auto GetMatIdxBufferView()const noexcept -> CUDA::CUDABufferView
-            {
-                return CUDA::CUDABufferView(m_MatIdxBuffer.get());
-            }
-        private:
-            OPX7MeshUniqueResourceExtData(MeshUniqueResource* pMeshUniqueResource) noexcept :MeshUniqueResourceExtData(pMeshUniqueResource) {}
-        private:
-            std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer> m_TriIdxBuffer = nullptr;
-            std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer> m_MatIdxBuffer = nullptr;
-            OptixIndicesFormat m_IndicesFormat = OPTIX_INDICES_FORMAT_NONE;
-            size_t m_TriIdxStride = 0;
-        };
-
-        void InitMeshGroupExtData(RTLib::Ext::OPX7::OPX7Context* opx7Context, RTLib::Core::MeshGroupPtr meshGroup)
+        inline void SetRaygenData(RTLib::Ext::OPX7::OPX7ShaderRecord<RayGenData>& rgData, const Camera& camera)noexcept
         {
-            {
-                auto sharedResource = meshGroup->GetSharedResource();
-                sharedResource->AddExtData<rtlib::test::OPX7MeshSharedResourceExtData>(opx7Context );
-                auto extData = static_cast<rtlib::test::OPX7MeshSharedResourceExtData*>(sharedResource->extData.get());
-                extData->SetVertexFormat(OPTIX_VERTEX_FORMAT_FLOAT3);
-                extData->SetVertexStrideInBytes(sizeof(float) * 3);
-            }
-            for (auto& [name, uniqueResource] : meshGroup->GetUniqueResources())
-            {
-                uniqueResource->AddExtData<rtlib::test::OPX7MeshUniqueResourceExtData>(opx7Context );
-                auto extData = static_cast<rtlib::test::OPX7MeshUniqueResourceExtData*>(uniqueResource->extData.get());
-                extData->SetTriIdxFormat(OPTIX_INDICES_FORMAT_UNSIGNED_INT3);
-                extData->SetTriIdxStrideInBytes(sizeof(uint32_t) * 3);
-            }
+            rgData.data.eye = camera.GetEyeAs<float3>();
+            auto [u, v, w] = camera.GetUVW();
+            rgData.data.u = make_float3(u[0],u[1],u[2]);
+            rgData.data.v = make_float3(v[0],v[1],v[2]);
+            rgData.data.w = make_float3(w[0],w[1],w[2]);
         }
+
+        inline auto GetShaderTableLayout(const RTLib::Core::WorldData& worldData, unsigned int stride = 1)->std::unique_ptr<RTLib::Ext::OPX7::OPX7ShaderTableLayout> {
+            auto blasLayouts = std::unordered_map<std::string, std::unique_ptr<RTLib::Ext::OPX7::OPX7ShaderTableLayoutGeometryAS>>();
+            for (auto& [geometryASName, geometryAS] : worldData.geometryASs)
+            {
+                blasLayouts[geometryASName] = std::make_unique<RTLib::Ext::OPX7::OPX7ShaderTableLayoutGeometryAS>(geometryASName);
+                auto buildInputSize = size_t(0);
+                for (auto& geometryName : geometryAS.geometries)
+                {
+                    for (auto& [meshName, meshData] : worldData.geometryObjModels.at(geometryName).meshes)
+                    {
+                        blasLayouts[geometryASName]->SetDwGeometry(RTLib::Ext::OPX7::OPX7ShaderTableLayoutGeometry(meshName, meshData.materials.size()));
+                    }
+                }
+            }
+            auto tlasLayout = RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstanceAS("Root");
+            for (auto& instanceName : worldData.instanceASs.at("Root").instances)
+            {
+                auto& instanceData = worldData.instances.at(instanceName);
+                if (instanceData.asType == "Geometry")
+                {
+                    auto baseGeometryASName = instanceData.base;
+                    tlasLayout.SetInstance(RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstance(instanceName, blasLayouts[baseGeometryASName].get()));
+                }
+
+            }
+            tlasLayout.SetRecordStride(stride);
+            return std::make_unique<RTLib::Ext::OPX7::OPX7ShaderTableLayout>(tlasLayout);
+        }
+
+        struct TextureData
+        {
+            std::unique_ptr<RTLib::Ext::CUDA::CUDATexture> handle;
+            std::unique_ptr<RTLib::Ext::CUDA::CUDAImage>   image ;
+            
+            void LoadFromPath(RTLib::Ext::OPX7::OPX7Context* context, const std::string& filePath)
+            {
+                int  texWid, texHei, texComp;
+                auto pixelData = stbi_load(filePath.c_str(), &texWid, &texHei, &texComp, 4);
+                auto imgData = std::vector<unsigned char>(texWid * texHei * 4, 255);
+                {
+                    for (size_t i = 0; i < texHei; ++i) {
+                        auto srcData = pixelData + 4 * texWid * (texHei - 1 - i);
+                        auto dstData = imgData.data() + 4 * texWid * i;
+                        std::memcpy(dstData, srcData, 4 * texWid);
+                    }
+                }
+                stbi_image_free(pixelData);
+
+                {
+                    auto imgDesc = RTLib::Ext::CUDA::CUDAImageCreateDesc();
+                    imgDesc.imageType = RTLib::Ext::CUDA::CUDAImageType::e2D;
+                    imgDesc.extent.width = texWid;
+                    imgDesc.extent.height = texHei;
+                    imgDesc.extent.depth = 0;
+                    imgDesc.format = RTLib::Ext::CUDA::CUDAImageFormat::eUInt8X4;
+                    imgDesc.mipLevels = 1;
+                    imgDesc.arrayLayers = 1;
+                    imgDesc.flags = RTLib::Ext::CUDA::CUDAImageCreateFlagBitsDefault;
+                    image = std::unique_ptr<RTLib::Ext::CUDA::CUDAImage>(context->CreateImage(imgDesc));
+                    std::cout << "Image: " << RTLib::Ext::CUDA::CUDANatives::GetCUarray(image.get()) << std::endl;
+                }
+                {
+                    auto memoryImageCopy = RTLib::Ext::CUDA::CUDAMemoryImageCopy();
+                    memoryImageCopy.srcData = imgData.data();
+                    memoryImageCopy.dstImageExtent = { (uint32_t)texWid, (uint32_t)texHei, (uint32_t)0 };
+                    memoryImageCopy.dstImageOffset = {};
+                    memoryImageCopy.dstImageSubresources.baseArrayLayer = 0;
+                    memoryImageCopy.dstImageSubresources.layerCount = 1;
+                    memoryImageCopy.dstImageSubresources.mipLevel = 0;
+                    RTLIB_CORE_ASSERT_IF_FAILED(context->CopyMemoryToImage(image.get(), { memoryImageCopy }));
+                }
+                {
+                    auto texImgDesc = RTLib::Ext::CUDA::CUDATextureImageCreateDesc();
+                    texImgDesc.image = image.get();
+                    texImgDesc.sampler.addressMode[0] = RTLib::Ext::CUDA::CUDATextureAddressMode::eWarp;
+                    texImgDesc.sampler.addressMode[1] = RTLib::Ext::CUDA::CUDATextureAddressMode::eWarp;
+                    texImgDesc.sampler.addressMode[2] = RTLib::Ext::CUDA::CUDATextureAddressMode::eWarp;
+                    texImgDesc.sampler.borderColor[0] = 1.0f;
+                    texImgDesc.sampler.borderColor[1] = 1.0f;
+                    texImgDesc.sampler.borderColor[2] = 1.0f;
+                    texImgDesc.sampler.borderColor[3] = 1.0f;
+                    texImgDesc.sampler.filterMode = RTLib::Ext::CUDA::CUDATextureFilterMode::eLinear;
+                    texImgDesc.sampler.mipmapFilterMode = RTLib::Ext::CUDA::CUDATextureFilterMode::eLinear;
+                    texImgDesc.sampler.mipmapLevelBias = 0.0f;
+                    texImgDesc.sampler.maxMipmapLevelClamp = 99.0f;
+                    texImgDesc.sampler.minMipmapLevelClamp = 0.0f;
+                    texImgDesc.sampler.maxAnisotropy = 1;
+                    texImgDesc.sampler.flags = RTLib::Ext::CUDA::CUDATextureFlagBitsNormalizedCordinates;
+                    handle = std::unique_ptr<RTLib::Ext::CUDA::CUDATexture>(context->CreateTexture(texImgDesc));
+                }
+            }
+            void Destroy() {
+                if (handle) {
+                    handle->Destroy();
+                    handle = nullptr ;
+                }
+                if (image) {
+                    image->Destroy();
+                    image = nullptr;
+                }
+            }
+
+            static auto Color(RTLib::Ext::OPX7::OPX7Context* context, const uchar4 col)->TextureData
+            {
+                auto imgData = std::vector<uchar4>(32 * 32, col);
+                auto texData = rtlib::test::TextureData();
+                {
+                    auto imgDesc = RTLib::Ext::CUDA::CUDAImageCreateDesc();
+                    imgDesc.imageType = RTLib::Ext::CUDA::CUDAImageType::e2D;
+                    imgDesc.extent.width = 32;
+                    imgDesc.extent.height = 32;
+                    imgDesc.extent.depth = 0;
+                    imgDesc.format = RTLib::Ext::CUDA::CUDAImageFormat::eUInt8X4;
+                    imgDesc.mipLevels = 1;
+                    imgDesc.arrayLayers = 1;
+                    imgDesc.flags = RTLib::Ext::CUDA::CUDAImageCreateFlagBitsDefault;
+                    texData.image = std::unique_ptr<RTLib::Ext::CUDA::CUDAImage>(context->CreateImage(imgDesc));
+                    std::cout << "Image: " << RTLib::Ext::CUDA::CUDANatives::GetCUarray(texData.image.get()) << std::endl;
+                }
+                {
+                    auto memoryImageCopy = RTLib::Ext::CUDA::CUDAMemoryImageCopy();
+                    memoryImageCopy.srcData = imgData.data();
+                    memoryImageCopy.dstImageExtent = { (uint32_t)32, (uint32_t)32, (uint32_t)0 };
+                    memoryImageCopy.dstImageOffset = {};
+                    memoryImageCopy.dstImageSubresources.baseArrayLayer = 0;
+                    memoryImageCopy.dstImageSubresources.layerCount = 1;
+                    memoryImageCopy.dstImageSubresources.mipLevel = 0;
+                    RTLIB_CORE_ASSERT_IF_FAILED(context->CopyMemoryToImage(texData.image.get(), { memoryImageCopy }));
+                }
+                {
+                    auto texImgDesc = RTLib::Ext::CUDA::CUDATextureImageCreateDesc();
+                    texImgDesc.image = texData.image.get();
+                    texImgDesc.sampler.addressMode[0] = RTLib::Ext::CUDA::CUDATextureAddressMode::eClamp;
+                    texImgDesc.sampler.addressMode[1] = RTLib::Ext::CUDA::CUDATextureAddressMode::eClamp;
+                    texImgDesc.sampler.addressMode[2] = RTLib::Ext::CUDA::CUDATextureAddressMode::eClamp;
+                    texImgDesc.sampler.borderColor[0] = 1.0f;
+                    texImgDesc.sampler.borderColor[1] = 1.0f;
+                    texImgDesc.sampler.borderColor[2] = 1.0f;
+                    texImgDesc.sampler.borderColor[3] = 1.0f;
+                    texImgDesc.sampler.filterMode = RTLib::Ext::CUDA::CUDATextureFilterMode::eLinear;
+                    texImgDesc.sampler.mipmapFilterMode = RTLib::Ext::CUDA::CUDATextureFilterMode::eLinear;
+                    texImgDesc.sampler.mipmapLevelBias = 0.0f;
+                    texImgDesc.sampler.maxMipmapLevelClamp = 0.0f;
+                    texImgDesc.sampler.minMipmapLevelClamp = 0.0f;
+                    texImgDesc.sampler.maxAnisotropy = 0;
+                    texImgDesc.sampler.flags = RTLib::Ext::CUDA::CUDATextureFlagBitsNormalizedCordinates;
+                    texData.handle = std::unique_ptr<RTLib::Ext::CUDA::CUDATexture>(context->CreateTexture(texImgDesc));
+                }
+                return texData;
+            }
+            static auto Black(RTLib::Ext::OPX7::OPX7Context* context)->TextureData
+            {
+                return Color(context, make_uchar4(0, 0, 0, 0));
+            }
+            static auto White(RTLib::Ext::OPX7::OPX7Context* context)->TextureData
+            {
+                return Color(context, make_uchar4(255, 255, 255, 255));
+            }
+        };
     }
 
 }

@@ -12,6 +12,8 @@ namespace RTLib {
 				char header[OPTIX_SBT_RECORD_HEADER_SIZE];
 				T    data;
             };
+            
+
 		}
 	}
 }
