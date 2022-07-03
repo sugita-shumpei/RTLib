@@ -270,14 +270,17 @@ namespace RTLib
         }
         void from_json(const nlohmann::json& json, CameraController& cameraController)
         {
-            cameraController.SetPosition(json.at("Position").get<std::array<float, 3>>());
-            cameraController.SetYaw     (json.at("Yaw"     ).get<float>());
-            cameraController.SetPitch   (json.at("Pitch"   ).get<float>());
-            cameraController.SetZoom    (json.at("Zoom"    ).get<float>());
-            cameraController.SetMouseSensitivity(json.at("MouseSensitivity").get<float>());
-            cameraController.SetMovementSpeed   (json.at("MovementSpeed"   ).get<float>());
+            cameraController = CameraController(
+                json.at("Position").get<std::array<float, 3>>(),
+                { 0.0f,1.0f,0.0f },
+                json.at("Yaw").get<float>(),
+                json.at("Pitch").get<float>(),
+                json.at("MouseSensitivity").get<float>(),
+                json.at("MovementSpeed").get<float>(),
+                json.at("Zoom").get<float>()
+            );
         }
-        void from_json(const nlohmann::json& json, Camera& camera)
+        void from_json(const nlohmann::json& json, Camera          & camera)
         {
             camera.SetEye   (json.at("Eye"   ).get<std::array<float, 3>>());
             camera.SetLookAt(json.at("LookAt").get<std::array<float, 3>>());

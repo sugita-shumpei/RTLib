@@ -220,11 +220,10 @@ void RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstance::Internal_SetUpInstanceAS(I
 	m_UpInstanceAS = instanceAS;
 }
 
-RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstanceAS::OPX7ShaderTableLayoutInstanceAS(const std::string& name) noexcept :m_Name{ name } {}
+RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstanceAS::OPX7ShaderTableLayoutInstanceAS() noexcept {}
 
 RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstanceAS::OPX7ShaderTableLayoutInstanceAS(const OPX7ShaderTableLayoutInstanceAS& instance) noexcept
 {
-	m_Name = instance.m_Name;
 	m_UpInstance   = nullptr;
 	m_DwInstances  = instance.GetInstances();
 	m_RecordStride = 0;
@@ -235,23 +234,12 @@ auto RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstanceAS::operator=(const OPX7Shad
 {
 	// TODO: return ステートメントをここに挿入します
 	if (this != &instanceAS) {
-		m_Name = instanceAS.m_Name;
 		m_UpInstance = nullptr;
 		m_DwInstances = instanceAS.GetInstances();
 		m_RecordStride = 0;
 		SetRecordStride(instanceAS.GetRecordStride());
 	}
 	return *this;
-}
-
-auto RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstanceAS::GetName() const noexcept -> std::string
-{
-	return m_Name;
-}
-
-void RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstanceAS::SetName(const std::string& name) noexcept
-{
-	m_Name = name;
 }
 
 auto RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstanceAS::GetInstanceCount() const noexcept -> unsigned int
@@ -358,7 +346,6 @@ RTLib::Ext::OPX7::OPX7ShaderTableLayout::OPX7ShaderTableLayout(const OPX7ShaderT
 		m_InstanceASLayouts.reserve(std::size(iasSet) + 1);
 		iasMap[&tlas] = 0;
 		m_InstanceASLayouts.push_back(std::make_unique<OPX7ShaderTableLayoutInstanceAS>(tlas));
-		m_InstanceASLayouts.front()->SetName("Root");
 
 		for (auto& pIAS : iasSet) {
 			iasMap[pIAS] = m_InstanceASLayouts.size();

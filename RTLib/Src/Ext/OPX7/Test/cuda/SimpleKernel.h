@@ -4,6 +4,7 @@
 #include <optix.h>
 #include <RTLib/Ext/CUDA/Math/Math.h>
 #include <RTLib/Ext/CUDA/Math/Random.h>
+#include <RTLib/Ext/CUDA/Math/Matrix.h>
 #include <RTLib/Ext/CUDA/Math/VectorFunction.h>
 #include <RTLib/Ext/OPX7/OPX7Payload.h>
 //#define TEST_SKIP_TEXTURE_SAMPLE
@@ -15,15 +16,122 @@ struct ParallelLight {
     float3   normal;
     float3 emission;
 };
+struct LightRecord
+{
+    float3 position;
+    float3 direction;
+    float3 normal;
+    float3 emission;
+    float  distance;
+    float  invPdf;
+};
+struct MeshLight
+{
+    using Matrix4x4 = RTLib::Ext::CUDA::Math::Matrix4x4;
+
+    float3*             vertices;
+    float3*             normals;
+    float2*             texCrds;
+    uint3*              indices;
+    unsigned int        indCount;
+    float3              emission;
+    Matrix4x4           transform;
+    cudaTextureObject_t emissionTex;
+
+    RTLIB_INLINE RTLIB_HOST_DEVICE auto GetFaceNormalWithNonNormalized(unsigned int triIdx)const noexcept-> float3
+    {
+        namespace rtlib = RTLib::Ext::CUDA::Math;
+        auto v0xyzw = transform * make_float4(vertices[indices[triIdx].x], 1.0f);
+        auto v1xyzw = transform * make_float4(vertices[indices[triIdx].y], 1.0f);
+        auto v2xyzw = transform * make_float4(vertices[indices[triIdx].z], 1.0f);
+        auto v0     = make_float3(v0xyzw.x, v0xyzw.y, v0xyzw.z) / v0xyzw.w;
+        auto v1     = make_float3(v1xyzw.x, v1xyzw.y, v1xyzw.z) / v1xyzw.w;
+        auto v2     = make_float3(v2xyzw.x, v2xyzw.y, v2xyzw.z) / v2xyzw.w;
+        return rtlib::cross(v1 - v0, v2 - v0);
+    }
+    RTLIB_INLINE RTLIB_HOST_DEVICE auto GetVertex(unsigned int triIdx, float3 bary)const noexcept-> float3
+    {
+        namespace rtlib = RTLib::Ext::CUDA::Math;
+        auto v0xyzw = transform * make_float4(vertices[indices[triIdx].x], 1.0f);
+        auto v1xyzw = transform * make_float4(vertices[indices[triIdx].y], 1.0f);
+        auto v2xyzw = transform * make_float4(vertices[indices[triIdx].z], 1.0f);
+        auto v0 = make_float3(v0xyzw.x, v0xyzw.y, v0xyzw.z) / v0xyzw.w;
+        auto v1 = make_float3(v1xyzw.x, v1xyzw.y, v1xyzw.z) / v1xyzw.w;
+        auto v2 = make_float3(v2xyzw.x, v2xyzw.y, v2xyzw.z) / v2xyzw.w;
+        auto p = bary.x * v0 + bary.y * v1 + bary.z * v2;
+        return p;
+    }
+    RTLIB_INLINE RTLIB_HOST_DEVICE auto GetTexCrd(unsigned int triIdx, float3 bary)const noexcept-> float2
+    {
+        namespace rtlib = RTLib::Ext::CUDA::Math;
+        auto t0 = texCrds[indices[triIdx].x];
+        auto t1 = texCrds[indices[triIdx].y];
+        auto t2 = texCrds[indices[triIdx].z];
+        auto t = bary.x * t0 + bary.y * t1 + bary.z * t2;
+        return t;
+    }
+
+#ifdef __CUDACC__
+    template<typename RNG>
+    RTLIB_INLINE RTLIB_DEVICE auto Sample(const float3& p_in, RNG& rng)const noexcept->LightRecord
+    {
+        auto triIdx = rng.next() % indCount;
+        //normal
+        auto nf   = GetFaceNormalWithNonNormalized(triIdx);
+        auto bary = rtlib::random_in_unit_triangle(make_float3(1.0f, 0.0f, 0.0f), make_float3(0.0f, 1.0f, 0.0f), make_float3(0.0f, 0.0f, 1.0f), rng);
+        auto p    = GetVertex(triIdx, bary);
+        auto t    = GetTexCrd(triIdx, bary);
+        auto d    = p - p_in;
+        LightRecord lRec = {};
+        lRec.position  = p;
+        lRec.direction = rtlib::normalize(d);
+        lRec.distance  = rtlib::length(d);
+        lRec.emission  = GetEmission(t);
+        lRec.normal    = rtlib::normalize(nf);
+        lRec.invPdf    = rtlib::length(nf) / 2.0f * static_cast<float>(indCount);
+        return lRec;
+    };
+    RTLIB_INLINE RTLIB_DEVICE auto GetEmission(float2 uv)const noexcept -> float3 {
+        auto emitTC = tex2D<float4>(this->emissionTex, uv.x, uv.y);
+        auto emitBC = this->emission;
+        auto emitColor = emitBC * make_float3(float(emitTC.x), float(emitTC.y), float(emitTC.z));
+        return emitColor;
+    }
+#endif
+};
+struct MeshLightList
+{
+    unsigned int count;
+    MeshLight*   data;
+
+#ifdef __CUDACC__
+    template<typename RNG>
+    RTLIB_INLINE RTLIB_DEVICE auto Sample(const float3& p_in, RNG& rng)const noexcept->LightRecord
+    {
+        auto triIdx  = rng.next() % count;
+        auto lRec    = data[triIdx].Sample(p_in, rng);
+        lRec.invPdf *= static_cast<float>(count);
+        return lRec;
+    };
+#endif
+};
+enum   ParamFlag
+{
+    PARAM_FLAG_NONE= 0,
+    PARAM_FLAG_NEE = 1,
+};
 struct Params {
     unsigned int*           seedBuffer;
     float3*                accumBuffer;
     uchar4*                frameBuffer;
     unsigned int           width;
     unsigned int           height;
+    unsigned int           maxDepth;
     unsigned int           samplesForLaunch;
     unsigned int           samplesForAccum;
+    unsigned int           flags;
     OptixTraversableHandle gasHandle;
+    MeshLightList          lights;
 };
 struct RayGenData {
     float3 u, v, w;

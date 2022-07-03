@@ -112,14 +112,10 @@ namespace RTLib {
 				friend class OPX7ShaderTableLayoutGeometryAS;
 				friend class OPX7ShaderTableLayout;
 			public:
-				OPX7ShaderTableLayoutInstanceAS(const std::string& name)noexcept;
+				OPX7ShaderTableLayoutInstanceAS()noexcept;
 
 				OPX7ShaderTableLayoutInstanceAS(const OPX7ShaderTableLayoutInstanceAS& instance)noexcept;
 				auto operator=(const OPX7ShaderTableLayoutInstanceAS& instance)noexcept->OPX7ShaderTableLayoutInstanceAS&;
-
-				auto GetName()const noexcept -> std::string;
-				void SetName(const std::string& name)noexcept;
-
 
 				auto GetInstanceCount()const noexcept -> unsigned int;
 				auto GetInstances()const noexcept -> const Instances&;
@@ -138,7 +134,6 @@ namespace RTLib {
 				void Internal_SetRecordStride(unsigned int recordStride)noexcept;
 				void Internal_SetRecordOffset(unsigned int recordOffset)noexcept;
 			private:
-				std::string m_Name = "";
 				Instance*    m_UpInstance   = nullptr;
 				Instances    m_DwInstances  = {};
 
@@ -181,10 +176,12 @@ namespace RTLib {
 					return m_BaseDescs.at(name);
 				}
 
-				auto GetBaseGeometryNames()const noexcept -> std::vector<std::string> { return m_BaseGeometryNames; }
+				auto GetBaseGeometryNames()const noexcept   -> std::vector<std::string> { return m_BaseGeometryNames; }
 				auto GetBaseGeometryASNames()const noexcept -> std::vector<std::string> { return m_BaseGeometryASNames; }
-				auto GetGeometryNames()const noexcept -> std::vector<std::string>   { return m_GeometryNames; }
-				auto GetInstanceNames()const noexcept -> std::vector<std::string>   { return m_InstanceNames; }
+
+				auto GetGeometryNames()const noexcept -> std::vector<std::string> { return m_GeometryNames; }
+				auto GetInstanceNames()const noexcept -> std::vector<std::string> { return m_InstanceNames; }
+
 				auto GetMaxTraversableDepth()const noexcept -> unsigned int { return m_MaxTraversalDepth; }
 			private:
 				static auto SplitFirstOf(const std::string& name)->std::pair<std::string, std::string> {
@@ -234,8 +231,8 @@ namespace RTLib {
 				std::unordered_map<std::string, OPX7ShaderTableLayoutBaseDesc> m_BaseDescs;
 				std::vector<std::string> m_BaseGeometryNames;
 				std::vector<std::string> m_BaseGeometryASNames;
-				std::vector<std::string> m_GeometryNames;
 				std::vector<std::string> m_InstanceNames;
+				std::vector<std::string> m_GeometryNames;
 				unsigned int m_MaxTraversalDepth = 1;
 			};
 		}

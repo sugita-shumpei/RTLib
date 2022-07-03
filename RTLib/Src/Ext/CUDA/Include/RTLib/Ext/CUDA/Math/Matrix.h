@@ -175,7 +175,7 @@ namespace RTLib
                     }
                     static RTLIB_INLINE RTLIB_HOST_DEVICE auto Rotate(const float3 &axis, float angleRadians) noexcept -> Matrix3x3
                     {
-                        auto n = rtlib::normalize(axis);
+                        auto n = normalize(axis);
                         float s = ::sinf(angleRadians);
                         float o_s = 1.0f - s;
                         float c = ::cosf(angleRadians);
@@ -465,7 +465,7 @@ namespace RTLib
                     static RTLIB_INLINE RTLIB_HOST_DEVICE auto Rotate(const float3 &axis, float angleRadians) noexcept -> Matrix4x4
                     {
                         // BUG!
-                        auto n = rtlib::normalize(axis);
+                        auto n = normalize(axis);
                         float s = ::sinf(angleRadians);
                         float c = ::cosf(angleRadians);
                         auto o_c = (1.0f - c) * n;

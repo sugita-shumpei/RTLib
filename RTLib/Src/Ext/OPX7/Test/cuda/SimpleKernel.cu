@@ -34,15 +34,16 @@ extern "C" __global__ void       __raygen__rg() {
     hrec.rayDistance  = 0.0f;
     hrec.cosine       = 0.0f;
     hrec.seed         = xor32.m_seed;
-    hrec.flags        = 0;
+    hrec.flags        = HIT_RECORD_FLAG_COUNT_EMITTED;
 
     hrec.userData.throughPut = make_float3(1.0f);
     hrec.userData.radiance   = make_float3(0.0f);
     hrec.userData.bsdfVal    = make_float3(0.0f);
     hrec.userData.bsdfPdf    = 0.0f;
     hrec.userData.depth      = 0;
+
     while (true) {
-        TraceRadiance(params.gasHandle, hrec.rayOrigin, hrec.rayDirection, 0.01f, 1.0e20f, hrec);
+        TraceRadiance(params.gasHandle, hrec.rayOrigin, hrec.rayDirection, 0.001f, 1.0e20f, hrec);
         color += hrec.userData.radiance;
         ++hrec.userData.depth;
 
@@ -51,17 +52,23 @@ extern "C" __global__ void       __raygen__rg() {
             break;
         }
 
-        if ((hrec.flags & HIT_RECORD_FLAG_FINISH) || (hrec.userData.depth > 10)) {
+        if ((hrec.flags & HIT_RECORD_FLAG_FINISH) || (hrec.userData.depth > params.maxDepth)) {
             break;
         }
     }
     
     result += color;
     result /= static_cast<float>(params.samplesForLaunch + params.samplesForAccum);
-
+    
     // printf("%f, %lf\n", texCoord.x, texCoord.y);
     params.accumBuffer[params.width * idx.y + idx.x] = result;
-    params.frameBuffer[params.width * idx.y + idx.x] = rtlib::rgba_to_srgb(make_uchar4(static_cast<unsigned char>(255.99 * result.x), static_cast<unsigned char>(255.99 * result.y), static_cast<unsigned char>(255.99 * result.z), 255));
+    result = (result) / (make_float3(1.0f) + result);
+    params.frameBuffer[params.width * idx.y + idx.x] = make_uchar4(
+        rtlib::min(static_cast<int>(rtlib::linear_to_gamma(result.x) * 255.99f), 255),
+        rtlib::min(static_cast<int>(rtlib::linear_to_gamma(result.y) * 255.99f), 255),
+        rtlib::min(static_cast<int>(rtlib::linear_to_gamma(result.z) * 255.99f), 255),
+        255
+    );
     params.seedBuffer [params.width * idx.y + idx.x] = hrec.seed;
 }
 extern "C" __global__ void       __miss__radiance() {
@@ -84,35 +91,57 @@ extern "C" __global__ void __closesthit__radiance() {
     auto uv = optixGetTriangleBarycentrics();
 
     auto distance  = optixGetRayTmax();
-    auto position  = optixGetWorldRayOrigin() + distance * optixGetWorldRayDirection();
     auto texCrd    = hgData->GetTexCrd(uv,primitiveId);
     auto normal    = hgData->GetNormal(uv,primitiveId);
+    auto position = optixGetWorldRayOrigin() + distance * optixGetWorldRayDirection();
 
     auto diffuse   = hgData->SampleDiffuse(texCrd);
     //auto specualr = hgData->SampleSpecular(texCrd);
     auto emission  = hgData->SampleEmission(texCrd);
 
     auto xor32 = rtlib::Xorshift32(hrec->seed);
-    auto   onb  = rtlib::ONB(normal);
+    auto onb = rtlib::ONB(normal);
 
     auto direction = rtlib::normalize(onb.local(rtlib::random_cosine_direction(xor32)));
     auto  cosine    = rtlib::dot(direction, normal);
     auto bsdfVal   = diffuse * RTLIB_M_INV_PI;
     auto bsdfPdf   = cosine  * RTLIB_M_INV_PI;
 
-    hrec->SetGlobalRayOrigin(position + 0.01f * normal);
+    hrec->SetGlobalRayOrigin(position);
     hrec->SetGlobalRayDirAndTmax(make_float4(direction, distance));
+
+    hrec->userData.radiance = make_float3(0.0f);
+    if (hrec->flags & HIT_RECORD_FLAG_COUNT_EMITTED)
+    {
+        hrec->userData.radiance += hrec->userData.throughPut * emission;
+    }
+
+    if (params.flags & PARAM_FLAG_NEE) {
+        if (hrec->userData.depth < params.maxDepth) {
+            auto lRec = params.lights.Sample(position, xor32);
+            if (!TraceOccluded(params.gasHandle, position, lRec.direction, 0.001f, lRec.distance - 0.001f)) {
+                auto e = lRec.emission;
+                auto b = diffuse * RTLIB_M_INV_PI;
+                //REMOVE BACK
+                auto  g = rtlib::max(-rtlib::dot(lRec.direction, lRec.normal), 0.0f) * fabsf(rtlib::dot(lRec.direction, normal)) / (lRec.distance * lRec.distance);
+                hrec->userData.radiance += hrec->userData.throughPut * b * e * g * lRec.invPdf;
+            }
+        }
+    }
 
     hrec->normal = normal;
     hrec->seed   = xor32.m_seed;
     hrec->cosine = cosine;
-    hrec->flags |= HIT_RECORD_FLAG_COUNT_EMITTED;
+    hrec->flags  = 0;
+
+    if (!(params.flags & PARAM_FLAG_NEE)) {
+        hrec->flags& HIT_RECORD_FLAG_COUNT_EMITTED;
+    }
 
     if (emission.x * emission.y * emission.z > 0.0f) {
         hrec->flags |= HIT_RECORD_FLAG_FINISH;
     }
 
-    hrec->userData.radiance    = hrec->userData.throughPut * emission;
     hrec->userData.throughPut *= diffuse;
 }
 extern "C" __global__ void       __miss__occluded() {

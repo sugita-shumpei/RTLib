@@ -18,6 +18,7 @@
 #include <RTLib/Ext/CUDA/CUDAStream.h>
 #include <RTLib/Ext/CUDA/CUDANatives.h>
 #include <RTLib/Ext/CUDA/Math/VectorFunction.h>
+#include <RTLib/Ext/CUDA/Math/Matrix.h>
 #include <RTLib/Ext/CUGL/CUGLBuffer.h>
 #include <RTLib/Ext/GLFW/GLFWContext.h>
 #include <RTLib/Ext/GLFW/GL/GLFWOpenGLWindow.h>
@@ -125,6 +126,7 @@ namespace rtlib
             unsigned int height;
             unsigned int samples;
             unsigned int maxSamples;
+            unsigned int maxDepth;
         };
 
         template<typename JsonType>
@@ -133,6 +135,7 @@ namespace rtlib
             j["Height"    ] = v.height;
             j["Samples"   ] = v.samples;
             j["MaxSamples"] = v.maxSamples;
+            j["MaxDepth"]   = v.maxDepth;
         }
         template<typename JsonType>
         inline void from_json(const JsonType& j, TraceConfigData& v) {
@@ -140,11 +143,12 @@ namespace rtlib
             v.height     = j.at("Height"    ).get<unsigned int>();
             v.samples    = j.at("Samples"   ).get<unsigned int>();
             v.maxSamples = j.at("MaxSamples").get<unsigned int>();
+            v.maxDepth   = j.at("MaxDepth"  ).get<unsigned int>();
         }
 
 
-        class OPX7MeshSharedResourceExtData :public RTLib::Core::MeshSharedResourceExtData {
-        public:
+         class OPX7MeshSharedResourceExtData :public RTLib::Core::MeshSharedResourceExtData {
+         public:
             static auto New(MeshSharedResource* pMeshSharedResource, OPX7::OPX7Context* context)noexcept->OPX7MeshSharedResourceExtData* {
                 auto extData = new OPX7MeshSharedResourceExtData(pMeshSharedResource);
                 auto parent = extData->GetParent();
@@ -276,6 +280,11 @@ namespace rtlib
         {
             std::unique_ptr<RTLib::Ext::CUDA::CUDATexture> handle;
             std::unique_ptr<RTLib::Ext::CUDA::CUDAImage>   image;
+
+            auto GetCUtexObject()const noexcept -> CUtexObject
+            {
+                return RTLib::Ext::CUDA::CUDANatives::GetCUtexObject(handle.get());
+            }
 
             void LoadFromPath(RTLib::Ext::CUDA::CUDAContext* context, const std::string& filePath)
             {
@@ -447,7 +456,7 @@ namespace rtlib
                             holders.push_back(std::move(holder));
                         }
                     }
-                    auto [buffer, handle] = RTLib::Ext::OPX7::OPX7Natives::BuildAccelerationStructure(opx7Context, accelBuildOptions, buildInputs);
+                    auto&& [buffer, handle] = RTLib::Ext::OPX7::OPX7Natives::BuildAccelerationStructure(opx7Context, accelBuildOptions, buildInputs);
                     geometryASs[geometryASName].buffer = std::move(buffer);
                     geometryASs[geometryASName].handle = handle;
                 }
@@ -524,7 +533,7 @@ namespace rtlib
                 return instanceASs;
             }
 
-            auto LoadCudaTextures(RTLib::Ext::CUDA::CUDAContext* cudaContext)const -> std::unordered_map<std::string, rtlib::test::TextureData> {
+            auto LoadTextureMap(RTLib::Ext::CUDA::CUDAContext* cudaContext)const -> std::unordered_map<std::string, rtlib::test::TextureData> {
                 std::unordered_map<std::string, rtlib::test::TextureData> cudaTextures = {};
                 {
                     std::unordered_set< std::string> texturePathSet = {};
@@ -640,6 +649,32 @@ namespace rtlib
             }
         }
 
+        template<typename T>
+        struct UploadBuffer
+        {
+            std::vector<T>                                cpuHandle;
+            std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer> gpuHandle;
+
+            void Upload(RTLib::Ext::CUDA::CUDAContext* cudaContext)
+            {
+                if (!gpuHandle) {
+                    auto desc = RTLib::Ext::CUDA::CUDABufferCreateDesc();
+                    desc.flags = RTLib::Ext::CUDA::CUDAMemoryFlags::eDefault;
+                    desc.sizeInBytes = sizeof(cpuHandle[0]) * std::size(cpuHandle);
+                    desc.pData = cpuHandle.data();
+                    gpuHandle = decltype(gpuHandle)(cudaContext->CreateBuffer(desc));
+                }
+                else {
+                    auto copy = RTLib::Ext::CUDA::CUDAMemoryBufferCopy();
+                    copy.dstOffset = 0;
+                    copy.size = sizeof(cpuHandle[0]) * std::size(cpuHandle);
+                    copy.srcData = cpuHandle.data();
+                    RTLIB_CORE_ASSERT_IF_FAILED(cudaContext->CopyMemoryToBuffer(
+                        gpuHandle.get(), { copy }
+                    ));
+                }
+            }
+        };
 
         inline auto CreateGLFWWindow(RTLib::Ext::GLFW::GLFWContext* glfwContext,int width, int height, const char* title)->RTLib::Ext::GLFW::GL::GLFWOpenGLWindow* {
             auto desc          = RTLib::Ext::GLFW::GL::GLFWOpenGLWindowCreateDesc();
@@ -808,13 +843,15 @@ namespace rtlib
         }
 
 
-        inline void SetRaygenData(RTLib::Ext::OPX7::OPX7ShaderRecord<RayGenData>& rgData, const Camera& camera)noexcept
+        inline auto GetRaygenData(const Camera& camera) noexcept->RayGenData
         {
-            rgData.data.eye = camera.GetEyeAs<float3>();
+            RayGenData rgData;
+            rgData.eye = camera.GetEyeAs<float3>();
             auto [u, v, w] = camera.GetUVW();
-            rgData.data.u = make_float3(u[0],u[1],u[2]);
-            rgData.data.v = make_float3(v[0],v[1],v[2]);
-            rgData.data.w = make_float3(w[0],w[1],w[2]);
+            rgData.u = make_float3(u[0],u[1],u[2]);
+            rgData.v = make_float3(v[0],v[1],v[2]);
+            rgData.w = make_float3(w[0],w[1],w[2]);
+            return rgData;
         }
 
         inline auto GetShaderTableLayout(const RTLib::Core::WorldData& worldData, unsigned int stride = 1)->std::unique_ptr<RTLib::Ext::OPX7::OPX7ShaderTableLayout> {
@@ -862,7 +899,7 @@ namespace rtlib
                     for (auto i = 0; i < instanceNamesWithLevels.size(); ++i) {
                         for (auto& instanceASName : instanceNamesWithLevels[instanceNamesWithLevels.size() - 1 - i]) {
                             auto& instanceASElement = worldData.instanceASs.at(dependentInstanceASs[instanceASName].first);
-                            instanceASs[instanceASName] = std::make_unique<RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstanceAS>(instanceASName);
+                            instanceASs[instanceASName] = std::make_unique<RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstanceAS>();
                             for (auto& instanceName : instanceASElement.instances)
                             {
                                 auto& instanceElement = worldData.instances.at(instanceName);
@@ -898,6 +935,179 @@ namespace rtlib
             return std::unique_ptr<RTLib::Ext::GL::GLTexture>(context->CreateTexture(frameTextureDesc));
         }
 
+        inline auto GetInstanceTransform(const WorldData& worldData, const std::string& instancePath)->RTLib::Ext::CUDA::Math::Matrix4x4
+        {
+            auto transform = RTLib::Ext::CUDA::Math::Matrix4x4::Identity();
+            {
+                auto tmpInstancePath = instancePath;
+                while (tmpInstancePath != "Root")
+                {
+                    auto len = tmpInstancePath.find_last_of("/");
+                    auto tmpInstanceName = std::string(tmpInstancePath.data() + len + 1, tmpInstancePath.data() + tmpInstancePath.size());
+                    if (worldData.instances.count(tmpInstanceName) > 0) {
+                        auto& tmpInstanceData = worldData.instances.at(tmpInstanceName);
+                        auto  tmpTransform = RTLib::Ext::CUDA::Math::Matrix4x4(
+                            make_float4(tmpInstanceData.transform[0], tmpInstanceData.transform[4], tmpInstanceData.transform[8], 0.0f),
+                            make_float4(tmpInstanceData.transform[1], tmpInstanceData.transform[5], tmpInstanceData.transform[9], 0.0f),
+                            make_float4(tmpInstanceData.transform[2], tmpInstanceData.transform[6], tmpInstanceData.transform[10], 0.0f),
+                            make_float4(tmpInstanceData.transform[3], tmpInstanceData.transform[7], tmpInstanceData.transform[11], 1.0f)
+                        );
+                        transform *= tmpTransform;
+                    }
+                    tmpInstancePath = std::string(tmpInstancePath.data(), tmpInstancePath.data() + len);
+                }
+            }
+            return transform;
+        }
+
+        inline auto LoadScene(std::string path)->SceneData {
+            nlohmann::json sceneJson;
+            std::ifstream sceneJsonFile(path, std::ios::binary);
+            if (sceneJsonFile.is_open())
+            {
+                sceneJson = nlohmann::json::parse(sceneJsonFile);
+                sceneJsonFile.close();
+            }
+            else
+            {
+                sceneJson = rtlib::test::GetDefaultSceneJson();
+            }
+            return sceneJson.get<rtlib::test::SceneData>();
+        }
+        inline void SaveScene(std::string path, const SceneData& sceneData) {
+            nlohmann::json sceneJson(sceneData);
+            auto sceneJsonFile = std::ofstream(path, std::ios::binary);
+            sceneJsonFile << sceneJson;
+            sceneJsonFile.close();
+        }
+        struct ModuleData
+        {
+            std::unique_ptr<RTLib::Ext::OPX7::OPX7Module> handle;
+            RTLib::Ext::OPX7::OPX7ModuleCompileOptions    options;
+        };
+        struct PipelineData
+        {
+            RTLib::Ext::OPX7::OPX7PipelineLinkOptions     linkOptions;
+            RTLib::Ext::OPX7::OPX7PipelineCompileOptions  compileOptions;
+            std::unordered_map<std::string, ModuleData>   modules;
+            std::unique_ptr<RTLib::Ext::OPX7::OPX7Pipeline> pipeline;
+            std::unique_ptr<RTLib::Ext::OPX7::OPX7ProgramGroup> programGroupRG;
+            std::unique_ptr<RTLib::Ext::OPX7::OPX7ProgramGroup> programGroupEP;
+            std::unordered_map<std::string, std::unique_ptr<RTLib::Ext::OPX7::OPX7ProgramGroup>> programGroupMSs;
+            std::unordered_map<std::string, std::unique_ptr<RTLib::Ext::OPX7::OPX7ProgramGroup>> programGroupHGs;
+            std::unique_ptr<RTLib::Ext::OPX7::OPX7ShaderTable> shaderTable;
+            std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer> paramsBuffer;
+
+            void InitPipeline(RTLib::Ext::OPX7::OPX7Context* context)
+            {
+                auto pipelineCreateDesc = RTLib::Ext::OPX7::OPX7PipelineCreateDesc();
+                pipelineCreateDesc.linkOptions = linkOptions;
+                pipelineCreateDesc.compileOptions = compileOptions;
+                pipelineCreateDesc.programGroups = {};
+                pipelineCreateDesc.programGroups.push_back(programGroupRG.get());
+                pipelineCreateDesc.programGroups.push_back(programGroupEP.get());
+                for (auto& [name, programGroupMS] : programGroupMSs) {
+                    pipelineCreateDesc.programGroups.push_back(programGroupMS.get());
+                }
+                for (auto& [name, programGroupHG] : programGroupHGs) {
+                    pipelineCreateDesc.programGroups.push_back(programGroupHG.get());
+                }
+                pipeline = std::unique_ptr<RTLib::Ext::OPX7::OPX7Pipeline>(context->CreateOPXPipeline(pipelineCreateDesc));
+            }
+
+            void InitParams(RTLib::Ext::OPX7::OPX7Context* context, size_t sizeInBytes, void* pData)
+            {
+                paramsBuffer = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(context->CreateBuffer({ RTLib::Ext::CUDA::CUDAMemoryFlags::eDefault,sizeInBytes, pData }));
+            }
+
+            void LoadModule(RTLib::Ext::OPX7::OPX7Context* context, std::string moduleName, const RTLib::Ext::OPX7::OPX7ModuleCompileOptions& moduleOptions, const std::vector<char>& ptxString)
+            {
+                auto createDesc = RTLib::Ext::OPX7::OPX7ModuleCreateDesc();
+                {
+                    createDesc.ptxBinary = ptxString;
+                    createDesc.moduleOptions = moduleOptions;
+                    createDesc.pipelineOptions = compileOptions;
+                }
+                modules[moduleName].handle = std::unique_ptr<RTLib::Ext::OPX7::OPX7Module>(context->CreateOPXModule(createDesc));
+            }
+            
+            void Launch(RTLib::Ext::CUDA::CUDAStream* stream, int width, int height)
+            {
+
+                pipeline->Launch(stream, RTLib::Ext::CUDA::CUDABufferView(paramsBuffer.get(), 0, paramsBuffer->GetSizeInBytes()), shaderTable.get(), width, height, 1);
+            }
+
+            void SetProgramGroupRG(RTLib::Ext::OPX7::OPX7Context* context, std::string module_name, std::string func_name)
+            {
+                programGroupRG = std::unique_ptr<RTLib::Ext::OPX7::OPX7ProgramGroup>(context->CreateOPXProgramGroup(RTLib::Ext::OPX7::OPX7ProgramGroupCreateDesc::Raygen({ modules[module_name].handle.get(),func_name.c_str()})));
+            }
+
+            void SetProgramGroupMS(RTLib::Ext::OPX7::OPX7Context* context, std::string pg_name, std::string module_name, std::string func_name)
+            {
+                programGroupMSs[pg_name] = std::unique_ptr<RTLib::Ext::OPX7::OPX7ProgramGroup>(context->CreateOPXProgramGroup(RTLib::Ext::OPX7::OPX7ProgramGroupCreateDesc::Miss({modules[module_name].handle.get(),func_name.c_str()})));
+            }
+
+            void SetProgramGroupHG(RTLib::Ext::OPX7::OPX7Context* context, std::string pg_name, 
+                std::string ch_module_name, std::string ch_func_name,
+                std::string ah_module_name, std::string ah_func_name, 
+                std::string is_module_name, std::string is_func_name)
+            {
+                auto chSingleModule = RTLib::Ext::OPX7::OPX7ProgramGroupSingleModule();
+                auto ahSingleModule = RTLib::Ext::OPX7::OPX7ProgramGroupSingleModule();
+                auto isSingleModule = RTLib::Ext::OPX7::OPX7ProgramGroupSingleModule();
+                if (modules.count(ch_module_name) > 0) {
+                    chSingleModule.module = modules.at(ch_module_name).handle.get();
+                    chSingleModule.entryFunctionName = ch_func_name.c_str();
+                }
+                else {
+                    chSingleModule = {};
+                }                
+                if (modules.count(ah_module_name) > 0) {
+                    ahSingleModule.module = modules.at(ah_module_name).handle.get();
+                    ahSingleModule.entryFunctionName = ah_func_name.c_str();
+                }
+                else {
+                    ahSingleModule = {};
+                }
+                if (modules.count(is_module_name) > 0) {
+                    isSingleModule.module = modules.at(is_module_name).handle.get();
+                    isSingleModule.entryFunctionName = is_module_name.c_str();
+                }
+                else {
+                    isSingleModule = {};
+                }
+
+                programGroupHGs[pg_name] = std::unique_ptr<RTLib::Ext::OPX7::OPX7ProgramGroup>(context->CreateOPXProgramGroup(RTLib::Ext::OPX7::OPX7ProgramGroupCreateDesc::Hitgroup(
+                    chSingleModule,ahSingleModule,isSingleModule
+                )));
+            }
+
+            void SetProgramGroupEP(RTLib::Ext::OPX7::OPX7Context* context, std::string ep_module_name, std::string ep_function_name)
+            {
+                programGroupEP = std::unique_ptr<RTLib::Ext::OPX7::OPX7ProgramGroup>(context->CreateOPXProgramGroup(RTLib::Ext::OPX7::OPX7ProgramGroupCreateDesc::Exception({ modules[ep_module_name].handle.get(),ep_function_name.c_str() })));
+            }
+
+            template<typename T>
+            void SetHostRayGenRecordTypeData(T data)
+            {
+                shaderTable->SetHostRaygenRecordTypeData(programGroupRG->GetRecord<T>(data));
+            }
+            template<typename T>
+            void SetHostMissRecordTypeData(unsigned int index, std::string name, T data)
+            {
+                shaderTable->SetHostMissRecordTypeData(index, programGroupMSs[name]->GetRecord<T>(data));
+            }
+            template<typename T>
+            void SetHostHitgroupRecordTypeData(unsigned int index, std::string name, T data)
+            {
+                shaderTable->SetHostHitgroupRecordTypeData(index, programGroupHGs[name]->GetRecord<T>(data));
+            }
+            template<typename T>
+            void SetHostExceptionRecordTypeData( T data)
+            {
+                shaderTable->SetHostExceptionRecordTypeData(programGroupEP->GetRecord<T>(data));
+            }
+        };
     }
 
 }
