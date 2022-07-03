@@ -135,7 +135,7 @@ extern "C" __global__ void __closesthit__radiance() {
     hrec->flags  = 0;
 
     if (!(params.flags & PARAM_FLAG_NEE)) {
-        hrec->flags& HIT_RECORD_FLAG_COUNT_EMITTED;
+        hrec->flags |= HIT_RECORD_FLAG_COUNT_EMITTED;
     }
 
     if (emission.x * emission.y * emission.z > 0.0f) {

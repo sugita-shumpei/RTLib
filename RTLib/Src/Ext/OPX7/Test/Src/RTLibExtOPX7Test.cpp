@@ -8,7 +8,7 @@ struct  EventState
     bool isUpdated = false;
     bool isResized = false;
     bool isMovedCamera = false;
-
+    
 };
 struct WindowState
 {
@@ -186,7 +186,131 @@ public :
         m_PtxStringMap["SimpleKernel.ptx"] = rtlib::test::LoadShaderSource(RTLIB_EXT_OPX7_TEST_CUDA_PATH"/SimpleKernel.ptx");
     }
     void InitPipelines() {
-        
+
+        {
+            m_PipelineMap["DEF"].compileOptions.usesMotionBlur = false;
+            m_PipelineMap["DEF"].compileOptions.traversableGraphFlags = 0;
+            m_PipelineMap["DEF"].compileOptions.numAttributeValues = 3;
+            m_PipelineMap["DEF"].compileOptions.numPayloadValues = 8;
+            m_PipelineMap["DEF"].compileOptions.launchParamsVariableNames = "params";
+            m_PipelineMap["DEF"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle;
+            m_PipelineMap["DEF"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
+            m_PipelineMap["DEF"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
+            m_PipelineMap["DEF"].linkOptions.maxTraceDepth = 2;
+            {
+                auto moduleOptions = RTLib::Ext::OPX7::OPX7ModuleCompileOptions{};
+                unsigned int flags = PARAM_FLAG_NONE;
+                moduleOptions.optLevel = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eDefault;
+                moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eMinimal;
+                moduleOptions.maxRegisterCount = OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT;
+                moduleOptions.payloadTypes = {};
+                moduleOptions.boundValueEntries.push_back({});
+                moduleOptions.boundValueEntries.front().pipelineParamOffsetInBytes = offsetof(Params, flags);
+                moduleOptions.boundValueEntries.front().boundValuePtr = &flags;
+                moduleOptions.boundValueEntries.front().sizeInBytes = sizeof(flags);
+                m_PipelineMap["DEF"].LoadModule(m_Opx7Context.get(), "SimpleKernel.DEF", moduleOptions, m_PtxStringMap.at("SimpleKernel.ptx"));
+            }
+            m_PipelineMap["DEF"].SetProgramGroupRG(m_Opx7Context.get(), "SimpleKernel.DEF", "__raygen__rg");
+            m_PipelineMap["DEF"].SetProgramGroupEP(m_Opx7Context.get(), "SimpleKernel.DEF", "__exception__ep");
+            m_PipelineMap["DEF"].SetProgramGroupMS(m_Opx7Context.get(), "SimpleKernel.Radiance", "SimpleKernel.DEF", "__miss__radiance");
+            m_PipelineMap["DEF"].SetProgramGroupMS(m_Opx7Context.get(), "SimpleKernel.Occluded", "SimpleKernel.DEF", "__miss__occluded");
+            m_PipelineMap["DEF"].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Radiance", "SimpleKernel.DEF", "__closesthit__radiance", "", "", "", "");
+            m_PipelineMap["DEF"].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Occluded", "SimpleKernel.DEF", "__closesthit__occluded", "", "", "", "");
+            m_PipelineMap["DEF"].InitPipeline(m_Opx7Context.get());
+            m_PipelineMap["DEF"].shaderTable = std::unique_ptr<RTLib::Ext::OPX7::OPX7ShaderTable>();
+            {
+
+                auto shaderTableDesc = RTLib::Ext::OPX7::OPX7ShaderTableCreateDesc();
+                {
+
+                    shaderTableDesc.raygenRecordSizeInBytes = sizeof(RTLib::Ext::OPX7::OPX7ShaderRecord<RayGenData>);
+                    shaderTableDesc.missRecordStrideInBytes = sizeof(RTLib::Ext::OPX7::OPX7ShaderRecord<MissData>);
+                    shaderTableDesc.missRecordCount = m_ShaderTableLayout->GetRecordStride();
+                    shaderTableDesc.hitgroupRecordStrideInBytes = sizeof(RTLib::Ext::OPX7::OPX7ShaderRecord<HitgroupData>);
+                    shaderTableDesc.hitgroupRecordCount = m_ShaderTableLayout->GetRecordCount();
+                    shaderTableDesc.exceptionRecordSizeInBytes = sizeof(RTLib::Ext::OPX7::OPX7ShaderRecord<unsigned int>);
+                }
+                m_PipelineMap["DEF"].shaderTable = std::unique_ptr<RTLib::Ext::OPX7::OPX7ShaderTable>(m_Opx7Context->CreateOPXShaderTable(shaderTableDesc));
+            }
+            auto programGroupHGNames = std::vector<std::string>{
+                "SimpleKernel.Radiance",
+                "SimpleKernel.Occluded"
+            };
+            auto raygenRecord = m_PipelineMap["DEF"].programGroupRG->GetRecord<RayGenData>();
+            m_PipelineMap["DEF"].SetHostRayGenRecordTypeData(rtlib::test::GetRaygenData(m_SceneData.GetCamera()));
+            m_PipelineMap["DEF"].SetHostMissRecordTypeData(RAY_TYPE_RADIANCE, "SimpleKernel.Radiance", MissData{});
+            m_PipelineMap["DEF"].SetHostMissRecordTypeData(RAY_TYPE_OCCLUDED, "SimpleKernel.Occluded", MissData{});
+            m_PipelineMap["DEF"].SetHostExceptionRecordTypeData(unsigned int());
+            for (auto& instanceName : m_ShaderTableLayout->GetInstanceNames())
+            {
+                auto& instanceDesc = m_ShaderTableLayout->GetDesc(instanceName);
+                auto* instanceData = reinterpret_cast<const RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstance*>(instanceDesc.pData);
+                auto  geometryAS = instanceData->GetDwGeometryAS();
+                if (geometryAS)
+                {
+                    for (auto& geometryName : m_SceneData.world.geometryASs[geometryAS->GetName()].geometries)
+                    {
+                        auto& geometry = m_SceneData.world.geometryObjModels[geometryName];
+                        auto objAsset = m_SceneData.objAssetManager.GetAsset(geometry.base);
+                        for (auto& [meshName, meshData] : geometry.meshes) {
+                            auto mesh = objAsset.meshGroup->LoadMesh(meshName);
+                            auto desc = m_ShaderTableLayout->GetDesc(instanceName + "/" + meshName);
+                            auto extSharedData = static_cast<rtlib::test::OPX7MeshSharedResourceExtData*>(mesh->GetSharedResource()->extData.get());
+                            auto extUniqueData = static_cast<rtlib::test::OPX7MeshUniqueResourceExtData*>(mesh->GetUniqueResource()->extData.get());
+                            for (auto i = 0; i < desc.recordCount; ++i)
+                            {
+                                auto hitgroupData = HitgroupData();
+                                if ((i % desc.recordStride) == RAY_TYPE_RADIANCE) {
+                                    auto material = meshData.materials[i / desc.recordStride];
+                                    hitgroupData.vertices = reinterpret_cast<float3*>(extSharedData->GetVertexBufferGpuAddress());
+                                    hitgroupData.indices = reinterpret_cast<uint3*>(extUniqueData->GetTriIdxBufferGpuAddress());
+                                    hitgroupData.texCrds = reinterpret_cast<float2*>(extSharedData->GetTexCrdBufferGpuAddress());
+                                    hitgroupData.diffuse = material.GetFloat3As<float3>("diffCol");
+                                    hitgroupData.emission = material.GetFloat3As<float3>("emitCol");
+                                    hitgroupData.specular = material.GetFloat3As<float3>("specCol");
+                                    auto diffTexStr = material.GetString("diffTex");
+                                    if (diffTexStr == "") {
+                                        diffTexStr = "White";
+                                    }
+                                    auto specTexStr = material.GetString("specTex");
+                                    if (specTexStr == "") {
+                                        specTexStr = "White";
+                                    }
+                                    auto emitTexStr = material.GetString("emitTex");
+                                    if (emitTexStr == "") {
+                                        emitTexStr = "White";
+                                    }
+                                    hitgroupData.diffuseTex = m_TextureMap.at(diffTexStr).GetCUtexObject();
+                                    hitgroupData.specularTex = m_TextureMap.at(emitTexStr).GetCUtexObject();
+                                    hitgroupData.emissionTex = m_TextureMap.at(specTexStr).GetCUtexObject();
+                                }
+                                m_PipelineMap["DEF"].SetHostHitgroupRecordTypeData(desc.recordOffset + i, programGroupHGNames[i % desc.recordStride], hitgroupData);
+                            }
+                        }
+
+                    }
+                }
+            }
+            m_PipelineMap["DEF"].shaderTable->Upload();
+
+            auto cssRG = m_PipelineMap["DEF"].programGroupRG->GetStackSize().cssRG;
+            auto cssMS = std::max(m_PipelineMap["DEF"].programGroupMSs["SimpleKernel.Radiance"]->GetStackSize().cssMS, m_PipelineMap["DEF"].programGroupMSs["SimpleKernel.Occluded"]->GetStackSize().cssMS);
+            auto cssCH = std::max(m_PipelineMap["DEF"].programGroupHGs["SimpleKernel.Radiance"]->GetStackSize().cssCH, m_PipelineMap["DEF"].programGroupHGs["SimpleKernel.Occluded"]->GetStackSize().cssCH);
+            auto cssIS = std::max(m_PipelineMap["DEF"].programGroupHGs["SimpleKernel.Radiance"]->GetStackSize().cssIS, m_PipelineMap["DEF"].programGroupHGs["SimpleKernel.Occluded"]->GetStackSize().cssIS);
+            auto cssAH = std::max(m_PipelineMap["DEF"].programGroupHGs["SimpleKernel.Radiance"]->GetStackSize().cssAH, m_PipelineMap["DEF"].programGroupHGs["SimpleKernel.Occluded"]->GetStackSize().cssAH);
+            auto cssCCTree = static_cast<unsigned int>(0);
+            auto cssCHOrMsPlusCCTree = std::max(cssMS, cssCH) + cssCCTree;
+            auto continuationStackSizes = cssRG + cssCCTree +
+                (std::max<unsigned int>(1, m_PipelineMap["DEF"].linkOptions.maxTraceDepth) - 1) * cssCHOrMsPlusCCTree +
+                (std::min<unsigned int>(1, m_PipelineMap["DEF"].linkOptions.maxTraceDepth)) * std::max(cssCHOrMsPlusCCTree, cssIS + cssAH);
+
+            m_PipelineMap["DEF"].pipeline->SetStackSize(0, 0, continuationStackSizes, m_ShaderTableLayout->GetMaxTraversableDepth());
+            auto params = Params();
+            {
+                params.flags = PARAM_FLAG_NONE;
+            }
+            m_PipelineMap["DEF"].InitParams(m_Opx7Context.get(), sizeof(Params), &params);
+        }
         {
             m_PipelineMap["NEE"].compileOptions.usesMotionBlur = false;
             m_PipelineMap["NEE"].compileOptions.traversableGraphFlags = 0;
@@ -308,11 +432,13 @@ public :
             auto params = Params();
             {
 
+                params.flags = PARAM_FLAG_NEE;
             }
             m_PipelineMap["NEE"].InitParams(m_Opx7Context.get(), sizeof(Params), &params);
         }
     }
-    int OnlineSample()
+
+    int  Run()
     {
         this->LoadScene();
         using namespace RTLib::Ext::CUDA;
@@ -364,8 +490,11 @@ public :
                 m_GlfwWindow->Show();
                 m_GlfwWindow->SetResizable(true);
                 m_GlfwWindow->SetUserPointer(&windowState);
-                //window->SetCursorPosCallback(cursorPosCallback);
+                m_GlfwWindow->SetCursorPosCallback(cursorPosCallback);
             }
+            std::string curPipelineName = "DEF";
+
+            bool isKeyF1Down = false;
             while (!m_GlfwWindow->ShouldClose())
             {
                 if (samplesForAccum >= maxSamples) {
@@ -377,9 +506,9 @@ public :
                         frameBufferCUGL->Destroy();
                         frameBufferGL->Destroy();
                         frameTextureGL->Destroy();
-                        frameBufferGL = std::unique_ptr<GLBuffer>(ogl4Context->CreateBuffer(GLBufferCreateDesc{ sizeof(uchar4) * width * height, GLBufferUsageImageCopySrc, GLMemoryPropertyDefault, nullptr }));
+                        frameBufferGL   = std::unique_ptr<GLBuffer>(ogl4Context->CreateBuffer(GLBufferCreateDesc{ sizeof(uchar4) * width * height, GLBufferUsageImageCopySrc, GLMemoryPropertyDefault, nullptr }));
                         frameBufferCUGL = std::unique_ptr<CUGLBuffer>(CUGLBuffer::New(m_Opx7Context.get(), frameBufferGL.get(), CUGLGraphicsRegisterFlagsWriteDiscard));
-                        frameTextureGL = rtlib::test::CreateFrameTextureGL(ogl4Context, width, height);
+                        frameTextureGL  = rtlib::test::CreateFrameTextureGL(ogl4Context, width, height);
                     }
                     if (eventState.isUpdated) {
                         auto zeroClearData = std::vector<float>(width * height * 3, 0.0f);
@@ -388,8 +517,8 @@ public :
                     }
                     if (eventState.isMovedCamera)
                     {
-                        m_PipelineMap["NEE"].SetHostRayGenRecordTypeData(rtlib::test::GetRaygenData(m_SceneData.GetCamera()));
-                        m_PipelineMap["NEE"].shaderTable->UploadRaygenRecord();
+                        m_PipelineMap[curPipelineName].SetHostRayGenRecordTypeData(rtlib::test::GetRaygenData(m_SceneData.GetCamera()));
+                        m_PipelineMap[curPipelineName].shaderTable->UploadRaygenRecord();
                     }
                 }
                 {
@@ -399,21 +528,27 @@ public :
                     {
                         auto params = Params();
                         {
-                            params.accumBuffer = reinterpret_cast<float3*>(CUDANatives::GetCUdeviceptr(accumBufferCUDA.get()));
-                            params.seedBuffer  = reinterpret_cast<unsigned int*>(CUDANatives::GetCUdeviceptr(seedBufferCUDA.get()));
-                            params.frameBuffer = reinterpret_cast<uchar4*>(CUDANatives::GetCUdeviceptr(frameBufferCUDA));
-                            params.width       = width;
-                            params.height      = height;
-                            params.maxDepth    = maxDepth;
-                            params.flags       = PARAM_FLAG_NEE;
+                            params.accumBuffer      = reinterpret_cast<float3*>(CUDANatives::GetCUdeviceptr(accumBufferCUDA.get()));
+                            params.seedBuffer       = reinterpret_cast<unsigned int*>(CUDANatives::GetCUdeviceptr(seedBufferCUDA.get()));
+                            params.frameBuffer      = reinterpret_cast<uchar4*>(CUDANatives::GetCUdeviceptr(frameBufferCUDA));
+                            params.width            = width;
+                            params.height           = height;
+                            params.maxDepth         = maxDepth;
                             params.samplesForAccum  = samplesForAccum;
                             params.samplesForLaunch = samplesForLaunch;
-                            params.gasHandle = m_InstanceASMap["Root"].handle;
-                            params.lights.count = m_lightBuffer.cpuHandle.size();
-                            params.lights.data = reinterpret_cast<MeshLight*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_lightBuffer.gpuHandle.get()));
+                            params.gasHandle        = m_InstanceASMap["Root"].handle;
+                            params.lights.count     = m_lightBuffer.cpuHandle.size();
+                            params.lights.data      = reinterpret_cast<MeshLight*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_lightBuffer.gpuHandle.get()));
+
+                            if (curPipelineName == "NEE") {
+                                params.flags = PARAM_FLAG_NEE;
+                            }
+                            if (curPipelineName == "DEF") {
+                                params.flags = PARAM_FLAG_NONE;
+                            }
                         }
-                        stream->CopyMemoryToBuffer(m_PipelineMap["NEE"].paramsBuffer.get(), { {&params, 0, sizeof(params)} });
-                        m_PipelineMap["NEE"].Launch(stream.get(), width, height);
+                        stream->CopyMemoryToBuffer(m_PipelineMap[curPipelineName].paramsBuffer.get(), { {&params, 0, sizeof(params)} });
+                        m_PipelineMap[curPipelineName].Launch(stream.get(), width, height);
                         samplesForAccum += samplesForLaunch;
                     }
                     frameBufferCUGL->Unmap(stream.get());
@@ -446,6 +581,7 @@ public :
                         windowState.delTime = windowState.curTime - prevTime;
                         windowState.curTime = prevTime;
                     }
+
                     eventState.isMovedCamera = rtlib::test::UpdateCameraMovement(
                         cameraController,
                         m_GlfwWindow.get(),
@@ -453,7 +589,25 @@ public :
                         windowState.delCurPos.x,
                         windowState.delCurPos.y
                     );
-                    if (eventState.isMovedCamera) {
+                    {
+                        bool isKeyF1DownNew = glfwGetKey(m_GlfwWindow->GetGLFWwindow(),GLFW_KEY_F1)==GLFW_PRESS;
+                        if (!isKeyF1Down&& isKeyF1DownNew) {
+                            std::cout << "State Change" << std::endl;
+                            if (curPipelineName == "NEE") {
+                                curPipelineName = "DEF";
+                            }
+                            if (curPipelineName == "DEF") {
+                                curPipelineName = "NEE";
+                            }
+                            eventState.isMovedCamera = true;
+                            eventState.isResized     = true;
+                        }
+                        isKeyF1Down = isKeyF1DownNew;
+                    }
+                    
+                    
+                    
+                    if (eventState.isMovedCamera|| eventState.isResized) {
                         eventState.isUpdated = true;
                     }
                 }
@@ -500,6 +654,6 @@ private:
 };
 int main()
 {
-    return RTLibExtOPX7TestApplication(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/../scene2.json").OnlineSample();
+    return RTLibExtOPX7TestApplication(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/../scene2.json").Run();
 }
 
