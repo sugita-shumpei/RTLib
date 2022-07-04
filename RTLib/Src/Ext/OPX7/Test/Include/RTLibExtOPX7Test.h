@@ -30,15 +30,18 @@
 #include <GLFW/glfw3.h>
 #include <stb_image.h>
 #include <stb_image_write.h>
+#include <tinyexr.h>
 #include <cuda/SimpleKernel.h>
 #include <RTLibExtOPX7TestConfig.h>
 #include <memory>
 #include <iostream>
 #include <filesystem>
-#include <random>
-#include <fstream>
 #include <unordered_map>
 #include <unordered_set>
+#include <optional>
+#include <random>
+#include <fstream>
+#include <ctime>
 #include <stack>
 #include <array>
 #include <string>
@@ -122,28 +125,34 @@ namespace rtlib
 
         struct TraceConfigData
         {
+            std::string  imagePath;
             unsigned int width;
             unsigned int height;
             unsigned int samples;
+            unsigned int samplesPerSave;
             unsigned int maxSamples;
             unsigned int maxDepth;
         };
 
         template<typename JsonType>
         inline void   to_json(JsonType& j, const TraceConfigData& v) {
+            j["ImagePath"]  = v.imagePath;
             j["Width"     ] = v.width;
             j["Height"    ] = v.height;
             j["Samples"   ] = v.samples;
+            j["SamplesPerSave"] = v.samplesPerSave;
             j["MaxSamples"] = v.maxSamples;
             j["MaxDepth"]   = v.maxDepth;
         }
         template<typename JsonType>
         inline void from_json(const JsonType& j, TraceConfigData& v) {
-            v.width      = j.at("Width"     ).get<unsigned int>();
-            v.height     = j.at("Height"    ).get<unsigned int>();
-            v.samples    = j.at("Samples"   ).get<unsigned int>();
-            v.maxSamples = j.at("MaxSamples").get<unsigned int>();
-            v.maxDepth   = j.at("MaxDepth"  ).get<unsigned int>();
+            v.imagePath      = j.at("ImagePath" ).get<std::string >();
+            v.width          = j.at("Width"     ).get<unsigned int>();
+            v.height         = j.at("Height"    ).get<unsigned int>();
+            v.samples        = j.at("Samples"   ).get<unsigned int>();
+            v.samplesPerSave = j.at("SamplesPerSave").get<unsigned int>();
+            v.maxSamples     = j.at("MaxSamples").get<unsigned int>();
+            v.maxDepth       = j.at("MaxDepth"  ).get<unsigned int>();
         }
 
 
@@ -791,19 +800,107 @@ namespace rtlib
             rectRenderer->DrawTexture(frameTexture);
         }
 
+        struct PressState
+        {
+            bool isPressed;
+            bool isUpdated;
+        };
+
+        class KeyBoardStateManager
+        {
+        public:
+            KeyBoardStateManager(RTLib::Ext::GLFW::GLFWWindow* window) :m_Window{ window }, m_States{}{}
+            void Update() noexcept {
+                for (auto& [keyCode, keyState] : m_States)
+                {
+                    (void)UpdateState(keyCode);
+                }
+            }
+            bool UpdateState(int keyCode) noexcept {
+                bool curPressed = glfwGetKey(m_Window->GetGLFWwindow(), keyCode) == GLFW_PRESS;
+                if (!HasState(keyCode)) {
+                    m_States[keyCode].isPressed = curPressed;
+                    m_States[keyCode].isUpdated = false;
+                    return true;
+                }
+                else {
+                    auto prvPressed = m_States.at(keyCode).isPressed;
+                    m_States[keyCode].isPressed = curPressed;
+                    m_States[keyCode].isUpdated = (curPressed != prvPressed);
+                    return m_States[keyCode].isUpdated;
+                }
+            }
+            auto GetState(int keyCode) const noexcept -> std::optional<PressState>
+            {
+                if (m_States.count(keyCode) > 0) {
+                    return std::optional<PressState>(m_States.at(keyCode));
+                }
+                else {
+                    return std::optional<PressState>();
+                }
+            }
+            bool HasState(int keyCode) const noexcept {
+                return m_States.count(keyCode) > 0;
+            }
+        private:
+            RTLib::Ext::GLFW::GLFWWindow* m_Window;
+            std::unordered_map<int, PressState> m_States;
+        };
+        class MouseButtonStateManager
+        {
+        public:
+            MouseButtonStateManager(RTLib::Ext::GLFW::GLFWWindow* window) :m_Window{ window }, m_States{}{}
+            void Update() noexcept {
+                for (auto& [keyCode, keyState] : m_States)
+                {
+                    (void)UpdateState(keyCode);
+                }
+            }
+            bool UpdateState(int keyCode) noexcept {
+                bool curPressed = glfwGetMouseButton(m_Window->GetGLFWwindow(), keyCode) == GLFW_PRESS;
+                if (!HasState(keyCode)) {
+                    m_States[keyCode].isPressed = curPressed;
+                    m_States[keyCode].isUpdated = false;
+                    return true;
+                }
+                else {
+                    auto prvPressed = m_States.at(keyCode).isPressed;
+                    m_States[keyCode].isPressed = curPressed;
+                    m_States[keyCode].isUpdated = (curPressed != prvPressed);
+                    return m_States[keyCode].isUpdated;
+                }
+            }
+            auto GetState(int keyCode) const noexcept -> std::optional<PressState>
+            {
+                if (m_States.count(keyCode) > 0) {
+                    return std::optional<PressState>(m_States.at(keyCode));
+                }
+                else {
+                    return std::optional<PressState>();
+                }
+            }
+            bool HasState(int keyCode) const noexcept {
+                return m_States.count(keyCode) > 0;
+            }
+        private:
+            RTLib::Ext::GLFW::GLFWWindow* m_Window;
+            std::unordered_map<int, PressState> m_States;
+        };
+
         inline auto UpdateCameraMovement(
+            const KeyBoardStateManager* keyBoardManager,
+            const MouseButtonStateManager* mouseButtonManager,
             RTLib::Utils::CameraController& cameraController,
-            RTLib::Ext::GLFW::GLFWWindow* window,
             float delTime,
             float delCurPosX, 
             float delCurPosY){
             bool isMovedCamera = false;
-            const bool pressKeyLeft     = (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_A) == GLFW_PRESS) || (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_LEFT) == GLFW_PRESS);
-            const bool pressKeyRight    = (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_D) == GLFW_PRESS) || (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_RIGHT) == GLFW_PRESS);
-            const bool pressKeyForward  = (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_W) == GLFW_PRESS);
-            const bool pressKeyBackward = (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_S) == GLFW_PRESS);
-            const bool pressKeyUp       = (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_UP) == GLFW_PRESS);
-            const bool pressKeyDown     = (glfwGetKey(window->GetGLFWwindow(), GLFW_KEY_DOWN) == GLFW_PRESS);
+            const bool pressKeyLeft     = (keyBoardManager->GetState(GLFW_KEY_A)->isPressed) || (keyBoardManager->GetState( GLFW_KEY_LEFT)->isPressed);
+            const bool pressKeyRight    = (keyBoardManager->GetState(GLFW_KEY_D)->isPressed) || (keyBoardManager->GetState(GLFW_KEY_RIGHT)->isPressed);
+            const bool pressKeyForward  = (keyBoardManager->GetState(GLFW_KEY_W)->isPressed);
+            const bool pressKeyBackward = (keyBoardManager->GetState(GLFW_KEY_S)->isPressed);
+            const bool pressKeyUp       = (keyBoardManager->GetState(GLFW_KEY_UP)->isPressed);
+            const bool pressKeyDown     = (keyBoardManager->GetState(GLFW_KEY_DOWN)->isPressed);
             if (pressKeyLeft    )
             {
                 cameraController.ProcessKeyboard(RTLib::Utils::CameraMovement::eLeft, delTime);
@@ -834,7 +931,7 @@ namespace rtlib
                 cameraController.ProcessKeyboard(RTLib::Utils::CameraMovement::eDown,  delTime);
                 isMovedCamera = true;
             }
-            if (glfwGetMouseButton(window->GetGLFWwindow(), GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
+            if (mouseButtonManager->GetState(GLFW_MOUSE_BUTTON_LEFT)->isPressed)
             {
                 cameraController.ProcessMouseMovement(-delCurPosX, delCurPosY);
                 isMovedCamera = true;
@@ -980,6 +1077,7 @@ namespace rtlib
             sceneJsonFile << sceneJson;
             sceneJsonFile.close();
         }
+
         struct ModuleData
         {
             std::unique_ptr<RTLib::Ext::OPX7::OPX7Module> handle;
@@ -989,14 +1087,42 @@ namespace rtlib
         {
             RTLib::Ext::OPX7::OPX7PipelineLinkOptions     linkOptions;
             RTLib::Ext::OPX7::OPX7PipelineCompileOptions  compileOptions;
-            std::unordered_map<std::string, ModuleData>   modules;
-            std::unique_ptr<RTLib::Ext::OPX7::OPX7Pipeline> pipeline;
+            std::unique_ptr<RTLib::Ext::OPX7::OPX7Pipeline> handle;
             std::unique_ptr<RTLib::Ext::OPX7::OPX7ProgramGroup> programGroupRG;
             std::unique_ptr<RTLib::Ext::OPX7::OPX7ProgramGroup> programGroupEP;
             std::unordered_map<std::string, std::unique_ptr<RTLib::Ext::OPX7::OPX7ProgramGroup>> programGroupMSs;
             std::unordered_map<std::string, std::unique_ptr<RTLib::Ext::OPX7::OPX7ProgramGroup>> programGroupHGs;
+            std::unordered_map<std::string, ModuleData>   modules;
             std::unique_ptr<RTLib::Ext::OPX7::OPX7ShaderTable> shaderTable;
             std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer> paramsBuffer;
+
+            void Free() {
+                handle->Destroy();
+                handle = nullptr;
+                programGroupRG->Destroy();
+                programGroupRG = nullptr;
+                programGroupEP->Destroy();
+                programGroupEP = nullptr;
+                for (auto& [name, programGroupMS] : programGroupMSs) {
+                    programGroupMS->Destroy();
+                    programGroupMS = nullptr;
+                }
+                programGroupMSs.clear();
+                for (auto& [name, programGroupHG] : programGroupHGs) {
+                    programGroupHG->Destroy();
+                    programGroupHG = nullptr;
+                }
+                programGroupHGs.clear();
+                for (auto& [name, module] : modules) {
+                    module.handle->Destroy();
+                    module = {};
+                }
+                modules.clear();
+                shaderTable->Destroy();
+                shaderTable = nullptr;
+                paramsBuffer->Destroy();
+                paramsBuffer = nullptr;
+            }
 
             void InitPipeline(RTLib::Ext::OPX7::OPX7Context* context)
             {
@@ -1012,7 +1138,7 @@ namespace rtlib
                 for (auto& [name, programGroupHG] : programGroupHGs) {
                     pipelineCreateDesc.programGroups.push_back(programGroupHG.get());
                 }
-                pipeline = std::unique_ptr<RTLib::Ext::OPX7::OPX7Pipeline>(context->CreateOPXPipeline(pipelineCreateDesc));
+                handle = std::unique_ptr<RTLib::Ext::OPX7::OPX7Pipeline>(context->CreateOPXPipeline(pipelineCreateDesc));
             }
 
             void InitParams(RTLib::Ext::OPX7::OPX7Context* context, size_t sizeInBytes, void* pData)
@@ -1034,7 +1160,7 @@ namespace rtlib
             void Launch(RTLib::Ext::CUDA::CUDAStream* stream, int width, int height)
             {
 
-                pipeline->Launch(stream, RTLib::Ext::CUDA::CUDABufferView(paramsBuffer.get(), 0, paramsBuffer->GetSizeInBytes()), shaderTable.get(), width, height, 1);
+                handle->Launch(stream, RTLib::Ext::CUDA::CUDABufferView(paramsBuffer.get(), 0, paramsBuffer->GetSizeInBytes()), shaderTable.get(), width, height, 1);
             }
 
             void SetProgramGroupRG(RTLib::Ext::OPX7::OPX7Context* context, std::string module_name, std::string func_name)
@@ -1107,7 +1233,87 @@ namespace rtlib
             {
                 shaderTable->SetHostExceptionRecordTypeData(programGroupEP->GetRecord<T>(data));
             }
+
+
         };
+
+        struct  EventState
+        {
+            bool isUpdated = false;
+            bool isResized = false;
+            bool isMovedCamera = false;
+            bool isClearFrame = false;
+        };
+        struct WindowState
+        {
+            float curTime = 0.0f;
+            float delTime = 0.0f;
+            float2 curCurPos = {};
+            float2 delCurPos = {};
+            
+        };
+        inline bool SavePngImage(std::string path, int width, int height, const std::vector<unsigned char>& pixels)
+        {
+            return stbi_write_png(path.c_str(), width, height, 4, pixels.data(), width * 4);
+        }
+        inline bool SaveExrImage(std::string path, int width, int height, const std::vector<float>&        pixels)
+        {
+            EXRHeader header;
+            InitEXRHeader(&header);
+
+            EXRImage image;
+            InitEXRImage(&image);
+
+            image.num_channels = 3;
+
+            std::vector<float> images[3];
+            images[0].resize(width * height);
+            images[1].resize(width * height);
+            images[2].resize(width * height);
+
+            // Split RGBRGBRGB... into R, G and B layer
+            for (int i = 0; i < width * height; i++) {
+                images[0][i] = pixels[3 * i + 0];
+                images[1][i] = pixels[3 * i + 1];
+                images[2][i] = pixels[3 * i + 2];
+            }
+
+            float* image_ptr[3];
+            image_ptr[0] = &(images[2].at(0)); // B
+            image_ptr[1] = &(images[1].at(0)); // G
+            image_ptr[2] = &(images[0].at(0)); // R
+
+            image.images = (unsigned char**)image_ptr;
+            image.width = width;
+            image.height = height;
+
+            header.num_channels = 3;
+            header.channels = (EXRChannelInfo*)malloc(sizeof(EXRChannelInfo) * header.num_channels);
+            // Must be (A)BGR order, since most of EXR viewers expect this channel order.
+            strncpy(header.channels[0].name, "B", 255); header.channels[0].name[strlen("B")] = '\0';
+            strncpy(header.channels[1].name, "G", 255); header.channels[1].name[strlen("G")] = '\0';
+            strncpy(header.channels[2].name, "R", 255); header.channels[2].name[strlen("R")] = '\0';
+
+            header.pixel_types = (int*)malloc(sizeof(int) * header.num_channels);
+            header.requested_pixel_types = (int*)malloc(sizeof(int) * header.num_channels);
+            for (int i = 0; i < header.num_channels; i++) {
+                header.pixel_types[i] = TINYEXR_PIXELTYPE_FLOAT; // pixel type of input image
+                header.requested_pixel_types[i] = TINYEXR_PIXELTYPE_HALF; // pixel type of output image to be stored in .EXR
+            }
+
+            const char* err = NULL; // or nullptr in C++11 or later.
+            int ret = SaveEXRImageToFile(&image, &header, path.c_str(), &err);
+            if (ret != TINYEXR_SUCCESS) {
+                fprintf(stderr, "Save EXR err: %s\n", err);
+                FreeEXRErrorMessage(err); // free's buffer for an error message
+                return ret;
+            }
+            printf("Saved exr file. [ %s ] \n", path.c_str());
+
+            free(header.channels);
+            free(header.pixel_types);
+            free(header.requested_pixel_types);
+        }
     }
 
 }

@@ -146,14 +146,24 @@ struct RayGenData {
 struct MissData {
     float4  bgColor;
 };
+enum   HitgroupType
+{
+    HIT_GROUP_TYPE_DIFFUSE   = 0,
+    HIT_GROUP_TYPE_PHONG     = 1,
+    HIT_GROUP_TYPE_GLASS     = 2,
+    HIT_GROUP_TYPE_NEE_LIGHT = 3,
+    HIT_GROUP_TYPE_DEF_LIGHT = 4,
+};
 struct HitgroupData {
-    float3*             vertices;
-    float2*             texCrds;
-    uint3*              indices;
+    HitgroupType        type;
+    float               refIndex;
+    float               shinness;
     float3              diffuse;
     float3              specular;
     float3              emission;
-    float               shinness;
+    float3*             vertices;
+    float2*             texCrds;
+    uint3*              indices;
     cudaTextureObject_t diffuseTex;
     cudaTextureObject_t specularTex;
     cudaTextureObject_t emissionTex;

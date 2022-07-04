@@ -12,12 +12,33 @@ extern "C" {
     __constant__ Params params;
 }
 namespace rtlib = RTLib::Ext::CUDA::Math;
+template<typename RNG>
+static __forceinline__ __device__ float3       sampleCosinePDF(const float3& normal, RNG& rng)
+{
+    rtlib::ONB onb(normal);
+    return onb.local(rtlib::random_cosine_direction(rng));
+}
+template<typename RNG>
+static __forceinline__ __device__ float3       samplePhongPDF(const float3& reflectDir, float shinness, RNG& rng)
+{
+    rtlib::ONB onb(reflectDir);
+    const auto cosTht = powf(rtlib::random_float1(0.0f, 1.0f, rng), 1.0f / (shinness + 1.0f));
+    const auto sinTht = sqrtf(1.0f - cosTht * cosTht);
+    const auto phi = rtlib::random_float1(0.0f, RTLIB_M_2PI, rng);
+    return onb.local(make_float3(sinTht * cosf(phi), sinTht * sinf(phi), cosTht));
+}
+static __forceinline__ __device__ float        getValPhongPDF(const float3& direction, const float3& reflectDir, float shinness)
+{
+
+    const auto reflCos = rtlib::max(rtlib::dot(reflectDir, direction), 0.0f);
+    return (shinness + 2.0f) * powf(reflCos, shinness) / RTLIB_M_2PI;
+}
 extern "C" __global__ void       __raygen__rg() {
     const uint3 idx = optixGetLaunchIndex();
     const uint3 dim = optixGetLaunchDimensions();
-    auto* rgData = reinterpret_cast<RayGenData*>(optixGetSbtDataPointer());
+    auto* rgData    = reinterpret_cast<RayGenData*>(optixGetSbtDataPointer());
     const auto seed = params.seedBuffer[params.width * idx.y + idx.x];
-    float3 result = params.accumBuffer[params.width * idx.y + idx.x]*static_cast<float>(params.samplesForAccum);
+    float3 result   = params.accumBuffer[params.width * idx.y + idx.x];
     BasicHitRecord<HitRecordUserData> hrec; 
     hrec.seed = seed;
 
@@ -43,25 +64,28 @@ extern "C" __global__ void       __raygen__rg() {
     hrec.userData.depth      = 0;
 
     while (true) {
-        TraceRadiance(params.gasHandle, hrec.rayOrigin, hrec.rayDirection, 0.001f, 1.0e20f, hrec);
+        TraceRadiance(params.gasHandle, hrec.rayOrigin, hrec.rayDirection, 0.0001f, 1.0e20f, hrec);
+
         color += hrec.userData.radiance;
+
         ++hrec.userData.depth;
 
-        if (isnan(hrec.rayDirection.x)|| isnan(hrec.rayDirection.y)|| isnan(hrec.rayDirection.z)) {
+        if (isnan(hrec.rayDirection.x)|| isnan(hrec.rayDirection.y)|| isnan(hrec.rayDirection.z)||
+            isnan(hrec.userData.radiance.x) || isnan(hrec.userData.radiance.y) || isnan(hrec.userData.radiance.z)) {
             printf("error\n");
             break;
         }
 
-        if ((hrec.flags & HIT_RECORD_FLAG_FINISH) || (hrec.userData.depth > params.maxDepth)) {
+        if ((hrec.flags & HIT_RECORD_FLAG_FINISH) || (hrec.userData.depth >= params.maxDepth)) {
             break;
         }
     }
     
     result += color;
-    result /= static_cast<float>(params.samplesForLaunch + params.samplesForAccum);
     
     // printf("%f, %lf\n", texCoord.x, texCoord.y);
     params.accumBuffer[params.width * idx.y + idx.x] = result;
+    result =  result  / static_cast<float>(params.samplesForLaunch + params.samplesForAccum);
     result = (result) / (make_float3(1.0f) + result);
     params.frameBuffer[params.width * idx.y + idx.x] = make_uchar4(
         rtlib::min(static_cast<int>(rtlib::linear_to_gamma(result.x) * 255.99f), 255),
@@ -91,21 +115,56 @@ extern "C" __global__ void __closesthit__radiance() {
     auto uv = optixGetTriangleBarycentrics();
 
     auto distance  = optixGetRayTmax();
-    auto texCrd    = hgData->GetTexCrd(uv,primitiveId);
-    auto normal    = hgData->GetNormal(uv,primitiveId);
+    auto texCrd   = hgData->GetTexCrd(uv,primitiveId);
+    auto normal   = hgData->GetNormal(uv,primitiveId);
     auto position = optixGetWorldRayOrigin() + distance * optixGetWorldRayDirection();
+    auto reflDir  = rtlib::normalize(rtlib::reflect(optixGetWorldRayDirection(), normal));
 
     auto diffuse   = hgData->SampleDiffuse(texCrd);
-    //auto specualr = hgData->SampleSpecular(texCrd);
+    auto specular  = hgData->SampleSpecular(texCrd);
     auto emission  = hgData->SampleEmission(texCrd);
+    auto shinness = hgData->shinness;
 
     auto xor32 = rtlib::Xorshift32(hrec->seed);
-    auto onb = rtlib::ONB(normal);
 
-    auto direction = rtlib::normalize(onb.local(rtlib::random_cosine_direction(xor32)));
-    auto  cosine    = rtlib::dot(direction, normal);
-    auto bsdfVal   = diffuse * RTLIB_M_INV_PI;
-    auto bsdfPdf   = cosine  * RTLIB_M_INV_PI;
+    auto  direction       = make_float3(0.0f);
+    auto   cosine          = float(0.0f);
+    auto  bsdfVal         = make_float3(0.0f);
+    auto   bsdfPdf         = float(0.0f);
+    auto  prevThroughput  = hrec->userData.throughPut;
+
+    if (emission.x * emission.y * emission.z <= 0.0f) {
+        auto direction0 = sampleCosinePDF(normal, xor32);
+        auto direction1 = samplePhongPDF(reflDir, shinness, xor32);
+        auto cosine0     = rtlib::dot(direction0, normal);
+        auto cosine1     = rtlib::dot(direction1, normal);
+        auto cosinePdf0  = rtlib::max(cosine0 * RTLIB_M_INV_PI, 0.0f);
+        auto cosinePdf1  = rtlib::max(cosine1 * RTLIB_M_INV_PI, 0.0f);
+        auto phongPdf0   = getValPhongPDF(direction0, reflDir, shinness);
+        auto phongPdf1   = getValPhongPDF(direction1, reflDir, shinness);
+        auto aver_diff   = ( diffuse.x +  diffuse.y +  diffuse.z) / 3.0f;
+        auto aver_spec   = (specular.x + specular.y + specular.z) / 3.0f;
+        auto select_prob = (aver_diff) / (aver_diff + aver_spec);
+        if (rtlib::random_float1(xor32) < select_prob) {
+            auto reflCos = rtlib::dot(reflDir, direction0);
+            direction    = direction0;
+            cosine       = cosine0;
+            bsdfVal      = diffuse * RTLIB_M_INV_PI + specular * phongPdf0;
+            bsdfPdf      = (select_prob *cosinePdf0 + (1.0f-select_prob)*phongPdf0);
+            //if ((bsdfPdf <= 0.001f)&&(bsdfPdf >= 0.0f)) {
+            //    printf("[0]: Shinness = %lf Dir = (%lf,%lf,%lf) reflDir = (%lf,%lf,%lf) cosPdf=%lf phgPdf=%lf cosine=%lf reflCos=%lf\n", hgData->shinness, direction.x,direction.y,direction.z,reflDir.x, reflDir.y, reflDir.z, cosinePdf0, phongPdf0, cosine0, reflCos);
+            //}
+        }
+        else {
+            auto reflCos = rtlib::dot(reflDir, direction1);
+            direction    = direction1;
+            cosine       = cosine1;
+            bsdfVal      = diffuse * RTLIB_M_INV_PI + specular * phongPdf1;
+            bsdfPdf      = (select_prob * cosinePdf1 + (1.0f - select_prob) * phongPdf1);
+        }
+        hrec->userData.throughPut = prevThroughput * ((bsdfPdf> 0.0f)?(bsdfVal * fabsf(cosine) / bsdfPdf):make_float3(0.0f));
+    }
+
 
     hrec->SetGlobalRayOrigin(position);
     hrec->SetGlobalRayDirAndTmax(make_float4(direction, distance));
@@ -113,18 +172,17 @@ extern "C" __global__ void __closesthit__radiance() {
     hrec->userData.radiance = make_float3(0.0f);
     if (hrec->flags & HIT_RECORD_FLAG_COUNT_EMITTED)
     {
-        hrec->userData.radiance += hrec->userData.throughPut * emission;
+        hrec->userData.radiance += prevThroughput * emission * static_cast<float>(rtlib::dot(optixGetWorldRayDirection(),normal)<0.0f);
     }
 
     if (params.flags & PARAM_FLAG_NEE) {
-        if (hrec->userData.depth < params.maxDepth) {
+        if (hrec->userData.depth < params.maxDepth-1) {
             auto lRec = params.lights.Sample(position, xor32);
-            if (!TraceOccluded(params.gasHandle, position, lRec.direction, 0.001f, lRec.distance - 0.001f)) {
+            if (!TraceOccluded(params.gasHandle, position, lRec.direction, 0.0001f, lRec.distance - 0.0001f)) {
                 auto e = lRec.emission;
-                auto b = diffuse * RTLIB_M_INV_PI;
-                //REMOVE BACK
+                auto b = diffuse * RTLIB_M_INV_PI + specular* getValPhongPDF(lRec.direction, reflDir, shinness);
                 auto  g = rtlib::max(-rtlib::dot(lRec.direction, lRec.normal), 0.0f) * fabsf(rtlib::dot(lRec.direction, normal)) / (lRec.distance * lRec.distance);
-                hrec->userData.radiance += hrec->userData.throughPut * b * e * g * lRec.invPdf;
+                hrec->userData.radiance += prevThroughput * b * e * g * lRec.invPdf;
             }
         }
     }
@@ -142,7 +200,6 @@ extern "C" __global__ void __closesthit__radiance() {
         hrec->flags |= HIT_RECORD_FLAG_FINISH;
     }
 
-    hrec->userData.throughPut *= diffuse;
 }
 extern "C" __global__ void       __miss__occluded() {
     optixSetPayload_0(false);
