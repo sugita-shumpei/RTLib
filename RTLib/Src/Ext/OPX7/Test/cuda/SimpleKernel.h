@@ -6,6 +6,7 @@
 #include <RTLib/Ext/CUDA/Math/Random.h>
 #include <RTLib/Ext/CUDA/Math/Matrix.h>
 #include <RTLib/Ext/CUDA/Math/VectorFunction.h>
+#include <RTLib/Ext/CUDA/Math/Hash.h>
 #include <RTLib/Ext/OPX7/OPX7Payload.h>
 //#define TEST_SKIP_TEXTURE_SAMPLE
 //#define   TEST11_SHOW_EMISSON_COLOR
@@ -115,6 +116,67 @@ struct MeshLightList
     };
 #endif
 };
+
+template<typename T>
+struct RegularGrid2
+{
+    float2 aabbOffset;
+    float2 aabbSize;
+    uint2  bounds;
+    T* data;
+    RTLIB_INLINE RTLIB_HOST_DEVICE auto Sample(const float2 p)const noexcept -> const T&
+    {
+        auto fLen = (p - aabbOffset) / aabbSize;
+        auto iLen = rtlib::clamp(make_uint2(
+            static_cast<unsigned int>(fLen.x),
+            static_cast<unsigned int>(fLen.y)
+        ), make_uint2(0), bounds - make_uint2(1));
+        return data[bounds.x * iLen.y + iLen.x];
+
+    }
+    RTLIB_INLINE RTLIB_HOST_DEVICE auto Sample(const float2 p)       noexcept ->      T&
+    {
+        auto fLen = (p - aabbOffset) / aabbSize;
+        auto iLen = rtlib::clamp(make_uint2(
+            static_cast<unsigned int>(fLen.x),
+            static_cast<unsigned int>(fLen.y)
+        ), make_uint2(0), bounds - make_uint2(1));
+        return data[bounds.x * iLen.y + iLen.x];
+
+    }
+};
+
+template<typename T>
+struct RegularGrid3
+{
+    float3 aabbOffset;
+    float3 aabbSize  ;
+    uint3  bounds    ;
+    T*     data      ;
+    RTLIB_INLINE RTLIB_HOST_DEVICE auto Find(const float3 p)const noexcept -> const T&
+    {
+        auto fLen = (p - aabbOffset) / aabbSize;
+        auto iLen = rtlib::clamp(make_uint3(
+            static_cast<unsigned int>(bounds.x * fLen.x),
+            static_cast<unsigned int>(bounds.y * fLen.y),
+            static_cast<unsigned int>(bounds.z * fLen.z)
+        ),make_uint3(0),bounds-make_uint3(1));
+        return data[bounds.x * bounds.y * iLen.z + bounds.x * iLen.y + iLen.x];
+
+    }
+    RTLIB_INLINE RTLIB_HOST_DEVICE auto Find(const float3 p)       noexcept ->      T&
+    {
+        auto fLen = (p - aabbOffset) / aabbSize;
+        auto iLen = rtlib::clamp(make_uint3(
+            static_cast<unsigned int>(bounds.x * fLen.x),
+            static_cast<unsigned int>(bounds.y * fLen.y),
+            static_cast<unsigned int>(bounds.z * fLen.z)
+        ), make_uint3(0), bounds - make_uint3(1));
+        return data[bounds.x * bounds.y * iLen.z + bounds.x * iLen.y + iLen.x];
+
+    }
+};
+
 enum   ParamFlag
 {
     PARAM_FLAG_NONE= 0,
@@ -132,6 +194,7 @@ struct Params {
     unsigned int           flags;
     OptixTraversableHandle gasHandle;
     MeshLightList          lights;
+    RegularGrid3<float4>   grid;
 };
 struct RayGenData {
     float3 u, v, w;

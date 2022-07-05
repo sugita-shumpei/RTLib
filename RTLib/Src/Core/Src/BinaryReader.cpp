@@ -191,7 +191,7 @@ void RTLib::Core::ObjModel::SplitLight()
 
 void RTLib::Core::ObjModel::InitAABB()
 {
-    struct    AABB {
+    struct AABB {
         std::array<float, 3>  min = std::array<float, 3>{FLT_MAX, FLT_MAX, FLT_MAX};
         std::array<float, 3>  max = std::array<float, 3>{ -FLT_MAX, -FLT_MAX, -FLT_MAX};
     public:

@@ -69,10 +69,64 @@ namespace rtlib
         using namespace RTLib::Ext::CUDA::Math;
         using BottomLevelAccelerationStructureData = RTLib::Ext::OPX7::OPX7Natives::AccelBuildOutput;
 
+        struct AABB {
+            std::array<float, 3>  min = std::array<float, 3>{FLT_MAX, FLT_MAX, FLT_MAX};
+            std::array<float, 3>  max = std::array<float, 3>{ -FLT_MAX, -FLT_MAX, -FLT_MAX};
+        public:
+            AABB()noexcept {}
+            AABB(const AABB& aabb)noexcept = default;
+            AABB& operator=(const AABB& aabb)noexcept = default;
+            AABB(const std::array<float, 3>& min, const std::array<float, 3>& max)noexcept :min{ min }, max{ max }{}
+            AABB(const std::vector<std::array<float, 3>>& vertices)noexcept :AABB() {
+                for (auto& vertex : vertices) {
+                    this->Update(vertex);
+                }
+            }
+            auto GetArea()const noexcept -> float {
+                std::array<float, 3> range = {
+                    max[0] - min[0],
+                    max[1] - min[1],
+                    max[2] - min[2]
+                };
+                return 2.0f * (range[0] * range[1] + range[1] * range[2] + range[2] * range[0]);
+            }
+            void Update(const  std::array<float, 3>& vertex)noexcept {
+                for (size_t i = 0; i < 3; ++i) {
+                    min[i] = std::min(min[i], vertex[i]);
+                    max[i] = std::max(max[i], vertex[i]);
+                }
+            }
+            auto Transform(const RTLib::Ext::CUDA::Math::Matrix4x4& transform)const noexcept->AABB
+            {
+                std::vector<float3> inPositions =
+                {
+                    make_float3(min[0]       ,  min[1]       ,min[2]),
+                    make_float3(min[0]       ,min[1] + max[1],min[2]),
+                    make_float3(min[0] + max[0],  min[1]       ,min[2]),
+                    make_float3(min[0] + max[0],min[1] + max[1],min[2]),
+
+                    make_float3(min[0]       ,  min[1]       ,min[2] + max[2]),
+                    make_float3(min[0]       ,min[1] + max[1],min[2] + max[2]),
+                    make_float3(min[0] + max[0],  min[1]       ,min[2] + max[2]),
+                    make_float3(min[0] + max[0],min[1] + max[1],min[2] + max[2]),
+                };
+
+                AABB aabb;
+                for (auto& inPosition : inPositions)
+                {
+                    float4 transformPos = transform * make_float4(inPosition, 1.0f);
+                    aabb.Update({ {transformPos.x / transformPos.w,transformPos.y / transformPos.w,transformPos.z / transformPos.w} });
+                }
+                return aabb;
+            }
+        };
+
         struct GeometryAccelerationStructureData
         {
             std::unique_ptr<CUDA::CUDABuffer> buffer;
             OptixTraversableHandle            handle;
+            std::array<float, 3>              aabbMin;
+            std::array<float, 3>              aabbMax;
         };
         struct InstanceAccelerationStructureData 
         {
@@ -440,6 +494,7 @@ namespace rtlib
                 std::unordered_map<std::string, GeometryAccelerationStructureData> geometryASs = {};
                 for (auto& [geometryASName,geometryASData] : world.geometryASs)
                 {
+                    AABB aabb;
                     auto buildInputs = std::vector<OptixBuildInput>();
                     auto holders = std::vector<std::unique_ptr<RTLib::Ext::OPX7::OPX7Geometry::Holder>>();
                     for (auto& geometryName : geometryASData.geometries)
@@ -451,6 +506,8 @@ namespace rtlib
                             auto& geometry = RTLib::Ext::OPX7::OPX7GeometryTriangle();
                             {
                                 auto mesh = objAsset.meshGroup->LoadMesh(meshData.base);
+                                aabb.Update(mesh->GetUniqueResource()->variables.GetFloat3("aabb.min"));
+                                aabb.Update(mesh->GetUniqueResource()->variables.GetFloat3("aabb.max"));
                                 auto extSharedData = static_cast<rtlib::test::OPX7MeshSharedResourceExtData*>(mesh->GetSharedResource()->extData.get());
                                 auto extUniqueData = static_cast<rtlib::test::OPX7MeshUniqueResourceExtData*>(mesh->GetUniqueResource()->extData.get());
                                 geometry.SetVertexView({ extSharedData->GetVertexBufferView(),(unsigned int)extSharedData->GetVertexStrideInBytes(),RTLib::Ext::OPX7::OPX7VertexFormat::eFloat32x3 });
@@ -468,7 +525,11 @@ namespace rtlib
                     auto&& [buffer, handle] = RTLib::Ext::OPX7::OPX7Natives::BuildAccelerationStructure(opx7Context, accelBuildOptions, buildInputs);
                     geometryASs[geometryASName].buffer = std::move(buffer);
                     geometryASs[geometryASName].handle = handle;
+                    geometryASs[geometryASName].aabbMin = aabb.min;
+                    geometryASs[geometryASName].aabbMax = aabb.max;
+
                 }
+
                 return geometryASs;
             }
             auto BuildInstanceASs(RTLib::Ext::OPX7::OPX7Context* opx7Context, const OptixAccelBuildOptions& accelBuildOptions,const RTLib::Ext::OPX7::OPX7ShaderTableLayout* shaderTableLayout, std::unordered_map<std::string, GeometryAccelerationStructureData>& geometryASs)const ->std::unordered_map<std::string, InstanceAccelerationStructureData>
@@ -1314,6 +1375,54 @@ namespace rtlib
             free(header.pixel_types);
             free(header.requested_pixel_types);
         }
+
+        template<typename T>
+        struct RegularGrid3Buffer
+        {
+            float3                                        aabbMin;
+            float3                                        aabbMax;
+            uint3                                         bounds;
+            std::vector<T>                                cpuHandle;
+            std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer> gpuHandle;
+            void Alloc(uint3 bnds) {
+                bounds = bnds;
+                cpuHandle.resize(bounds.x * bounds.y * bounds.z);
+            }
+            void Download(RTLib::Ext::CUDA::CUDAContext* context) {
+                auto desc = RTLib::Ext::CUDA::CUDABufferMemoryCopy();
+                desc.srcOffset = 0;
+                desc.dstData = cpuHandle.data();
+                desc.size = cpuHandle.size() * sizeof(T);
+                context->CopyBufferToMemory(gpuHandle.get(), { desc });
+            }
+            void Upload(RTLib::Ext::CUDA::CUDAContext* context) {
+                if (!gpuHandle) {
+                    auto desc = RTLib::Ext::CUDA::CUDABufferCreateDesc();
+                    desc.flags = RTLib::Ext::CUDA::CUDAMemoryFlags::eDefault;
+                    desc.pData = cpuHandle.data();
+                    desc.sizeInBytes = cpuHandle.size() * sizeof(T);
+                    gpuHandle = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(context->CreateBuffer(desc));
+                }
+                else {
+                    auto desc = RTLib::Ext::CUDA::CUDAMemoryBufferCopy();
+                    desc.dstOffset = 0;
+                    desc.srcData = cpuHandle.data();
+                    desc.size = cpuHandle.size() * sizeof(T);
+                    context->CopyMemoryToBuffer(gpuHandle.get(), { desc });
+                }
+            }
+            auto GetHandle()const noexcept -> RegularGrid3<T>
+            {
+                RegularGrid3<T> grid3;
+                grid3.aabbOffset = aabbMin;
+                grid3.aabbSize = aabbMax - aabbMin;
+                grid3.bounds = bounds;
+                grid3.data = reinterpret_cast<T*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(gpuHandle.get()));
+                return grid3;
+            }
+        };
+
+
     }
 
 }
