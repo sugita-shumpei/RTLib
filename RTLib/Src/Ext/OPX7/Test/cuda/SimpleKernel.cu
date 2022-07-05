@@ -136,13 +136,83 @@ extern "C" __global__ void     __raygen__debug   () {
     TraceRadiance(params.gasHandle, hrec.rayOrigin, hrec.rayDirection, 0.0001f, 1.0e20f, hrec);
     // printf("%f, %lf\n", texCoord.x, texCoord.y);
     //float3 result = make_float3(hrec.userData.gridValue /static_cast<float>(params.samplesForAccum));
-    float3 result = hrec.userData.gridValue;
-    params.frameBuffer[params.width * idx.y + idx.x] = make_uchar4(
-        rtlib::min(static_cast<int>(rtlib::linear_to_gamma(result.x) * 255.99f), 255),
-        rtlib::min(static_cast<int>(rtlib::linear_to_gamma(result.y) * 255.99f), 255),
-        rtlib::min(static_cast<int>(rtlib::linear_to_gamma(result.z) * 255.99f), 255),
-        255
-    );
+    if (params.debugFrameType == DEBUG_FRAME_TYPE_NORMAL)
+    {
+        auto color = (hrec.normal + make_float3(1.0f)) / 2.0f;
+        params.frameBuffer[params.width * idx.y + idx.x] = make_uchar4(
+            rtlib::min(static_cast<int>(rtlib::linear_to_gamma(color.x) * 255.99f), 255),
+            rtlib::min(static_cast<int>(rtlib::linear_to_gamma(color.y) * 255.99f), 255),
+            rtlib::min(static_cast<int>(rtlib::linear_to_gamma(color.z) * 255.99f), 255),
+            255
+        );
+    }
+    if (params.debugFrameType == DEBUG_FRAME_TYPE_DEPTH)
+    {
+        auto color = make_float3(hrec.rayDistance / (1.0f + hrec.rayDistance));
+        params.frameBuffer[params.width * idx.y + idx.x] = make_uchar4(
+            rtlib::min(static_cast<int>(rtlib::linear_to_gamma(color.x) * 255.99f), 255),
+            rtlib::min(static_cast<int>(rtlib::linear_to_gamma(color.y) * 255.99f), 255),
+            rtlib::min(static_cast<int>(rtlib::linear_to_gamma(color.z) * 255.99f), 255),
+            255
+        );
+    }
+    if (params.debugFrameType == DEBUG_FRAME_TYPE_DIFFUSE)
+    {
+        params.frameBuffer[params.width * idx.y + idx.x] = make_uchar4(
+            rtlib::min(static_cast<int>(rtlib::linear_to_gamma(hrec.userData.diffuse.x) * 255.99f), 255),
+            rtlib::min(static_cast<int>(rtlib::linear_to_gamma(hrec.userData.diffuse.y) * 255.99f), 255),
+            rtlib::min(static_cast<int>(rtlib::linear_to_gamma(hrec.userData.diffuse.z) * 255.99f), 255),
+            255
+        );
+    }
+    if (params.debugFrameType == DEBUG_FRAME_TYPE_SPECULAR)
+    {
+        params.frameBuffer[params.width * idx.y + idx.x] = make_uchar4(
+            rtlib::min(static_cast<int>(rtlib::linear_to_gamma(hrec.userData.specular.x) * 255.99f), 255),
+            rtlib::min(static_cast<int>(rtlib::linear_to_gamma(hrec.userData.specular.y) * 255.99f), 255),
+            rtlib::min(static_cast<int>(rtlib::linear_to_gamma(hrec.userData.specular.z) * 255.99f), 255),
+            255
+        );
+    }
+    if (params.debugFrameType == DEBUG_FRAME_TYPE_EMISSION)
+    {
+        params.frameBuffer[params.width * idx.y + idx.x] = make_uchar4(
+            rtlib::min(static_cast<int>(rtlib::linear_to_gamma(hrec.userData.emission.x) * 255.99f), 255),
+            rtlib::min(static_cast<int>(rtlib::linear_to_gamma(hrec.userData.emission.y) * 255.99f), 255),
+            rtlib::min(static_cast<int>(rtlib::linear_to_gamma(hrec.userData.emission.z) * 255.99f), 255),
+            255
+        );
+    }
+    if (params.debugFrameType == DEBUG_FRAME_TYPE_SHINNESS)
+    {
+        auto color = make_float3(hrec.userData.shinness / (1.0f + hrec.userData.shinness));
+        params.frameBuffer[params.width * idx.y + idx.x] = make_uchar4(
+            rtlib::min(static_cast<int>(rtlib::linear_to_gamma(color.x) * 255.99f), 255),
+            rtlib::min(static_cast<int>(rtlib::linear_to_gamma(color.y) * 255.99f), 255),
+            rtlib::min(static_cast<int>(rtlib::linear_to_gamma(color.z) * 255.99f), 255),
+            255
+        );
+    }
+    if (params.debugFrameType == DEBUG_FRAME_TYPE_REFR_INDEX)
+    {
+        auto color = make_float3(hrec.userData.refrIndx / (1.0f + hrec.userData.refrIndx));
+        params.frameBuffer[params.width * idx.y + idx.x] = make_uchar4(
+            rtlib::min(static_cast<int>(rtlib::linear_to_gamma(color.x) * 255.99f), 255),
+            rtlib::min(static_cast<int>(rtlib::linear_to_gamma(color.y) * 255.99f), 255),
+            rtlib::min(static_cast<int>(rtlib::linear_to_gamma(color.z) * 255.99f), 255),
+            255
+        );
+    }
+    if (params.debugFrameType == DEBUG_FRAME_TYPE_GRID_VALUE)
+    {
+
+        params.frameBuffer[params.width * idx.y + idx.x] = make_uchar4(
+            rtlib::min(static_cast<int>(rtlib::linear_to_gamma(hrec.userData.gridValue.x) * 255.99f), 255),
+            rtlib::min(static_cast<int>(rtlib::linear_to_gamma(hrec.userData.gridValue.y) * 255.99f), 255),
+            rtlib::min(static_cast<int>(rtlib::linear_to_gamma(hrec.userData.gridValue.z) * 255.99f), 255),
+            255
+        );
+    }
     params.seedBuffer[params.width * idx.y + idx.x] = hrec.seed;
 }
 extern "C" __global__ void       __miss__radiance() {

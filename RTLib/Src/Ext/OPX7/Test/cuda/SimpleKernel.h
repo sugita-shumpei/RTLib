@@ -182,6 +182,17 @@ enum   ParamFlag
     PARAM_FLAG_NONE= 0,
     PARAM_FLAG_NEE = 1,
 };
+enum   DebugFrameType
+{
+    DEBUG_FRAME_TYPE_NORMAL = 1,
+    DEBUG_FRAME_TYPE_DEPTH = 2,
+    DEBUG_FRAME_TYPE_DIFFUSE = 3,
+    DEBUG_FRAME_TYPE_SPECULAR = 4,
+    DEBUG_FRAME_TYPE_EMISSION = 5,
+    DEBUG_FRAME_TYPE_SHINNESS = 6,
+    DEBUG_FRAME_TYPE_REFR_INDEX = 7,
+    DEBUG_FRAME_TYPE_GRID_VALUE = 8,
+};
 struct Params {
     unsigned int*           seedBuffer;
     float3*                accumBuffer;
@@ -192,6 +203,7 @@ struct Params {
     unsigned int           samplesForLaunch;
     unsigned int           samplesForAccum;
     unsigned int           flags;
+    unsigned int           debugFrameType;
     OptixTraversableHandle gasHandle;
     MeshLightList          lights;
     RegularGrid3<float4>   grid;

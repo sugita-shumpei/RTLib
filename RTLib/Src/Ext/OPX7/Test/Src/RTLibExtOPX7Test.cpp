@@ -39,6 +39,16 @@ public:
             m_KeyBoardManager->UpdateState(GLFW_KEY_F1);
             m_KeyBoardManager->UpdateState(GLFW_KEY_F2);
             m_KeyBoardManager->UpdateState(GLFW_KEY_F3);
+            
+            m_KeyBoardManager->UpdateState(GLFW_KEY_1);
+            m_KeyBoardManager->UpdateState(GLFW_KEY_2);
+            m_KeyBoardManager->UpdateState(GLFW_KEY_3);
+            m_KeyBoardManager->UpdateState(GLFW_KEY_4);
+            m_KeyBoardManager->UpdateState(GLFW_KEY_5);
+            m_KeyBoardManager->UpdateState(GLFW_KEY_6);
+            m_KeyBoardManager->UpdateState(GLFW_KEY_7);
+            m_KeyBoardManager->UpdateState(GLFW_KEY_8);
+
             m_KeyBoardManager->UpdateState(GLFW_KEY_W);
             m_KeyBoardManager->UpdateState(GLFW_KEY_A);
             m_KeyBoardManager->UpdateState(GLFW_KEY_S);
@@ -834,6 +844,7 @@ private:
             params.maxDepth = m_SceneData.config.maxDepth;
             params.samplesForAccum = m_SamplesForAccum;
             params.samplesForLaunch = m_SceneData.config.samples;
+            params.debugFrameType = m_DebugFrameType;
             params.gasHandle = m_InstanceASMap["Root"].handle;
             params.lights.count = m_lightBuffer.cpuHandle.size();
             params.lights.data = reinterpret_cast<MeshLight *>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_lightBuffer.gpuHandle.get()));
@@ -979,6 +990,14 @@ private:
                     m_EventState.isClearFrame = true;
                 }
             }
+            if (m_CurPipelineName == "DBG") {
+                for (int i = 0; i < 8; ++i) {
+                    if (m_KeyBoardManager->GetState(GLFW_KEY_1 + i)->isPressed &&
+                        m_KeyBoardManager->GetState(GLFW_KEY_1 + i)->isUpdated) {
+                        m_DebugFrameType = i + 1;
+                    }
+                }
+            }
             if (m_EventState.isResized)
             {
                 m_EventState.isMovedCamera = true;
@@ -1093,7 +1112,7 @@ private:
     std::unique_ptr<RTLib::Ext::GL::GLBuffer> m_FrameBufferGL;
     std::unique_ptr<RTLib::Ext::GL::GLTexture> m_FrameTextureGL;
     std::unique_ptr<RTLib::Ext::CUGL::CUGLBuffer> m_FrameBufferCUGL;
-
+    unsigned int m_DebugFrameType = DEBUG_FRAME_TYPE_NORMAL;
     std::string m_CurPipelineName = "DEF";
     std::string m_PrvPipelineName = "DEF";
     rtlib::test::EventState m_EventState = rtlib::test::EventState();
