@@ -47,7 +47,7 @@ namespace RTLib
                     v.w += v.y * v.z;
                     return v;
                 }
-                RTLIB_INLINE RTLIB_HOST_DEVICE int xxhash(int data, unsigned int seed = 12345U)
+                RTLIB_INLINE RTLIB_HOST_DEVICE unsigned int xxhash(unsigned int data, unsigned int seed = 12345U)
                 {
                     const unsigned int PRIME32_2 = 2246822519U;
                     const unsigned int PRIME32_3 = 3266489917U;

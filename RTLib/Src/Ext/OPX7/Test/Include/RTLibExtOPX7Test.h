@@ -1428,33 +1428,46 @@ namespace rtlib
             float3                                        aabbMin;
             float3                                        aabbMax;
             uint3                                         bounds;
-            std::vector<T>                                cpuHandle;
-            std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer> gpuHandle;
+            std::vector<T>                                dataCpuHandle;
+            std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer> dataGpuHandle;
+            std::vector<unsigned int>                     checkSumCpuHandle;
+            std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer> checkSumGpuHandle;
             void Alloc(uint3 bnds, unsigned int size) {
                 bounds = bnds;
-                cpuHandle.resize(size);
+                dataCpuHandle.resize(size);
+                checkSumCpuHandle.resize(size);
             }
             void Download(RTLib::Ext::CUDA::CUDAContext* context) {
                 auto desc = RTLib::Ext::CUDA::CUDABufferMemoryCopy();
                 desc.srcOffset = 0;
-                desc.dstData = cpuHandle.data();
-                desc.size = cpuHandle.size() * sizeof(T);
-                context->CopyBufferToMemory(gpuHandle.get(), { desc });
+                desc.dstData = dataCpuHandle.data();
+                desc.size = dataCpuHandle.size() * sizeof(dataCpuHandle[0]);
+                context->CopyBufferToMemory(dataGpuHandle.get(), { desc });
             }
             void Upload(RTLib::Ext::CUDA::CUDAContext* context) {
-                if (!gpuHandle) {
+                if (!dataGpuHandle) {
                     auto desc = RTLib::Ext::CUDA::CUDABufferCreateDesc();
                     desc.flags = RTLib::Ext::CUDA::CUDAMemoryFlags::eDefault;
-                    desc.pData = cpuHandle.data();
-                    desc.sizeInBytes = cpuHandle.size() * sizeof(T);
-                    gpuHandle = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(context->CreateBuffer(desc));
+                    
+                    desc.pData = dataCpuHandle.data();
+                    desc.sizeInBytes = dataCpuHandle.size() * sizeof(dataCpuHandle[0]);
+                    dataGpuHandle = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(context->CreateBuffer(desc));
+
+                    desc.pData = checkSumCpuHandle.data();
+                    desc.sizeInBytes = checkSumCpuHandle.size() * sizeof(checkSumCpuHandle[0]);
+                    checkSumGpuHandle = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(context->CreateBuffer(desc));
                 }
                 else {
                     auto desc = RTLib::Ext::CUDA::CUDAMemoryBufferCopy();
                     desc.dstOffset = 0;
-                    desc.srcData = cpuHandle.data();
-                    desc.size = cpuHandle.size() * sizeof(T);
-                    context->CopyMemoryToBuffer(gpuHandle.get(), { desc });
+                    desc.srcData = dataCpuHandle.data();
+                    desc.size = dataCpuHandle.size() * sizeof(T);
+                    context->CopyMemoryToBuffer(dataGpuHandle.get(), { desc });
+                    desc.dstOffset = 0;
+                    desc.srcData = checkSumCpuHandle.data();
+                    desc.size = checkSumCpuHandle.size() * sizeof(checkSumCpuHandle[0]);
+                    context->CopyMemoryToBuffer(checkSumGpuHandle.get(), { desc });
+
                 }
             }
             auto GetHandle()const noexcept -> HashGrid3<T>
@@ -1462,9 +1475,10 @@ namespace rtlib
                 HashGrid3<T> grid3;
                 grid3.aabbOffset = aabbMin;
                 grid3.aabbSize = aabbMax - aabbMin;
-                grid3.bounds = bounds;
-                grid3.size = cpuHandle.size();
-                grid3.data = reinterpret_cast<T*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(gpuHandle.get()));
+                grid3.bounds   = bounds;
+                grid3.size     = dataCpuHandle.size();
+                grid3.data     = reinterpret_cast<T*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(    dataGpuHandle.get()));
+                grid3.checkSums= reinterpret_cast<unsigned int*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(checkSumGpuHandle.get()));
                 return grid3;
             }
         };

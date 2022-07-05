@@ -176,15 +176,18 @@ struct RegularGrid3
 
     }
 };
+
 template<typename T>
 struct HashGrid3
 {
-    float3 aabbOffset;
-    float3 aabbSize;
-    uint3  bounds;
-    unsigned int size;
-    T* data;
-    RTLIB_INLINE RTLIB_HOST_DEVICE auto Find(const float3 p)const noexcept -> const T&
+    static inline constexpr unsigned int kBlockSize = 32;
+    float3        aabbOffset;
+    float3        aabbSize;
+    uint3         bounds;
+    unsigned int  size;
+    T*            data;
+    unsigned int* checkSums;
+    RTLIB_INLINE RTLIB_HOST_DEVICE auto FindCellIndex(const float3 p)const noexcept -> unsigned int
     {
         auto fLen = (p - aabbOffset) / aabbSize;
         auto iLen = rtlib::clamp(make_uint3(
@@ -192,27 +195,30 @@ struct HashGrid3
             static_cast<unsigned int>(bounds.y * fLen.y),
             static_cast<unsigned int>(bounds.z * fLen.z)
         ), make_uint3(0), bounds - make_uint3(1));
-        return data[GetCellIndex(iLen)];
-
-    }
-    RTLIB_INLINE RTLIB_HOST_DEVICE auto Find(const float3 p)       noexcept ->      T&
-    {
-        auto fLen = (p - aabbOffset) / aabbSize;
-        auto iLen = rtlib::clamp(make_uint3(
-            static_cast<unsigned int>(bounds.x * fLen.x),
-            static_cast<unsigned int>(bounds.y * fLen.y),
-            static_cast<unsigned int>(bounds.z * fLen.z)
-        ), make_uint3(0), bounds - make_uint3(1));
-        return data[GetCellIndex(iLen)];
+        return GetCellIndex(iLen);
 
     }
 private:
+#ifdef __CUDACC__
     RTLIB_INLINE RTLIB_HOST_DEVICE auto GetCellIndex(const uint3 idx)const noexcept -> unsigned int
     {
         namespace rtlib = RTLib::Ext::CUDA::Math;
         //unsigned long long baseIndex = bounds.x * bounds.y * iLen.z + bounds.x * iLen.y + iLen.x;
         //return rtlib::hash6432shift(baseIndex) % size;
-        return rtlib::pcg1d(bounds.x * bounds.y * bounds.z +rtlib::pcg1d(idx.z + rtlib::pcg1d(idx.y + rtlib::pcg1d(idx.x))) + size) % size;
+        auto cellIndex = rtlib::pcg1d(idx.z + rtlib::pcg1d(idx.y + rtlib::pcg1d(idx.x))) % (size/ kBlockSize);
+        auto checkSum  = max(rtlib::xxhash(idx.z + rtlib::xxhash(idx.y + rtlib::xxhash(idx.x))) % (size / kBlockSize),(unsigned int)1);
+        int i = 0;
+        for (i = 0; i < kBlockSize; ++i) {
+            auto hashIndex = i + cellIndex * kBlockSize;
+            auto prvCheckSum = atomicCAS(&checkSums[kBlockSize * cellIndex + i], 0, checkSum);
+            if ((prvCheckSum == 0) || (prvCheckSum == checkSum)) {
+                break;
+            }
+        }
+        if (i == kBlockSize) {
+            return UINT32_MAX;
+        }
+        return i + cellIndex * kBlockSize;
     }
     RTLIB_INLINE RTLIB_HOST_DEVICE auto GetCellIndex1(const uint3 idx)const noexcept -> unsigned int
     {
@@ -220,12 +226,24 @@ private:
         unsigned long long baseIndex = bounds.x * bounds.y * iLen.z + bounds.x * iLen.y + iLen.x;
         return rtlib::hash6432shift(baseIndex) % size;
     }
+#endif
 };
 
 enum   ParamFlag
 {
     PARAM_FLAG_NONE= 0,
     PARAM_FLAG_NEE = 1,
+};
+enum   DebugFrameType
+{
+    DEBUG_FRAME_TYPE_NORMAL     = 1,
+    DEBUG_FRAME_TYPE_DEPTH      = 2,
+    DEBUG_FRAME_TYPE_DIFFUSE    = 3,
+    DEBUG_FRAME_TYPE_SPECULAR   = 4,
+    DEBUG_FRAME_TYPE_EMISSION   = 5,
+    DEBUG_FRAME_TYPE_SHINNESS   = 6,
+    DEBUG_FRAME_TYPE_REFR_INDEX = 7,
+    DEBUG_FRAME_TYPE_GRID_VALUE = 8,
 };
 struct Params {
     unsigned int*           seedBuffer;
@@ -237,6 +255,7 @@ struct Params {
     unsigned int           samplesForLaunch;
     unsigned int           samplesForAccum;
     unsigned int           flags;
+    unsigned int           debugFrameType;
     OptixTraversableHandle gasHandle;
     MeshLightList          lights;
     HashGrid3<float4>      grid;

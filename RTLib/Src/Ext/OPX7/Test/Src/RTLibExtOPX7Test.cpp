@@ -36,9 +36,20 @@ public:
         if (m_EnableVis)
         {
             m_KeyBoardManager = std::make_unique<rtlib::test::KeyBoardStateManager>(m_GlfwWindow.get());
+
+            m_KeyBoardManager->UpdateState(GLFW_KEY_1);
+            m_KeyBoardManager->UpdateState(GLFW_KEY_2);
+            m_KeyBoardManager->UpdateState(GLFW_KEY_3);
+            m_KeyBoardManager->UpdateState(GLFW_KEY_4);
+            m_KeyBoardManager->UpdateState(GLFW_KEY_5);
+            m_KeyBoardManager->UpdateState(GLFW_KEY_6);
+            m_KeyBoardManager->UpdateState(GLFW_KEY_7);
+            m_KeyBoardManager->UpdateState(GLFW_KEY_8);
+
             m_KeyBoardManager->UpdateState(GLFW_KEY_F1);
             m_KeyBoardManager->UpdateState(GLFW_KEY_F2);
             m_KeyBoardManager->UpdateState(GLFW_KEY_F3);
+
             m_KeyBoardManager->UpdateState(GLFW_KEY_W);
             m_KeyBoardManager->UpdateState(GLFW_KEY_A);
             m_KeyBoardManager->UpdateState(GLFW_KEY_S);
@@ -71,12 +82,12 @@ public:
         {
             m_HashBufferCUDA.Download(m_Opx7Context.get());
             float v = 0.0f;
-            for (auto& gridVal : m_HashBufferCUDA.cpuHandle) {
+            for (auto& gridVal : m_HashBufferCUDA.dataCpuHandle) {
                 if (gridVal.w != 0.0f) {
                     v += 1.0f;
                 }
             }
-            v /= static_cast<float>(m_HashBufferCUDA.cpuHandle.size());
+            v /= static_cast<float>(m_HashBufferCUDA.dataCpuHandle.size());
             std::cout << "Capacity: " << v*100.0f << "%" << std::endl;
         }
     }
@@ -324,12 +335,13 @@ private:
     {
         m_HashBufferCUDA.aabbMin = make_float3(m_WorldAabbMin[0], m_WorldAabbMin[1], m_WorldAabbMin[2]);
         m_HashBufferCUDA.aabbMax = make_float3(m_WorldAabbMax[0], m_WorldAabbMax[1], m_WorldAabbMax[2]);
-        m_HashBufferCUDA.Alloc(make_uint3(1024, 1024, 1024),1024*1024*10);
+        m_HashBufferCUDA.Alloc(make_uint3(2048, 2048, 2048), 1024 * 1024 * 16);
         m_HashBufferCUDA.Upload(m_Opx7Context.get());
     }
     void FreeGrids()
     {
-        m_HashBufferCUDA.gpuHandle->Destroy();
+        m_HashBufferCUDA.dataGpuHandle->Destroy();
+        m_HashBufferCUDA.checkSumGpuHandle->Destroy();
     }
 
     void InitPtxString()
@@ -832,8 +844,9 @@ private:
             params.width = m_SceneData.config.width;
             params.height = m_SceneData.config.height;
             params.maxDepth = m_SceneData.config.maxDepth;
-            params.samplesForAccum = m_SamplesForAccum;
+            params.samplesForAccum  = m_SamplesForAccum;
             params.samplesForLaunch = m_SceneData.config.samples;
+            params.debugFrameType   = m_DebugFrameType;
             params.gasHandle = m_InstanceASMap["Root"].handle;
             params.lights.count = m_lightBuffer.cpuHandle.size();
             params.lights.data = reinterpret_cast<MeshLight *>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_lightBuffer.gpuHandle.get()));
@@ -979,6 +992,14 @@ private:
                     m_EventState.isClearFrame = true;
                 }
             }
+            if (m_CurPipelineName=="DBG") {
+                for (int i = 0; i < 8; ++i) {
+                    if (m_KeyBoardManager->GetState(GLFW_KEY_1+i)->isPressed &&
+                        m_KeyBoardManager->GetState(GLFW_KEY_1+i)->isUpdated) {
+                        m_DebugFrameType = i+1;
+                    }
+                }
+            }
             if (m_EventState.isResized)
             {
                 m_EventState.isMovedCamera = true;
@@ -1094,8 +1115,9 @@ private:
     std::unique_ptr<RTLib::Ext::GL::GLTexture> m_FrameTextureGL;
     std::unique_ptr<RTLib::Ext::CUGL::CUGLBuffer> m_FrameBufferCUGL;
 
-    std::string m_CurPipelineName = "DEF";
-    std::string m_PrvPipelineName = "DEF";
+    std::string m_CurPipelineName  = "DEF";
+    std::string m_PrvPipelineName  = "DEF";
+    unsigned int m_DebugFrameType = DEBUG_FRAME_TYPE_NORMAL;
     rtlib::test::EventState m_EventState = rtlib::test::EventState();
     rtlib::test::WindowState m_WindowState = rtlib::test::WindowState();
     std::array<float, 3> m_WorldAabbMin = {-FLT_MAX, -FLT_MAX, -FLT_MAX};
