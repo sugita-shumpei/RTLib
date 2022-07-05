@@ -176,6 +176,51 @@ struct RegularGrid3
 
     }
 };
+template<typename T>
+struct HashGrid3
+{
+    float3 aabbOffset;
+    float3 aabbSize;
+    uint3  bounds;
+    unsigned int size;
+    T* data;
+    RTLIB_INLINE RTLIB_HOST_DEVICE auto Find(const float3 p)const noexcept -> const T&
+    {
+        auto fLen = (p - aabbOffset) / aabbSize;
+        auto iLen = rtlib::clamp(make_uint3(
+            static_cast<unsigned int>(bounds.x * fLen.x),
+            static_cast<unsigned int>(bounds.y * fLen.y),
+            static_cast<unsigned int>(bounds.z * fLen.z)
+        ), make_uint3(0), bounds - make_uint3(1));
+        return data[GetCellIndex(iLen)];
+
+    }
+    RTLIB_INLINE RTLIB_HOST_DEVICE auto Find(const float3 p)       noexcept ->      T&
+    {
+        auto fLen = (p - aabbOffset) / aabbSize;
+        auto iLen = rtlib::clamp(make_uint3(
+            static_cast<unsigned int>(bounds.x * fLen.x),
+            static_cast<unsigned int>(bounds.y * fLen.y),
+            static_cast<unsigned int>(bounds.z * fLen.z)
+        ), make_uint3(0), bounds - make_uint3(1));
+        return data[GetCellIndex(iLen)];
+
+    }
+private:
+    RTLIB_INLINE RTLIB_HOST_DEVICE auto GetCellIndex(const uint3 idx)const noexcept -> unsigned int
+    {
+        namespace rtlib = RTLib::Ext::CUDA::Math;
+        //unsigned long long baseIndex = bounds.x * bounds.y * iLen.z + bounds.x * iLen.y + iLen.x;
+        //return rtlib::hash6432shift(baseIndex) % size;
+        return rtlib::pcg1d(bounds.x * bounds.y * bounds.z +rtlib::pcg1d(idx.z + rtlib::pcg1d(idx.y + rtlib::pcg1d(idx.x))) + size) % size;
+    }
+    RTLIB_INLINE RTLIB_HOST_DEVICE auto GetCellIndex1(const uint3 idx)const noexcept -> unsigned int
+    {
+        namespace rtlib = RTLib::Ext::CUDA::Math;
+        unsigned long long baseIndex = bounds.x * bounds.y * iLen.z + bounds.x * iLen.y + iLen.x;
+        return rtlib::hash6432shift(baseIndex) % size;
+    }
+};
 
 enum   ParamFlag
 {
@@ -194,7 +239,7 @@ struct Params {
     unsigned int           flags;
     OptixTraversableHandle gasHandle;
     MeshLightList          lights;
-    RegularGrid3<float4>   grid;
+    HashGrid3<float4>      grid;
 };
 struct RayGenData {
     float3 u, v, w;

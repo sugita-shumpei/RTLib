@@ -10,6 +10,12 @@ namespace RTLib
         {
             namespace Math
             {
+                RTLIB_INLINE RTLIB_HOST_DEVICE unsigned int pcg1d(unsigned int  input)
+                {
+                    unsigned int state = input * 747796405u + 2891336453u;
+                    unsigned int word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
+                    return (word >> 22u) ^ word;
+                }
                 RTLIB_INLINE RTLIB_HOST_DEVICE uint3 pcg3d(uint3 v)
                 {
                     v = v * 1664525u + make_uint3(1013904223u, 1013904223u, 1013904223u);

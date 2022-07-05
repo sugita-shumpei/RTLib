@@ -69,14 +69,14 @@ public:
         m_Stream->Destroy();
         m_Stream.reset();
         {
-            m_GridBufferCUDA.Download(m_Opx7Context.get());
+            m_HashBufferCUDA.Download(m_Opx7Context.get());
             float v = 0.0f;
-            for (auto& gridVal : m_GridBufferCUDA.cpuHandle) {
+            for (auto& gridVal : m_HashBufferCUDA.cpuHandle) {
                 if (gridVal.w != 0.0f) {
                     v += 1.0f;
                 }
             }
-            v /= static_cast<float>(m_GridBufferCUDA.bounds.x * m_GridBufferCUDA.bounds.y * m_GridBufferCUDA.bounds.z);
+            v /= static_cast<float>(m_HashBufferCUDA.cpuHandle.size());
             std::cout << "Capacity: " << v*100.0f << "%" << std::endl;
         }
     }
@@ -322,14 +322,14 @@ private:
 
     void InitGrids()
     {
-        m_GridBufferCUDA.aabbMin = make_float3(m_WorldAabbMin[0], m_WorldAabbMin[1], m_WorldAabbMin[2]);
-        m_GridBufferCUDA.aabbMax = make_float3(m_WorldAabbMax[0], m_WorldAabbMax[1], m_WorldAabbMax[2]);
-        m_GridBufferCUDA.Alloc(make_uint3(256, 256, 256));
-        m_GridBufferCUDA.Upload(m_Opx7Context.get());
+        m_HashBufferCUDA.aabbMin = make_float3(m_WorldAabbMin[0], m_WorldAabbMin[1], m_WorldAabbMin[2]);
+        m_HashBufferCUDA.aabbMax = make_float3(m_WorldAabbMax[0], m_WorldAabbMax[1], m_WorldAabbMax[2]);
+        m_HashBufferCUDA.Alloc(make_uint3(1024, 1024, 1024),1024*1024*10);
+        m_HashBufferCUDA.Upload(m_Opx7Context.get());
     }
     void FreeGrids()
     {
-        m_GridBufferCUDA.gpuHandle->Destroy();
+        m_HashBufferCUDA.gpuHandle->Destroy();
     }
 
     void InitPtxString()
@@ -837,7 +837,7 @@ private:
             params.gasHandle = m_InstanceASMap["Root"].handle;
             params.lights.count = m_lightBuffer.cpuHandle.size();
             params.lights.data = reinterpret_cast<MeshLight *>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_lightBuffer.gpuHandle.get()));
-            params.grid = m_GridBufferCUDA.GetHandle();
+            params.grid = m_HashBufferCUDA.GetHandle();
             if (m_CurPipelineName == "NEE")
             {
                 params.flags = PARAM_FLAG_NEE;
@@ -1086,7 +1086,7 @@ private:
     std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer> m_AccumBufferCUDA;
     std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer> m_FrameBufferCUDA;
     std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer> m_SeedBufferCUDA;
-    rtlib::test::RegularGrid3Buffer<float4> m_GridBufferCUDA;
+    rtlib::test::HashGrid3Buffer<float4>          m_HashBufferCUDA;
 
     std::unique_ptr<RTLib::Ext::GLFW::GL::GLFWOpenGLWindow> m_GlfwWindow;
     std::unique_ptr<RTLib::Ext::GL::GLRectRenderer> m_RectRendererGL;

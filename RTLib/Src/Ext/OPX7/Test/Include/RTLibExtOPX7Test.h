@@ -1422,6 +1422,52 @@ namespace rtlib
             }
         };
 
+        template<typename T>
+        struct    HashGrid3Buffer
+        {
+            float3                                        aabbMin;
+            float3                                        aabbMax;
+            uint3                                         bounds;
+            std::vector<T>                                cpuHandle;
+            std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer> gpuHandle;
+            void Alloc(uint3 bnds, unsigned int size) {
+                bounds = bnds;
+                cpuHandle.resize(size);
+            }
+            void Download(RTLib::Ext::CUDA::CUDAContext* context) {
+                auto desc = RTLib::Ext::CUDA::CUDABufferMemoryCopy();
+                desc.srcOffset = 0;
+                desc.dstData = cpuHandle.data();
+                desc.size = cpuHandle.size() * sizeof(T);
+                context->CopyBufferToMemory(gpuHandle.get(), { desc });
+            }
+            void Upload(RTLib::Ext::CUDA::CUDAContext* context) {
+                if (!gpuHandle) {
+                    auto desc = RTLib::Ext::CUDA::CUDABufferCreateDesc();
+                    desc.flags = RTLib::Ext::CUDA::CUDAMemoryFlags::eDefault;
+                    desc.pData = cpuHandle.data();
+                    desc.sizeInBytes = cpuHandle.size() * sizeof(T);
+                    gpuHandle = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(context->CreateBuffer(desc));
+                }
+                else {
+                    auto desc = RTLib::Ext::CUDA::CUDAMemoryBufferCopy();
+                    desc.dstOffset = 0;
+                    desc.srcData = cpuHandle.data();
+                    desc.size = cpuHandle.size() * sizeof(T);
+                    context->CopyMemoryToBuffer(gpuHandle.get(), { desc });
+                }
+            }
+            auto GetHandle()const noexcept -> HashGrid3<T>
+            {
+                HashGrid3<T> grid3;
+                grid3.aabbOffset = aabbMin;
+                grid3.aabbSize = aabbMax - aabbMin;
+                grid3.bounds = bounds;
+                grid3.size = cpuHandle.size();
+                grid3.data = reinterpret_cast<T*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(gpuHandle.get()));
+                return grid3;
+            }
+        };
 
     }
 
