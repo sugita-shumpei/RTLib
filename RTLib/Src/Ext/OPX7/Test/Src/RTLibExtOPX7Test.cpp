@@ -39,7 +39,7 @@ public:
             m_KeyBoardManager->UpdateState(GLFW_KEY_F1);
             m_KeyBoardManager->UpdateState(GLFW_KEY_F2);
             m_KeyBoardManager->UpdateState(GLFW_KEY_F3);
-            
+
             m_KeyBoardManager->UpdateState(GLFW_KEY_1);
             m_KeyBoardManager->UpdateState(GLFW_KEY_2);
             m_KeyBoardManager->UpdateState(GLFW_KEY_3);
@@ -81,13 +81,15 @@ public:
         {
             m_GridBufferCUDA.Download(m_Opx7Context.get());
             float v = 0.0f;
-            for (auto& gridVal : m_GridBufferCUDA.cpuHandle) {
-                if (gridVal.w != 0.0f) {
+            for (auto &gridVal : m_GridBufferCUDA.cpuHandle)
+            {
+                if (gridVal.w != 0.0f)
+                {
                     v += 1.0f;
                 }
             }
             v /= static_cast<float>(m_GridBufferCUDA.bounds.x * m_GridBufferCUDA.bounds.y * m_GridBufferCUDA.bounds.z);
-            std::cout << "Capacity: " << v*100.0f << "%" << std::endl;
+            std::cout << "Capacity: " << v * 100.0f << "%" << std::endl;
         }
     }
     void Terminate()
@@ -221,13 +223,20 @@ private:
             auto geometryAS = instanceData->GetDwGeometryAS();
             if (geometryAS)
             {
-                auto tmpAabb = rtlib::test::AABB(m_GeometryASMap.at(geometryAS->GetName()).aabbMin, m_GeometryASMap.at(geometryAS->GetName()).aabbMax).Transform(rtlib::test::GetInstanceTransform(m_SceneData.world, instancePath));
+
+                auto tmpAabb = rtlib::test::AABB(m_GeometryASMap.at(geometryAS->GetName()).aabbMin, m_GeometryASMap.at(geometryAS->GetName()).aabbMax);
+                auto transform = rtlib::test::GetInstanceTransform(m_SceneData.world, instancePath);
+                tmpAabb = tmpAabb.Transform(transform);
+
                 aabb.Update(tmpAabb.min);
                 aabb.Update(tmpAabb.max);
             }
         }
+
         m_WorldAabbMin = aabb.min;
         m_WorldAabbMax = aabb.max;
+        std::cout << aabb.min[0] << "," << aabb.min[1] << "," << aabb.min[2] << std::endl;
+        std::cout << aabb.max[0] << "," << aabb.max[1] << "," << aabb.max[2] << std::endl;
     }
     void FreeWorld()
     {
@@ -860,7 +869,8 @@ private:
         }
         stream->CopyMemoryToBuffer(m_PipelineMap[m_CurPipelineName].paramsBuffer.get(), {{&params, 0, sizeof(params)}});
         m_PipelineMap[m_CurPipelineName].Launch(stream, m_SceneData.config.width, m_SceneData.config.height);
-        if (m_CurPipelineName != "DBG"){
+        if (m_CurPipelineName != "DBG")
+        {
 
             m_SamplesForAccum += m_SceneData.config.samples;
         }
@@ -990,10 +1000,13 @@ private:
                     m_EventState.isClearFrame = true;
                 }
             }
-            if (m_CurPipelineName == "DBG") {
-                for (int i = 0; i < 8; ++i) {
+            if (m_CurPipelineName == "DBG")
+            {
+                for (int i = 0; i < 8; ++i)
+                {
                     if (m_KeyBoardManager->GetState(GLFW_KEY_1 + i)->isPressed &&
-                        m_KeyBoardManager->GetState(GLFW_KEY_1 + i)->isUpdated) {
+                        m_KeyBoardManager->GetState(GLFW_KEY_1 + i)->isUpdated)
+                    {
                         m_DebugFrameType = i + 1;
                     }
                 }
@@ -1040,7 +1053,8 @@ private:
             this->TracePipeline(stream, m_FrameBufferCUDA.get());
             stream->Synchronize();
         }
-        if (m_CurPipelineName != "DBG") {
+        if (m_CurPipelineName != "DBG")
+        {
 
             if ((m_SamplesForAccum > 0) && (m_SamplesForAccum % m_SceneData.config.samplesPerSave == 0))
             {
@@ -1057,7 +1071,7 @@ private:
                     memoryCopy.dstData = download_data.data();
                     memoryCopy.srcOffset = 0;
                     memoryCopy.size = pixelSize * sizeof(float) * 3;
-                    RTLIB_CORE_ASSERT_IF_FAILED(m_Opx7Context->CopyBufferToMemory(m_AccumBufferCUDA.get(), { memoryCopy }));
+                    RTLIB_CORE_ASSERT_IF_FAILED(m_Opx7Context->CopyBufferToMemory(m_AccumBufferCUDA.get(), {memoryCopy}));
                 }
                 {
                     auto hdr_image_data = std::vector<float>(pixelSize * 3, 0.0f);
@@ -1125,5 +1139,5 @@ private:
 };
 int main()
 {
-    return RTLibExtOPX7TestApplication(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/../scene.json", true).Run();
+    return RTLibExtOPX7TestApplication(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/../scene3.json", true).Run();
 }
