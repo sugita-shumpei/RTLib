@@ -1,8 +1,8 @@
 #include <RTLibExtOPX7TestApplication.h>
 void Compare() {
     //return RTLibExtOPX7TestApplication(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/../scene.json", "DEF", false).Run();
-    auto filePath = std::filesystem::path("D:\\Users\\shums\\Documents\\CMake\\RTLib\\Result\\Scene0");
-    auto baseSamples = 10000;
+    auto filePath = std::filesystem::path(RTLIB_EXT_OPX7_TEST_DATA_PATH"\\..\\Result\\Scene0\\Depth=4");
+    auto baseSamples =  10000;
     auto baseImageData = std::vector<float3>();
     {
         baseImageData.resize(1024 * 1024);
@@ -82,5 +82,7 @@ void Compare() {
 int main()
 {
     Compare();
-    //return RTLibExtOPX7TestApplication(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/../scene.json", "RIS", false).Run();
+    //RTLibExtOPX7TestApplication(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/../scene.json", "DEF", false).Run();
+    //RTLibExtOPX7TestApplication(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/../scene.json", "NEE", false).Run();
+    //RTLibExtOPX7TestApplication(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/../scene.json", "RIS", false).Run();
 }
