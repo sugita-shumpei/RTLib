@@ -55,6 +55,8 @@ endforeach()
 
 add_executable(RTLib-Ext-OPX7-Test 
     ${CMAKE_CURRENT_SOURCE_DIR}/Test/RTLibExtOPX7TestConfig.h.in
+    ${CMAKE_CURRENT_SOURCE_DIR}/Test/Include/RTLibExtOPX7TestApplication.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Test/Src/RTLibExtOPX7TestApplication.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Test/Include/RTLibExtOPX7Test.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Test/Src/RTLibExtOPX7Test.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/SimpleKernel.h

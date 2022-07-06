@@ -26,6 +26,7 @@ struct LightRecord
     float  distance;
     float  invPdf;
 };
+
 struct MeshLight
 {
     using Matrix4x4 = RTLib::Ext::CUDA::Math::Matrix4x4;
@@ -116,7 +117,7 @@ struct MeshLightList
     };
 #endif
 };
-
+/**/
 template<typename T>
 struct RegularGrid2
 {
@@ -145,7 +146,6 @@ struct RegularGrid2
 
     }
 };
-
 template<typename T>
 struct RegularGrid3
 {
@@ -174,6 +174,32 @@ struct RegularGrid3
         ), make_uint3(0), bounds - make_uint3(1));
         return data[bounds.x * bounds.y * iLen.z + bounds.x * iLen.y + iLen.x];
 
+    }
+};
+
+struct QuadTree
+{
+    //00|01
+    //10|11
+    //UINT32
+    //16階層を表現可能
+    //01|10|11|01|01|01|01|01|01|01|01|01|01|01|01|01|
+    //01      <-04
+    //01|10   <-16
+    //01|10|11<-64
+    float*       weights ;
+    unsigned int maxLevel;
+    RTLIB_INLINE RTLIB_HOST_DEVICE auto GetLevelCount(unsigned int level)const noexcept -> unsigned int
+    {
+        return (powf(4, level) - 1) / 3;
+    }
+    RTLIB_INLINE RTLIB_HOST_DEVICE auto GetCount()const noexcept -> unsigned int
+    {
+        return GetLevelCount(maxLevel);
+    }
+    RTLIB_INLINE RTLIB_HOST_DEVICE auto GetIndex(unsigned int idx, unsigned int level)const noexcept -> unsigned int
+    {
+        return idx + GetLevelCount(level);
     }
 };
 
@@ -229,21 +255,48 @@ private:
 #endif
 };
 
+template<typename T>
+struct Reservoir
+{
+    float        w     = 0.0f;
+    float        w_sum = 0.0f;
+    unsigned int m     = 0;
+    T            y     = {};
+    RTLIB_INLINE RTLIB_HOST_DEVICE bool Update(T x_i, float w_i, float rnd01)
+    {
+        w = 0.0f;
+        w_sum += w_i;
+        ++m;
+        if ((w_i / w_sum) >= rnd01)
+        {
+            y = x_i;
+            return true;
+        }
+        return false;
+    }
+};
+struct ReservoirState
+{
+    float targetDensity;
+};
+
 enum   ParamFlag
 {
     PARAM_FLAG_NONE= 0,
     PARAM_FLAG_NEE = 1,
+    PARAM_FLAG_RIS = 2,
 };
 enum   DebugFrameType
 {
-    DEBUG_FRAME_TYPE_NORMAL     = 1,
-    DEBUG_FRAME_TYPE_DEPTH      = 2,
-    DEBUG_FRAME_TYPE_DIFFUSE    = 3,
-    DEBUG_FRAME_TYPE_SPECULAR   = 4,
-    DEBUG_FRAME_TYPE_EMISSION   = 5,
-    DEBUG_FRAME_TYPE_SHINNESS   = 6,
-    DEBUG_FRAME_TYPE_REFR_INDEX = 7,
-    DEBUG_FRAME_TYPE_GRID_VALUE = 8,
+    DEBUG_FRAME_TYPE_NORMAL     = 0,
+    DEBUG_FRAME_TYPE_DEPTH      = 1,
+    DEBUG_FRAME_TYPE_DIFFUSE    = 2,
+    DEBUG_FRAME_TYPE_SPECULAR   = 3,
+    DEBUG_FRAME_TYPE_EMISSION   = 4,
+    DEBUG_FRAME_TYPE_SHINNESS   = 5,
+    DEBUG_FRAME_TYPE_REFR_INDEX = 6,
+    DEBUG_FRAME_TYPE_GRID_VALUE = 7,
+    DEBUG_FRAME_TYPE_COUNT      = 8,
 };
 struct Params {
     unsigned int*           seedBuffer;
@@ -289,19 +342,29 @@ struct HitgroupData {
     float3              specular;
     float3              emission;
     float3*             vertices;
+    float3*             normals;
     float2*             texCrds;
     uint3*              indices;
     cudaTextureObject_t diffuseTex;
     cudaTextureObject_t specularTex;
     cudaTextureObject_t emissionTex;
 #ifdef __CUDACC__
-    RTLIB_DEVICE auto GetNormal(float2 barycentrics, unsigned int primIdx)const noexcept -> float3
+    RTLIB_DEVICE auto GetFNormal(float2 barycentrics, unsigned int primIdx)const noexcept -> float3
     {
         namespace rtlib = RTLib::Ext::CUDA::Math;
         auto p0 = vertices[indices[primIdx].x];
         auto p1 = vertices[indices[primIdx].y];
         auto p2 = vertices[indices[primIdx].z];
-        return rtlib::normalize(rtlib::cross(p1-p0,p2-p0));
+        return optixTransformNormalFromObjectToWorldSpace(rtlib::normalize(rtlib::cross(p1-p0,p2-p0)));
+    }
+    RTLIB_DEVICE auto GetVNormal(float2 barycentrics, unsigned int primIdx)const noexcept -> float3
+    {
+        namespace rtlib = RTLib::Ext::CUDA::Math;
+        auto vn0 = normals[indices[primIdx].x];
+        auto vn1 = normals[indices[primIdx].y];
+        auto vn2 = normals[indices[primIdx].z];
+        auto vn  = (1.0f - barycentrics.x - barycentrics.y) * vn0 + barycentrics.x * vn1 + barycentrics.y * vn2;
+        return optixTransformNormalFromObjectToWorldSpace(rtlib::normalize(vn));
     }
     RTLIB_DEVICE auto GetTexCrd(float2 barycentrics,unsigned int primIdx)const noexcept -> float2
     {

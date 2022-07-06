@@ -320,7 +320,7 @@ namespace rtlib
             size_t m_TriIdxStride = 0;
         };
 
-        void InitMeshGroupExtData(RTLib::Ext::OPX7::OPX7Context* opx7Context, RTLib::Core::MeshGroupPtr meshGroup)
+        inline void InitMeshGroupExtData(RTLib::Ext::OPX7::OPX7Context* opx7Context, RTLib::Core::MeshGroupPtr meshGroup)
         {
             {
                 auto sharedResource = meshGroup->GetSharedResource();
@@ -1482,6 +1482,27 @@ namespace rtlib
             }
         };
 
+
+        inline auto SpecifyMaterialType(const RTLib::Core::VariableMap& material) -> HitgroupType
+        {
+            auto emitCol = material.GetFloat3As<float3>("emitCol");
+            auto specCol = material.GetFloat3As<float3>("specCol");
+            auto tranCol = material.GetFloat3As<float3>("tranCol");
+            auto refrIndx = material.GetFloat1("refrIndx");
+            auto shinness = material.GetFloat1("shinness");
+            auto illum    = material.GetUInt32("illum");
+            if (emitCol.x + emitCol.y + emitCol.z > 0.0f)
+            {
+                return HIT_GROUP_TYPE_DEF_LIGHT;
+            }
+            else if (illum == 7)
+            {
+                return HIT_GROUP_TYPE_GLASS;
+            }
+            else {
+                return HIT_GROUP_TYPE_PHONG;
+            }
+        }
     }
 
 }
