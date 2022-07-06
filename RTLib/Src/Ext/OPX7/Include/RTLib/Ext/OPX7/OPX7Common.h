@@ -2,6 +2,7 @@
 #define RTLIB_EXT_OPX7_OPX7_COMMON_H
 #include <RTLib/Core/Common.h>
 #include <RTLib/Ext/CUDA/CUDABuffer.h>
+#include <optix.h>
 #include <optix_types.h>
 #include <optional>
 #include <iostream>
@@ -129,6 +130,9 @@ namespace RTLib
 				OPX7PrimitiveTypeFlagsRoundLinear = OPTIX_PRIMITIVE_TYPE_FLAGS_ROUND_LINEAR,
 				OPX7PrimitiveTypeFlagsRoundCatmullRom = OPTIX_PRIMITIVE_TYPE_FLAGS_ROUND_CATMULLROM,
 				OPX7PrimitiveTypeFlagsTriangle = OPTIX_PRIMITIVE_TYPE_FLAGS_TRIANGLE,
+#if OPTIX_VERSION >= 70500
+				OPX7PrimitiveTypeFlagsSphere = OPTIX_PRIMITIVE_TYPE_FLAGS_SPHERE
+#endif
 			};
 			using OPX7PrimitiveTypeFlags = unsigned int;
 			enum OPX7TraversableGraphFlagBits

@@ -282,9 +282,9 @@ struct ReservoirState
 
 enum   ParamFlag
 {
-    PARAM_FLAG_NONE= 0,
-    PARAM_FLAG_NEE = 1,
-    PARAM_FLAG_RIS = 2,
+    PARAM_FLAG_NONE  = 0,
+    PARAM_FLAG_NEE   = 1,
+    PARAM_FLAG_RIS   = 2,
 };
 enum   DebugFrameType
 {
@@ -316,8 +316,8 @@ struct Params {
 struct RayGenData {
     float3 u, v, w;
     float3 eye;
-    RTLIB_HOST_DEVICE auto GetRayOrigin()const->float3 { return eye; }
-    RTLIB_HOST_DEVICE auto GetRayDirection(float2 barycentrics)const->float3
+    RTLIB_INLINE RTLIB_HOST_DEVICE auto GetRayOrigin()const->float3 { return eye; }
+    RTLIB_INLINE RTLIB_HOST_DEVICE auto GetRayDirection(float2 barycentrics)const->float3
     {
         namespace rtlib = RTLib::Ext::CUDA::Math;
         return rtlib::normalize(barycentrics.x * u + barycentrics.y * v + w);
@@ -349,41 +349,50 @@ struct HitgroupData {
     cudaTextureObject_t specularTex;
     cudaTextureObject_t emissionTex;
 #ifdef __CUDACC__
-    RTLIB_DEVICE auto GetFNormal(float2 barycentrics, unsigned int primIdx)const noexcept -> float3
+    RTLIB_INLINE RTLIB_DEVICE auto GetSphereNormal(float3 position,unsigned int primIdx)const noexcept -> float3 {
+        namespace rtlib = RTLib::Ext::CUDA::Math;
+        return rtlib::normalize(optixTransformPointFromObjectToWorldSpace(vertices[primIdx]) - position);
+    }
+    RTLIB_INLINE RTLIB_DEVICE auto GetTriangleFNormal(float2 barycentrics, unsigned int primIdx)const noexcept -> float3
     {
         namespace rtlib = RTLib::Ext::CUDA::Math;
         auto p0 = vertices[indices[primIdx].x];
         auto p1 = vertices[indices[primIdx].y];
         auto p2 = vertices[indices[primIdx].z];
-        return optixTransformNormalFromObjectToWorldSpace(rtlib::normalize(rtlib::cross(p1-p0,p2-p0)));
+        return rtlib::normalize(optixTransformNormalFromObjectToWorldSpace(rtlib::cross(p1-p0,p2-p0)));
     }
-    RTLIB_DEVICE auto GetVNormal(float2 barycentrics, unsigned int primIdx)const noexcept -> float3
+    RTLIB_INLINE RTLIB_DEVICE auto GetTriangleVNormal(float2 barycentrics, unsigned int primIdx)const noexcept -> float3
     {
-        namespace rtlib = RTLib::Ext::CUDA::Math;
-        auto vn0 = normals[indices[primIdx].x];
-        auto vn1 = normals[indices[primIdx].y];
-        auto vn2 = normals[indices[primIdx].z];
-        auto vn  = (1.0f - barycentrics.x - barycentrics.y) * vn0 + barycentrics.x * vn1 + barycentrics.y * vn2;
-        return optixTransformNormalFromObjectToWorldSpace(rtlib::normalize(vn));
+        if (normals) {
+            namespace rtlib = RTLib::Ext::CUDA::Math;
+            auto vn0 = normals[indices[primIdx].x];
+            auto vn1 = normals[indices[primIdx].y];
+            auto vn2 = normals[indices[primIdx].z];
+            auto vn = (1.0f - barycentrics.x - barycentrics.y) * vn0 + barycentrics.x * vn1 + barycentrics.y * vn2;
+            return rtlib::normalize(optixTransformNormalFromObjectToWorldSpace(vn));
+        }
+        else {
+            return GetTriangleFNormal(barycentrics, primIdx);
+        }
     }
-    RTLIB_DEVICE auto GetTexCrd(float2 barycentrics,unsigned int primIdx)const noexcept -> float2
+    RTLIB_INLINE RTLIB_DEVICE auto GetTexCrd(float2 barycentrics,unsigned int primIdx)const noexcept -> float2
     {
         auto t0 = texCrds[indices[primIdx].x];
         auto t1 = texCrds[indices[primIdx].y];
         auto t2 = texCrds[indices[primIdx].z];
         return (1.0f - barycentrics.x - barycentrics.y) * t0+barycentrics.x * t1 + barycentrics.y * t2;
     }
-    RTLIB_DEVICE auto SampleDiffuse(float2 uv)const noexcept -> float3
+    RTLIB_INLINE RTLIB_DEVICE auto SampleDiffuse(float2 uv)const noexcept -> float3
     {
         auto diffuseCol = tex2D<float4>(diffuseTex, uv.x, uv.y);
         return make_float3(diffuseCol.x, diffuseCol.y, diffuseCol.z) * diffuse;
     }
-    RTLIB_DEVICE auto SampleSpecular(float2 uv)const noexcept -> float3
+    RTLIB_INLINE RTLIB_DEVICE auto SampleSpecular(float2 uv)const noexcept -> float3
     {
         auto specularCol = tex2D<float4>(specularTex, uv.x, uv.y);
         return make_float3(specularCol.x, specularCol.y, specularCol.z) * specular;
     }
-    RTLIB_DEVICE auto SampleEmission(float2 uv)const noexcept -> float3
+    RTLIB_INLINE RTLIB_DEVICE auto SampleEmission(float2 uv)const noexcept -> float3
     {
         auto emissionCol = tex2D<float4>(emissionTex, uv.x, uv.y);
         return make_float3(emissionCol.x, emissionCol.y, emissionCol.z) * emission;

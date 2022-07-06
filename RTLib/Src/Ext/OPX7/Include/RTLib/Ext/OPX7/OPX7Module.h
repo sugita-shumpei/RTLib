@@ -19,6 +19,8 @@ namespace RTLib {
 				friend class OPX7Natives;
 				RTLIB_CORE_TYPE_OBJECT_DECLARE_DERIVED_METHOD(OPX7Module, Core::BaseObject, RTLIB_TYPE_UUID_RTLIB_EXT_OPX7_OPX7_MODULE);
 			public:
+				static auto BuiltInTriangleIS(OPX7Context* context, const OPX7ModuleCreateDesc& desc, bool useMotionBlur = false)->OPX7Module*;
+				static auto BuiltInSphereIS(  OPX7Context* context, const OPX7ModuleCreateDesc& desc, bool useMotionBlur = false)->OPX7Module*;
 				static auto New(OPX7Context* context, const OPX7ModuleCreateDesc& desc)->OPX7Module*;
 				virtual ~OPX7Module()noexcept;
 				virtual void Destroy() ;

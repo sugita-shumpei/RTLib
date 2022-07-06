@@ -161,6 +161,7 @@ namespace RTLib {
         private:
             MeshUniqueResource* m_MeshUniqueResource = nullptr;
         };
+
         struct MeshUniqueResource {
             using UInt3 = std::array<uint32_t, 3>;
             std::string            name = {};
@@ -187,6 +188,7 @@ namespace RTLib {
             }
         };
         using  MeshUniqueResourcePtr = std::shared_ptr<MeshUniqueResource>;
+
         class  MeshGroup;
         class  Mesh {
         public:
@@ -206,6 +208,7 @@ namespace RTLib {
             MeshUniqueResourcePtr    m_UniqueResource = {};
         };
         using  MeshPtr = std::shared_ptr<Mesh>;
+        
         class  MeshGroup {
         public:
             MeshGroup()noexcept {}
@@ -227,6 +230,7 @@ namespace RTLib {
             MeshUniqueResourcePtrMap m_UniqueResources = {};
         };
         using  MeshGroupPtr = std::shared_ptr<MeshGroup>;
+
         struct ObjModel
         {
             MeshGroupPtr             meshGroup;
@@ -257,6 +261,51 @@ namespace RTLib {
             std::string                               m_CacheDir  = {};
             std::unordered_map<std::string, ObjModel> m_ObjModels = {};
         };
+
+        class  SphereResource;
+        class  SphereResourceExtData {
+        public:
+            SphereResourceExtData(SphereResource* pSphereSharedResource)noexcept {
+                m_SphereSharedResource = pSphereSharedResource;
+            }
+            virtual ~SphereResourceExtData()noexcept {}
+        protected:
+            auto GetParent()const noexcept -> const SphereResource* { return m_SphereSharedResource; }
+            auto GetParent()      noexcept ->       SphereResource* { return m_SphereSharedResource; }
+        private:
+            SphereResource* m_SphereSharedResource = nullptr;
+        };
+
+        struct SphereResource
+        {
+            using Float3                                  = std::array<float, 3>;
+            std::string                              name = {};
+            std::vector<Float3>              centerBuffer = {};
+            std::vector<float >              radiusBuffer = {};
+            std::vector<unsigned int>        matIndBuffer = {};
+            std::vector<VariableMap>            materials = {};
+            VariableMap                         variables = {};
+            std::unique_ptr<SphereResourceExtData> extData = nullptr;
+
+            static auto New() ->std::shared_ptr<SphereResource> {
+                return std::shared_ptr<SphereResource>(new SphereResource());
+            }
+            template<typename SphereResourceExtT, typename ...Args, bool Cond = std::is_base_of_v<SphereResourceExtData, SphereResourceExtT>>
+            bool AddExtData(Args&&... args) {
+                extData = std::unique_ptr<SphereResourceExtData>(SphereResourceExtT::New(this, std::forward<Args>(args)...));
+                return extData != nullptr;
+            }
+            template<typename SphereResourceExtT, typename ...Args, bool Cond = std::is_base_of_v<SphereResourceExtData, SphereResourceExtT>>
+            auto GetExtData()const ->const SphereResourceExtT* {
+                return dynamic_cast<const SphereResourceExtT*>(extData.get());
+            }
+            template<typename SphereResourceExtT, typename ...Args, bool Cond = std::is_base_of_v<SphereResourceExtData, SphereResourceExtT>>
+            auto GetExtData()->SphereResourceExtT* {
+                return dynamic_cast<SphereResourceExtT*>(extData.get());
+            }
+        };
+        using  SphereResourcePtr = std::shared_ptr<SphereResource>;
+
         //ObjModelAssetManager
         template<typename JsonType>
         inline void   to_json(JsonType& j, const RTLib::Core::ObjModelAssetManager& obj)
@@ -420,6 +469,56 @@ namespace RTLib {
             }
         }
 
+        struct WorldElementGeometrySphere
+        {
+            std::array<float, 3> center  ;
+            float                radius  ;
+            VariableMap          material;
+        };
+
+        template<typename JsonType>
+        inline void   to_json(JsonType& j, const WorldElementGeometrySphere& v) {
+            j["Type"    ] = "Sphere";
+            j["Center"  ] = v.center;
+            j["Radius"  ] = v.radius;
+            j["Material"] = v.material;
+        }
+        template<typename JsonType>
+        inline void from_json(const JsonType& j, WorldElementGeometrySphere& v) {
+            v.center   = j.at("Center").get<std::array<float, 3>>();
+            v.radius   = j.at("Radius").get<float>();
+            v.material = j.at("Material").get<VariableMap>();
+        }
+
+        struct WorldElementGeometrySphereList
+        {
+            using Float3 = std::array<float, 3>;
+            std::vector<Float3>       centerBuffer = {};
+            std::vector<float >       radiusBuffer = {};
+            std::vector<unsigned int> matIndBuffer = {};
+            std::vector<VariableMap>  materials    = {};
+        };
+
+        template<typename JsonType>
+        inline void   to_json(JsonType& j, const WorldElementGeometrySphereList& v) {
+            auto tmpCntBuffer = std::vector<float>(v.centerBuffer.size() * 3);
+            std::memcpy(tmpCntBuffer.data(), v.centerBuffer.data(), sizeof(v.centerBuffer[0]) * std::size(v.centerBuffer));
+            j["Type"]         = "SphereList";
+            j["CenterBuffer"] = tmpCntBuffer;
+            j["MatIndBuffer"] = v.matIndBuffer;
+            j["RadiusBuffer"] = v.radiusBuffer;
+            j["Materials"]    = v.materials;
+        }
+        template<typename JsonType>
+        inline void from_json(const JsonType& j, WorldElementGeometrySphereList& v) {
+            auto tmpCntBuffer = j.at("CenterBuffer").get<std::vector<float>>();
+            v.centerBuffer.resize(tmpCntBuffer.size() / 3);
+            std::memcpy(v.centerBuffer.data(), tmpCntBuffer.data(), sizeof(v.centerBuffer[0]) * std::size(v.centerBuffer));
+            v.radiusBuffer    = j.at("RadiusBuffer").get<std::vector<float>>();
+            v.matIndBuffer    = j.at("MatIndBuffer").get<std::vector<unsigned int>>();
+            v.materials       = j.at("Materials").get<std::vector<VariableMap>>();
+        }
+
         struct WorldElementGeometryAS
         {
             std::vector<std::string> geometries = {};
@@ -466,8 +565,11 @@ namespace RTLib {
         inline void from_json(const JsonType& j, WorldElementInstanceAS& v) {
             v.instances = j.at("Instances").get<std::vector<std::string>>();
         }
+
         struct WorldData
         {
+            std::unordered_map<std::string, WorldElementGeometrySphereList>   geometrySphereLists;
+            std::unordered_map<std::string, WorldElementGeometrySphere>       geometrySpheres  ;
             std::unordered_map<std::string, WorldElementGeometryObjModel>     geometryObjModels;
             std::unordered_map<std::string, WorldElementGeometryAS>           geometryASs;
             std::unordered_map<std::string, WorldElementInstance>             instances;
@@ -478,6 +580,12 @@ namespace RTLib {
         inline void   to_json(JsonType& j, const WorldData& v) {
             for (auto& [name,geometry] : v.geometryObjModels) {
                 j["Geometries"][name]  = geometry;
+            }
+            for (auto& [name, geometry] : v.geometrySpheres  ) {
+                j["Geometries"][name] = geometry;
+            }
+            for (auto& [name, geometry] : v.geometrySphereLists) {
+                j["Geometries"][name] = geometry;
             }
             for (auto& [name, geometryAS] : v.geometryASs) {
                 j["GeometryASs"][name] = geometryAS;
@@ -494,6 +602,12 @@ namespace RTLib {
             for (auto& elem : j.at("Geometries" ).items()) {
                 if (elem.value().at("Type").get<std::string>() == "ObjModel") {
                     v.geometryObjModels[elem.key()] = elem.value().get<WorldElementGeometryObjModel>();
+                }
+                if (elem.value().at("Type").get<std::string>() == "Sphere"  ) {
+                    v.geometrySpheres[elem.key()] = elem.value().get<WorldElementGeometrySphere>();
+                }
+                if (elem.value().at("Type").get<std::string>() == "SphereList"  ) {
+                    v.geometrySphereLists[elem.key()] = elem.value().get<WorldElementGeometrySphereList>();
                 }
             }
             for (auto& elem : j.at("GeometryASs").items()) {

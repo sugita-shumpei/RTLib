@@ -16,6 +16,84 @@ struct RTLib::Ext::OPX7::OPX7Module ::Impl
     OptixModule  opxModule = nullptr;
     OPX7ModuleCreateDesc desc = {};
 };
+auto RTLib::Ext::OPX7::OPX7Module::BuiltInTriangleIS(OPX7Context* context, const OPX7ModuleCreateDesc& desc, bool useMotionBlur) -> OPX7Module*
+{
+    if (!context)
+    {
+        return nullptr;
+    }
+    auto module = new OPX7Module(desc);
+    if (!module)
+    {
+        return nullptr;
+    }
+    module->m_Impl->SetContext(context);
+    auto deviceContext = module->m_Impl->context->GetOptixDeviceContext();
+    OptixModuleCompileOptions moduleOps = {};
+    auto boundValues = desc.moduleOptions.boundValueEntries;
+    auto payloadTypes = desc.moduleOptions.payloadTypes;
+    moduleOps.maxRegisterCount = desc.moduleOptions.maxRegisterCount;
+    moduleOps.payloadTypes = payloadTypes.data();
+    moduleOps.numPayloadTypes = static_cast<unsigned int>(payloadTypes.size());
+    moduleOps.boundValues = boundValues.data();
+    moduleOps.numBoundValues = static_cast<unsigned int>(boundValues.size());
+    moduleOps.debugLevel = static_cast<OptixCompileDebugLevel>(desc.moduleOptions.debugLevel);
+    moduleOps.optLevel = static_cast<OptixCompileOptimizationLevel>(desc.moduleOptions.optLevel);
+    OptixPipelineCompileOptions pipelineOps = {};
+    pipelineOps.usesMotionBlur = static_cast<int>(desc.pipelineOptions.usesMotionBlur);
+    pipelineOps.usesPrimitiveTypeFlags = static_cast<unsigned int>(desc.pipelineOptions.usesPrimitiveTypeFlags);
+    pipelineOps.traversableGraphFlags = static_cast<unsigned int>(desc.pipelineOptions.traversableGraphFlags);
+    pipelineOps.exceptionFlags = static_cast<unsigned int>(desc.pipelineOptions.exceptionFlags);
+    pipelineOps.numPayloadValues = desc.pipelineOptions.numPayloadValues;
+    pipelineOps.numAttributeValues = desc.pipelineOptions.numAttributeValues;
+    pipelineOps.pipelineLaunchParamsVariableName = desc.pipelineOptions.launchParamsVariableNames;
+    OptixBuiltinISOptions builtInOps = {};
+    builtInOps.builtinISModuleType =  OPTIX_PRIMITIVE_TYPE_TRIANGLE;
+    builtInOps.usesMotionBlur      = useMotionBlur;
+    OptixModule opxModule = nullptr;
+    RTLIB_EXT_OPX7_THROW_IF_FAILED(optixBuiltinISModuleGet(deviceContext, &moduleOps, &pipelineOps, &builtInOps,&opxModule));
+    module->m_Impl->opxModule = opxModule;
+    return module;
+}
+auto RTLib::Ext::OPX7::OPX7Module::BuiltInSphereIS(OPX7Context* context, const OPX7ModuleCreateDesc& desc, bool useMotionBlur) -> OPX7Module*
+{
+    if (!context)
+    {
+        return nullptr;
+    }
+    auto module = new OPX7Module(desc);
+    if (!module)
+    {
+        return nullptr;
+    }
+    module->m_Impl->SetContext(context);
+    auto deviceContext = module->m_Impl->context->GetOptixDeviceContext();
+    OptixModuleCompileOptions moduleOps = {};
+    auto boundValues = desc.moduleOptions.boundValueEntries;
+    auto payloadTypes = desc.moduleOptions.payloadTypes;
+    moduleOps.maxRegisterCount = desc.moduleOptions.maxRegisterCount;
+    moduleOps.payloadTypes = payloadTypes.data();
+    moduleOps.numPayloadTypes = static_cast<unsigned int>(payloadTypes.size());
+    moduleOps.boundValues = boundValues.data();
+    moduleOps.numBoundValues = static_cast<unsigned int>(boundValues.size());
+    moduleOps.debugLevel = static_cast<OptixCompileDebugLevel>(desc.moduleOptions.debugLevel);
+    moduleOps.optLevel = static_cast<OptixCompileOptimizationLevel>(desc.moduleOptions.optLevel);
+    OptixPipelineCompileOptions pipelineOps = {};
+    pipelineOps.usesMotionBlur = static_cast<int>(desc.pipelineOptions.usesMotionBlur);
+    pipelineOps.usesPrimitiveTypeFlags = static_cast<unsigned int>(desc.pipelineOptions.usesPrimitiveTypeFlags);
+    pipelineOps.traversableGraphFlags = static_cast<unsigned int>(desc.pipelineOptions.traversableGraphFlags);
+    pipelineOps.exceptionFlags = static_cast<unsigned int>(desc.pipelineOptions.exceptionFlags);
+    pipelineOps.numPayloadValues = desc.pipelineOptions.numPayloadValues;
+    pipelineOps.numAttributeValues = desc.pipelineOptions.numAttributeValues;
+    pipelineOps.pipelineLaunchParamsVariableName = desc.pipelineOptions.launchParamsVariableNames;
+    OptixBuiltinISOptions builtInOps = {};
+    builtInOps.builtinISModuleType = OPTIX_PRIMITIVE_TYPE_SPHERE;
+    builtInOps.usesMotionBlur = useMotionBlur;
+    OptixModule opxModule = nullptr;
+    RTLIB_EXT_OPX7_THROW_IF_FAILED(optixBuiltinISModuleGet(deviceContext, &moduleOps, &pipelineOps, &builtInOps, &opxModule));
+    module->m_Impl->opxModule = opxModule;
+    return module;
+}
 auto RTLib::Ext::OPX7::OPX7Module::New(OPX7Context *context, const OPX7ModuleCreateDesc &desc) -> OPX7Module *
 {
     if (!context)

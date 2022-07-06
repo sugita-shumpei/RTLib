@@ -209,7 +209,7 @@ namespace rtlib
         }
 
 
-         class OPX7MeshSharedResourceExtData :public RTLib::Core::MeshSharedResourceExtData {
+        class OPX7MeshSharedResourceExtData :public RTLib::Core::MeshSharedResourceExtData {
          public:
             static auto New(MeshSharedResource* pMeshSharedResource, OPX7::OPX7Context* context)noexcept->OPX7MeshSharedResourceExtData* {
                 auto extData = new OPX7MeshSharedResourceExtData(pMeshSharedResource);
@@ -227,9 +227,18 @@ namespace rtlib
             }
             virtual ~OPX7MeshSharedResourceExtData()noexcept {}
             void Destroy() {
-                m_VertexBuffer->Destroy();
-                m_NormalBuffer->Destroy();
-                m_TexCrdBuffer->Destroy();
+                if (m_VertexBuffer) {
+                    m_VertexBuffer->Destroy();
+                    m_VertexBuffer.reset();
+                }
+                if (m_NormalBuffer) {
+                    m_NormalBuffer->Destroy();
+                    m_NormalBuffer.reset();
+                }
+                if (m_TexCrdBuffer) {
+                    m_TexCrdBuffer->Destroy();
+                    m_TexCrdBuffer.reset();
+                }
             }
             //SET
             void SetVertexStrideInBytes(size_t vertexStride)noexcept { m_VertexStrideInBytes = vertexStride; }
@@ -283,7 +292,14 @@ namespace rtlib
             }
             virtual ~OPX7MeshUniqueResourceExtData()noexcept {}
             void Destroy() {
-                m_TriIdxBuffer.reset();
+                if (m_MatIdxBuffer) {
+                    m_MatIdxBuffer->Destroy();
+                    m_MatIdxBuffer.reset();
+                }
+                if (m_TriIdxBuffer) {
+                    m_TriIdxBuffer->Destroy();
+                    m_TriIdxBuffer.reset();
+                }
             }
             //SET
             void SetTriIdxStrideInBytes(size_t indexStride)noexcept { m_TriIdxStride = indexStride; }
@@ -336,6 +352,94 @@ namespace rtlib
                 extData->SetTriIdxFormat(OPTIX_INDICES_FORMAT_UNSIGNED_INT3);
                 extData->SetTriIdxStrideInBytes(sizeof(uint32_t) * 3);
             }
+        }
+
+        class OPX7SphereResourceExtData:public SphereResourceExtData {
+        public:
+            static auto New(SphereResource* pSphereResource, OPX7::OPX7Context* context)noexcept->OPX7SphereResourceExtData* {
+                auto extData = new OPX7SphereResourceExtData(pSphereResource);
+                auto parent = extData->GetParent();
+                extData->m_CenterBuffer = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(context->CreateBuffer(
+                    { RTLib::Ext::CUDA::CUDAMemoryFlags::eDefault, sizeof(float) * 3 * std::size(parent->centerBuffer), std::data(parent->centerBuffer) }
+                ));
+                extData->m_RadiusBuffer = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(context->CreateBuffer(
+                    { RTLib::Ext::CUDA::CUDAMemoryFlags::eDefault, sizeof(float)     * std::size(parent->radiusBuffer), std::data(parent->radiusBuffer) }
+                ));
+                extData->m_MatIdxBuffer = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(context->CreateBuffer(
+                    { RTLib::Ext::CUDA::CUDAMemoryFlags::eDefault, sizeof(uint32_t)  * std::size(parent->matIndBuffer), std::data(parent->matIndBuffer) }
+                ));
+
+                return extData;
+            }
+            virtual ~OPX7SphereResourceExtData()noexcept {}
+            void Destroy() {
+                if (m_CenterBuffer) {
+                    m_CenterBuffer->Destroy();
+                    m_CenterBuffer.reset();
+                }
+                if (m_RadiusBuffer) {
+                    m_RadiusBuffer->Destroy();
+                    m_RadiusBuffer.reset();
+                }
+                if (m_MatIdxBuffer) {
+                    m_MatIdxBuffer->Destroy();
+                    m_MatIdxBuffer.reset();
+                }
+            }
+            //SET
+            void SetCenterStrideInBytes(size_t vertexStride)noexcept { m_CenterStrideInBytes = vertexStride; }
+            void SetCenterFormat(OptixVertexFormat format)noexcept { m_CenterFormat = format; }
+            void SetRadiusStrideInBytes(size_t radiusStride)noexcept { m_RadiusStrideInBytes = radiusStride; }
+            //GET
+            auto GetCenterStrideInBytes()const noexcept -> size_t { return m_CenterStrideInBytes; }
+            auto GetCenterFormat()const noexcept -> OptixVertexFormat { return m_CenterFormat; }
+            auto GetCenterCount()const noexcept -> size_t {
+                if (m_CenterBuffer && m_CenterStrideInBytes > 0) { return m_CenterBuffer->GetSizeInBytes() / m_CenterStrideInBytes; }
+                return 0;
+            }
+            auto GetCenterBufferGpuAddress()const noexcept -> CUdeviceptr { return CUDA::CUDANatives::GetCUdeviceptr(m_CenterBuffer.get()); }
+            //
+            auto GetRadiusStrideInBytes()const noexcept -> size_t { return m_RadiusStrideInBytes; }
+            auto GetRadiusCount()const noexcept -> size_t {
+                if (m_RadiusBuffer && m_RadiusStrideInBytes > 0) { return m_RadiusBuffer->GetSizeInBytes() / m_RadiusStrideInBytes; }
+                return 0;
+            }
+            auto GetRadiusBufferGpuAddress()const noexcept -> CUdeviceptr { return CUDA::CUDANatives::GetCUdeviceptr(m_RadiusBuffer.get()); }
+            //
+            auto GetMatIdxBufferGpuAddress()const noexcept -> CUdeviceptr { return CUDA::CUDANatives::GetCUdeviceptr(m_MatIdxBuffer.get()); };
+            auto GetMatIdxCount()const noexcept -> size_t {
+                if (m_MatIdxBuffer) { return m_MatIdxBuffer->GetSizeInBytes() / sizeof(uint32_t); }
+                return 0;
+            }
+            //
+            auto GetCenterBufferView()const noexcept -> CUDA::CUDABufferView
+            {
+                return CUDA::CUDABufferView(m_CenterBuffer.get());
+            }
+            auto GetRadiusBufferView()const noexcept -> CUDA::CUDABufferView
+            {
+                return CUDA::CUDABufferView(m_RadiusBuffer.get());
+            }
+            auto GetMatIdxBufferView()const noexcept -> CUDA::CUDABufferView
+            {
+                return CUDA::CUDABufferView(m_MatIdxBuffer.get());
+            }
+        private:
+            OPX7SphereResourceExtData(SphereResource* pSphereUniqueResource) noexcept :SphereResourceExtData(pSphereUniqueResource) {}
+            std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer> m_CenterBuffer = nullptr;
+            std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer> m_RadiusBuffer = nullptr;
+            std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer> m_MatIdxBuffer = nullptr;
+            size_t m_CenterStrideInBytes = 0;
+            size_t m_RadiusStrideInBytes = 0;
+            OptixVertexFormat m_CenterFormat = OPTIX_VERTEX_FORMAT_NONE;
+        };
+
+        inline void InitSphereResExtData(RTLib::Ext::OPX7::OPX7Context* opx7Context, RTLib::Core::SphereResourcePtr sphereRes) {
+            sphereRes->AddExtData<rtlib::test::OPX7SphereResourceExtData>(opx7Context);
+            auto extData = sphereRes->GetExtData<rtlib::test::OPX7SphereResourceExtData>();
+            extData->SetCenterFormat(OPTIX_VERTEX_FORMAT_FLOAT3);
+            extData->SetCenterStrideInBytes(sizeof(float) * 3);
+            extData->SetRadiusStrideInBytes(sizeof(float));
         }
 
         struct TextureData
@@ -476,6 +580,7 @@ namespace rtlib
 
         struct SceneData
         {
+            std::unordered_map<std::string, SphereResourcePtr> sphereResources;
             ObjModelAssetManager objAssetManager;
             CameraController     cameraController;
             WorldData            world ;
@@ -485,6 +590,10 @@ namespace rtlib
                 for (auto& [name, geometry] : world.geometryObjModels)
                 {
                     rtlib::test::InitMeshGroupExtData(opx7Context, objAssetManager.GetAsset(geometry.base).meshGroup);
+                }
+                for (auto& [name, sphere] : sphereResources)
+                {
+                    rtlib::test::InitSphereResExtData(opx7Context, sphere);
                 }
             }
 
@@ -498,22 +607,41 @@ namespace rtlib
                     auto holders = std::vector<std::unique_ptr<RTLib::Ext::OPX7::OPX7Geometry::Holder>>();
                     for (auto& geometryName : geometryASData.geometries)
                     {
-                        auto& geometryObjModel = world.geometryObjModels.at(geometryName);
-                        auto& objAsset = objAssetManager.GetAsset(geometryObjModel.base);
-                        for (auto& [meshName, meshData] : geometryObjModel.meshes)
-                        {
-                            auto& geometry = RTLib::Ext::OPX7::OPX7GeometryTriangle();
+                        if (world.geometryObjModels.count(geometryName) > 0) {
+                            auto& geometryObjModel = world.geometryObjModels.at(geometryName);
+                            auto& objAsset = objAssetManager.GetAsset(geometryObjModel.base);
+                            for (auto& [meshName, meshData] : geometryObjModel.meshes)
                             {
-                                auto mesh = objAsset.meshGroup->LoadMesh(meshData.base);
-                                aabb.Update(mesh->GetUniqueResource()->variables.GetFloat3("aabb.min"));
-                                aabb.Update(mesh->GetUniqueResource()->variables.GetFloat3("aabb.max"));
-                                auto extSharedData = static_cast<rtlib::test::OPX7MeshSharedResourceExtData*>(mesh->GetSharedResource()->extData.get());
-                                auto extUniqueData = static_cast<rtlib::test::OPX7MeshUniqueResourceExtData*>(mesh->GetUniqueResource()->extData.get());
-                                geometry.SetVertexView({ extSharedData->GetVertexBufferView(),(unsigned int)extSharedData->GetVertexStrideInBytes(),RTLib::Ext::OPX7::OPX7VertexFormat::eFloat32x3 });
-                                geometry.SetTriIdxView({ extUniqueData->GetTriIdxBufferView(),(unsigned int)extUniqueData->GetTriIdxStrideInBytes(),RTLib::Ext::OPX7::OPX7TriIdxFormat::eUInt32x3 });
-                                geometry.SetSbtOffsetView({ extUniqueData->GetMatIdxBufferView(),(unsigned int)sizeof(uint32_t),RTLib::Ext::OPX7::OPX7SbtOffsetFormat::eUInt32,(unsigned int)meshData.materials.size() });
+                                auto geometry = RTLib::Ext::OPX7::OPX7GeometryTriangle();
+                                {
+                                    auto mesh = objAsset.meshGroup->LoadMesh(meshData.base);
+                                    aabb.Update(mesh->GetUniqueResource()->variables.GetFloat3("aabb.min"));
+                                    aabb.Update(mesh->GetUniqueResource()->variables.GetFloat3("aabb.max"));
+                                    auto extSharedData = static_cast<rtlib::test::OPX7MeshSharedResourceExtData*>(mesh->GetSharedResource()->extData.get());
+                                    auto extUniqueData = static_cast<rtlib::test::OPX7MeshUniqueResourceExtData*>(mesh->GetUniqueResource()->extData.get());
+                                    geometry.SetVertexView({ extSharedData->GetVertexBufferView(),(unsigned int)extSharedData->GetVertexStrideInBytes(),RTLib::Ext::OPX7::OPX7VertexFormat::eFloat32x3 });
+                                    geometry.SetTriIdxView({ extUniqueData->GetTriIdxBufferView(),(unsigned int)extUniqueData->GetTriIdxStrideInBytes(),RTLib::Ext::OPX7::OPX7TriIdxFormat::eUInt32x3 });
+                                    geometry.SetSbtOffsetView({ extUniqueData->GetMatIdxBufferView(),(unsigned int)sizeof(uint32_t),RTLib::Ext::OPX7::OPX7SbtOffsetFormat::eUInt32,(unsigned int)meshData.materials.size() });
+                                    geometry.SetGeometryFlags(OPTIX_GEOMETRY_FLAG_DISABLE_ANYHIT);
+                                    geometry.SetTransformView({});
+                                    geometry.SetPrimIdxOffset(0);
+                                }
+                                auto [buildInput, holder] = geometry.GetOptixBuildInputWithHolder();
+                                buildInputs.push_back(buildInput);
+                                holders.push_back(std::move(holder));
+                            }
+                        }
+                        if (world.geometrySpheres.count(geometryName) > 0) {
+                            auto  geometry = RTLib::Ext::OPX7::OPX7GeometrySphere();
+                            {
+                                auto& sphereResource = sphereResources.at(geometryName);
+                                auto sphereResourceExtData = sphereResource->GetExtData<rtlib::test::OPX7SphereResourceExtData>();
+                                aabb.Update(sphereResource->variables.GetFloat3("aabb.min"));
+                                aabb.Update(sphereResource->variables.GetFloat3("aabb.max"));
+                                geometry.SetVertexView({ sphereResourceExtData->GetCenterBufferView(),(unsigned int)sphereResourceExtData->GetCenterStrideInBytes(),RTLib::Ext::OPX7::OPX7VertexFormat::eFloat32x3 });
+                                geometry.SetRadiusView({ sphereResourceExtData->GetRadiusBufferView(),(unsigned int)sphereResourceExtData->GetRadiusStrideInBytes(),false });
+                                geometry.SetSbtOffsetView({ sphereResourceExtData->GetMatIdxBufferView(),(unsigned int)sizeof(uint32_t),RTLib::Ext::OPX7::OPX7SbtOffsetFormat::eUInt32,(unsigned int)sphereResource->materials.size() });
                                 geometry.SetGeometryFlags(OPTIX_GEOMETRY_FLAG_DISABLE_ANYHIT);
-                                geometry.SetTransformView({});
                                 geometry.SetPrimIdxOffset(0);
                             }
                             auto [buildInput, holder] = geometry.GetOptixBuildInputWithHolder();
@@ -522,8 +650,8 @@ namespace rtlib
                         }
                     }
                     auto&& [buffer, handle] = RTLib::Ext::OPX7::OPX7Natives::BuildAccelerationStructure(opx7Context, accelBuildOptions, buildInputs);
-                    geometryASs[geometryASName].buffer = std::move(buffer);
-                    geometryASs[geometryASName].handle = handle;
+                    geometryASs[geometryASName].buffer  = std::move(buffer);
+                    geometryASs[geometryASName].handle  = handle;
                     geometryASs[geometryASName].aabbMin = aabb.min;
                     geometryASs[geometryASName].aabbMax = aabb.max;
 
@@ -674,7 +802,7 @@ namespace rtlib
                 for (auto& geometryName : geometryAS.geometries) {
                     if (v.world.geometryObjModels.count(geometryName) > 0) {
                         auto& geometryObjModel = v.world.geometryObjModels.at(geometryName);
-                        auto& objAsset         = v.objAssetManager.GetAsset(geometryObjModel.base);
+                        auto& objAsset = v.objAssetManager.GetAsset(geometryObjModel.base);
                         if (geometryObjModel.meshes.empty()) {
                             auto meshNames = objAsset.meshGroup->GetUniqueNames();
                             for (auto& meshName : meshNames)
@@ -696,8 +824,8 @@ namespace rtlib
                                     meshData.materials.reserve(mesh->GetUniqueResource()->materials.size());
                                     for (auto& matIdx : mesh->GetUniqueResource()->materials) {
                                         meshData.materials.push_back(objAsset.materials[matIdx]);
-                                        if (meshData.materials.back().HasString("diffCol")||
-                                            meshData.materials.back().GetString("diffCol")=="") {
+                                        if (meshData.materials.back().HasString("diffCol") ||
+                                            meshData.materials.back().GetString("diffCol") == "") {
                                             meshData.materials.back().SetString("diffCol", "White");
                                         }
                                         if (meshData.materials.back().HasString("specCol") ||
@@ -714,8 +842,31 @@ namespace rtlib
                             }
                         }
                     }
+                    if (v.world.geometrySpheres.count(geometryName) > 0) {
+                        auto& geometrySphere = v.world.geometrySpheres.at(geometryName);
+                        v.sphereResources[geometryName] = RTLib::Core::SphereResource::New();
+                        v.sphereResources[geometryName]->centerBuffer.push_back(geometrySphere.center);
+                        v.sphereResources[geometryName]->radiusBuffer.push_back(geometrySphere.radius);
+                        v.sphereResources[geometryName]->matIndBuffer.push_back(0);
+                        v.sphereResources[geometryName]->materials.push_back(geometrySphere.material);
+                        v.sphereResources[geometryName]->variables.SetFloat3("aabb.min",
+                            {
+                                geometrySphere.center[0] - geometrySphere.radius,
+                                geometrySphere.center[1] - geometrySphere.radius,
+                                geometrySphere.center[2] - geometrySphere.radius,
+                            }
+                        );
+                        v.sphereResources[geometryName]->variables.SetFloat3("aabb.max",
+                            {
+                                geometrySphere.center[0] + geometrySphere.radius,
+                                geometrySphere.center[1] + geometrySphere.radius,
+                                geometrySphere.center[2] + geometrySphere.radius,
+                            }
+                        );
+                    }
                 }
             }
+
         }
 
         template<typename T>
@@ -1019,9 +1170,14 @@ namespace rtlib
                 auto buildInputSize = size_t(0);
                 for (auto& geometryName : geometryAS.geometries)
                 {
-                    for (auto& [meshName, meshData] : worldData.geometryObjModels.at(geometryName).meshes)
-                    {
-                        blasLayouts[geometryASName]->SetDwGeometry(RTLib::Ext::OPX7::OPX7ShaderTableLayoutGeometry(meshName, meshData.materials.size()));
+                    if (worldData.geometryObjModels.count(geometryName) > 0) {
+                        for (auto& [meshName, meshData] : worldData.geometryObjModels.at(geometryName).meshes)
+                        {
+                            blasLayouts[geometryASName]->SetDwGeometry(RTLib::Ext::OPX7::OPX7ShaderTableLayoutGeometry(meshName, meshData.materials.size()));
+                        }
+                    }
+                    if (worldData.geometrySpheres.count(geometryName) > 0) {
+                        blasLayouts[geometryASName]->SetDwGeometry(RTLib::Ext::OPX7::OPX7ShaderTableLayoutGeometry(geometryName, 1));
                     }
                 }
             }
@@ -1215,6 +1371,27 @@ namespace rtlib
                     createDesc.pipelineOptions = compileOptions;
                 }
                 modules[moduleName].handle = std::unique_ptr<RTLib::Ext::OPX7::OPX7Module>(context->CreateOPXModule(createDesc));
+                modules[moduleName].options = moduleOptions;
+            }
+            void LoadBuiltInISTriangleModule(RTLib::Ext::OPX7::OPX7Context* context, std::string moduleName, const RTLib::Ext::OPX7::OPX7ModuleCompileOptions& moduleOptions, bool useMotionBlur= false) {
+                auto createDesc = RTLib::Ext::OPX7::OPX7ModuleCreateDesc();
+                {
+                    createDesc.ptxBinary = {};
+                    createDesc.moduleOptions = moduleOptions;
+                    createDesc.pipelineOptions = compileOptions;
+                }
+                modules[moduleName].handle = std::unique_ptr<RTLib::Ext::OPX7::OPX7Module>(RTLib::Ext::OPX7::OPX7Module::BuiltInTriangleIS(context, createDesc,useMotionBlur));
+                modules[moduleName].options = moduleOptions;
+            }
+            void LoadBuiltInISSphereModule(RTLib::Ext::OPX7::OPX7Context* context, std::string moduleName, const RTLib::Ext::OPX7::OPX7ModuleCompileOptions& moduleOptions, bool useMotionBlur = false) {
+                auto createDesc = RTLib::Ext::OPX7::OPX7ModuleCreateDesc();
+                {
+                    createDesc.ptxBinary = {};
+                    createDesc.moduleOptions = moduleOptions;
+                    createDesc.pipelineOptions = compileOptions;
+                }
+                modules[moduleName].handle = std::unique_ptr<RTLib::Ext::OPX7::OPX7Module>(RTLib::Ext::OPX7::OPX7Module::BuiltInSphereIS(context, createDesc, useMotionBlur));
+                modules[moduleName].options = moduleOptions;
             }
             
             void Launch(RTLib::Ext::CUDA::CUDAStream* stream, int width, int height)
@@ -1257,7 +1434,9 @@ namespace rtlib
                 }
                 if (modules.count(is_module_name) > 0) {
                     isSingleModule.module = modules.at(is_module_name).handle.get();
-                    isSingleModule.entryFunctionName = is_module_name.c_str();
+                    if (!is_func_name.empty()) {
+                        isSingleModule.entryFunctionName = is_func_name.c_str();
+                    }
                 }
                 else {
                     isSingleModule = {};
@@ -1294,7 +1473,30 @@ namespace rtlib
                 shaderTable->SetHostExceptionRecordTypeData(programGroupEP->GetRecord<T>(data));
             }
 
+            void SetPipelineStackSize(unsigned int maxTraversableDepth) {
+                auto cssRG = programGroupRG->GetStackSize().cssRG;
+                unsigned int cssMS = 0;
+                for (auto& [name, programGroup] : programGroupMSs) {
+                    cssMS = std::max(cssMS, programGroup->GetStackSize().cssMS);
+                }
+                unsigned int cssCH = 0;
+                unsigned int cssAH = 0;
+                unsigned int cssIS = 0;
+                for (auto& [name, programGroup] : programGroupHGs) {
+                    auto cssHg = programGroup->GetStackSize();
+                    cssCH = std::max(cssCH, cssHg.cssCH);
+                    cssAH = std::max(cssCH, cssHg.cssAH);
+                    cssIS = std::max(cssCH, cssHg.cssIS);
+                }
+                auto cssCCTree = static_cast<unsigned int>(0);
+                auto cssCHOrMsPlusCCTree = std::max(cssMS, cssCH) + cssCCTree;
+                auto continuationStackSizes = cssRG + cssCCTree +
+                    (std::max<unsigned int>(1, linkOptions.maxTraceDepth) - 1) * cssCHOrMsPlusCCTree +
+                    (std::min<unsigned int>(1, linkOptions.maxTraceDepth)) * std::max(cssCHOrMsPlusCCTree, cssIS + cssAH);
 
+                handle->SetStackSize(0, 0, continuationStackSizes, maxTraversableDepth);
+
+            }
         };
 
         struct  EventState
@@ -1312,6 +1514,7 @@ namespace rtlib
             float2 delCurPos = {};
             
         };
+
         inline bool SavePngImage(std::string path, int width, int height, const std::vector<unsigned char>& pixels)
         {
             return stbi_write_png(path.c_str(), width, height, 4, pixels.data(), width * 4);
