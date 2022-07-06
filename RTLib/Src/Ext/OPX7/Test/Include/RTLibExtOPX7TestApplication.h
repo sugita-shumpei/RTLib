@@ -4,11 +4,12 @@
 class RTLibExtOPX7TestApplication
 {
 public:
-    RTLibExtOPX7TestApplication(const std::string& scenePath, std::string defPipelineName, bool enableVis = true) noexcept
+    RTLibExtOPX7TestApplication(const std::string& scenePath, std::string defPipelineName, bool enableVis = true, bool enableGrid = false) noexcept
     {
         m_CurPipelineName = defPipelineName;
-        m_ScenePath = scenePath;
-        m_EnableVis = enableVis;
+        m_ScenePath       = scenePath;
+        m_EnableVis       = enableVis;
+        m_EnableGrid      = enableGrid;
     }
     void Initialize()
     {
@@ -81,6 +82,7 @@ public:
         m_Stream->Synchronize();
         m_Stream->Destroy();
         m_Stream.reset();
+
         {
             m_HashBufferCUDA.Download(m_Opx7Context.get());
             float v = 0.0f;
@@ -124,7 +126,7 @@ public:
     }
 
 private:
-    static void cursorPosCallback(RTLib::Core::Window* window, double x, double y);
+    static void CursorPosCallback(RTLib::Core::Window* window, double x, double y);
 
     void LoadScene();
     void SaveScene();
@@ -153,6 +155,7 @@ private:
     void InitNeePipeline();
     void InitDbgPipeline();
     void InitRisPipeline();
+
     void FreePipelines();
 
     void InitFrameResourceCUDA();
@@ -212,8 +215,11 @@ private:
     rtlib::test::WindowState m_WindowState = rtlib::test::WindowState();
     std::array<float, 3> m_WorldAabbMin = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
     std::array<float, 3> m_WorldAabbMax = { FLT_MAX, FLT_MAX, FLT_MAX };
-    int m_SamplesForAccum = 0;
-    bool m_EnableVis = true;
+    int   m_SamplesForAccum = 0;
+    unsigned long long m_TimesForAccum = 0;
+    unsigned long long m_TimesForFrame = 0;
     std::string m_TimeStampString = "";
+    bool  m_EnableVis  = true;
+    bool  m_EnableGrid = false;
 };
 #endif

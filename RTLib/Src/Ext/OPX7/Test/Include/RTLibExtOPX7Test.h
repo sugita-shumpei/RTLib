@@ -208,6 +208,40 @@ namespace rtlib
             v.maxDepth       = j.at("MaxDepth"  ).get<unsigned int>();
         }
 
+        struct ImageConfigData
+        {
+            unsigned int       width;
+            unsigned int       height;
+            unsigned int       samples;
+            unsigned long long time;
+            bool               enableVis;
+            std::string        pngFilePath;
+            std::string        exrFilePath;
+            std::string        binFilePath;
+        };
+
+        template<typename JsonType>
+        inline void   to_json(JsonType& j, const ImageConfigData& v) {
+            j["PngFilePath"] = v.pngFilePath;
+            j["ExrFilePath"] = v.exrFilePath;
+            j["BinFilePath"] = v.binFilePath;
+            j["Width" ]      = v.width ;
+            j["Height"]      = v.height;
+            j["Samples"]     = v.samples;
+            j["Time"]        = v.time;
+            j["EnableVis"]   = v.enableVis;
+        }
+        template<typename JsonType>
+        inline void from_json(const JsonType& j, ImageConfigData& v) {
+            v.pngFilePath = j.at("PngFilePath").get<std::string >();
+            v.exrFilePath = j.at("ExrFilePath").get<std::string >();
+            v.binFilePath = j.at("BinFilePath").get<std::string >();
+            v.width       = j.at("Width"      ).get<unsigned int>();
+            v.height      = j.at("Height"     ).get<unsigned int>();
+            v.samples     = j.at("Samples"    ).get<unsigned int>();
+            v.time        = j.at("Time"       ).get<unsigned long long>();
+            v.enableVis   = j.at("EnableVis"  ).get<bool>();
+        }
 
         class OPX7MeshSharedResourceExtData :public RTLib::Core::MeshSharedResourceExtData {
          public:
@@ -1707,6 +1741,5 @@ namespace rtlib
             }
         }
     }
-
 }
 #endif

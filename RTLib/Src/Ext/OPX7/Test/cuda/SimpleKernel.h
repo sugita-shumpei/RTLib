@@ -282,9 +282,10 @@ struct ReservoirState
 
 enum   ParamFlag
 {
-    PARAM_FLAG_NONE  = 0,
-    PARAM_FLAG_NEE   = 1,
-    PARAM_FLAG_RIS   = 2,
+    PARAM_FLAG_NONE     = 0,
+    PARAM_FLAG_NEE      = 1,
+    PARAM_FLAG_RIS      = 2,
+    PARAM_FLAG_USE_GRID = 4,
 };
 enum   DebugFrameType
 {

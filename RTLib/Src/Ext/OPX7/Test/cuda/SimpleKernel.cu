@@ -459,7 +459,7 @@ extern "C" __global__ void __closesthit__radiance_sphere() {
     auto prevHitFlags = hrec->flags;
     auto currHitFlags = static_cast<unsigned int>(0);
 
-    {
+    if (params.flags & PARAM_FLAG_USE_GRID) {
         unsigned int gridIndex = params.grid.FindCellIndex(position);
         if (gridIndex != UINT32_MAX) {
             auto& val = params.grid.data[gridIndex];

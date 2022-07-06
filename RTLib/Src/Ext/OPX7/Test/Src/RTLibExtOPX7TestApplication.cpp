@@ -3,7 +3,7 @@
 #define TINYEXR_IMPLEMENTATION
 #include <RTLibExtOPX7TestApplication.h>
 
-void RTLibExtOPX7TestApplication::cursorPosCallback(RTLib::Core::Window* window, double x, double y)
+void RTLibExtOPX7TestApplication::CursorPosCallback(RTLib::Core::Window* window, double x, double y)
 {
     auto pWindowState = reinterpret_cast<rtlib::test::WindowState*>(window->GetUserPointer());
     if ((pWindowState->curCurPos.x == 0.0f &&
@@ -264,8 +264,16 @@ void RTLibExtOPX7TestApplication::InitDefPipeline()
     {
         auto moduleOptions = RTLib::Ext::OPX7::OPX7ModuleCompileOptions{};
         unsigned int flags = PARAM_FLAG_NONE;
+        if (m_EnableGrid) {
+            flags |= PARAM_FLAG_USE_GRID;
+        }
+#ifdef NDEBUG
+        moduleOptions.optLevel = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eLevel3;
+        moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eNone;
+#else
         moduleOptions.optLevel = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eDefault;
-        moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eMinimal;
+        moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
+#endif
         moduleOptions.maxRegisterCount = OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT;
         moduleOptions.payloadTypes = {};
         moduleOptions.boundValueEntries.push_back({});
@@ -433,8 +441,16 @@ void RTLibExtOPX7TestApplication::InitNeePipeline()
     {
         auto moduleOptions = RTLib::Ext::OPX7::OPX7ModuleCompileOptions{};
         unsigned int flags = PARAM_FLAG_NEE;
+        if (m_EnableGrid) {
+            flags |= PARAM_FLAG_USE_GRID;
+        }
+#ifdef NDEBUG
+        moduleOptions.optLevel = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eLevel3;
+        moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eNone;
+#else
         moduleOptions.optLevel = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eDefault;
-        moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eMinimal;
+        moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
+#endif
         moduleOptions.maxRegisterCount = OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT;
         moduleOptions.payloadTypes = {};
         moduleOptions.boundValueEntries.push_back({});
@@ -602,8 +618,16 @@ void RTLibExtOPX7TestApplication::InitRisPipeline()
     {
         auto moduleOptions = RTLib::Ext::OPX7::OPX7ModuleCompileOptions{};
         unsigned int flags = PARAM_FLAG_RIS|PARAM_FLAG_NEE;
+        if (m_EnableGrid) {
+            flags |= PARAM_FLAG_USE_GRID;
+        }
+#ifdef NDEBUG
+        moduleOptions.optLevel = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eLevel3;
+        moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eNone;
+#else
         moduleOptions.optLevel = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eDefault;
-        moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eMinimal;
+        moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
+#endif
         moduleOptions.maxRegisterCount = OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT;
         moduleOptions.payloadTypes = {};
         moduleOptions.boundValueEntries.push_back({});
@@ -770,8 +794,16 @@ void RTLibExtOPX7TestApplication::InitDbgPipeline() {
     {
         auto moduleOptions = RTLib::Ext::OPX7::OPX7ModuleCompileOptions{};
         unsigned int flags = PARAM_FLAG_NEE;
-        moduleOptions.optLevel = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eDefault;
-        moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eMinimal;
+        if (m_EnableGrid) {
+            flags |= PARAM_FLAG_USE_GRID;
+        }
+#ifdef NDEBUG
+        moduleOptions.optLevel   = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eLevel3;
+        moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eNone;
+#else
+        moduleOptions.optLevel   = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eDefault;
+        moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
+#endif
         moduleOptions.maxRegisterCount = OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT;
         moduleOptions.payloadTypes = {};
         m_PipelineMap["DBG"].LoadModule(m_Opx7Context.get(), "SimpleKernel.DBG", moduleOptions, m_PtxStringMap.at("SimpleKernel.ptx"));
@@ -1017,7 +1049,7 @@ void RTLibExtOPX7TestApplication::InitDbgPipeline() {
 {
     m_GlfwWindow->SetResizable(true);
     m_GlfwWindow->SetUserPointer(&m_WindowState);
-    m_GlfwWindow->SetCursorPosCallback(cursorPosCallback);
+    m_GlfwWindow->SetCursorPosCallback(CursorPosCallback);
 }
 
  void RTLibExtOPX7TestApplication::TracePipeline(RTLib::Ext::CUDA::CUDAStream* stream, RTLib::Ext::CUDA::CUDABuffer* frameBuffer)
@@ -1049,11 +1081,13 @@ void RTLibExtOPX7TestApplication::InitDbgPipeline() {
         if (m_CurPipelineName == "RIS") {
             params.flags = PARAM_FLAG_NEE| PARAM_FLAG_RIS ;
         }
+        if (m_EnableGrid) {
+            params.flags |= PARAM_FLAG_USE_GRID;
+        }
     }
     stream->CopyMemoryToBuffer(m_PipelineMap[m_CurPipelineName].paramsBuffer.get(), { { &params, 0, sizeof(params) } });
     m_PipelineMap[m_CurPipelineName].Launch(stream, m_SceneData.config.width, m_SceneData.config.height);
     if (m_CurPipelineName != "DBG") {
-
         m_SamplesForAccum += m_SceneData.config.samples;
     }
 }
@@ -1095,6 +1129,7 @@ void RTLibExtOPX7TestApplication::InitDbgPipeline() {
             auto zeroClearData = std::vector<float>(m_SceneData.config.width * m_SceneData.config.height * 3, 0.0f);
             m_Opx7Context->CopyMemoryToBuffer(m_AccumBufferCUDA.get(), { { zeroClearData.data(), 0, sizeof(zeroClearData[0]) * zeroClearData.size() } });
             m_SamplesForAccum = 0;
+            m_TimesForAccum   = 0;
             this->UpdateTimeStamp();
         }
         if (m_EventState.isMovedCamera)
@@ -1239,10 +1274,14 @@ void RTLibExtOPX7TestApplication::InitDbgPipeline() {
     if (m_EnableVis)
     {
         auto ogl4Context = m_GlfwWindow->GetOpenGLContext();
+        m_TimesForFrame = 0;
+        auto beg = std::chrono::system_clock::now();
         auto frameBufferCUDA = m_FrameBufferCUGL->Map(stream);
         this->TracePipeline(stream, frameBufferCUDA);
         m_FrameBufferCUGL->Unmap(stream);
         stream->Synchronize();
+        auto end = std::chrono::system_clock::now();
+        m_TimesForFrame = std::chrono::duration_cast<std::chrono::milliseconds>(end - beg).count();
         if (m_EventState.isResized)
         {
             glViewport(0, 0, m_SceneData.config.width, m_SceneData.config.height);
@@ -1251,11 +1290,15 @@ void RTLibExtOPX7TestApplication::InitDbgPipeline() {
     }
     else
     {
+        m_TimesForFrame = 0;
+        auto beg = std::chrono::system_clock::now();
         this->TracePipeline(stream, m_FrameBufferCUDA.get());
         stream->Synchronize();
+        auto end = std::chrono::system_clock::now();
+        m_TimesForFrame = std::chrono::duration_cast<std::chrono::milliseconds>(end - beg).count();
     }
     if (m_CurPipelineName != "DBG") {
-
+        m_TimesForAccum += m_TimesForFrame;
         if ((m_SamplesForAccum > 0) && (m_SamplesForAccum % m_SceneData.config.samplesPerSave == 0))
         {
             auto baseSavePath = std::filesystem::path(m_SceneData.config.imagePath).make_preferred() / m_TimeStampString;
@@ -1264,6 +1307,21 @@ void RTLibExtOPX7TestApplication::InitDbgPipeline() {
                 std::filesystem::create_directory(baseSavePath);
                 std::filesystem::copy_file(m_ScenePath, baseSavePath / "scene.json");
             }
+            auto configData    = rtlib::test::ImageConfigData();
+            configData.width   = m_SceneData.config.width;
+            configData.height  = m_SceneData.config.height;
+            configData.samples = m_SamplesForAccum;
+            configData.time    = m_TimesForAccum;
+            configData.enableVis = m_EnableVis;
+            configData.pngFilePath = baseSavePath.string() + "/result_" + m_CurPipelineName + "_" + std::to_string(m_SamplesForAccum) + ".png";
+            configData.binFilePath = baseSavePath.string() + "/result_" + m_CurPipelineName + "_" + std::to_string(m_SamplesForAccum) + ".bin";
+            configData.exrFilePath = baseSavePath.string() + "/result_" + m_CurPipelineName + "_" + std::to_string(m_SamplesForAccum) + ".exr";
+            {
+                std::ofstream configFile (baseSavePath.string() + "/config_" + m_CurPipelineName + "_" + std::to_string(m_SamplesForAccum) + ".json");
+                configFile << nlohmann::json(configData);
+                configFile.close();
+            }
+
             auto pixelSize = m_SceneData.config.width * m_SceneData.config.height;
             auto download_data = std::vector<float>(pixelSize * 3, 0.0f);
             {
@@ -1281,8 +1339,10 @@ void RTLibExtOPX7TestApplication::InitDbgPipeline() {
                     hdr_image_data[3 * (pixelSize - 1 - i) + 1] = download_data[3 * i + 1] / static_cast<float>(m_SamplesForAccum);
                     hdr_image_data[3 * (pixelSize - 1 - i) + 2] = download_data[3 * i + 2] / static_cast<float>(m_SamplesForAccum);
                 }
-                std::string saveExrPath = baseSavePath.string() + "/result_" + m_CurPipelineName + "_" + std::to_string(m_SamplesForAccum) + ".exr";
-                rtlib::test::SaveExrImage(saveExrPath.c_str(), m_SceneData.config.width, m_SceneData.config.height, hdr_image_data);
+                rtlib::test::SaveExrImage(configData.exrFilePath.c_str(), m_SceneData.config.width, m_SceneData.config.height, hdr_image_data);
+                std::ofstream imageBinFile(configData.binFilePath, std::ios::binary|std::ios::ate);
+                imageBinFile.write((char*)hdr_image_data.data(), hdr_image_data.size() * sizeof(hdr_image_data[0]));
+                imageBinFile.close();
             }
             {
                 auto png_image_data = std::vector<unsigned char>(pixelSize * 4);
@@ -1293,8 +1353,7 @@ void RTLibExtOPX7TestApplication::InitDbgPipeline() {
                     png_image_data[4 * i + 2] = 255.99f * std::min(RTLib::Ext::CUDA::Math::linear_to_gamma(download_data[3 * (pixelSize - 1 - i) + 2] / static_cast<float>(m_SamplesForAccum)), 1.0f);
                     png_image_data[4 * i + 3] = 255;
                 }
-                std::string savePngPath = baseSavePath.string() + "/result_" + m_CurPipelineName + "_" + std::to_string(m_SamplesForAccum) + ".png";
-                rtlib::test::SavePngImage(savePngPath.c_str(), m_SceneData.config.width, m_SceneData.config.height, png_image_data);
+                rtlib::test::SavePngImage(configData.pngFilePath.c_str(), m_SceneData.config.width, m_SceneData.config.height, png_image_data);
             }
         }
     }
