@@ -1150,9 +1150,9 @@ void RTLibExtOPX7TestApplication::InitDbgPipeline() {
 
  void RTLibExtOPX7TestApplication::UpdateState()
 {
+     m_EventState = rtlib::test::EventState();
     if (m_EnableVis)
     {
-        m_EventState = rtlib::test::EventState();
 
         m_GlfwContext->Update();
         m_KeyBoardManager->Update();

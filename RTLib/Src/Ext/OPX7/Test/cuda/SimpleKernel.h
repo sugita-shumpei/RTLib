@@ -176,33 +176,6 @@ struct RegularGrid3
 
     }
 };
-
-struct QuadTree
-{
-    //00|01
-    //10|11
-    //UINT32
-    //16階層を表現可能
-    //01|10|11|01|01|01|01|01|01|01|01|01|01|01|01|01|
-    //01      <-04
-    //01|10   <-16
-    //01|10|11<-64
-    float*       weights ;
-    unsigned int maxLevel;
-    RTLIB_INLINE RTLIB_HOST_DEVICE auto GetLevelCount(unsigned int level)const noexcept -> unsigned int
-    {
-        return (powf(4, level) - 1) / 3;
-    }
-    RTLIB_INLINE RTLIB_HOST_DEVICE auto GetCount()const noexcept -> unsigned int
-    {
-        return GetLevelCount(maxLevel);
-    }
-    RTLIB_INLINE RTLIB_HOST_DEVICE auto GetIndex(unsigned int idx, unsigned int level)const noexcept -> unsigned int
-    {
-        return idx + GetLevelCount(level);
-    }
-};
-
 template<typename T>
 struct HashGrid3
 {
@@ -254,7 +227,6 @@ private:
     }
 #endif
 };
-
 template<typename T>
 struct Reservoir
 {
@@ -496,5 +468,6 @@ static __forceinline__ __device__ bool TraceOccluded(OptixTraversableHandle tlas
     optixTrace(tlasHandle, rayOrigin, rayDirection, rayTmin, rayTmax, 0.0f, OptixVisibilityMask(255), OPTIX_RAY_FLAG_TERMINATE_ON_FIRST_HIT, RAY_TYPE_OCCLUDED, RAY_TYPE_COUNT, RAY_TYPE_OCCLUDED,p0);
     return p0;
 }
+
 #endif
 #endif

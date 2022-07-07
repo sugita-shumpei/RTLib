@@ -11,6 +11,7 @@ public:
         m_EnableVis       = enableVis;
         m_EnableGrid      = enableGrid;
     }
+
     void Initialize()
     {
         this->LoadScene();
@@ -34,9 +35,10 @@ public:
             this->InitWindowCallback();
         }
     }
+
     void MainLoop()
     {
-        m_Stream = std::unique_ptr<RTLib::Ext::CUDA::CUDAStream>(m_Opx7Context->CreateStream());
+        m_Stream          = std::unique_ptr<RTLib::Ext::CUDA::CUDAStream>(m_Opx7Context->CreateStream());
         if (m_EnableVis)
         {
             m_KeyBoardManager = std::make_unique<rtlib::test::KeyBoardStateManager>(m_GlfwWindow.get());
@@ -67,8 +69,11 @@ public:
 
             m_GlfwWindow->Show();
         }
-        m_EventState = rtlib::test::EventState();
-        m_WindowState = rtlib::test::WindowState();
+        m_EventState      = rtlib::test::EventState();
+        m_WindowState     = rtlib::test::WindowState();
+        m_EventState.isClearFrame = true;
+        m_SamplesForAccum = 0;
+        m_TimesForAccum = 0;
         this->UpdateTimeStamp();
         while (!this->FinishTrace())
         {
@@ -95,6 +100,7 @@ public:
             std::cout << "Capacity: " << v * 100.0f << "%" << std::endl;
         }
     }
+
     void Terminate()
     {
         this->SaveScene();
@@ -110,6 +116,7 @@ public:
         this->FreeWorld();
         this->FreeOPX7();
     }
+
     int Run()
     {
         try
@@ -125,6 +132,29 @@ public:
         return 0;
     }
 
+    auto GetWidth ()const noexcept -> unsigned int { return m_SceneData.config.width ; }
+    auto GetHeight()const noexcept -> unsigned int { return m_SceneData.config.height; }
+
+    void SetWidth (unsigned int width  ) noexcept  { m_SceneData.config.width = width ; }
+    void SetHeight(unsigned int height ) noexcept  { m_SceneData.config.height= height; }
+
+    auto GetPipelineName()const noexcept -> std::string { return m_CurPipelineName; }
+    void SetPipelineName(const std::string pipelineName)noexcept { m_CurPipelineName = pipelineName; }
+
+    auto GetSamplesPerSave()const noexcept -> unsigned int {
+        return m_SceneData.config.samplesPerSave;
+    }
+    void SetSamplesPerSave(unsigned int samplesPerSave)noexcept {
+        m_SceneData.config.samplesPerSave = samplesPerSave;
+    }
+
+    auto GetMaxSamples()const noexcept -> unsigned int {
+        return m_SceneData.config.maxSamples;
+    }
+    void SetMaxSamples(unsigned int maxSamples)
+        noexcept {
+        m_SceneData.config.maxSamples = maxSamples;
+    }
 private:
     static void CursorPosCallback(RTLib::Core::Window* window, double x, double y);
 

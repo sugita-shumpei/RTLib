@@ -1,4 +1,4 @@
-set(RTLIB_EXT_OPX7_SOURCES 
+set(RTLIB_EXT_OPX7_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/OPX7/OPX7Utility.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/OPX7/OPX7Common.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/OPX7Common.cpp
@@ -7,36 +7,35 @@ set(RTLIB_EXT_OPX7_SOURCES
 
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/OPX7/OPX7Context.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/OPX7Context.cpp
-    
+
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/OPX7/OPX7Payload.h
 
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/OPX7/OPX7Natives.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/OPX7Natives.cpp
-    
+
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/OPX7/OPX7Exceptions.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/OPX7Exceptions.cpp
 
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/OPX7/OPX7Module.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/Src/OPX7Module.cpp 
+    ${CMAKE_CURRENT_SOURCE_DIR}/Src/OPX7Module.cpp
 
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/OPX7/OPX7ProgramGroup.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/Src/OPX7ProgramGroup.cpp   
+    ${CMAKE_CURRENT_SOURCE_DIR}/Src/OPX7ProgramGroup.cpp
 
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/OPX7/OPX7Pipeline.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/Src/OPX7Pipeline.cpp   
+    ${CMAKE_CURRENT_SOURCE_DIR}/Src/OPX7Pipeline.cpp
 
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/OPX7/OPX7AccelerationStructure.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/Src/OPX7AccelerationStructure.cpp  
+    ${CMAKE_CURRENT_SOURCE_DIR}/Src/OPX7AccelerationStructure.cpp
 
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/OPX7/OPX7ShaderTableLayout.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/Src/OPX7ShaderTableLayout.cpp 
-    
+    ${CMAKE_CURRENT_SOURCE_DIR}/Src/OPX7ShaderTableLayout.cpp
+
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/OPX7/OPX7ShaderTable.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/Src/OPX7ShaderTable.cpp 
+    ${CMAKE_CURRENT_SOURCE_DIR}/Src/OPX7ShaderTable.cpp
 )
 
-
-add_library(RTLib-Ext-OPX7 
+add_library(RTLib-Ext-OPX7
     ${RTLIB_EXT_OPX7_SOURCES}
 )
 target_include_directories(RTLib-Ext-OPX7 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Include)
@@ -47,13 +46,14 @@ set(RTLIB_EXT_OPX7_TEST_DATA_PATH "${RTLIB_TEST_DATA_PATH}")
 set(RTLIB_EXT_OPX7_TEST_CUDA_PATH "${CMAKE_CURRENT_BINARY_DIR}/Test/cuda")
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Test/RTLibExtOPX7TestConfig.h.in ${CMAKE_CURRENT_BINARY_DIR}/Test/RTLibExtOPX7TestConfig.h)
 
-set(RTLIB_EXT_OPX7_TEST_NVCC_INCLUDE_DIRS ${OptiX_INCLUDE_DIR}  ${RTLIB_EXT_CUDA_INCLUDE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda ${CMAKE_CURRENT_SOURCE_DIR}/Include)
+set(RTLIB_EXT_OPX7_TEST_NVCC_INCLUDE_DIRS ${OptiX_INCLUDE_DIR} ${RTLIB_EXT_CUDA_INCLUDE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda ${CMAKE_CURRENT_SOURCE_DIR}/Include)
 set(RTLIB_EXT_OPX7_TEST_NVCC_OPTIONS -arch compute_75 -use_fast_math -lineinfo -rdc true -m64 --std c++17 -ptx)
+
 foreach(INCLUDE_DIR ${RTLIB_EXT_OPX7_TEST_NVCC_INCLUDE_DIRS})
     list(APPEND RTLIB_EXT_OPX7_TEST_NVCC_OPTIONS -I${INCLUDE_DIR})
 endforeach()
 
-add_executable(RTLib-Ext-OPX7-Test 
+add_library(RTLib-Ext-OPX7-Test-Lib
     ${CMAKE_CURRENT_SOURCE_DIR}/Test/RTLibExtOPX7TestConfig.h.in
     ${CMAKE_CURRENT_SOURCE_DIR}/Test/Include/RTLibExtOPX7TestApplication.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Test/Src/RTLibExtOPX7TestApplication.cpp
@@ -62,13 +62,41 @@ add_executable(RTLib-Ext-OPX7-Test
     ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/SimpleKernel.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/SimpleKernel.cu
 )
-target_include_directories(RTLib-Ext-OPX7-Test PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Test/Include PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/Test)
-target_link_libraries(RTLib-Ext-OPX7-Test PUBLIC RTLib-Ext-OPX7 tinyexr::tinyexr stb::stb RTLib-Utils)
-add_custom_command(TARGET RTLib-Ext-OPX7-Test PRE_BUILD 
-COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/SimpleKernel.cu ${CMAKE_CURRENT_BINARY_DIR}/Test/cuda/SimpleKernel.cu
-COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/SimpleKernel.h  ${CMAKE_CURRENT_BINARY_DIR}/Test/cuda/SimpleKernel.h)
-add_custom_command(TARGET RTLib-Ext-OPX7-Test POST_BUILD 
-COMMAND ${CUDAToolkit_NVCC_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/SimpleKernel.cu ${RTLIB_EXT_OPX7_TEST_NVCC_OPTIONS} -o  ${CMAKE_CURRENT_BINARY_DIR}/Test/cuda/SimpleKernel.ptx
+target_include_directories(RTLib-Ext-OPX7-Test-Lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Test/Include PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/Test)
+
+target_link_libraries(RTLib-Ext-OPX7-Test-Lib PUBLIC RTLib-Ext-OPX7 tinyexr::tinyexr stb::stb RTLib-Utils)
+add_custom_command(TARGET RTLib-Ext-OPX7-Test-Lib PRE_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/SimpleKernel.cu ${CMAKE_CURRENT_BINARY_DIR}/Test/cuda/SimpleKernel.cu
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/SimpleKernel.h ${CMAKE_CURRENT_BINARY_DIR}/Test/cuda/SimpleKernel.h)
+add_custom_command(TARGET RTLib-Ext-OPX7-Test-Lib POST_BUILD
+    COMMAND ${CUDAToolkit_NVCC_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/SimpleKernel.cu ${RTLIB_EXT_OPX7_TEST_NVCC_OPTIONS} -o ${CMAKE_CURRENT_BINARY_DIR}/Test/cuda/SimpleKernel.ptx
 )
 
-set_target_properties(RTLib-Ext-OPX7-Test PROPERTIES FOLDER RTLib/RTLib/Ext/OPX7)
+set_target_properties(RTLib-Ext-OPX7-Test-Lib PROPERTIES FOLDER RTLib/RTLib/Ext/OPX7)
+
+add_executable(RTLib-Ext-OPX7-Test-Main
+    ${CMAKE_CURRENT_SOURCE_DIR}/Test/Src/RTLibExtOPX7Main.cpp
+)
+target_link_libraries(RTLib-Ext-OPX7-Test-Main PUBLIC RTLib-Ext-OPX7-Test-Lib)
+
+target_include_directories(RTLib-Ext-OPX7-Test-Main PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Test/Include PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/Test)
+
+set_target_properties(RTLib-Ext-OPX7-Test-Main PROPERTIES FOLDER RTLib/RTLib/Ext/OPX7)
+
+add_executable(RTLib-Ext-OPX7-Test-Comp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Test/Src/RTLibExtOPX7Comp.cpp
+)
+target_link_libraries(RTLib-Ext-OPX7-Test-Comp PUBLIC RTLib-Ext-OPX7-Test-Lib)
+
+target_include_directories(RTLib-Ext-OPX7-Test-Comp PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Test/Include PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/Test)
+
+set_target_properties(RTLib-Ext-OPX7-Test-Comp  PROPERTIES FOLDER RTLib/RTLib/Ext/OPX7)
+
+add_executable(RTLib-Ext-OPX7-Test-ImageSelector
+    ${CMAKE_CURRENT_SOURCE_DIR}/Test/Src/RTLibExtOPX7ImageSelector.cpp
+)
+target_link_libraries(RTLib-Ext-OPX7-Test-ImageSelector PUBLIC RTLib-Ext-GLFW-GL tinyexr::tinyexr stb::stb RTLib-Utils)
+
+target_include_directories(RTLib-Ext-OPX7-Test-ImageSelector PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Test/Include PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/Test)
+
+set_target_properties(RTLib-Ext-OPX7-Test-ImageSelector PROPERTIES FOLDER RTLib/RTLib/Ext/OPX7)
