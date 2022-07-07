@@ -16,6 +16,11 @@
 #include <unordered_map>
 #include <fstream>
 #include <cassert>
+static void CursorPosCallback(GLFWwindow* window, double x, double y) {
+	float* cursorPos = (float*)glfwGetWindowUserPointer(window);
+	cursorPos[0] = x;
+	cursorPos[1] = y;
+}
 static auto CreateGLFWWindowWithHints(int width, int height, const char* title, const std::unordered_map<int, int>& windowHint)->GLFWwindow* {
 	for (auto& [key, value] : windowHint) {
 		glfwWindowHint(key, value);
@@ -97,6 +102,10 @@ private:
 	GLFWwindow* m_Window = nullptr;
 };
 int main(int argc, const char* argv[]) {
+	unsigned int xRange = 128;
+	unsigned int yRange = 128;
+	std::string savePath = RTLIB_EXT_OPX7_TEST_DATA_PATH"\\..\\Result\\Scene0\\Depth=4\\DEF\\result_DEF_1000.png";
+
 	if (!glfwInit()) {
 		return -1;
 	}
@@ -148,7 +157,11 @@ int main(int argc, const char* argv[]) {
 		auto texDesc = RTLib::Ext::GL::GLTextureCreateDesc();
 		{
 			int tWid, tHei, tCmp;
-			auto pixels = stbi_load(RTLIB_EXT_OPX7_TEST_DATA_PATH"/Textures/sample.png", &tWid, &tHei, &tCmp, 4);
+			auto pixels = stbi_load(savePath.c_str(), &tWid, &tHei, &tCmp, 4);
+			glfwSetWindowSize(window, tWid, tHei);
+			width = tWid;
+			height = tHei;
+			glViewport(0, 0, tWid, tHei);
 
 			texDesc.image.imageType = RTLib::Ext::GL::GLImageType::e2D;
 			texDesc.image.extent.width = tWid;
@@ -198,15 +211,32 @@ int main(int argc, const char* argv[]) {
 
 		auto rectRenderer = std::unique_ptr<RTLib::Ext::GL::GLRectRenderer>(context->CreateRectRenderer());
 
+		float cursorPos[2] = { 0.0f };
+		glfwSetWindowUserPointer(window, cursorPos);
+		glfwSetCursorPosCallback(window, CursorPosCallback);
 		glfwShowWindow(window);
+
+		float savePos[2] = { 0.0f };
 		while (!glfwWindowShouldClose(window)) {
 			context->SetClearBuffer(RTLib::Ext::GL::GLClearBufferFlagsColor);
-			context->SetClearColor(0.0f, 1.0f, 0.0f, 0.0f);
+			context->SetClearColor(0.0f, 1.0f, 0.0f, 0.0f); 
 			rectRenderer->DrawTexture(tex.get());
+			
+			rectRenderer->DrawBound2D({1.0f,0.0f,0.0f}, std::array<float, 16>{
+				static_cast<float>(xRange)/width, 0.0f, 0.0f, -(cursorPos[0] - (width / 2)) / static_cast<float>(width),
+			    0.0f, static_cast<float>(yRange) / height,0.0f,-(cursorPos[1]-(height/2)) / static_cast<float>(height),
+			    0.0f,0.0f,1.0f,0.0f,
+			    0.0f,0.0f,0.0f,1.0f
+			});
+			if (glfwGetKey(window, GLFW_KEY_F1) == GLFW_PRESS) {
+				std::cout << cursorPos[0] << "," << cursorPos[1] << std::endl;
+				savePos[0] = cursorPos[0];
+				savePos[1] = cursorPos[1];
+			}
 			glfwSwapBuffers(window);
 			glfwPollEvents();
 		}
-
+		//262,662
 		rectRenderer->Destroy();
 		tex->Destroy();
 		vertexBuffer->Destroy();

@@ -15,7 +15,18 @@ namespace RTLib{
                 virtual ~GLRectRenderer()noexcept;
 
                 void Destroy()noexcept;
-                void DrawTexture(GLTexture* texture);
+                void DrawTexture(GLTexture* texture, const std::array<float,16>& transform = 
+                    {1.0f,0.0f,0.0f,0.0f,
+                    0.0f,1.0f,0.0f,0.0f,
+                    0.0f,0.0f,1.0f,0.0f,
+                    0.0f,0.0f,0.0f,1.0f}
+                );
+                void DrawBound2D(const std::array<float,3>& color, const std::array<float, 16>& transform =
+                    { 1.0f,0.0f,0.0f,0.0f,
+                    0.0f,1.0f,0.0f,0.0f,
+                    0.0f,0.0f,1.0f,0.0f,
+                    0.0f,0.0f,0.0f,1.0f }
+                );
             private:
                 GLRectRenderer(GLContext* ctx)noexcept;
             private:

@@ -1,5 +1,27 @@
 #include <RTLibExtOPX7Test.h>
-int main() {
+int main(int argc, const char* argv[]) {
+    bool isAllRange = true;
+    auto xCenter = unsigned int(262);
+    auto yCenter = unsigned int(662);
+    auto xRange = 128;
+    auto yRange = 128;
+    int imageSizeX = 1024;
+    int imageSizeY = 1024;
+    if (argc > 1) {
+        isAllRange = false;
+        if (std::string(argv[1]) == "--xcenter") {
+            xCenter = std::stoi(std::string(argv[2]));
+        }
+        if (std::string(argv[3]) == "--ycenter") {
+            yCenter = std::stoi(std::string(argv[4]));
+        }
+        if (std::string(argv[5]) == "--xrange") {
+            xRange = std::stoi(std::string(argv[6]));
+        }
+        if (std::string(argv[7]) == "--yrange") {
+            yRange = std::stoi(std::string(argv[8]));
+        }
+    }
     //return RTLibExtOPX7TestApplication(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/../scene.json", "DEF", false).Run();
     auto filePath = std::filesystem::path(RTLIB_EXT_OPX7_TEST_DATA_PATH"\\..\\Result\\Scene0\\Depth=4");
     auto baseSamples = 100000;
@@ -28,24 +50,37 @@ int main() {
                         std::getline(ss, pipeline, '_');
                         std::getline(ss, sampleStr, '.');
                     }
-                    compImageData.resize(1024 * 1024);
+                    compImageData.resize(imageSizeX * imageSizeY);
                     std::ifstream imageFile(imageDir.path(), std::ios::binary);
                     if (imageFile.is_open()) {
                         imageFile.read((char*)compImageData.data(), compImageData.size() * sizeof(compImageData[0]));
                     }
                     imageFile.close();
-
                     auto mae = float(0.0f);
-                    for (int i = 0; i < baseImageData.size(); ++i) {
-                        if (!(isnan(baseImageData[i].x) || isnan(baseImageData[i].y) || isnan(baseImageData[i].z) ||
-                            isnan(compImageData[i].x) || isnan(compImageData[i].y) || isnan(compImageData[i].z))) {
-                            float  delt = (fabsf(baseImageData[i].x - compImageData[i].x)) + (fabsf(baseImageData[i].y - compImageData[i].y)) + (fabsf(baseImageData[i].z - compImageData[i].z));
-                            if ((baseImageData[i].x + baseImageData[i].y + baseImageData[i].z) > 0.0f) {
-                                mae += delt / (baseImageData[i].x + baseImageData[i].y + baseImageData[i].z);
+                    if (isAllRange) {
+                        for (int i = 0; i < baseImageData.size(); ++i) {
+                            if (!(isnan(baseImageData[i].x) || isnan(baseImageData[i].y) || isnan(baseImageData[i].z) ||
+                                isnan(compImageData[i].x) || isnan(compImageData[i].y) || isnan(compImageData[i].z))) {
+                                float  delt = (fabsf(baseImageData[i].x - compImageData[i].x)) + (fabsf(baseImageData[i].y - compImageData[i].y)) + (fabsf(baseImageData[i].z - compImageData[i].z));
+                                if ((baseImageData[i].x + baseImageData[i].y + baseImageData[i].z) > 0.0f) {
+                                    mae += delt / (baseImageData[i].x + baseImageData[i].y + baseImageData[i].z);
+                                }
                             }
                         }
+                        mae /= static_cast<float>(compImageData.size());
                     }
-                    mae /= static_cast<float>(compImageData.size());
+                    else {
+                        for (int j = yCenter - yRange / 2; j < yCenter + yRange / 2; ++j) {
+
+                            for (int i = xCenter - xRange / 2; i < xCenter + xRange / 2; ++i) {
+                                auto baseColor = baseImageData[imageSizeX * j + i];
+                                auto compColor = compImageData[imageSizeX * j + i];
+                                float  delt = (fabsf(baseColor.x - compColor.x)) + (fabsf(baseColor.y - compColor.y)) + (fabsf(baseColor.z - compColor.z));
+                                mae += delt / (baseColor.x + baseColor.y + baseColor.z);
+                            }
+                        }
+                        mae /= static_cast<float>(xRange * yRange);
+                    }
                     if (pipeline == "DEF") {
                         defMAEs.push_back({ std::stoi(sampleStr),mae });
                     }

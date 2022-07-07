@@ -11,8 +11,8 @@ int main()
         auto samplesPerSave = testApp.GetSamplesPerSave();
         {
             testApp.SetPipelineName("DEF");
-            testApp.SetMaxSamples(100000);
-            testApp.SetSamplesPerSave(10000);
+            testApp.SetMaxSamples(1000000);
+            testApp.SetSamplesPerSave(100000);
             testApp.MainLoop();
         }
         testApp.SetPipelineName(pipelineName);
