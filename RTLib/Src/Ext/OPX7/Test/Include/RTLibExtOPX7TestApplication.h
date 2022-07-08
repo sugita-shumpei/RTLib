@@ -4,12 +4,13 @@
 class RTLibExtOPX7TestApplication
 {
 public:
-    RTLibExtOPX7TestApplication(const std::string& scenePath, std::string defPipelineName, bool enableVis = true, bool enableGrid = false) noexcept
+    RTLibExtOPX7TestApplication(const std::string& scenePath, std::string defPipelineName, bool enableVis = true, bool enableGrid = false,bool enableTree = false) noexcept
     {
         m_CurPipelineName = defPipelineName;
         m_ScenePath       = scenePath;
         m_EnableVis       = enableVis;
         m_EnableGrid      = enableGrid;
+        m_EnableTree      = enableTree;
     }
 
     void Initialize()
@@ -19,11 +20,15 @@ public:
         this->InitWorld();
         this->InitLight();
         this->InitGrids();
+        if (m_EnableTree) {
+            this->InitSdTree();
+        }
         this->InitPtxString();
         this->InitDefPipeline();
         this->InitNeePipeline();
         this->InitDbgPipeline();
         this->InitRisPipeline();
+        this->InitSdTreeDefPipeline();
         this->InitFrameResourceCUDA();
         if (m_EnableVis)
         {
@@ -52,6 +57,7 @@ public:
             m_KeyBoardManager->UpdateState(GLFW_KEY_F2);
             m_KeyBoardManager->UpdateState(GLFW_KEY_F3);
             m_KeyBoardManager->UpdateState(GLFW_KEY_F4);
+            m_KeyBoardManager->UpdateState(GLFW_KEY_F5);
 
 
             m_KeyBoardManager->UpdateState(GLFW_KEY_W);
@@ -111,6 +117,9 @@ public:
         this->FreeGLFW();
         this->FreeFrameResourceCUDA();
         this->FreePipelines();
+        if (m_EnableTree) {
+            this->FreeSdTree();
+        }
         this->FreeGrids();
         this->FreeLight();
         this->FreeWorld();
@@ -265,5 +274,6 @@ private:
 
     bool  m_EnableVis  = true;
     bool  m_EnableGrid = false;
+    bool  m_EnableTree = false;
 };
 #endif

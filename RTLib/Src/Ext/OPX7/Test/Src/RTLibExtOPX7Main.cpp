@@ -1,7 +1,7 @@
 #include <RTLibExtOPX7TestApplication.h>
 int main()
 {
-    auto testApp = RTLibExtOPX7TestApplication(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/../scene.json", "DEF", false);
+    auto testApp = RTLibExtOPX7TestApplication(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/../scene.json", "DEF", true,false,true);
     try
     {
         testApp.Initialize();

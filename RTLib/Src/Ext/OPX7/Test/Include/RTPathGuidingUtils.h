@@ -523,9 +523,9 @@ namespace rtlib{
 
 #ifndef NDEBUG
 				std::cout << "Upload(Info)\n";
-				std::cout << "GpuSTreeNodes          : " << m_GpuSTreeNodes.getSizeInBytes() / (1024.0f * 1024.0f) << "MB\n";
-				std::cout << "GpuDTreeNodes(Building): " << m_GpuDTreeNodesBuilding.getSizeInBytes() / (1024.0f * 1024.0f) << "MB\n";
-				std::cout << "GpuDTreeNodes(Sampling): " << m_GpuDTreeNodesSampling.getSizeInBytes() / (1024.0f * 1024.0f) << "MB\n";
+				std::cout << "GpuSTreeNodes          : " << m_GpuSTreeNodes->GetSizeInBytes() / (1024.0f * 1024.0f) << "MB\n";
+				std::cout << "GpuDTreeNodes(Building): " << m_GpuDTreeNodesBuilding->GetSizeInBytes() / (1024.0f * 1024.0f) << "MB\n";
+				std::cout << "GpuDTreeNodes(Sampling): " << m_GpuDTreeNodesSampling->GetSizeInBytes() / (1024.0f * 1024.0f) << "MB\n";
 #endif
 			}
 			void Download() noexcept {
@@ -961,9 +961,9 @@ namespace rtlib{
 				utils::UploadBuffer(m_Context, m_GpuDTreeNodesSampling.get(), dTreeNodesSampling);
 #ifndef NDEBUG
 				std::cout << "Upload(Info)\n";
-				std::cout << "GpuSTreeNodes          : " << m_GpuSTreeNodes.getSizeInBytes() / (1024.0f * 1024.0f) << "MB\n";
-				std::cout << "GpuDTreeNodes(Building): " << m_GpuDTreeNodesBuilding.getSizeInBytes() / (1024.0f * 1024.0f) << "MB\n";
-				std::cout << "GpuDTreeNodes(Sampling): " << m_GpuDTreeNodesSampling.getSizeInBytes() / (1024.0f * 1024.0f) << "MB\n";
+				std::cout << "GpuSTreeNodes          : " << m_GpuSTreeNodes->GetSizeInBytes() / (1024.0f * 1024.0f) << "MB\n";
+				std::cout << "GpuDTreeNodes(Building): " << m_GpuDTreeNodesBuilding->GetSizeInBytes() / (1024.0f * 1024.0f) << "MB\n";
+				std::cout << "GpuDTreeNodes(Sampling): " << m_GpuDTreeNodesSampling->GetSizeInBytes() / (1024.0f * 1024.0f) << "MB\n";
 #endif
 			}
 			void Download() noexcept {
