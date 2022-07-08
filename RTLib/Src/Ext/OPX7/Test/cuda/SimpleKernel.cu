@@ -2,10 +2,10 @@
 #include "SimpleKernel.h"
 struct HitRecordUserData
 {
-    float3 radiance;
-    float3 throughPut;
-    float3 bsdfVal;
-    float  bsdfPdf;
+    float3       radiance;
+    float3       throughPut;
+    float3       bsdfVal;
+    float        bsdfPdf;
     unsigned int depth;
 };
 struct HitRecordUserDebugData
@@ -345,6 +345,7 @@ extern "C" __global__ void __closesthit__radiance() {
             }
             else {
                 currHitFlags |= HIT_RECORD_FLAG_COUNT_EMITTED;
+                currHitFlags |= HIT_RECORD_FLAG_DELTA_MATERIAL;
             }
             break;
         }
@@ -385,7 +386,7 @@ extern "C" __global__ void __closesthit__radiance() {
             }
             else {
                 position       -= 0.01f * rNormal;
-                float  sine_i_2 = min(1.0f - cosine_i * cosine_i,0.0f);
+                float  sine_i_2 = rtlib::min(1.0f - cosine_i * cosine_i,0.0f);
                 float  cosine_o = sqrtf(1.0f - sine_o_2);
                 float3 refrDir  = make_float3(0.0f);
                 if (sine_i_2 > 0.0f) {
@@ -585,7 +586,7 @@ extern "C" __global__ void __closesthit__radiance_sphere() {
             }
             else {
                 position -= 0.01f * rNormal;
-                float  sine_i_2 = min(1.0f - cosine_i * cosine_i, 0.0f);
+                float  sine_i_2 = rtlib::min(1.0f - cosine_i * cosine_i, 0.0f);
                 float  cosine_o = sqrtf(1.0f - sine_o_2);
                 float3 refrDir = make_float3(0.0f);
                 if (sine_i_2 > 0.0f) {

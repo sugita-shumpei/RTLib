@@ -179,12 +179,16 @@ private:
     void InitGrids();
     void FreeGrids();
 
+    void InitSdTree();
+    void FreeSdTree();
+
     void InitPtxString();
 
     void InitDefPipeline();
     void InitNeePipeline();
     void InitDbgPipeline();
     void InitRisPipeline();
+    void InitSdTreeDefPipeline();
 
     void FreePipelines();
 
@@ -225,30 +229,40 @@ private:
     std::unordered_map<std::string, rtlib::test::GeometryAccelerationStructureData> m_GeometryASMap;
     std::unordered_map<std::string, rtlib::test::InstanceAccelerationStructureData> m_InstanceASMap;
     std::unordered_map<std::string, rtlib::test::PipelineData> m_PipelineMap;
+
     std::unique_ptr<RTLib::Ext::CUDA::CUDAStream> m_Stream;
-    rtlib::test::UploadBuffer<MeshLight> m_lightBuffer;
+    rtlib::test::UploadBuffer<MeshLight>          m_lightBuffer;
     std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer> m_AccumBufferCUDA;
     std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer> m_FrameBufferCUDA;
     std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer> m_SeedBufferCUDA;
     rtlib::test::HashGrid3Buffer<float4>          m_HashBufferCUDA;
+    std::unique_ptr<rtlib::test::RTSTreeWrapper>  m_SdTree;
 
     std::unique_ptr<RTLib::Ext::GLFW::GL::GLFWOpenGLWindow> m_GlfwWindow;
-    std::unique_ptr<RTLib::Ext::GL::GLRectRenderer> m_RectRendererGL;
-    std::unique_ptr<RTLib::Ext::GL::GLBuffer> m_FrameBufferGL;
-    std::unique_ptr<RTLib::Ext::GL::GLTexture> m_FrameTextureGL;
-    std::unique_ptr<RTLib::Ext::CUGL::CUGLBuffer> m_FrameBufferCUGL;
+    std::unique_ptr<RTLib::Ext::GL::GLRectRenderer>         m_RectRendererGL;
+    std::unique_ptr<RTLib::Ext::GL::GLBuffer>               m_FrameBufferGL;
+    std::unique_ptr<RTLib::Ext::GL::GLTexture>              m_FrameTextureGL;
+    std::unique_ptr<RTLib::Ext::CUGL::CUGLBuffer>           m_FrameBufferCUGL;
+
 
     std::string m_CurPipelineName = "DEF";
     std::string m_PrvPipelineName = "DEF";
+
     unsigned int m_DebugFrameType = DEBUG_FRAME_TYPE_NORMAL;
+
     rtlib::test::EventState m_EventState = rtlib::test::EventState();
     rtlib::test::WindowState m_WindowState = rtlib::test::WindowState();
+
     std::array<float, 3> m_WorldAabbMin = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
     std::array<float, 3> m_WorldAabbMax = { FLT_MAX, FLT_MAX, FLT_MAX };
+
     int   m_SamplesForAccum = 0;
+
     unsigned long long m_TimesForAccum = 0;
     unsigned long long m_TimesForFrame = 0;
+
     std::string m_TimeStampString = "";
+
     bool  m_EnableVis  = true;
     bool  m_EnableGrid = false;
 };

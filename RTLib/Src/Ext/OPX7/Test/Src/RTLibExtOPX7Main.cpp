@@ -11,8 +11,8 @@ int main()
         auto samplesPerSave = testApp.GetSamplesPerSave();
         {
             testApp.SetPipelineName("DEF");
-            testApp.SetMaxSamples(1000000);
-            testApp.SetSamplesPerSave(100000);
+            testApp.SetMaxSamples(100);
+            testApp.SetSamplesPerSave(10);
             testApp.MainLoop();
         }
         testApp.SetPipelineName(pipelineName);
@@ -27,7 +27,6 @@ int main()
     }
     return 0;
     //RTLibExtOPX7TestApplication(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/../scene.json", "DEF", false).Run();
-
     //RTLibExtOPX7TestApplication(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/../scene.json", "NEE", false).Run();
     //RTLibExtOPX7TestApplication(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/../scene.json", "RIS", false).Run();
 }

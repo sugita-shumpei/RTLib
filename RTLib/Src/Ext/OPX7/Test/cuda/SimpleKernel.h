@@ -8,6 +8,7 @@
 #include <RTLib/Ext/CUDA/Math/VectorFunction.h>
 #include <RTLib/Ext/CUDA/Math/Hash.h>
 #include <RTLib/Ext/OPX7/OPX7Payload.h>
+#include "PathGuiding.h"
 //#define TEST_SKIP_TEXTURE_SAMPLE
 //#define   TEST11_SHOW_EMISSON_COLOR
 //#define TEST11_SHOW_NORMAL
@@ -205,7 +206,7 @@ private:
         //unsigned long long baseIndex = bounds.x * bounds.y * iLen.z + bounds.x * iLen.y + iLen.x;
         //return rtlib::hash6432shift(baseIndex) % size;
         auto cellIndex = rtlib::pcg1d(idx.z + rtlib::pcg1d(idx.y + rtlib::pcg1d(idx.x))) % (size/ kBlockSize);
-        auto checkSum  = max(rtlib::xxhash(idx.z + rtlib::xxhash(idx.y + rtlib::xxhash(idx.x))) % (size / kBlockSize),(unsigned int)1);
+        auto checkSum  = rtlib::max(rtlib::xxhash(idx.z + rtlib::xxhash(idx.y + rtlib::xxhash(idx.x))) % (size / kBlockSize),(unsigned int)1);
         int i = 0;
         for (i = 0; i < kBlockSize; ++i) {
             auto hashIndex = i + cellIndex * kBlockSize;
@@ -258,6 +259,8 @@ enum   ParamFlag
     PARAM_FLAG_NEE      = 1,
     PARAM_FLAG_RIS      = 2,
     PARAM_FLAG_USE_GRID = 4,
+    PARAM_FLAG_USE_TREE = 8,
+    PARAM_FLAG_BUILD    = 16,
 };
 enum   DebugFrameType
 {
@@ -285,6 +288,7 @@ struct Params {
     OptixTraversableHandle gasHandle;
     MeshLightList          lights;
     HashGrid3<float4>      grid;
+    STree                  tree;
 };
 struct RayGenData {
     float3 u, v, w;

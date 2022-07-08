@@ -245,6 +245,14 @@ void RTLibExtOPX7TestApplication::LoadScene()
     m_HashBufferCUDA.checkSumGpuHandle->Destroy();
 }
 
+ void RTLibExtOPX7TestApplication::InitSdTree()
+ {
+ }
+
+ void RTLibExtOPX7TestApplication::FreeSdTree()
+ {
+ }
+
  void RTLibExtOPX7TestApplication::InitPtxString()
 {
     m_PtxStringMap["SimpleKernel.ptx"] = rtlib::test::LoadShaderSource(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/SimpleKernel.ptx");
@@ -779,6 +787,10 @@ void RTLibExtOPX7TestApplication::InitRisPipeline()
         params.flags = PARAM_FLAG_NONE;
     }
     m_PipelineMap["RIS"].InitParams(m_Opx7Context.get(), sizeof(Params), &params);
+}
+
+void RTLibExtOPX7TestApplication::InitSdTreeDefPipeline()
+{
 }
 
 void RTLibExtOPX7TestApplication::InitDbgPipeline() {

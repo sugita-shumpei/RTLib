@@ -27,6 +27,14 @@ namespace RTLib
                 static auto GetCUdevice(CUDAContext* context)->CUdevice;
                 static auto GetCUdeviceptr(CUDABuffer* buffer)->CUdeviceptr;
                 static auto GetCUdeviceptr(const CUDABufferView& bufferView)->CUdeviceptr;
+                template<typename T>
+                static auto GetGpuAddress(CUDABuffer* buffer)->T* {
+                    return reinterpret_cast<T*>(GetCUdeviceptr(buffer));
+                }
+                template<typename T>
+                static auto GetGpuAddress(const CUDABufferView& bufferView)->T* {
+                    return reinterpret_cast<T*>(GetCUdeviceptr(bufferView));
+                }
                 static auto GetCUmodule(CUDAModule* module)->CUmodule;
                 static auto GetCUfunction(CUDAFunction* function)->CUfunction;
                 static auto GetCUarray(CUDAImage* image)->CUarray;
