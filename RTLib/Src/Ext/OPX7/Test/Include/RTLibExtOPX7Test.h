@@ -26,7 +26,7 @@
 #include <RTLib/Ext/GL/GLRectRenderer.h>
 #include <RTLib/Ext/GL/GLTexture.h>
 #include <RTLib/Ext/GL/GLImage.h>
-#include <RTPathGuidingUtils.h>
+#include <RTLib/Ext/OPX7/Utils/OPX7UtilsPathGuiding.h>
 #include <optix_stubs.h>
 #include <GLFW/glfw3.h>
 #include <stb_image.h>

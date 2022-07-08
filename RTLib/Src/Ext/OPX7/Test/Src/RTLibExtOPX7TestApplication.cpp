@@ -247,15 +247,23 @@ void RTLibExtOPX7TestApplication::LoadScene()
 
  void RTLibExtOPX7TestApplication::InitSdTree()
  {
+     m_SdTree = std::make_unique<rtlib::test::RTSTreeWrapper>(m_Opx7Context.get(),
+         make_float3(m_WorldAabbMin[0], m_WorldAabbMin[1], m_WorldAabbMin[2]),
+         make_float3(m_WorldAabbMax[0], m_WorldAabbMax[1], m_WorldAabbMax[2])
+     );
  }
 
  void RTLibExtOPX7TestApplication::FreeSdTree()
  {
+     if (m_SdTree) {
+         m_SdTree->Destroy();
+         m_SdTree.reset();
+     }
  }
 
  void RTLibExtOPX7TestApplication::InitPtxString()
 {
-    m_PtxStringMap["SimpleKernel.ptx"] = rtlib::test::LoadShaderSource(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/SimpleKernel.ptx");
+    m_PtxStringMap["SimpleKernel.ptx"] = rtlib::test::LoadShaderSource(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/SimpleKernel.optixir");
 }
 
 void RTLibExtOPX7TestApplication::InitDefPipeline()
@@ -987,7 +995,7 @@ void RTLibExtOPX7TestApplication::InitDbgPipeline() {
         moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eNone;
 #else
         moduleOptions.optLevel   = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eDefault;
-        moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
+        moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eModerate;
 #endif
         moduleOptions.maxRegisterCount = OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT;
         moduleOptions.payloadTypes = {};

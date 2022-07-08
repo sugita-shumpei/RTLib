@@ -1,7 +1,37 @@
-#ifndef PATH_GUIDING_CONFIG_H
-#define PATH_GUIDING_CONFIG_H
-#cmakedefine PATH_GUIDING_MAX_DEPTH       @PATH_GUIDING_MAX_DEPTH@
-#cmakedefine PATH_GUIDING_STREE_MAX_DEPTH @PATH_GUIDING_STREE_MAX_DEPTH@
-#cmakedefine PATH_GUIDING_DTREE_MAX_DEPTH @PATH_GUIDING_DTREE_MAX_DEPTH@
-#cmakedefine PATH_GUIDING_LI_COSINE       @PATH_GUIDING_LI_COSINE@
+#ifndef RTLIB_EXT_OPX7_TEST_PATH_GUIDING_CONFIG_H
+#define RTLIB_EXT_OPX7_TEST_PATH_GUIDING_CONFIG_H
+#include <RTLib/Ext/OPX7/Utils/OPX7UtilsPathGuiding.h>
+#cmakedefine RTLIB_EXT_OPX7_TEST_PATH_GUIDING_STREE_STACK_DEPTH @RTLIB_EXT_OPX7_TEST_PATH_GUIDING_STREE_STACK_DEPTH@
+#cmakedefine RTLIB_EXT_OPX7_TEST_PATH_GUIDING_DTREE_STACK_DEPTH @RTLIB_EXT_OPX7_TEST_PATH_GUIDING_DTREE_STACK_DEPTH@
+namespace rtlib
+{
+	namespace test
+	{
+		using PathGuidingTraits = RTLib::Ext::OPX7::Utils::PathGuidingTraits<RTLIB_EXT_OPX7_TEST_PATH_GUIDING_STREE_STACK_DEPTH, RTLIB_EXT_OPX7_TEST_PATH_GUIDING_DTREE_STACK_DEPTH>;
+		using DTreeWrapper   = PathGuidingTraits::DTreeWrapper;
+		using DTree          = PathGuidingTraits::DTree;
+		using DTreeNode      = PathGuidingTraits::DTreeNode;
+
+		using STreeNode      = PathGuidingTraits::STreeNode;
+		using STree          = PathGuidingTraits::STree;
+		
+		using STreeNode2     = PathGuidingTraits::STreeNode2;
+		using STree2         = PathGuidingTraits::STree2;
+#ifndef __CUDACC__
+		using RTDTreeWrapper = PathGuidingTraits::RTDTreeWrapper;
+		using RTDTree        = PathGuidingTraits::RTDTree;
+		using RTDTreeNode    = PathGuidingTraits::RTDTreeNode;
+		
+		using RTSTreeNode    = PathGuidingTraits::RTSTreeNode;
+		using RTSTree        = PathGuidingTraits::RTSTree;
+		using RTSTreeWrapper = PathGuidingTraits::RTSTreeWrapper;
+		
+		using RTSTreeNode2   = PathGuidingTraits::RTSTreeNode2;
+		using RTSTree2       = PathGuidingTraits::RTSTree2;
+		using RTSTreeWrapper2= PathGuidingTraits::RTSTreeWrapper2;
+#endif
+	}
+}
+#undef RTLIB_EXT_OPX7_TEST_PATH_GUIDING_DTREE_STACK_DEPTH
+#undef RTLIB_EXT_OPX7_TEST_PATH_GUIDING_DTREE_STACK_DEPTH
 #endif

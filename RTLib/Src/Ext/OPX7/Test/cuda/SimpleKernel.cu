@@ -21,26 +21,25 @@ struct HitRecordUserDebugData
 extern "C" {
     __constant__ Params params;
 }
-namespace rtlib = RTLib::Ext::CUDA::Math;
 template<typename RNG>
 static __forceinline__ __device__ float3       sampleCosinePDF(const float3& normal, RNG& rng)
 {
-    rtlib::ONB onb(normal);
-    return onb.local(rtlib::random_cosine_direction(rng));
+    RTLib::Ext::CUDA::Math::ONB onb(normal);
+    return onb.local(RTLib::Ext::CUDA::Math::random_cosine_direction(rng));
 }
 template<typename RNG>
 static __forceinline__ __device__ float3       samplePhongPDF(const float3& reflectDir, float shinness, RNG& rng)
 {
-    rtlib::ONB onb(reflectDir);
-    const auto cosTht = powf(rtlib::random_float1(0.0f, 1.0f, rng), 1.0f / (shinness + 1.0f));
+    RTLib::Ext::CUDA::Math::ONB onb(reflectDir);
+    const auto cosTht = powf(RTLib::Ext::CUDA::Math::random_float1(0.0f, 1.0f, rng), 1.0f / (shinness + 1.0f));
     const auto sinTht = sqrtf(1.0f - cosTht * cosTht);
-    const auto phi = rtlib::random_float1(0.0f, RTLIB_M_2PI, rng);
+    const auto phi = RTLib::Ext::CUDA::Math::random_float1(0.0f, RTLIB_M_2PI, rng);
     return onb.local(make_float3(sinTht * cosf(phi), sinTht * sinf(phi), cosTht));
 }
 static __forceinline__ __device__ float        getValPhongPDF(const float3& direction, const float3& reflectDir, float shinness)
 {
 
-    const auto reflCos = rtlib::max(rtlib::dot(reflectDir, direction), 0.0f);
+    const auto reflCos = RTLib::Ext::CUDA::Math::max(RTLib::Ext::CUDA::Math::dot(reflectDir, direction), 0.0f);
     return (shinness + 2.0f) * powf(reflCos, shinness) / RTLIB_M_2PI;
 }
 extern "C" __global__ void     __raygen__default () {
@@ -53,9 +52,9 @@ extern "C" __global__ void     __raygen__default () {
     hrec.seed = seed;
 
     float3 color = make_float3(0.0f);
-    rtlib::Xorshift32 xor32(hrec.seed);
+    RTLib::Ext::CUDA::Math::Xorshift32 xor32(hrec.seed);
 
-    const auto gitter = rtlib::random_float2(xor32);
+    const auto gitter = RTLib::Ext::CUDA::Math::random_float2(xor32);
     const float2 d = make_float2(
         (2.0f * static_cast<float>(idx.x + gitter.x) / static_cast<float>(dim.x)) - 1.0,
         (2.0f * static_cast<float>(idx.y + gitter.y) / static_cast<float>(dim.y)) - 1.0);
@@ -98,9 +97,9 @@ extern "C" __global__ void     __raygen__default () {
     result =  result  / static_cast<float>(params.samplesForLaunch + params.samplesForAccum);
     result = (result) / (make_float3(1.0f) + result);
     params.frameBuffer[params.width * idx.y + idx.x] = make_uchar4(
-        rtlib::min(static_cast<int>(rtlib::linear_to_gamma(result.x) * 255.99f), 255),
-        rtlib::min(static_cast<int>(rtlib::linear_to_gamma(result.y) * 255.99f), 255),
-        rtlib::min(static_cast<int>(rtlib::linear_to_gamma(result.z) * 255.99f), 255),
+        RTLib::Ext::CUDA::Math::min(static_cast<int>(RTLib::Ext::CUDA::Math::linear_to_gamma(result.x) * 255.99f), 255),
+        RTLib::Ext::CUDA::Math::min(static_cast<int>(RTLib::Ext::CUDA::Math::linear_to_gamma(result.y) * 255.99f), 255),
+        RTLib::Ext::CUDA::Math::min(static_cast<int>(RTLib::Ext::CUDA::Math::linear_to_gamma(result.z) * 255.99f), 255),
         255
     );
     params.seedBuffer [params.width * idx.y + idx.x] = hrec.seed;
@@ -114,9 +113,9 @@ extern "C" __global__ void     __raygen__debug   () {
     hrec.seed = seed;
 
     float3 color = make_float3(0.0f);
-    rtlib::Xorshift32 xor32(hrec.seed);
+    RTLib::Ext::CUDA::Math::Xorshift32 xor32(hrec.seed);
 
-    const auto gitter = rtlib::random_float2(xor32);
+    const auto gitter = RTLib::Ext::CUDA::Math::random_float2(xor32);
     const float2 d = make_float2(
         (2.0f * static_cast<float>(idx.x + gitter.x) / static_cast<float>(dim.x)) - 1.0,
         (2.0f * static_cast<float>(idx.y + gitter.y) / static_cast<float>(dim.y)) - 1.0);
@@ -140,9 +139,9 @@ extern "C" __global__ void     __raygen__debug   () {
     {
         auto color = (hrec.normal + make_float3(1.0f)) / 2.0f;
         params.frameBuffer[params.width * idx.y + idx.x] = make_uchar4(
-            rtlib::min(static_cast<int>(rtlib::linear_to_gamma(color.x) * 255.99f), 255),
-            rtlib::min(static_cast<int>(rtlib::linear_to_gamma(color.y) * 255.99f), 255),
-            rtlib::min(static_cast<int>(rtlib::linear_to_gamma(color.z) * 255.99f), 255),
+            RTLib::Ext::CUDA::Math::min(static_cast<int>(RTLib::Ext::CUDA::Math::linear_to_gamma(color.x) * 255.99f), 255),
+            RTLib::Ext::CUDA::Math::min(static_cast<int>(RTLib::Ext::CUDA::Math::linear_to_gamma(color.y) * 255.99f), 255),
+            RTLib::Ext::CUDA::Math::min(static_cast<int>(RTLib::Ext::CUDA::Math::linear_to_gamma(color.z) * 255.99f), 255),
             255
         );
     }
@@ -150,36 +149,36 @@ extern "C" __global__ void     __raygen__debug   () {
     {
         auto color = make_float3(hrec.rayDistance / (1.0f + hrec.rayDistance));
         params.frameBuffer[params.width * idx.y + idx.x] = make_uchar4(
-            rtlib::min(static_cast<int>(rtlib::linear_to_gamma(color.x) * 255.99f), 255),
-            rtlib::min(static_cast<int>(rtlib::linear_to_gamma(color.y) * 255.99f), 255),
-            rtlib::min(static_cast<int>(rtlib::linear_to_gamma(color.z) * 255.99f), 255),
+            RTLib::Ext::CUDA::Math::min(static_cast<int>(RTLib::Ext::CUDA::Math::linear_to_gamma(color.x) * 255.99f), 255),
+            RTLib::Ext::CUDA::Math::min(static_cast<int>(RTLib::Ext::CUDA::Math::linear_to_gamma(color.y) * 255.99f), 255),
+            RTLib::Ext::CUDA::Math::min(static_cast<int>(RTLib::Ext::CUDA::Math::linear_to_gamma(color.z) * 255.99f), 255),
             255
         );
     }
     if (params.debugFrameType == DEBUG_FRAME_TYPE_DIFFUSE)
     {
         params.frameBuffer[params.width * idx.y + idx.x] = make_uchar4(
-            rtlib::min(static_cast<int>(rtlib::linear_to_gamma(hrec.userData.diffuse.x) * 255.99f), 255),
-            rtlib::min(static_cast<int>(rtlib::linear_to_gamma(hrec.userData.diffuse.y) * 255.99f), 255),
-            rtlib::min(static_cast<int>(rtlib::linear_to_gamma(hrec.userData.diffuse.z) * 255.99f), 255),
+            RTLib::Ext::CUDA::Math::min(static_cast<int>(RTLib::Ext::CUDA::Math::linear_to_gamma(hrec.userData.diffuse.x) * 255.99f), 255),
+            RTLib::Ext::CUDA::Math::min(static_cast<int>(RTLib::Ext::CUDA::Math::linear_to_gamma(hrec.userData.diffuse.y) * 255.99f), 255),
+            RTLib::Ext::CUDA::Math::min(static_cast<int>(RTLib::Ext::CUDA::Math::linear_to_gamma(hrec.userData.diffuse.z) * 255.99f), 255),
             255
         );
     }
     if (params.debugFrameType == DEBUG_FRAME_TYPE_SPECULAR)
     {
         params.frameBuffer[params.width * idx.y + idx.x] = make_uchar4(
-            rtlib::min(static_cast<int>(rtlib::linear_to_gamma(hrec.userData.specular.x) * 255.99f), 255),
-            rtlib::min(static_cast<int>(rtlib::linear_to_gamma(hrec.userData.specular.y) * 255.99f), 255),
-            rtlib::min(static_cast<int>(rtlib::linear_to_gamma(hrec.userData.specular.z) * 255.99f), 255),
+            RTLib::Ext::CUDA::Math::min(static_cast<int>(RTLib::Ext::CUDA::Math::linear_to_gamma(hrec.userData.specular.x) * 255.99f), 255),
+            RTLib::Ext::CUDA::Math::min(static_cast<int>(RTLib::Ext::CUDA::Math::linear_to_gamma(hrec.userData.specular.y) * 255.99f), 255),
+            RTLib::Ext::CUDA::Math::min(static_cast<int>(RTLib::Ext::CUDA::Math::linear_to_gamma(hrec.userData.specular.z) * 255.99f), 255),
             255
         );
     }
     if (params.debugFrameType == DEBUG_FRAME_TYPE_EMISSION)
     {
         params.frameBuffer[params.width * idx.y + idx.x] = make_uchar4(
-            rtlib::min(static_cast<int>(rtlib::linear_to_gamma(hrec.userData.emission.x) * 255.99f), 255),
-            rtlib::min(static_cast<int>(rtlib::linear_to_gamma(hrec.userData.emission.y) * 255.99f), 255),
-            rtlib::min(static_cast<int>(rtlib::linear_to_gamma(hrec.userData.emission.z) * 255.99f), 255),
+            RTLib::Ext::CUDA::Math::min(static_cast<int>(RTLib::Ext::CUDA::Math::linear_to_gamma(hrec.userData.emission.x) * 255.99f), 255),
+            RTLib::Ext::CUDA::Math::min(static_cast<int>(RTLib::Ext::CUDA::Math::linear_to_gamma(hrec.userData.emission.y) * 255.99f), 255),
+            RTLib::Ext::CUDA::Math::min(static_cast<int>(RTLib::Ext::CUDA::Math::linear_to_gamma(hrec.userData.emission.z) * 255.99f), 255),
             255
         );
     }
@@ -187,9 +186,9 @@ extern "C" __global__ void     __raygen__debug   () {
     {
         auto color = make_float3(hrec.userData.shinness / (1.0f + hrec.userData.shinness));
         params.frameBuffer[params.width * idx.y + idx.x] = make_uchar4(
-            rtlib::min(static_cast<int>(rtlib::linear_to_gamma(color.x) * 255.99f), 255),
-            rtlib::min(static_cast<int>(rtlib::linear_to_gamma(color.y) * 255.99f), 255),
-            rtlib::min(static_cast<int>(rtlib::linear_to_gamma(color.z) * 255.99f), 255),
+            RTLib::Ext::CUDA::Math::min(static_cast<int>(RTLib::Ext::CUDA::Math::linear_to_gamma(color.x) * 255.99f), 255),
+            RTLib::Ext::CUDA::Math::min(static_cast<int>(RTLib::Ext::CUDA::Math::linear_to_gamma(color.y) * 255.99f), 255),
+            RTLib::Ext::CUDA::Math::min(static_cast<int>(RTLib::Ext::CUDA::Math::linear_to_gamma(color.z) * 255.99f), 255),
             255
         );
     }
@@ -197,9 +196,9 @@ extern "C" __global__ void     __raygen__debug   () {
     {
         auto color = make_float3(hrec.userData.refrIndx / (1.0f + hrec.userData.refrIndx));
         params.frameBuffer[params.width * idx.y + idx.x] = make_uchar4(
-            rtlib::min(static_cast<int>(rtlib::linear_to_gamma(color.x) * 255.99f), 255),
-            rtlib::min(static_cast<int>(rtlib::linear_to_gamma(color.y) * 255.99f), 255),
-            rtlib::min(static_cast<int>(rtlib::linear_to_gamma(color.z) * 255.99f), 255),
+            RTLib::Ext::CUDA::Math::min(static_cast<int>(RTLib::Ext::CUDA::Math::linear_to_gamma(color.x) * 255.99f), 255),
+            RTLib::Ext::CUDA::Math::min(static_cast<int>(RTLib::Ext::CUDA::Math::linear_to_gamma(color.y) * 255.99f), 255),
+            RTLib::Ext::CUDA::Math::min(static_cast<int>(RTLib::Ext::CUDA::Math::linear_to_gamma(color.z) * 255.99f), 255),
             255
         );
     }
@@ -207,9 +206,9 @@ extern "C" __global__ void     __raygen__debug   () {
     {
 
         params.frameBuffer[params.width * idx.y + idx.x] = make_uchar4(
-            rtlib::min(static_cast<int>(rtlib::linear_to_gamma(hrec.userData.gridValue.x) * 255.99f), 255),
-            rtlib::min(static_cast<int>(rtlib::linear_to_gamma(hrec.userData.gridValue.y) * 255.99f), 255),
-            rtlib::min(static_cast<int>(rtlib::linear_to_gamma(hrec.userData.gridValue.z) * 255.99f), 255),
+            RTLib::Ext::CUDA::Math::min(static_cast<int>(RTLib::Ext::CUDA::Math::linear_to_gamma(hrec.userData.gridValue.x) * 255.99f), 255),
+            RTLib::Ext::CUDA::Math::min(static_cast<int>(RTLib::Ext::CUDA::Math::linear_to_gamma(hrec.userData.gridValue.y) * 255.99f), 255),
+            RTLib::Ext::CUDA::Math::min(static_cast<int>(RTLib::Ext::CUDA::Math::linear_to_gamma(hrec.userData.gridValue.z) * 255.99f), 255),
             255
         );
     }
@@ -247,7 +246,7 @@ extern "C" __global__ void __closesthit__radiance() {
     auto refIndex = hgData->refIndex;
     auto shinness = hgData->shinness;
 
-    auto xor32 = rtlib::Xorshift32(hrec->seed);
+    auto xor32 = RTLib::Ext::CUDA::Math::Xorshift32(hrec->seed);
 
     auto direction      = make_float3(0.0f);
     auto cosine         = float(0.0f);
@@ -272,28 +271,28 @@ extern "C" __global__ void __closesthit__radiance() {
 
     do{
         if (hgData->type == HIT_GROUP_TYPE_PHONG) {
-            auto reflDir     = rtlib::normalize(rtlib::reflect(inDir, fNormal));
+            auto reflDir     = RTLib::Ext::CUDA::Math::normalize(RTLib::Ext::CUDA::Math::reflect(inDir, fNormal));
             auto direction0  = sampleCosinePDF(fNormal, xor32);
             auto direction1  = samplePhongPDF(reflDir, shinness, xor32);
-            auto cosine0     = rtlib::dot(direction0, fNormal);
-            auto cosine1     = rtlib::dot(direction1, fNormal);
-            auto cosinePdf0  = rtlib::max(cosine0 * RTLIB_M_INV_PI, 0.0f);
-            auto cosinePdf1  = rtlib::max(cosine1 * RTLIB_M_INV_PI, 0.0f);
+            auto cosine0     = RTLib::Ext::CUDA::Math::dot(direction0, fNormal);
+            auto cosine1     = RTLib::Ext::CUDA::Math::dot(direction1, fNormal);
+            auto cosinePdf0  = RTLib::Ext::CUDA::Math::max(cosine0 * RTLIB_M_INV_PI, 0.0f);
+            auto cosinePdf1  = RTLib::Ext::CUDA::Math::max(cosine1 * RTLIB_M_INV_PI, 0.0f);
             auto phongPdf0   = getValPhongPDF(direction0, reflDir, shinness);
             auto phongPdf1   = getValPhongPDF(direction1, reflDir, shinness);
             auto aver_diff   = (diffuse.x + diffuse.y + diffuse.z) / 3.0f;
             auto aver_spec   = (specular.x + specular.y + specular.z) / 3.0f;
             auto select_prob = (aver_diff) / (aver_diff + aver_spec);
 
-            if (rtlib::random_float1(xor32) < select_prob) {
-                auto reflCos = rtlib::dot(reflDir, direction0);
+            if (RTLib::Ext::CUDA::Math::random_float1(xor32) < select_prob) {
+                auto reflCos = RTLib::Ext::CUDA::Math::dot(reflDir, direction0);
                 direction = direction0;
                 cosine = cosine0;
                 bsdfVal = diffuse * RTLIB_M_INV_PI + specular * phongPdf0;
                 bsdfPdf = (select_prob * cosinePdf0 + (1.0f - select_prob) * phongPdf0);
             }
             else {
-                auto reflCos = rtlib::dot(reflDir, direction1);
+                auto reflCos = RTLib::Ext::CUDA::Math::dot(reflDir, direction1);
                 direction = direction1;
                 cosine = cosine1;
                 bsdfVal = diffuse * RTLIB_M_INV_PI + specular * phongPdf1;
@@ -311,14 +310,14 @@ extern "C" __global__ void __closesthit__radiance() {
                         auto dist_y = float(0.0f);
                         for (int i = 0; i < 32; ++i) {
                             LightRecord lRec = params.lights.Sample(position, xor32);
-                            auto  ndl =  rtlib::dot(lRec.direction, fNormal    );
-                            auto lndl = -rtlib::dot(lRec.direction, lRec.normal);
+                            auto  ndl =  RTLib::Ext::CUDA::Math::dot(lRec.direction, fNormal    );
+                            auto lndl = -RTLib::Ext::CUDA::Math::dot(lRec.direction, lRec.normal);
                             auto  e   = lRec.emission * static_cast<float>(lndl > 0.0f);
                             auto  b   = diffuse * RTLIB_M_INV_PI + specular * getValPhongPDF(lRec.direction, reflDir, shinness);
-                            auto  g   = rtlib::max(ndl, 0.0f) * rtlib::max(lndl, 0.0f) / (lRec.distance * lRec.distance);
+                            auto  g   = RTLib::Ext::CUDA::Math::max(ndl, 0.0f) * RTLib::Ext::CUDA::Math::max(lndl, 0.0f) / (lRec.distance * lRec.distance);
                             auto  f   = b * e * g;
-                            auto  f_a = rtlib::to_average_rgb(f);
-                            if (resv.Update(lRec, f_a * lRec.invPdf, rtlib::random_float1(xor32))) {
+                            auto  f_a = RTLib::Ext::CUDA::Math::to_average_rgb(f);
+                            if (resv.Update(lRec, f_a * lRec.invPdf, RTLib::Ext::CUDA::Math::random_float1(xor32))) {
                                 f_y    = f;
                                 f_a_y  = f_a;
                                 lDir_y = lRec.direction;
@@ -337,7 +336,7 @@ extern "C" __global__ void __closesthit__radiance() {
                         if (!TraceOccluded(params.gasHandle, position, lRec.direction, 0.0001f, lRec.distance - 0.0001f)) {
                             auto e = lRec.emission;
                             auto b = diffuse * RTLIB_M_INV_PI + specular * getValPhongPDF(lRec.direction, reflDir, shinness);
-                            auto g = rtlib::max(-rtlib::dot(lRec.direction, lRec.normal), 0.0f) * fabsf(rtlib::dot(lRec.direction, fNormal)) / (lRec.distance * lRec.distance);
+                            auto g = RTLib::Ext::CUDA::Math::max(-RTLib::Ext::CUDA::Math::dot(lRec.direction, lRec.normal), 0.0f) * fabsf(RTLib::Ext::CUDA::Math::dot(lRec.direction, fNormal)) / (lRec.distance * lRec.distance);
                             radiance += prevThroughput * b * e * g * lRec.invPdf;
                         }
                     }
@@ -352,7 +351,7 @@ extern "C" __global__ void __closesthit__radiance() {
         if (hgData->type == HIT_GROUP_TYPE_GLASS) {
             float3 rNormal = {};
             float  rRefIdx = 0.0f;
-            float cosine_i = rtlib::dot(vNormal, inDir);
+            float cosine_i = RTLib::Ext::CUDA::Math::dot(vNormal, inDir);
             if (cosine_i < 0.0f) {
                 rNormal  = vNormal;
                 rRefIdx  = 1.0f / refIndex; 
@@ -363,19 +362,19 @@ extern "C" __global__ void __closesthit__radiance() {
                 rRefIdx  = refIndex;
 
             }
-            auto sine_o_2 = (1.0f - rtlib::pow2(cosine_i)) * rtlib::pow2(rRefIdx);
+            auto sine_o_2 = (1.0f - RTLib::Ext::CUDA::Math::pow2(cosine_i)) * RTLib::Ext::CUDA::Math::pow2(rRefIdx);
             auto fresnell = 0.0f;
             {
-                //float cosine_o = sqrtf(rtlib::max(1.0f - sine_o_2, 0.0f));
+                //float cosine_o = sqrtf(RTLib::Ext::CUDA::Math::max(1.0f - sine_o_2, 0.0f));
                 //float r_p = (cosine_i - rRefIdx * cosine_o) / (cosine_i + rRefIdx * cosine_o);
                 //float r_s = (rRefIdx * cosine_i - cosine_o) / (rRefIdx * cosine_i + cosine_o);
                 //fresnell = (r_p * r_p + r_s * r_s) / 2.0f;
 
-                float  f0 = rtlib::pow2((1 - rRefIdx) /   (1    + rRefIdx));
-                fresnell  = f0 + (1.0f - f0) * rtlib::pow5(1.0f - cosine_i);
+                float  f0 = RTLib::Ext::CUDA::Math::pow2((1 - rRefIdx) /   (1    + rRefIdx));
+                fresnell  = f0 + (1.0f - f0) * RTLib::Ext::CUDA::Math::pow5(1.0f - cosine_i);
             }
-            auto reflDir = rtlib::normalize(rtlib::reflect(inDir, rNormal));
-            if (rtlib::random_float1(0.0f, 1.0f, xor32)<fresnell || sine_o_2 > 1.0f) {
+            auto reflDir = RTLib::Ext::CUDA::Math::normalize(RTLib::Ext::CUDA::Math::reflect(inDir, rNormal));
+            if (RTLib::Ext::CUDA::Math::random_float1(0.0f, 1.0f, xor32)<fresnell || sine_o_2 > 1.0f) {
                 position      += 0.01f * rNormal;
                 direction      = reflDir;
                 cosine         = fabsf(cosine_i);
@@ -386,18 +385,18 @@ extern "C" __global__ void __closesthit__radiance() {
             }
             else {
                 position       -= 0.01f * rNormal;
-                float  sine_i_2 = rtlib::min(1.0f - cosine_i * cosine_i,0.0f);
+                float  sine_i_2 = RTLib::Ext::CUDA::Math::min(1.0f - cosine_i * cosine_i,0.0f);
                 float  cosine_o = sqrtf(1.0f - sine_o_2);
                 float3 refrDir  = make_float3(0.0f);
                 if (sine_i_2 > 0.0f) {
                     float3 k = (inDir + cosine_i * rNormal) / sqrtf(sine_i_2);
-                    refrDir  = rtlib::normalize(sqrtf(sine_o_2) * k - cosine_o * rNormal);
+                    refrDir  = RTLib::Ext::CUDA::Math::normalize(sqrtf(sine_o_2) * k - cosine_o * rNormal);
                 }
                 else {
                     refrDir  = inDir;
                 }
                 direction       = refrDir;
-                cosine          = rtlib::dot(refrDir, rNormal);
+                cosine          = RTLib::Ext::CUDA::Math::dot(refrDir, rNormal);
                 bsdfVal         = make_float3(1.0f);
                 bsdfPdf         = 0.0f;
                 /*currThroughput  = prevThroughput;*/
@@ -413,7 +412,7 @@ extern "C" __global__ void __closesthit__radiance() {
 
     if (prevHitFlags & HIT_RECORD_FLAG_COUNT_EMITTED)
     {
-        radiance += prevThroughput * emission * static_cast<float>(rtlib::dot(inDir, fNormal) < 0.0f);
+        radiance += prevThroughput * emission * static_cast<float>(RTLib::Ext::CUDA::Math::dot(inDir, fNormal) < 0.0f);
     }
     if (emission.x + emission.y + emission.z > 0.0f) {
         currHitFlags |= HIT_RECORD_FLAG_FINISH;
@@ -448,7 +447,7 @@ extern "C" __global__ void __closesthit__radiance_sphere() {
     auto refIndex = hgData->refIndex;
     auto shinness = hgData->shinness;
 
-    auto xor32 = rtlib::Xorshift32(hrec->seed);
+    auto xor32 = RTLib::Ext::CUDA::Math::Xorshift32(hrec->seed);
 
     auto direction = make_float3(0.0f);
     auto cosine = float(0.0f);
@@ -473,28 +472,28 @@ extern "C" __global__ void __closesthit__radiance_sphere() {
 
     do {
         if (hgData->type == HIT_GROUP_TYPE_PHONG) {
-            auto reflDir = rtlib::normalize(rtlib::reflect(inDir, fNormal));
+            auto reflDir = RTLib::Ext::CUDA::Math::normalize(RTLib::Ext::CUDA::Math::reflect(inDir, fNormal));
             auto direction0 = sampleCosinePDF(fNormal, xor32);
             auto direction1 = samplePhongPDF(reflDir, shinness, xor32);
-            auto cosine0 = rtlib::dot(direction0, fNormal);
-            auto cosine1 = rtlib::dot(direction1, fNormal);
-            auto cosinePdf0 = rtlib::max(cosine0 * RTLIB_M_INV_PI, 0.0f);
-            auto cosinePdf1 = rtlib::max(cosine1 * RTLIB_M_INV_PI, 0.0f);
+            auto cosine0 = RTLib::Ext::CUDA::Math::dot(direction0, fNormal);
+            auto cosine1 = RTLib::Ext::CUDA::Math::dot(direction1, fNormal);
+            auto cosinePdf0 = RTLib::Ext::CUDA::Math::max(cosine0 * RTLIB_M_INV_PI, 0.0f);
+            auto cosinePdf1 = RTLib::Ext::CUDA::Math::max(cosine1 * RTLIB_M_INV_PI, 0.0f);
             auto phongPdf0 = getValPhongPDF(direction0, reflDir, shinness);
             auto phongPdf1 = getValPhongPDF(direction1, reflDir, shinness);
             auto aver_diff = (diffuse.x + diffuse.y + diffuse.z) / 3.0f;
             auto aver_spec = (specular.x + specular.y + specular.z) / 3.0f;
             auto select_prob = (aver_diff) / (aver_diff + aver_spec);
 
-            if (rtlib::random_float1(xor32) < select_prob) {
-                auto reflCos = rtlib::dot(reflDir, direction0);
+            if (RTLib::Ext::CUDA::Math::random_float1(xor32) < select_prob) {
+                auto reflCos = RTLib::Ext::CUDA::Math::dot(reflDir, direction0);
                 direction = direction0;
                 cosine = cosine0;
                 bsdfVal = diffuse * RTLIB_M_INV_PI + specular * phongPdf0;
                 bsdfPdf = (select_prob * cosinePdf0 + (1.0f - select_prob) * phongPdf0);
             }
             else {
-                auto reflCos = rtlib::dot(reflDir, direction1);
+                auto reflCos = RTLib::Ext::CUDA::Math::dot(reflDir, direction1);
                 direction = direction1;
                 cosine = cosine1;
                 bsdfVal = diffuse * RTLIB_M_INV_PI + specular * phongPdf1;
@@ -512,14 +511,14 @@ extern "C" __global__ void __closesthit__radiance_sphere() {
                         auto dist_y = float(0.0f);
                         for (int i = 0; i < 32; ++i) {
                             LightRecord lRec = params.lights.Sample(position, xor32);
-                            auto  ndl = rtlib::dot(lRec.direction, fNormal);
-                            auto lndl = -rtlib::dot(lRec.direction, lRec.normal);
+                            auto  ndl = RTLib::Ext::CUDA::Math::dot(lRec.direction, fNormal);
+                            auto lndl = -RTLib::Ext::CUDA::Math::dot(lRec.direction, lRec.normal);
                             auto  e = lRec.emission * static_cast<float>(lndl > 0.0f);
                             auto  b = diffuse * RTLIB_M_INV_PI + specular * getValPhongPDF(lRec.direction, reflDir, shinness);
-                            auto  g = rtlib::max(ndl, 0.0f) * rtlib::max(lndl, 0.0f) / (lRec.distance * lRec.distance);
+                            auto  g = RTLib::Ext::CUDA::Math::max(ndl, 0.0f) * RTLib::Ext::CUDA::Math::max(lndl, 0.0f) / (lRec.distance * lRec.distance);
                             auto  f = b * e * g;
-                            auto  f_a = rtlib::to_average_rgb(f);
-                            if (resv.Update(lRec, f_a * lRec.invPdf, rtlib::random_float1(xor32))) {
+                            auto  f_a = RTLib::Ext::CUDA::Math::to_average_rgb(f);
+                            if (resv.Update(lRec, f_a * lRec.invPdf, RTLib::Ext::CUDA::Math::random_float1(xor32))) {
                                 f_y = f;
                                 f_a_y = f_a;
                                 lDir_y = lRec.direction;
@@ -538,7 +537,7 @@ extern "C" __global__ void __closesthit__radiance_sphere() {
                         if (!TraceOccluded(params.gasHandle, position, lRec.direction, 0.0001f, lRec.distance - 0.0001f)) {
                             auto e = lRec.emission;
                             auto b = diffuse * RTLIB_M_INV_PI + specular * getValPhongPDF(lRec.direction, reflDir, shinness);
-                            auto g = rtlib::max(-rtlib::dot(lRec.direction, lRec.normal), 0.0f) * fabsf(rtlib::dot(lRec.direction, fNormal)) / (lRec.distance * lRec.distance);
+                            auto g = RTLib::Ext::CUDA::Math::max(-RTLib::Ext::CUDA::Math::dot(lRec.direction, lRec.normal), 0.0f) * fabsf(RTLib::Ext::CUDA::Math::dot(lRec.direction, fNormal)) / (lRec.distance * lRec.distance);
                             radiance += prevThroughput * b * e * g * lRec.invPdf;
                         }
                     }
@@ -552,7 +551,7 @@ extern "C" __global__ void __closesthit__radiance_sphere() {
         if (hgData->type == HIT_GROUP_TYPE_GLASS) {
             float3 rNormal = {};
             float  rRefIdx = 0.0f;
-            float cosine_i = rtlib::dot(vNormal, inDir);
+            float cosine_i = RTLib::Ext::CUDA::Math::dot(vNormal, inDir);
             if (cosine_i < 0.0f) {
                 rNormal = vNormal;
                 rRefIdx = 1.0f / refIndex;
@@ -563,19 +562,19 @@ extern "C" __global__ void __closesthit__radiance_sphere() {
                 rRefIdx = refIndex;
 
             }
-            auto sine_o_2 = (1.0f - rtlib::pow2(cosine_i)) * rtlib::pow2(rRefIdx);
+            auto sine_o_2 = (1.0f - RTLib::Ext::CUDA::Math::pow2(cosine_i)) * RTLib::Ext::CUDA::Math::pow2(rRefIdx);
             auto fresnell = 0.0f;
             {
-                //float cosine_o = sqrtf(rtlib::max(1.0f - sine_o_2, 0.0f));
+                //float cosine_o = sqrtf(RTLib::Ext::CUDA::Math::max(1.0f - sine_o_2, 0.0f));
                 //float r_p = (cosine_i - rRefIdx * cosine_o) / (cosine_i + rRefIdx * cosine_o);
                 //float r_s = (rRefIdx * cosine_i - cosine_o) / (rRefIdx * cosine_i + cosine_o);
                 //fresnell = (r_p * r_p + r_s * r_s) / 2.0f;
 
-                float  f0 = rtlib::pow2((1 - rRefIdx) / (1 + rRefIdx));
-                fresnell = f0 + (1.0f - f0) * rtlib::pow5(1.0f - cosine_i);
+                float  f0 = RTLib::Ext::CUDA::Math::pow2((1 - rRefIdx) / (1 + rRefIdx));
+                fresnell = f0 + (1.0f - f0) * RTLib::Ext::CUDA::Math::pow5(1.0f - cosine_i);
             }
-            auto reflDir = rtlib::normalize(rtlib::reflect(inDir, rNormal));
-            if (rtlib::random_float1(0.0f, 1.0f, xor32) < fresnell || sine_o_2 > 1.0f) {
+            auto reflDir = RTLib::Ext::CUDA::Math::normalize(RTLib::Ext::CUDA::Math::reflect(inDir, rNormal));
+            if (RTLib::Ext::CUDA::Math::random_float1(0.0f, 1.0f, xor32) < fresnell || sine_o_2 > 1.0f) {
                 position += 0.01f * rNormal;
                 direction = reflDir;
                 cosine = fabsf(cosine_i);
@@ -586,18 +585,18 @@ extern "C" __global__ void __closesthit__radiance_sphere() {
             }
             else {
                 position -= 0.01f * rNormal;
-                float  sine_i_2 = rtlib::min(1.0f - cosine_i * cosine_i, 0.0f);
+                float  sine_i_2 = RTLib::Ext::CUDA::Math::min(1.0f - cosine_i * cosine_i, 0.0f);
                 float  cosine_o = sqrtf(1.0f - sine_o_2);
                 float3 refrDir = make_float3(0.0f);
                 if (sine_i_2 > 0.0f) {
                     float3 k = (inDir + cosine_i * rNormal) / sqrtf(sine_i_2);
-                    refrDir = rtlib::normalize(sqrtf(sine_o_2) * k - cosine_o * rNormal);
+                    refrDir = RTLib::Ext::CUDA::Math::normalize(sqrtf(sine_o_2) * k - cosine_o * rNormal);
                 }
                 else {
                     refrDir = inDir;
                 }
                 direction = refrDir;
-                cosine = rtlib::dot(refrDir, rNormal);
+                cosine = RTLib::Ext::CUDA::Math::dot(refrDir, rNormal);
                 bsdfVal = make_float3(1.0f);
                 bsdfPdf = 0.0f;
                 /*currThroughput  = prevThroughput;*/
@@ -613,7 +612,7 @@ extern "C" __global__ void __closesthit__radiance_sphere() {
 
     if (prevHitFlags & HIT_RECORD_FLAG_COUNT_EMITTED)
     {
-        radiance += prevThroughput * emission * static_cast<float>(rtlib::dot(inDir, fNormal) < 0.0f);
+        radiance += prevThroughput * emission * static_cast<float>(RTLib::Ext::CUDA::Math::dot(inDir, fNormal) < 0.0f);
     }
     if (emission.x + emission.y + emission.z > 0.0f) {
         currHitFlags |= HIT_RECORD_FLAG_FINISH;
@@ -646,7 +645,7 @@ extern "C" __global__ void    __closesthit__debug() {
     auto texCrd   = hgData->GetTexCrd(uv, primitiveId);
     auto normal   = hgData->GetTriangleFNormal(uv, primitiveId);
     auto position = optixGetWorldRayOrigin() + distance * optixGetWorldRayDirection();
-    auto reflDir  = rtlib::normalize(rtlib::reflect(optixGetWorldRayDirection(), normal));
+    auto reflDir  = RTLib::Ext::CUDA::Math::normalize(RTLib::Ext::CUDA::Math::reflect(optixGetWorldRayDirection(), normal));
 
     auto  direction = make_float3(0.0f);
 
@@ -679,7 +678,7 @@ extern "C" __global__ void    __closesthit__debug_sphere() {
     auto distance  = optixGetRayTmax();
     auto position = optixGetWorldRayOrigin() + distance * optixGetWorldRayDirection();
     auto normal   = hgData->GetSphereNormal(position, primitiveId);
-    auto reflDir  = rtlib::normalize(rtlib::reflect(optixGetWorldRayDirection(), normal));
+    auto reflDir  = RTLib::Ext::CUDA::Math::normalize(RTLib::Ext::CUDA::Math::reflect(optixGetWorldRayDirection(), normal));
 
     auto  direction = make_float3(0.0f);
 

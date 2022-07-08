@@ -15,8 +15,8 @@ public:
 
     void Initialize()
     {
-        this->LoadScene();
         this->InitOPX7();
+        this->LoadScene();
         this->InitWorld();
         this->InitLight();
         this->InitGrids();
