@@ -2,6 +2,7 @@
 #define RTLIB_EXT_CUDA_MATH_MATRIX_H
 #include <RTLib/EXT/CUDA/Math/Preprocessors.h>
 #include <RTLib/EXT/CUDA/Math/VectorFunction.h>
+#include <RTLib/Ext/CUDA/Math/Math.h>
 #ifndef __CUDA_ARCH__
 #include <cstdio>
 #endif
