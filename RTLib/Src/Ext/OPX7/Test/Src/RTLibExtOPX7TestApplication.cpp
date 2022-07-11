@@ -251,6 +251,7 @@ void RTLibExtOPX7TestApplication::LoadScene()
          make_float3(m_WorldAabbMin[0], m_WorldAabbMin[1], m_WorldAabbMin[2]),
          make_float3(m_WorldAabbMax[0], m_WorldAabbMax[1], m_WorldAabbMax[2])
      );
+     m_SdTree->Upload();
      m_SdTreeController = std::make_unique<rtlib::test::RTSTreeController>(
          m_SdTree.get(), (uint32_t)m_SceneData.config.maxSamples,0,0.5f,m_SceneData.config.samples
      );
@@ -267,10 +268,11 @@ void RTLibExtOPX7TestApplication::LoadScene()
 
  void RTLibExtOPX7TestApplication::InitPtxString()
 {
-    m_PtxStringMap["SimpleKernel.ptx"] = rtlib::test::LoadShaderSource(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/SimpleKernel.optixir");
+    m_PtxStringMap["SimpleTrace.ptx"] = rtlib::test::LoadShaderSource(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/SimpleTrace.optixir");
+    m_PtxStringMap["SimpleGuide.ptx"] = rtlib::test::LoadShaderSource(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/SimpleGuide.optixir");
 }
 
-void RTLibExtOPX7TestApplication::InitDefPipeline()
+void RTLibExtOPX7TestApplication::InitDefTracer()
 {
     m_TracerMap["DEF"].pipelines["Trace"].compileOptions.usesMotionBlur = false;
     m_TracerMap["DEF"].pipelines["Trace"].compileOptions.traversableGraphFlags = 0;
@@ -300,7 +302,7 @@ void RTLibExtOPX7TestApplication::InitDefPipeline()
         moduleOptions.boundValueEntries.front().pipelineParamOffsetInBytes = offsetof(Params, flags);
         moduleOptions.boundValueEntries.front().boundValuePtr = &flags;
         moduleOptions.boundValueEntries.front().sizeInBytes   = sizeof(flags);
-        m_TracerMap["DEF"].pipelines["Trace"].LoadModule(m_Opx7Context.get(), "SimpleKernel.DEF", moduleOptions, m_PtxStringMap.at("SimpleKernel.ptx"));
+        m_TracerMap["DEF"].pipelines["Trace"].LoadModule(m_Opx7Context.get(), "SimpleKernel.DEF", moduleOptions, m_PtxStringMap.at("SimpleTrace.ptx"));
         m_TracerMap["DEF"].pipelines["Trace"].LoadBuiltInISTriangleModule(m_Opx7Context.get(), "BuiltIn.Triangle.DEF", moduleOptions);
         m_TracerMap["DEF"].pipelines["Trace"].LoadBuiltInISSphereModule(m_Opx7Context.get(),   "BuiltIn.Sphere.DEF", moduleOptions);
     }
@@ -435,7 +437,7 @@ void RTLibExtOPX7TestApplication::InitDefPipeline()
     m_TracerMap["DEF"].InitParams(m_Opx7Context.get(),params);
 }
 
-void RTLibExtOPX7TestApplication::InitNeePipeline()
+void RTLibExtOPX7TestApplication::InitNeeTracer()
 {
     m_TracerMap["NEE"].pipelines["Trace"].compileOptions.usesMotionBlur = false;
     m_TracerMap["NEE"].pipelines["Trace"].compileOptions.traversableGraphFlags = 0;
@@ -465,7 +467,7 @@ void RTLibExtOPX7TestApplication::InitNeePipeline()
         moduleOptions.boundValueEntries.front().pipelineParamOffsetInBytes = offsetof(Params, flags);
         moduleOptions.boundValueEntries.front().boundValuePtr = &flags;
         moduleOptions.boundValueEntries.front().sizeInBytes = sizeof(flags);
-        m_TracerMap["NEE"].pipelines["Trace"].LoadModule(m_Opx7Context.get(), "SimpleKernel.NEE", moduleOptions, m_PtxStringMap.at("SimpleKernel.ptx"));
+        m_TracerMap["NEE"].pipelines["Trace"].LoadModule(m_Opx7Context.get(), "SimpleKernel.NEE", moduleOptions, m_PtxStringMap.at("SimpleTrace.ptx"));
         m_TracerMap["NEE"].pipelines["Trace"].LoadBuiltInISTriangleModule(m_Opx7Context.get(), "BuiltIn.Triangle.NEE", moduleOptions);
         m_TracerMap["NEE"].pipelines["Trace"].LoadBuiltInISSphereModule(m_Opx7Context.get(), "BuiltIn.Sphere.NEE", moduleOptions);
     }
@@ -598,7 +600,7 @@ void RTLibExtOPX7TestApplication::InitNeePipeline()
     m_TracerMap["NEE"].InitParams(m_Opx7Context.get(), params);
 }
 
-void RTLibExtOPX7TestApplication::InitRisPipeline()
+void RTLibExtOPX7TestApplication::InitRisTracer()
 {
     m_TracerMap["RIS"].pipelines["Trace"].compileOptions.usesMotionBlur = false;
     m_TracerMap["RIS"].pipelines["Trace"].compileOptions.traversableGraphFlags = 0;
@@ -628,7 +630,7 @@ void RTLibExtOPX7TestApplication::InitRisPipeline()
         moduleOptions.boundValueEntries.front().pipelineParamOffsetInBytes = offsetof(Params, flags);
         moduleOptions.boundValueEntries.front().boundValuePtr = &flags;
         moduleOptions.boundValueEntries.front().sizeInBytes = sizeof(flags);
-        m_TracerMap["RIS"].pipelines["Trace"].LoadModule(m_Opx7Context.get(), "SimpleKernel.RIS", moduleOptions, m_PtxStringMap.at("SimpleKernel.ptx"));
+        m_TracerMap["RIS"].pipelines["Trace"].LoadModule(m_Opx7Context.get(), "SimpleKernel.RIS", moduleOptions, m_PtxStringMap.at("SimpleTrace.ptx"));
         m_TracerMap["RIS"].pipelines["Trace"].LoadBuiltInISTriangleModule(m_Opx7Context.get(), "BuiltIn.Triangle.RIS", moduleOptions);
         m_TracerMap["RIS"].pipelines["Trace"].LoadBuiltInISSphereModule(m_Opx7Context.get(), "BuiltIn.Sphere.RIS", moduleOptions);
     }
@@ -760,7 +762,7 @@ void RTLibExtOPX7TestApplication::InitRisPipeline()
     m_TracerMap["RIS"].InitParams(m_Opx7Context.get(), params);
 }
 
-void RTLibExtOPX7TestApplication::InitSdTreeDefPipeline()
+void RTLibExtOPX7TestApplication::InitSdTreeDefTracer()
 {
     {
         //Build
@@ -780,6 +782,7 @@ void RTLibExtOPX7TestApplication::InitSdTreeDefPipeline()
             if (m_EnableTree) {
                 flags |= PARAM_FLAG_USE_TREE;
             }
+
 #ifdef NDEBUG
             moduleOptions.optLevel = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eLevel3;
             moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eNone;
@@ -793,7 +796,7 @@ void RTLibExtOPX7TestApplication::InitSdTreeDefPipeline()
             moduleOptions.boundValueEntries.front().pipelineParamOffsetInBytes = offsetof(Params, flags);
             moduleOptions.boundValueEntries.front().boundValuePtr = &flags;
             moduleOptions.boundValueEntries.front().sizeInBytes = sizeof(flags);
-            m_TracerMap["PGDEF"].pipelines["Build"].LoadModule(m_Opx7Context.get(),                      "SimpleKernel.PGDEF", moduleOptions, m_PtxStringMap.at("SimpleKernel.ptx"));
+            m_TracerMap["PGDEF"].pipelines["Build"].LoadModule(m_Opx7Context.get(),                      "SimpleKernel.PGDEF", moduleOptions, m_PtxStringMap.at("SimpleGuide.ptx"));
             m_TracerMap["PGDEF"].pipelines["Build"].LoadBuiltInISTriangleModule(m_Opx7Context.get(), "BuiltIn.Triangle.PGDEF", moduleOptions);
             m_TracerMap["PGDEF"].pipelines["Build"].LoadBuiltInISSphereModule(m_Opx7Context.get()  ,   "BuiltIn.Sphere.PGDEF", moduleOptions);
         }
@@ -814,6 +817,7 @@ void RTLibExtOPX7TestApplication::InitSdTreeDefPipeline()
             if (m_EnableTree) {
                 flags |= PARAM_FLAG_USE_TREE;
             }
+
 #ifdef NDEBUG
             moduleOptions.optLevel = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eLevel3;
             moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eNone;
@@ -827,7 +831,7 @@ void RTLibExtOPX7TestApplication::InitSdTreeDefPipeline()
             moduleOptions.boundValueEntries.front().pipelineParamOffsetInBytes = offsetof(Params, flags);
             moduleOptions.boundValueEntries.front().boundValuePtr = &flags;
             moduleOptions.boundValueEntries.front().sizeInBytes = sizeof(flags);
-            m_TracerMap["PGDEF"].pipelines["Trace"].LoadModule(m_Opx7Context.get(), "SimpleKernel.PGDEF", moduleOptions, m_PtxStringMap.at("SimpleKernel.ptx"));
+            m_TracerMap["PGDEF"].pipelines["Trace"].LoadModule(m_Opx7Context.get(), "SimpleKernel.PGDEF", moduleOptions, m_PtxStringMap.at("SimpleGuide.ptx"));
             m_TracerMap["PGDEF"].pipelines["Trace"].LoadBuiltInISTriangleModule(m_Opx7Context.get(), "BuiltIn.Triangle.PGDEF", moduleOptions);
             m_TracerMap["PGDEF"].pipelines["Trace"].LoadBuiltInISSphereModule(m_Opx7Context.get(), "BuiltIn.Sphere.PGDEF", moduleOptions);
         }
@@ -848,6 +852,7 @@ void RTLibExtOPX7TestApplication::InitSdTreeDefPipeline()
             if (m_EnableTree) {
                 flags |= PARAM_FLAG_USE_TREE;
             }
+
 #ifdef NDEBUG
             moduleOptions.optLevel = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eLevel3;
             moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eNone;
@@ -861,7 +866,7 @@ void RTLibExtOPX7TestApplication::InitSdTreeDefPipeline()
             moduleOptions.boundValueEntries.front().pipelineParamOffsetInBytes = offsetof(Params, flags);
             moduleOptions.boundValueEntries.front().boundValuePtr = &flags;
             moduleOptions.boundValueEntries.front().sizeInBytes = sizeof(flags);
-            m_TracerMap["PGDEF"].pipelines["Final"].LoadModule(m_Opx7Context.get(), "SimpleKernel.PGDEF", moduleOptions, m_PtxStringMap.at("SimpleKernel.ptx"));
+            m_TracerMap["PGDEF"].pipelines["Final"].LoadModule(m_Opx7Context.get(), "SimpleKernel.PGDEF", moduleOptions, m_PtxStringMap.at("SimpleGuide.ptx"));
             m_TracerMap["PGDEF"].pipelines["Final"].LoadBuiltInISTriangleModule(m_Opx7Context.get(), "BuiltIn.Triangle.PGDEF", moduleOptions);
             m_TracerMap["PGDEF"].pipelines["Final"].LoadBuiltInISSphereModule(m_Opx7Context.get(), "BuiltIn.Sphere.PGDEF", moduleOptions);
         }
@@ -1014,7 +1019,7 @@ void RTLibExtOPX7TestApplication::InitSdTreeDefPipeline()
     m_TracerMap["PGDEF"].InitParams(m_Opx7Context.get(),params);
 }
 
-void RTLibExtOPX7TestApplication::InitDbgPipeline() {
+void RTLibExtOPX7TestApplication::InitDbgTracer() {
     m_TracerMap["DBG"].pipelines["Trace"].compileOptions.usesMotionBlur = false;
     m_TracerMap["DBG"].pipelines["Trace"].compileOptions.traversableGraphFlags = 0;
     m_TracerMap["DBG"].pipelines["Trace"].compileOptions.numAttributeValues = 3;
@@ -1039,7 +1044,7 @@ void RTLibExtOPX7TestApplication::InitDbgPipeline() {
 #endif
         moduleOptions.maxRegisterCount = OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT;
         moduleOptions.payloadTypes = {};
-        m_TracerMap["DBG"].pipelines["Trace"].LoadModule(m_Opx7Context.get(), "SimpleKernel.DBG", moduleOptions, m_PtxStringMap.at("SimpleKernel.ptx"));
+        m_TracerMap["DBG"].pipelines["Trace"].LoadModule(m_Opx7Context.get(), "SimpleKernel.DBG", moduleOptions, m_PtxStringMap.at("SimpleTrace.ptx"));
         m_TracerMap["DBG"].pipelines["Trace"].LoadBuiltInISTriangleModule(m_Opx7Context.get(), "BuiltIn.Triangle.DBG", moduleOptions);
         m_TracerMap["DBG"].pipelines["Trace"].LoadBuiltInISSphereModule(  m_Opx7Context.get(), "BuiltIn.Sphere.DBG", moduleOptions);
     }
@@ -1173,7 +1178,7 @@ void RTLibExtOPX7TestApplication::InitDbgPipeline() {
 }
 
 
- void RTLibExtOPX7TestApplication::FreePipelines()
+ void RTLibExtOPX7TestApplication::FreeTracers()
 {
     for (auto& [name, pipeline] : m_TracerMap)
     {
@@ -1275,7 +1280,7 @@ void RTLibExtOPX7TestApplication::InitDbgPipeline() {
  void RTLibExtOPX7TestApplication::TracePipeline(RTLib::Ext::CUDA::CUDAStream* stream, RTLib::Ext::CUDA::CUDABuffer* frameBuffer)
 {   
     m_PipelineName = "Trace";
-    if (m_PipelineName == "PGDEF")
+    if (m_CurTracerName == "PGDEF")
     {
         m_SdTreeController->BegTrace();
         if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecord)
@@ -1285,11 +1290,20 @@ void RTLibExtOPX7TestApplication::InitDbgPipeline() {
         if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecordAndSample) {
             m_PipelineName = "Trace";
         }
-        if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecordAndSample) {
-            m_PipelineName = "Sample";
+        if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateSample) {
+            m_PipelineName = "Final";
         }
     }
+
+    if (m_CurTracerName == "PGDEF") {
+
+    }
     auto params = GetParams(frameBuffer);
+
+
+    if (m_CurTracerName == "PGDEF") {
+
+    }
     
     stream->CopyMemoryToBuffer(m_TracerMap[m_CurTracerName].paramsBuffer.get(), { { &params, 0, sizeof(params) } });
 
@@ -1456,6 +1470,7 @@ void RTLibExtOPX7TestApplication::InitDbgPipeline() {
                 m_CurTracerName  = "PGDEF";
                 m_EventState.isMovedCamera = true;
                 m_EventState.isClearFrame = true;
+                m_SdTreeController->Start();
             }
         }
 

@@ -10,9 +10,9 @@ int main()
         auto maxSamples = testApp.GetMaxSamples();
         auto samplesPerSave = testApp.GetSamplesPerSave();
         {
-            testApp.SetTracerName("DEF");
-            testApp.SetMaxSamples(100);
-            testApp.SetSamplesPerSave(10);
+            testApp.SetTracerName("PGDEF");
+            testApp.SetMaxSamples(1000);
+            testApp.SetSamplesPerSave(100);
             testApp.MainLoop();
         }
         testApp.SetTracerName(pipelineName);

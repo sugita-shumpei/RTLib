@@ -192,7 +192,7 @@ namespace RTLib
 							//(s0+s2)/(s0+s1+s2+s3)
 							float boundary = partial / total;
 							auto  origin = make_float2(0.0f);
-							float sample = rtlib::random_float1(rng);
+							float sample = RTLib::Ext::CUDA::Math::random_float1(rng);
 
 							if (sample < boundary)
 							{
@@ -217,7 +217,7 @@ namespace RTLib
 
 							if (cur->IsLeaf(idx) || cur->sums[idx] <= 0.0f)
 							{
-								result += size * rtlib::random_float2(rng);
+								result += size * RTLib::Ext::CUDA::Math::random_float2(rng);
 								break;
 							}
 
@@ -242,7 +242,7 @@ namespace RTLib
 							//(s0+s2)/(s0+s1+s2+s3)
 							float boundary = partial / total;
 							auto  origin = make_float2(0.0f);
-							float sample = rtlib::random_float1(rng);
+							float sample = RTLib::Ext::CUDA::Math::random_float1(rng);
 
 							if (sample < boundary)
 							{
@@ -267,7 +267,7 @@ namespace RTLib
 
 							if (cur->IsLeaf(idx) || cur->sums[idx] <= 0.0f)
 							{
-								result += size * rtlib::random_float2(rng);
+								result += size * RTLib::Ext::CUDA::Math::random_float2(rng);
 								break;
 							}
 
@@ -471,16 +471,16 @@ namespace RTLib
 					RTLIB_INLINE RTLIB_HOST_DEVICE auto SampleAndPdf(RNG& rng, float& pdf_value)const noexcept -> float2 {
 						if (GetMean() <= 0.0f) {
 							pdf_value = 1.0f / (4.0f * RTLIB_M_PI);
-							return rtlib::random_float2(rng);
+							return RTLib::Ext::CUDA::Math::random_float2(rng);
 						}
-						return rtlib::clamp(nodes[0].SampleAndPdf(rng, nodes, pdf_value), make_float2(0.0f), make_float2(1.0f));
+						return RTLib::Ext::CUDA::Math::clamp(nodes[0].SampleAndPdf(rng, nodes, pdf_value), make_float2(0.0f), make_float2(1.0f));
 					}
 					template<typename RNG>
 					RTLIB_INLINE RTLIB_HOST_DEVICE auto Sample(RNG& rng)const noexcept -> float2 {
 						if (GetMean() <= 0.0f) {
-							return rtlib::random_float2(rng);
+							return RTLib::Ext::CUDA::Math::random_float2(rng);
 						}
-						return rtlib::clamp(nodes[0].Sample(rng, nodes), make_float2(0.0f), make_float2(1.0f));
+						return RTLib::Ext::CUDA::Math::clamp(nodes[0].Sample(rng, nodes), make_float2(0.0f), make_float2(1.0f));
 					}
 					RTLIB_INLINE RTLIB_HOST_DEVICE auto Pdf(float2 p)const noexcept -> float {
 						if (GetMean() <= 0.0f) {
@@ -514,20 +514,23 @@ namespace RTLib
 					template<DirectionalFilter dFilter>
 					RTLIB_INLINE RTLIB_DEVICE      void  Record(const DTreeRecord& rec) noexcept {
 						if (!rec.isDelta) {
+							if (rec.woPdf == 0.0f) {
+								printf("FATAL BUG\n");
+							}
 							float irradiance = rec.radiance / rec.woPdf;
-							building.RecordIrradiance<dFilter>(rtlib::dir_to_canonical(rec.direction), irradiance, rec.statisticalWeight);
+							building.RecordIrradiance<dFilter>(RTLib::Ext::CUDA::Math::dir_to_canonical(rec.direction), irradiance, rec.statisticalWeight);
 						}
 					}
 					template<typename RNG>
 					RTLIB_INLINE RTLIB_HOST_DEVICE auto  SampleAndPdf(RNG& rng, float& pdf_value)const noexcept -> float3 {
-						return rtlib::canonical_to_dir(sampling.SampleAndPdf(rng, pdf_value));
+						return RTLib::Ext::CUDA::Math::canonical_to_dir(sampling.SampleAndPdf(rng, pdf_value));
 					}
 					template<typename RNG>
 					RTLIB_INLINE RTLIB_HOST_DEVICE auto  Sample(RNG& rng)const noexcept -> float3 {
-						return rtlib::canonical_to_dir(sampling.Sample(rng));
+						return RTLib::Ext::CUDA::Math::canonical_to_dir(sampling.Sample(rng));
 					}
 					RTLIB_INLINE RTLIB_HOST_DEVICE auto  Pdf(const float3& dir)const noexcept -> float {
-						return sampling.Pdf(rtlib::dir_to_canonical(dir));
+						return sampling.Pdf(RTLib::Ext::CUDA::Math::dir_to_canonical(dir));
 					}
 					DTree building;
 					DTree sampling;
@@ -857,7 +860,7 @@ namespace RTLib
 						}
 
 						localRadiance *= fabsf(cosine);
-						//printf("localRadiance=(%f,%f,%f)\n",localRadiance.x,localRadiance.y,localRadiance.z);
+						/*printf("localRadiance=(%f,%f,%f)\n",localRadiance.x,localRadiance.y,localRadiance.z);*/
 						float3 product = localRadiance * bsdfVal;
 						float localRadianceAvg = (localRadiance.x + localRadiance.y + localRadiance.z) / 3.0f;
 						float productAvg = (product.x + product.y + product.z) / 3.0f;
@@ -987,15 +990,15 @@ namespace RTLib
 					template<typename RNG>
 					auto Sample(RNG& rng)const noexcept -> float3 {
 						if (GetMean() <= 0.0f) {
-							return rtlib::canonical_to_dir(rtlib::random_float2(rng));
+							return RTLib::Ext::CUDA::Math::canonical_to_dir(RTLib::Ext::CUDA::Math::random_float2(rng));
 						}
-						return rtlib::canonical_to_dir(m_Nodes[0].Sample(rng, m_Nodes.data()));
+						return RTLib::Ext::CUDA::Math::canonical_to_dir(m_Nodes[0].Sample(rng, m_Nodes.data()));
 					}
 					auto Pdf(const float3& dir)const noexcept -> float {
 						if (GetMean() <= 0.0f) {
 							return 1.0f / (4.0f * RTLIB_M_PI);
 						}
-						float2 dir2 = rtlib::dir_to_canonical(dir);
+						float2 dir2 = RTLib::Ext::CUDA::Math::dir_to_canonical(dir);
 						return m_Area * m_Nodes[0].Pdf(dir2, m_Nodes.data()) / (4.0f * RTLIB_M_PI);
 					}
 					void Dump(std::fstream& jsonFile)const noexcept {
@@ -1555,9 +1558,9 @@ namespace RTLib
 					}
 					auto GetGpuHandle()const noexcept -> STree {
 						STree sTree;
-						sTree.aabbMax = m_CpuSTree.GetAabbMax();
-						sTree.aabbMin = m_CpuSTree.GetAabbMin();
-						sTree.nodes = m_GpuSTreeNodes.getDevicePtr();
+						sTree.aabbMax  = m_CpuSTree.GetAabbMax();
+						sTree.aabbMin  = m_CpuSTree.GetAabbMin();
+						sTree.nodes    = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<STreeNode>(m_GpuSTreeNodes.get());
 						sTree.fraction = 0.5f;
 						return sTree;
 					}
@@ -1695,7 +1698,7 @@ namespace RTLib
 						float         ratioForBudget  /*RATIO FOR RECORDING TREE*/=0.5f,
 						unsigned int samplePerLaunch  /*SAMPLES PER LAUNCH*/ = 1
 					)noexcept
-						:m_STree{ sTree }, m_SampleForBudget{ sampleForBudget }, m_IterationForBuilt{iterationForBuilt}, m_RatioForBudget{ ratioForBudget }{}
+						:m_STree{ sTree }, m_SampleForBudget{ sampleForBudget }, m_SamplePerLaunch{ samplePerLaunch }, m_IterationForBuilt{ iterationForBuilt }, m_RatioForBudget{ ratioForBudget }{}
 
 					void SetSampleForBudget(unsigned int sampleForBudget)noexcept{	m_SampleForBudget = sampleForBudget;}
 
@@ -2312,6 +2315,8 @@ namespace RTLib
 					using DTreeWrapper = DTreeWrapperT<kDTreeStackDepth>;
 					using DTree        = DTreeT<kDTreeStackDepth>;
 					using DTreeNode    = DTreeNodeT<kDTreeStackDepth>;
+
+					using TraceVertex = TraceVertexT<kDTreeStackDepth>;
 				};
             }
         }

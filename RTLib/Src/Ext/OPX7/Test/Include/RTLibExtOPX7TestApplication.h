@@ -24,11 +24,11 @@ public:
             this->InitSdTree();
         }
         this->InitPtxString();
-        this->InitDefPipeline();
-        this->InitNeePipeline();
-        this->InitDbgPipeline();
-        this->InitRisPipeline();
-        this->InitSdTreeDefPipeline();
+        this->InitDefTracer();
+        this->InitNeeTracer();
+        this->InitDbgTracer();
+        this->InitRisTracer();
+        this->InitSdTreeDefTracer();
         this->InitFrameResourceCUDA();
         if (m_EnableVis)
         {
@@ -79,7 +79,10 @@ public:
         m_WindowState     = rtlib::test::WindowState();
         m_EventState.isClearFrame = true;
         m_SamplesForAccum = 0;
-        m_TimesForAccum = 0;
+        m_TimesForAccum   = 0;
+        if (m_EnableTree) {
+            m_SdTreeController->Start();
+        }
         this->UpdateTimeStamp();
         while (!this->FinishTrace())
         {
@@ -116,7 +119,7 @@ public:
         this->FreeOGL4();
         this->FreeGLFW();
         this->FreeFrameResourceCUDA();
-        this->FreePipelines();
+        this->FreeTracers();
         if (m_EnableTree) {
             this->FreeSdTree();
         }
@@ -193,13 +196,13 @@ private:
 
     void InitPtxString();
 
-    void InitDefPipeline();
-    void InitNeePipeline();
-    void InitDbgPipeline();
-    void InitRisPipeline();
-    void InitSdTreeDefPipeline();
+    void InitDefTracer();
+    void InitNeeTracer();
+    void InitDbgTracer();
+    void InitRisTracer();
+    void InitSdTreeDefTracer();
 
-    void FreePipelines();
+    void FreeTracers();
 
     void InitFrameResourceCUDA();
     void FreeFrameResourceCUDA();
@@ -256,20 +259,48 @@ private:
         if (m_CurTracerName == "DEF")
         {
             params.flags = PARAM_FLAG_NONE;
+
+            if (m_EnableGrid) {
+
+                params.flags |= PARAM_FLAG_USE_GRID;
+            }
         }
         if (m_CurTracerName == "NEE")
         {
             params.flags      = PARAM_FLAG_NEE;
+
+            if (m_EnableGrid) {
+
+                params.flags |= PARAM_FLAG_USE_GRID;
+            }
         }
         if (m_CurTracerName == "RIS") {
             params.flags      = PARAM_FLAG_NEE | PARAM_FLAG_RIS;
+
+            if (m_EnableGrid) {
+
+                params.flags |= PARAM_FLAG_USE_GRID;
+            }
         }
         if (m_CurTracerName == "PGDEF") {
             params.flags      = PARAM_FLAG_NONE;
-            params.flags     |= PARAM_FLAG_USE_TREE;
-        }
-        if (m_EnableGrid) {
-            params.flags     |= PARAM_FLAG_USE_GRID;
+            if (m_EnableTree) {
+                params.tree   = m_SdTreeController->GetGpuSTree();
+                params.flags |= PARAM_FLAG_USE_TREE;
+            }
+            if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecord)
+            {
+                params.flags |= PARAM_FLAG_NONE;
+            }
+            if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecordAndSample)
+            {
+                params.flags |= PARAM_FLAG_BUILD;
+            }
+            if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateSample)
+            {
+                params.flags |= PARAM_FLAG_BUILD;
+                params.flags |= PARAM_FLAG_FINAL;
+            }
         }
         return params;
     }

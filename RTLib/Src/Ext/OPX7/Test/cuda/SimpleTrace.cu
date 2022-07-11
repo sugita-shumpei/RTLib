@@ -606,6 +606,7 @@ extern "C" __global__ void __closesthit__radiance_sphere() {
                 printf("IOR: %lf Cos: %lf IDir: (%lf %lf %lf) Norm: (%lf %lf %lf) Refl: (%lf %lf %lf) ODir: (%lf %lf %lf) fresnell=%lf\n", rRefIdx, cosine_i, inDir.x, inDir.y, inDir.z, rNormal.x, rNormal.y, rNormal.z, reflDir.x, reflDir.y, reflDir.z, direction.x, direction.y, direction.z, fresnell);
             }
             currHitFlags |= HIT_RECORD_FLAG_COUNT_EMITTED;
+            currHitFlags |= HIT_RECORD_FLAG_DELTA_MATERIAL;
             break;
         }
     } while (0);
