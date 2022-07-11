@@ -8,27 +8,29 @@ namespace rtlib
 	namespace test
 	{
 		using PathGuidingTraits = RTLib::Ext::OPX7::Utils::PathGuidingTraits<RTLIB_EXT_OPX7_TEST_PATH_GUIDING_STREE_STACK_DEPTH, RTLIB_EXT_OPX7_TEST_PATH_GUIDING_DTREE_STACK_DEPTH>;
-		using DTreeWrapper   = PathGuidingTraits::DTreeWrapper;
-		using DTree          = PathGuidingTraits::DTree;
-		using DTreeNode      = PathGuidingTraits::DTreeNode;
 
-		using STreeNode      = PathGuidingTraits::STreeNode;
-		using STree          = PathGuidingTraits::STree;
+		using DTreeWrapper      = PathGuidingTraits::DTreeWrapper;
+		using DTree             = PathGuidingTraits::DTree;
+		using DTreeNode         = PathGuidingTraits::DTreeNode;
+
+		using STreeNode         = PathGuidingTraits::STreeNode;
+		using STree             = PathGuidingTraits::STree;
 		
-		using STreeNode2     = PathGuidingTraits::STreeNode2;
-		using STree2         = PathGuidingTraits::STree2;
+		using STreeNode2        = PathGuidingTraits::STreeNode2;
+		using STree2            = PathGuidingTraits::STree2;
 #ifndef __CUDACC__
-		using RTDTreeWrapper = PathGuidingTraits::RTDTreeWrapper;
-		using RTDTree        = PathGuidingTraits::RTDTree;
-		using RTDTreeNode    = PathGuidingTraits::RTDTreeNode;
+		using RTDTreeWrapper    = PathGuidingTraits::RTDTreeWrapper;
+		using RTDTree           = PathGuidingTraits::RTDTree;
+		using RTDTreeNode       = PathGuidingTraits::RTDTreeNode;
 		
-		using RTSTreeNode    = PathGuidingTraits::RTSTreeNode;
-		using RTSTree        = PathGuidingTraits::RTSTree;
-		using RTSTreeWrapper = PathGuidingTraits::RTSTreeWrapper;
+		using RTSTreeNode       = PathGuidingTraits::RTSTreeNode;
+		using RTSTree           = PathGuidingTraits::RTSTree;
+		using RTSTreeWrapper    = PathGuidingTraits::RTSTreeWrapper;
+		using RTSTreeController = PathGuidingTraits::RTSTreeController;
 		
-		using RTSTreeNode2   = PathGuidingTraits::RTSTreeNode2;
-		using RTSTree2       = PathGuidingTraits::RTSTree2;
-		using RTSTreeWrapper2= PathGuidingTraits::RTSTreeWrapper2;
+		using RTSTreeNode2      = PathGuidingTraits::RTSTreeNode2;
+		using RTSTree2          = PathGuidingTraits::RTSTree2;
+		using RTSTreeWrapper2   = PathGuidingTraits::RTSTreeWrapper2;
 #endif
 	}
 }

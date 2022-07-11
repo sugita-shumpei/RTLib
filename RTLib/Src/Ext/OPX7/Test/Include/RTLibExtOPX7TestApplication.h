@@ -4,9 +4,9 @@
 class RTLibExtOPX7TestApplication
 {
 public:
-    RTLibExtOPX7TestApplication(const std::string& scenePath, std::string defPipelineName, bool enableVis = true, bool enableGrid = false,bool enableTree = false) noexcept
+    RTLibExtOPX7TestApplication(const std::string& scenePath, std::string defTracerName, bool enableVis = true, bool enableGrid = false,bool enableTree = false) noexcept
     {
-        m_CurPipelineName = defPipelineName;
+        m_CurTracerName = defTracerName;
         m_ScenePath       = scenePath;
         m_EnableVis       = enableVis;
         m_EnableGrid      = enableGrid;
@@ -147,8 +147,8 @@ public:
     void SetWidth (unsigned int width  ) noexcept  { m_SceneData.config.width = width ; }
     void SetHeight(unsigned int height ) noexcept  { m_SceneData.config.height= height; }
 
-    auto GetPipelineName()const noexcept -> std::string { return m_CurPipelineName; }
-    void SetPipelineName(const std::string pipelineName)noexcept { m_CurPipelineName = pipelineName; }
+    auto GetTracerName()const noexcept -> std::string { return m_CurTracerName; }
+    void SetTracerName(const std::string tracerName)noexcept { m_CurTracerName = tracerName; }
 
     auto GetSamplesPerSave()const noexcept -> unsigned int {
         return m_SceneData.config.samplesPerSave;
@@ -225,6 +225,55 @@ private:
     void TraceFrame(RTLib::Ext::CUDA::CUDAStream* stream);
 
 private:
+    auto NewShaderTable()->std::unique_ptr<RTLib::Ext::OPX7::OPX7ShaderTable>
+    {
+        auto shaderTableDesc = RTLib::Ext::OPX7::OPX7ShaderTableCreateDesc();
+        shaderTableDesc.raygenRecordSizeInBytes = sizeof(RTLib::Ext::OPX7::OPX7ShaderRecord<RayGenData>);
+        shaderTableDesc.missRecordStrideInBytes = sizeof(RTLib::Ext::OPX7::OPX7ShaderRecord<MissData>);
+        shaderTableDesc.missRecordCount = m_ShaderTableLayout->GetRecordStride();
+        shaderTableDesc.hitgroupRecordStrideInBytes = sizeof(RTLib::Ext::OPX7::OPX7ShaderRecord<HitgroupData>);
+        shaderTableDesc.hitgroupRecordCount = m_ShaderTableLayout->GetRecordCount();
+        shaderTableDesc.exceptionRecordSizeInBytes = sizeof(RTLib::Ext::OPX7::OPX7ShaderRecord<unsigned int>);
+        return std::unique_ptr<RTLib::Ext::OPX7::OPX7ShaderTable>(m_Opx7Context->CreateOPXShaderTable(shaderTableDesc));
+    }
+    auto GetParams(RTLib::Ext::CUDA::CUDABuffer* frameBuffer) noexcept -> Params
+    {
+        auto params = Params();
+        params.accumBuffer = reinterpret_cast<float3*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_AccumBufferCUDA.get()));
+        params.seedBuffer  = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<unsigned int>(m_SeedBufferCUDA.get());
+        params.frameBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<uchar4>(frameBuffer);
+        params.width = m_SceneData.config.width;
+        params.height = m_SceneData.config.height;
+        params.maxDepth = m_SceneData.config.maxDepth;
+        params.samplesForAccum = m_SamplesForAccum;
+        params.samplesForLaunch = m_SceneData.config.samples;
+        params.debugFrameType = m_DebugFrameType;
+        params.gasHandle = m_InstanceASMap["Root"].handle;
+        params.lights.count = m_lightBuffer.cpuHandle.size();
+        params.lights.data = reinterpret_cast<MeshLight*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_lightBuffer.gpuHandle.get()));
+        params.grid = m_HashBufferCUDA.GetHandle();
+
+        if (m_CurTracerName == "DEF")
+        {
+            params.flags = PARAM_FLAG_NONE;
+        }
+        if (m_CurTracerName == "NEE")
+        {
+            params.flags      = PARAM_FLAG_NEE;
+        }
+        if (m_CurTracerName == "RIS") {
+            params.flags      = PARAM_FLAG_NEE | PARAM_FLAG_RIS;
+        }
+        if (m_CurTracerName == "PGDEF") {
+            params.flags      = PARAM_FLAG_NONE;
+            params.flags     |= PARAM_FLAG_USE_TREE;
+        }
+        if (m_EnableGrid) {
+            params.flags     |= PARAM_FLAG_USE_GRID;
+        }
+        return params;
+    }
+private:
     std::string m_ScenePath;
     rtlib::test::SceneData m_SceneData;
     std::unique_ptr<rtlib::test::KeyBoardStateManager> m_KeyBoardManager;
@@ -237,15 +286,16 @@ private:
     std::unordered_map<std::string, rtlib::test::TextureData> m_TextureMap;
     std::unordered_map<std::string, rtlib::test::GeometryAccelerationStructureData> m_GeometryASMap;
     std::unordered_map<std::string, rtlib::test::InstanceAccelerationStructureData> m_InstanceASMap;
-    std::unordered_map<std::string, rtlib::test::PipelineData> m_PipelineMap;
+    std::unordered_map<std::string, rtlib::test::TracerData> m_TracerMap;
 
-    std::unique_ptr<RTLib::Ext::CUDA::CUDAStream> m_Stream;
-    rtlib::test::UploadBuffer<MeshLight>          m_lightBuffer;
-    std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer> m_AccumBufferCUDA;
-    std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer> m_FrameBufferCUDA;
-    std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer> m_SeedBufferCUDA;
-    rtlib::test::HashGrid3Buffer<float4>          m_HashBufferCUDA;
-    std::unique_ptr<rtlib::test::RTSTreeWrapper>  m_SdTree;
+    std::unique_ptr<RTLib::Ext::CUDA::CUDAStream>   m_Stream;
+    rtlib::test::UploadBuffer<MeshLight>            m_lightBuffer;
+    std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>   m_AccumBufferCUDA;
+    std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>   m_FrameBufferCUDA;
+    std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>   m_SeedBufferCUDA;
+    rtlib::test::HashGrid3Buffer<float4>            m_HashBufferCUDA;
+    std::unique_ptr<rtlib::test::RTSTreeWrapper>    m_SdTree;
+    std::unique_ptr<rtlib::test::RTSTreeController> m_SdTreeController;
 
     std::unique_ptr<RTLib::Ext::GLFW::GL::GLFWOpenGLWindow> m_GlfwWindow;
     std::unique_ptr<RTLib::Ext::GL::GLRectRenderer>         m_RectRendererGL;
@@ -254,8 +304,9 @@ private:
     std::unique_ptr<RTLib::Ext::CUGL::CUGLBuffer>           m_FrameBufferCUGL;
 
 
-    std::string m_CurPipelineName = "DEF";
-    std::string m_PrvPipelineName = "DEF";
+    std::string m_CurTracerName = "DEF";
+    std::string m_PrvTracerName = "DEF";
+    std::string m_PipelineName  = "Trace";
 
     unsigned int m_DebugFrameType = DEBUG_FRAME_TYPE_NORMAL;
 

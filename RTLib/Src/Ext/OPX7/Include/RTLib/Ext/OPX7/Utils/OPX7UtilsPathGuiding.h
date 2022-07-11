@@ -130,9 +130,9 @@ namespace RTLib
 							float      nodeSize;
 						};
 
-						StackNode stackNodes[PATH_GUIDING_DTREE_MAX_DEPTH * 3] = {};
+						StackNode stackNodes[kDTreeStackDepth * 3] = {};
 						int       stackNodeSize = 1;
-						const int stackNodeCapacity = PATH_GUIDING_DTREE_MAX_DEPTH * 3;
+						const int stackNodeCapacity = kDTreeStackDepth * 3;
 
 						stackNodes[0].curNode = this;
 						stackNodes[0].nodeOrigin = nodeOrigin;
@@ -577,9 +577,9 @@ namespace RTLib
 							float3     min2;
 							float3     size2;
 						};
-						StackNode stackNodes[PATH_GUIDING_STREE_MAX_DEPTH] = {};
+						StackNode stackNodes[kSTreeStackDepth] = {};
 						int       stackNodeSize = 1;
-						const int stackNodeCapacity = PATH_GUIDING_STREE_MAX_DEPTH;
+						const int stackNodeCapacity = kSTreeStackDepth;
 						stackNodes[0].curNode = this;
 						stackNodes[0].min2 = min2;
 						stackNodes[0].size2 = size2;
@@ -701,9 +701,9 @@ namespace RTLib
 							float3      min2;
 							float3      size2;
 						};
-						StackNode stackNodes[7 * PATH_GUIDING_STREE_MAX_DEPTH] = {};
+						StackNode stackNodes[7 * kSTreeStackDepth] = {};
 						int       stackNodeSize = 1;
-						const int stackNodeCapacity = 7 * PATH_GUIDING_STREE_MAX_DEPTH;
+						const int stackNodeCapacity = 7 * kSTreeStackDepth;
 						stackNodes[0].curNode = this;
 						stackNodes[0].min2 = min2;
 						stackNodes[0].size2 = size2;
@@ -1008,30 +1008,6 @@ namespace RTLib
 						jsonFile << "\n";
 						jsonFile << "}";
 					}
-					void SavePDFImage(int dTreeId)const {
-						int width = 256;
-						int height = 256;
-						std::unique_ptr<unsigned char[]> pixels(new unsigned char[width * height * 4]);
-						for (int j = 0; j < height; ++j) {
-							for (int i = 0; i < width; ++i) {
-								auto dir2 = make_float2((float)i / (float)width, (float)j / (float)height);
-								auto pdf = m_Nodes[0].Pdf(dir2, m_Nodes.data());
-								if (pdf <= 0.0f) {
-									pixels[4 * (width * j + i) + 0] = 0;
-									pixels[4 * (width * j + i) + 1] = 0;
-									pixels[4 * (width * j + i) + 2] = 0;
-									pixels[4 * (width * j + i) + 3] = 255;
-								}
-								else {
-									pixels[4 * (width * j + i) + 0] = 0;
-									pixels[4 * (width * j + i) + 1] = 0;
-									pixels[4 * (width * j + i) + 2] = static_cast<unsigned char>(255.99f * 1.0f / pdf);
-									pixels[4 * (width * j + i) + 3] = 255;
-								}
-							}
-						}
-						stbi_write_png((std::string("images/dTree") + std::to_string(dTreeId) + ".png").c_str(), width, height, 4, pixels.get(), 4 * width);
-					}
 					auto Nodes()noexcept -> std::vector<RTDTreeNode>& {
 						return m_Nodes;
 					}
@@ -1151,7 +1127,7 @@ namespace RTLib
 						const RTSTreeNode* cur = this;
 						int   ndx = cur->GetNodeIdx(p);
 						int   depth = 1;
-						while (depth < PATH_GUIDING_MAX_DEPTH) {
+						while (true) {
 							if (cur->isLeaf) {
 								return &cur->dTree;
 							}
@@ -1395,55 +1371,67 @@ namespace RTLib
 						//GPU Upload Memory
 						{
 							auto desc = RTLib::Ext::CUDA::CUDABufferCreateDesc();
-							desc.sizeInBytes = sizeof(sTreeNodes[0]) * std::size(sTreeNodes[0]);
+							desc.sizeInBytes = sizeof(sTreeNodes[0]) * std::size(sTreeNodes);
 							desc.pData       = nullptr;
 
 							if (m_GpuSTreeNodes) {
 								if (m_GpuSTreeNodes->GetSizeInBytes() != desc.sizeInBytes)
 								{
 									m_GpuSTreeNodes->Destroy();
-									m_GpuSTreeNodes = CUDABufferPtr(context->CreateBuffer(desc));
+									m_GpuSTreeNodes = CUDABufferPtr(m_Context->CreateBuffer(desc));
 								}
+							}
+							else {
+								m_GpuSTreeNodes = CUDABufferPtr(m_Context->CreateBuffer(desc));
 							}
 						}
 						{
 							auto desc = RTLib::Ext::CUDA::CUDABufferCreateDesc();
-							desc.sizeInBytes   = sizeof(dTreeWrappers[0]) * std::size(dTreeWrappers[0]);
+							desc.sizeInBytes   = sizeof(dTreeWrappers[0]) * std::size(dTreeWrappers);
 							desc.pData         = nullptr;
 
 							if (m_GpuDTreeWrappers) {
 								if (m_GpuDTreeWrappers->GetSizeInBytes() != desc.sizeInBytes)
 								{
 									m_GpuDTreeWrappers->Destroy();
-									m_GpuDTreeWrappers = CUDABufferPtr(context->CreateBuffer(desc));
+									m_GpuDTreeWrappers = CUDABufferPtr(m_Context->CreateBuffer(desc));
 								}
+							}
+							else {
+								m_GpuDTreeWrappers = CUDABufferPtr(m_Context->CreateBuffer(desc));
 							}
 						}
 						{
 							auto desc = RTLib::Ext::CUDA::CUDABufferCreateDesc();
-							desc.sizeInBytes        = sizeof(dTreeNodesBuilding[0]) * std::size(dTreeNodesBuilding[0]);
+							desc.sizeInBytes        = sizeof(dTreeNodesBuilding[0]) * std::size(dTreeNodesBuilding);
 							desc.pData              = nullptr;
 
 							if (m_GpuDTreeNodesBuilding) {
 								if (m_GpuDTreeNodesBuilding->GetSizeInBytes() != desc.sizeInBytes)
 								{
 									m_GpuDTreeNodesBuilding->Destroy();
-									m_GpuDTreeNodesBuilding = CUDABufferPtr(context->CreateBuffer(desc));
+									m_GpuDTreeNodesBuilding = CUDABufferPtr(m_Context->CreateBuffer(desc));
 								}
+							}
+							else {
+								m_GpuDTreeNodesBuilding = CUDABufferPtr(m_Context->CreateBuffer(desc));
 							}
 						}
 						{
 							auto desc = RTLib::Ext::CUDA::CUDABufferCreateDesc();
-							desc.sizeInBytes        = sizeof(dTreeNodesSampling[0]) * std::size(dTreeNodesSampling[0]);
+							desc.sizeInBytes        = sizeof(dTreeNodesSampling[0]) * std::size(dTreeNodesSampling);
 							desc.pData              = nullptr;
-							m_GpuDTreeNodesSampling = CUDABufferPtr(context->CreateBuffer(desc));
+							m_GpuDTreeNodesSampling = CUDABufferPtr(m_Context->CreateBuffer(desc));
 
 							if (m_GpuDTreeNodesSampling) {
 								if (m_GpuDTreeNodesSampling->GetSizeInBytes() != desc.sizeInBytes)
 								{
 									m_GpuDTreeNodesSampling->Destroy();
-									m_GpuDTreeNodesSampling = CUDABufferPtr(context->CreateBuffer(desc));
+									m_GpuDTreeNodesSampling = CUDABufferPtr(m_Context->CreateBuffer(desc));
 								}
+							}
+							else {
+								m_GpuDTreeNodesSampling = CUDABufferPtr(m_Context->CreateBuffer(desc));
 							}
 						}
 						{
@@ -1454,10 +1442,10 @@ namespace RTLib
 								sTreeNodes[i] = m_CpuSTree.Node(i).GetGpuHandle();
 								if (m_CpuSTree.Node(i).isLeaf) {
 									//DTREE
-									sTreeNodes[i].dTree = m_GpuDTreeWrappers.getDevicePtr() + dTreeIndex;
+									sTreeNodes[i].dTree = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<DTreeWrapper>(m_GpuDTreeWrappers.get()) + dTreeIndex;
 									//Optimizer
 									//BUILDING
-									dTreeWrappers[dTreeIndex].building = m_CpuSTree.Node(i).dTree.building.GetGpuHandle();
+									dTreeWrappers[dTreeIndex].building       = m_CpuSTree.Node(i).dTree.building.GetGpuHandle();
 									dTreeWrappers[dTreeIndex].building.nodes = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<DTreeNode>(m_GpuDTreeNodesBuilding.get()) + dTreeNodeOffsetBuilding;
 									for (size_t j = 0; j < m_CpuSTree.Node(i).dTree.building.GetNumNodes(); ++j) {
 										//SUM
@@ -1465,8 +1453,8 @@ namespace RTLib
 									}
 									dTreeNodeOffsetBuilding += m_CpuSTree.Node(i).dTree.building.GetNumNodes();
 									//SAMPLING
-									dTreeWrappers[dTreeIndex].sampling = m_CpuSTree.Node(i).dTree.sampling.GetGpuHandle();
-									dTreeWrappers[dTreeIndex].sampling.nodes = m_GpuDTreeNodesSampling.getDevicePtr() + dTreeNodeOffsetSampling;
+									dTreeWrappers[dTreeIndex].sampling       = m_CpuSTree.Node(i).dTree.sampling.GetGpuHandle();
+									dTreeWrappers[dTreeIndex].sampling.nodes = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<DTreeNode>(m_GpuDTreeNodesSampling.get()) + dTreeNodeOffsetSampling;
 									for (size_t j = 0; j < m_CpuSTree.Node(i).dTree.sampling.GetNumNodes(); ++j) {
 										//SUMS
 										dTreeNodesSampling[dTreeNodeOffsetSampling + j] = m_CpuSTree.Node(i).dTree.sampling.Node(j);
@@ -1485,26 +1473,24 @@ namespace RTLib
 							memoryBufferCopy.size      = m_GpuSTreeNodes->GetSizeInBytes();
 							memoryBufferCopy.srcData   = sTreeNodes.data();
 							memoryBufferCopy.dstOffset = 0;
-							RTLIB_CORE_ASSERT_IF_FAILED(m_Context->CopyMemoryToBuffer(m_GpuSTreeNodes.get(), {desc}));
+							RTLIB_CORE_ASSERT_IF_FAILED(m_Context->CopyMemoryToBuffer(m_GpuSTreeNodes.get(), { memoryBufferCopy }));
 							memoryBufferCopy.size      = m_GpuDTreeWrappers->GetSizeInBytes();
 							memoryBufferCopy.srcData   = dTreeWrappers.data();
 							memoryBufferCopy.dstOffset = 0;
-							RTLIB_CORE_ASSERT_IF_FAILED(m_Context->CopyMemoryToBuffer(m_GpuDTreeWrappers.get(), { desc }));
+							RTLIB_CORE_ASSERT_IF_FAILED(m_Context->CopyMemoryToBuffer(m_GpuDTreeWrappers.get(), { memoryBufferCopy }));
 							memoryBufferCopy.size      = m_GpuDTreeNodesBuilding->GetSizeInBytes();
 							memoryBufferCopy.srcData   = dTreeNodesBuilding.data();
 							memoryBufferCopy.dstOffset = 0;
-							RTLIB_CORE_ASSERT_IF_FAILED(m_Context->CopyMemoryToBuffer(m_GpuDTreeNodesBuilding.get(), { desc }));
+							RTLIB_CORE_ASSERT_IF_FAILED(m_Context->CopyMemoryToBuffer(m_GpuDTreeNodesBuilding.get(), { memoryBufferCopy }));
 							memoryBufferCopy.size      = m_GpuDTreeNodesSampling->GetSizeInBytes();
 							memoryBufferCopy.srcData   = dTreeNodesSampling.data();
 							memoryBufferCopy.dstOffset = 0;
-							RTLIB_CORE_ASSERT_IF_FAILED(m_Context->CopyMemoryToBuffer(m_GpuDTreeNodesSampling.get(), { desc }));
+							RTLIB_CORE_ASSERT_IF_FAILED(m_Context->CopyMemoryToBuffer(m_GpuDTreeNodesSampling.get(), { memoryBufferCopy }));
 						}
-#ifndef NDEBUG
 						std::cout << "Upload(Info)\n";
-						std::cout << "GpuSTreeNodes          : " <<         m_GpuSTreeNodes.getSizeInBytes() / (1024.0f * 1024.0f) << "MB\n";
-						std::cout << "GpuDTreeNodes(Building): " << m_GpuDTreeNodesBuilding.getSizeInBytes() / (1024.0f * 1024.0f) << "MB\n";
-						std::cout << "GpuDTreeNodes(Sampling): " << m_GpuDTreeNodesSampling.getSizeInBytes() / (1024.0f * 1024.0f) << "MB\n";
-#endif
+						std::cout << "GpuSTreeNodes          : " << m_GpuSTreeNodes->GetSizeInBytes()         / (1024.0f * 1024.0f) << "MB\n";
+						std::cout << "GpuDTreeNodes(Building): " << m_GpuDTreeNodesBuilding->GetSizeInBytes() / (1024.0f * 1024.0f) << "MB\n";
+						std::cout << "GpuDTreeNodes(Sampling): " << m_GpuDTreeNodesSampling->GetSizeInBytes() / (1024.0f * 1024.0f) << "MB\n";
 					}
 					void Download() noexcept {
 						//ダウンロードが必要なのはBuildingだけ
@@ -1519,8 +1505,17 @@ namespace RTLib
 						}
 						std::vector<DTreeWrapper> dTreeWrappers(gpuDTreeCnt);
 						std::vector<DTreeNode>    dTreeNodesBuilding(gpuDTreeNodeCntBuilding);
-						m_GpuDTreeWrappers.download(dTreeWrappers);
-						m_GpuDTreeNodesBuilding.download(dTreeNodesBuilding);
+						{
+							auto bufferMemoryCopy      = RTLib::Ext::CUDA::CUDABufferMemoryCopy();
+							bufferMemoryCopy.size      = m_GpuDTreeWrappers->GetSizeInBytes();
+							bufferMemoryCopy.dstData   = dTreeWrappers.data();
+							bufferMemoryCopy.srcOffset = 0;
+							RTLIB_CORE_ASSERT_IF_FAILED(m_Context->CopyBufferToMemory(m_GpuDTreeWrappers.get(), { bufferMemoryCopy }));
+							bufferMemoryCopy.size      = m_GpuDTreeNodesBuilding->GetSizeInBytes();
+							bufferMemoryCopy.dstData   = dTreeNodesBuilding.data();
+							bufferMemoryCopy.srcOffset = 0;
+							RTLIB_CORE_ASSERT_IF_FAILED(m_Context->CopyBufferToMemory(m_GpuDTreeNodesBuilding.get(), { bufferMemoryCopy }));
+						}
 						{
 							size_t cpuDTreeIndex = 0;
 							size_t cpuDTreeNodeOffsetBuilding = 0;
@@ -1670,6 +1665,150 @@ namespace RTLib
 				};
 
 				template<unsigned int kSTreeStackDepth, unsigned int kDTreeStackDepth>
+				class  RTSTreeControllerT
+				{
+				public:
+					using RTSTreeController = RTSTreeControllerT<kSTreeStackDepth, kDTreeStackDepth>;
+					using RTSTreeWrapper    = RTSTreeWrapperT<kSTreeStackDepth, kDTreeStackDepth>;
+					using RTSTree           = RTSTreeT<kSTreeStackDepth, kDTreeStackDepth>;
+					using RTSTreeNode       = RTSTreeNodeT<kSTreeStackDepth, kDTreeStackDepth>;
+					using RTDTreeWrapper    = RTDTreeWrapperT<kDTreeStackDepth>;
+					using RTDTree           = RTDTreeT<kDTreeStackDepth>;
+					using RTDTreeNode       = RTDTreeNodeT<kDTreeStackDepth>;
+
+					using STree        = STreeT<kSTreeStackDepth, kDTreeStackDepth>;
+					using STreeNode    = STreeNodeT<kSTreeStackDepth, kDTreeStackDepth>;
+					using DTreeWrapper = DTreeWrapperT<kDTreeStackDepth>;
+					using DTree        = DTreeT<kDTreeStackDepth>;
+					using DTreeNode    = DTreeNodeT<kDTreeStackDepth>;
+
+					enum TraceState
+					{
+						TraceStateRecord          = 0,
+						TraceStateRecordAndSample = 1,
+						TraceStateSample          = 2,
+					};
+
+					RTSTreeControllerT(RTSTreeWrapper* sTree, 
+						unsigned int sampleForBudget  /*ALL SAMPLES FOR TRACE*/,
+						unsigned int iterationForBuilt/*ITERATION FOR BUILT*/=0,
+						float         ratioForBudget  /*RATIO FOR RECORDING TREE*/=0.5f,
+						unsigned int samplePerLaunch  /*SAMPLES PER LAUNCH*/ = 1
+					)noexcept
+						:m_STree{ sTree }, m_SampleForBudget{ sampleForBudget }, m_IterationForBuilt{iterationForBuilt}, m_RatioForBudget{ ratioForBudget }{}
+
+					void SetSampleForBudget(unsigned int sampleForBudget)noexcept{	m_SampleForBudget = sampleForBudget;}
+
+					void Start() {
+						m_TraceStart = true;
+					}
+
+					void BegTrace() {
+						if (!m_STree) {
+							return;
+						}
+						if ( m_TraceStart) {
+
+							m_SamplePerAll = 0;
+							m_SamplePerTmp = 0;
+							m_CurIteration = 0;
+
+							m_TraceStart     = false;
+							m_TraceExecuting = true;
+
+							m_SampleForRemain = ((m_SampleForBudget - 1 + m_SamplePerLaunch) / m_SamplePerLaunch) * m_SamplePerLaunch;
+							m_SampleForPass = 0;
+
+							m_TraceState = TraceStateRecord;
+
+							m_STree->Destroy();
+							m_STree->Clear();
+							m_STree->Upload();
+						}
+						if (!m_TraceExecuting) {
+							return;
+						}
+
+						if (m_SamplePerTmp == 0)
+						{
+							m_SampleForRemain -= m_SampleForPass;
+							m_SampleForPass    = std::min<uint32_t>(m_SampleForRemain, (1 << m_CurIteration) * m_SamplePerLaunch);
+							if ((m_SampleForRemain - m_SampleForPass < 2 * m_SampleForPass) ||
+								(m_SamplePerAll   >= m_RatioForBudget * static_cast<float>(m_SampleForBudget))) {
+								std::cout << "Final: this->m_SamplePerAll=" << m_SamplePerAll << std::endl;
+								m_SampleForPass = m_SampleForRemain;
+							}
+
+							if (m_SampleForRemain > m_SampleForPass) {
+								m_STree->Download();
+								m_STree->Reset(m_CurIteration, m_SampleForPass);
+								m_STree->Upload();
+							}
+						}
+						if (m_CurIteration > m_IterationForBuilt) {
+							if (m_SampleForRemain > m_SampleForPass) {
+								m_TraceState = TraceStateRecordAndSample;
+							}
+							else {
+								m_TraceState = TraceStateSample;
+							}
+						}
+						else {
+							m_TraceState = TraceStateRecord;
+						}
+
+						std::cout << "CurIteration: " << m_CurIteration << " SamplePerTmp: " << m_SamplePerTmp << std::endl;
+
+					}
+
+					void EndTrace() {
+						if (!m_STree || !m_TraceExecuting) {
+							return;
+						}
+						m_SamplePerAll += m_SamplePerLaunch;
+						m_SamplePerTmp += m_SamplePerLaunch;
+
+						if (m_SamplePerTmp >= m_SampleForPass)
+						{
+							m_STree->Download();
+							m_STree->Build();
+							m_STree->Upload();
+
+							m_CurIteration++;
+							m_SamplePerTmp = 0;
+						}
+						if (m_SamplePerAll > m_SampleForBudget) {
+							m_TraceExecuting = false;
+							m_SamplePerAll   = 0;
+						}
+					}
+
+					auto GetGpuSTree()const noexcept -> STree
+					{
+						return m_STree->GetGpuHandle();
+					}
+
+					auto GetState()const noexcept -> TraceState {
+						return m_TraceState;
+					}
+				private:
+					RTSTreeWrapper* m_STree             = nullptr;
+					unsigned int    m_SampleForBudget   = 0;
+					unsigned int    m_SamplePerLaunch   = 0;
+					unsigned int    m_IterationForBuilt = 0;
+					float           m_RatioForBudget    = 0.0f;
+
+					bool            m_TraceStart      = false;
+					bool            m_TraceExecuting  = false;
+					unsigned int    m_SamplePerAll    = 0;
+					unsigned int    m_SamplePerTmp    = 0;
+					unsigned int    m_SampleForRemain = 0;
+					unsigned int    m_SampleForPass   = 0;
+					TraceState      m_TraceState      = TraceStateRecord;
+					unsigned int    m_CurIteration    = 0;
+				};
+
+				template<unsigned int kSTreeStackDepth, unsigned int kDTreeStackDepth>
 				struct RTSTreeNode2T {
 					using RTSTreeNode2   = RTSTreeNode2T<kSTreeStackDepth, kDTreeStackDepth>;
 					using RTDTreeWrapper = RTDTreeWrapperT<kDTreeStackDepth>;
@@ -1717,7 +1856,7 @@ namespace RTLib
 						const RTSTreeNode2* cur = this;
 						int   ndx = cur->GetNodeIdx(p);
 						int   depth = 1;
-						while (depth < PATH_GUIDING_MAX_DEPTH) {
+						while (true) {
 							if (cur->isLeaf) {
 								return &cur->dTree;
 							}
@@ -2152,26 +2291,27 @@ namespace RTLib
 				{
 #ifndef __CUDACC__
 					using RTSTreeWrapper2 = RTSTreeWrapper2T<kSTreeStackDepth, kDTreeStackDepth>;
-					using RTSTree2 = RTSTree2T<kSTreeStackDepth, kDTreeStackDepth>;
-					using RTSTreeNode2 = RTSTreeNode2T<kSTreeStackDepth, kDTreeStackDepth>;
+					using RTSTree2        = RTSTree2T<kSTreeStackDepth, kDTreeStackDepth>;
+					using RTSTreeNode2    = RTSTreeNode2T<kSTreeStackDepth, kDTreeStackDepth>;
 
-					using RTSTreeWrapper = RTSTreeWrapperT<kSTreeStackDepth, kDTreeStackDepth>;
-					using RTSTree = RTSTreeT<kSTreeStackDepth, kDTreeStackDepth>;
-					using RTSTreeNode = RTSTreeNodeT<kSTreeStackDepth, kDTreeStackDepth>;
+					using RTSTreeController = RTSTreeControllerT<kSTreeStackDepth, kDTreeStackDepth>;
+					using RTSTreeWrapper    = RTSTreeWrapperT<kSTreeStackDepth, kDTreeStackDepth>;
+					using RTSTree           = RTSTreeT<kSTreeStackDepth, kDTreeStackDepth>;
+					using RTSTreeNode       = RTSTreeNodeT<kSTreeStackDepth, kDTreeStackDepth>;
 
 					using RTDTreeWrapper = RTDTreeWrapperT<kDTreeStackDepth>;
-					using RTDTree = RTDTreeT<kDTreeStackDepth>;
-					using RTDTreeNode = RTDTreeNodeT<kDTreeStackDepth>;
+					using RTDTree        = RTDTreeT<kDTreeStackDepth>;
+					using RTDTreeNode    = RTDTreeNodeT<kDTreeStackDepth>;
 #endif
-					using STree = STreeT<kSTreeStackDepth, kDTreeStackDepth>;
+					using STree     = STreeT<kSTreeStackDepth, kDTreeStackDepth>;
 					using STreeNode = STreeNodeT<kSTreeStackDepth, kDTreeStackDepth>;
 
-					using STree2 = STree2T<kSTreeStackDepth, kDTreeStackDepth>;
+					using STree2     = STree2T<kSTreeStackDepth, kDTreeStackDepth>;
 					using STreeNode2 = STreeNode2T<kSTreeStackDepth, kDTreeStackDepth>;
 
 					using DTreeWrapper = DTreeWrapperT<kDTreeStackDepth>;
-					using DTree = DTreeT<kDTreeStackDepth>;
-					using DTreeNode = DTreeNodeT<kDTreeStackDepth>;
+					using DTree        = DTreeT<kDTreeStackDepth>;
+					using DTreeNode    = DTreeNodeT<kDTreeStackDepth>;
 				};
             }
         }

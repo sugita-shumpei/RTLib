@@ -1334,18 +1334,17 @@ namespace rtlib
             std::unique_ptr<RTLib::Ext::OPX7::OPX7Module> handle;
             RTLib::Ext::OPX7::OPX7ModuleCompileOptions    options;
         };
-        struct PipelineData
-        {
-            RTLib::Ext::OPX7::OPX7PipelineLinkOptions     linkOptions;
-            RTLib::Ext::OPX7::OPX7PipelineCompileOptions  compileOptions;
-            std::unique_ptr<RTLib::Ext::OPX7::OPX7Pipeline> handle;
-            std::unique_ptr<RTLib::Ext::OPX7::OPX7ProgramGroup> programGroupRG;
-            std::unique_ptr<RTLib::Ext::OPX7::OPX7ProgramGroup> programGroupEP;
+
+        struct PipelineData {
+            RTLib::Ext::OPX7::OPX7PipelineLinkOptions                                            linkOptions;
+            RTLib::Ext::OPX7::OPX7PipelineCompileOptions                                         compileOptions;
+            std::unordered_map<std::string, ModuleData>                                          modules;
+            std::unique_ptr<RTLib::Ext::OPX7::OPX7Pipeline>                                      handle;
+            std::unique_ptr<RTLib::Ext::OPX7::OPX7ProgramGroup>                                  programGroupRG;
+            std::unique_ptr<RTLib::Ext::OPX7::OPX7ProgramGroup>                                  programGroupEP;
             std::unordered_map<std::string, std::unique_ptr<RTLib::Ext::OPX7::OPX7ProgramGroup>> programGroupMSs;
             std::unordered_map<std::string, std::unique_ptr<RTLib::Ext::OPX7::OPX7ProgramGroup>> programGroupHGs;
-            std::unordered_map<std::string, ModuleData>   modules;
-            std::unique_ptr<RTLib::Ext::OPX7::OPX7ShaderTable> shaderTable;
-            std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer> paramsBuffer;
+            std::unique_ptr<RTLib::Ext::OPX7::OPX7ShaderTable>                                   shaderTable;
 
             void Free() {
                 handle->Destroy();
@@ -1368,11 +1367,9 @@ namespace rtlib
                     module.handle->Destroy();
                     module = {};
                 }
-                modules.clear();
+                modules.clear(); 
                 shaderTable->Destroy();
                 shaderTable = nullptr;
-                paramsBuffer->Destroy();
-                paramsBuffer = nullptr;
             }
 
             void InitPipeline(RTLib::Ext::OPX7::OPX7Context* context)
@@ -1392,11 +1389,6 @@ namespace rtlib
                 handle = std::unique_ptr<RTLib::Ext::OPX7::OPX7Pipeline>(context->CreateOPXPipeline(pipelineCreateDesc));
             }
 
-            void InitParams(RTLib::Ext::OPX7::OPX7Context* context, size_t sizeInBytes, void* pData)
-            {
-                paramsBuffer = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(context->CreateBuffer({ RTLib::Ext::CUDA::CUDAMemoryFlags::eDefault,sizeInBytes, pData }));
-            }
-
             void LoadModule(RTLib::Ext::OPX7::OPX7Context* context, std::string moduleName, const RTLib::Ext::OPX7::OPX7ModuleCompileOptions& moduleOptions, const std::vector<char>& ptxString)
             {
                 auto createDesc = RTLib::Ext::OPX7::OPX7ModuleCreateDesc();
@@ -1408,14 +1400,14 @@ namespace rtlib
                 modules[moduleName].handle = std::unique_ptr<RTLib::Ext::OPX7::OPX7Module>(context->CreateOPXModule(createDesc));
                 modules[moduleName].options = moduleOptions;
             }
-            void LoadBuiltInISTriangleModule(RTLib::Ext::OPX7::OPX7Context* context, std::string moduleName, const RTLib::Ext::OPX7::OPX7ModuleCompileOptions& moduleOptions, bool useMotionBlur= false) {
+            void LoadBuiltInISTriangleModule(RTLib::Ext::OPX7::OPX7Context* context, std::string moduleName, const RTLib::Ext::OPX7::OPX7ModuleCompileOptions& moduleOptions, bool useMotionBlur = false) {
                 auto createDesc = RTLib::Ext::OPX7::OPX7ModuleCreateDesc();
                 {
                     createDesc.ptxBinary = {};
                     createDesc.moduleOptions = moduleOptions;
                     createDesc.pipelineOptions = compileOptions;
                 }
-                modules[moduleName].handle = std::unique_ptr<RTLib::Ext::OPX7::OPX7Module>(RTLib::Ext::OPX7::OPX7Module::BuiltInTriangleIS(context, createDesc,useMotionBlur));
+                modules[moduleName].handle = std::unique_ptr<RTLib::Ext::OPX7::OPX7Module>(RTLib::Ext::OPX7::OPX7Module::BuiltInTriangleIS(context, createDesc, useMotionBlur));
                 modules[moduleName].options = moduleOptions;
             }
             void LoadBuiltInISSphereModule(RTLib::Ext::OPX7::OPX7Context* context, std::string moduleName, const RTLib::Ext::OPX7::OPX7ModuleCompileOptions& moduleOptions, bool useMotionBlur = false) {
@@ -1428,26 +1420,26 @@ namespace rtlib
                 modules[moduleName].handle = std::unique_ptr<RTLib::Ext::OPX7::OPX7Module>(RTLib::Ext::OPX7::OPX7Module::BuiltInSphereIS(context, createDesc, useMotionBlur));
                 modules[moduleName].options = moduleOptions;
             }
-            
-            void Launch(RTLib::Ext::CUDA::CUDAStream* stream, int width, int height)
+
+            void Launch(RTLib::Ext::CUDA::CUDAStream* stream, RTLib::Ext::CUDA::CUDABuffer* paramsBuffer, int width, int height)
             {
 
-                handle->Launch(stream, RTLib::Ext::CUDA::CUDABufferView(paramsBuffer.get(), 0, paramsBuffer->GetSizeInBytes()), shaderTable.get(), width, height, 1);
+                handle->Launch(stream, RTLib::Ext::CUDA::CUDABufferView(paramsBuffer, 0, paramsBuffer->GetSizeInBytes()), shaderTable.get(), width, height, 1);
             }
 
             void SetProgramGroupRG(RTLib::Ext::OPX7::OPX7Context* context, std::string module_name, std::string func_name)
             {
-                programGroupRG = std::unique_ptr<RTLib::Ext::OPX7::OPX7ProgramGroup>(context->CreateOPXProgramGroup(RTLib::Ext::OPX7::OPX7ProgramGroupCreateDesc::Raygen({ modules[module_name].handle.get(),func_name.c_str()})));
+                programGroupRG = std::unique_ptr<RTLib::Ext::OPX7::OPX7ProgramGroup>(context->CreateOPXProgramGroup(RTLib::Ext::OPX7::OPX7ProgramGroupCreateDesc::Raygen({ modules[module_name].handle.get(),func_name.c_str() })));
             }
 
             void SetProgramGroupMS(RTLib::Ext::OPX7::OPX7Context* context, std::string pg_name, std::string module_name, std::string func_name)
             {
-                programGroupMSs[pg_name] = std::unique_ptr<RTLib::Ext::OPX7::OPX7ProgramGroup>(context->CreateOPXProgramGroup(RTLib::Ext::OPX7::OPX7ProgramGroupCreateDesc::Miss({modules[module_name].handle.get(),func_name.c_str()})));
+                programGroupMSs[pg_name] = std::unique_ptr<RTLib::Ext::OPX7::OPX7ProgramGroup>(context->CreateOPXProgramGroup(RTLib::Ext::OPX7::OPX7ProgramGroupCreateDesc::Miss({ modules[module_name].handle.get(),func_name.c_str() })));
             }
 
-            void SetProgramGroupHG(RTLib::Ext::OPX7::OPX7Context* context, std::string pg_name, 
+            void SetProgramGroupHG(RTLib::Ext::OPX7::OPX7Context* context, std::string pg_name,
                 std::string ch_module_name, std::string ch_func_name,
-                std::string ah_module_name, std::string ah_func_name, 
+                std::string ah_module_name, std::string ah_func_name,
                 std::string is_module_name, std::string is_func_name)
             {
                 auto chSingleModule = RTLib::Ext::OPX7::OPX7ProgramGroupSingleModule();
@@ -1459,7 +1451,7 @@ namespace rtlib
                 }
                 else {
                     chSingleModule = {};
-                }                
+                }
                 if (modules.count(ah_module_name) > 0) {
                     ahSingleModule.module = modules.at(ah_module_name).handle.get();
                     ahSingleModule.entryFunctionName = ah_func_name.c_str();
@@ -1478,7 +1470,7 @@ namespace rtlib
                 }
 
                 programGroupHGs[pg_name] = std::unique_ptr<RTLib::Ext::OPX7::OPX7ProgramGroup>(context->CreateOPXProgramGroup(RTLib::Ext::OPX7::OPX7ProgramGroupCreateDesc::Hitgroup(
-                    chSingleModule,ahSingleModule,isSingleModule
+                    chSingleModule, ahSingleModule, isSingleModule
                 )));
             }
 
@@ -1488,7 +1480,7 @@ namespace rtlib
             }
 
             template<typename T>
-            void SetHostRayGenRecordTypeData(T data)
+            void SetHostRayGenRecordTypeData( T data)
             {
                 shaderTable->SetHostRaygenRecordTypeData(programGroupRG->GetRecord<T>(data));
             }
@@ -1503,7 +1495,7 @@ namespace rtlib
                 shaderTable->SetHostHitgroupRecordTypeData(index, programGroupHGs[name]->GetRecord<T>(data));
             }
             template<typename T>
-            void SetHostExceptionRecordTypeData( T data)
+            void SetHostExceptionRecordTypeData(T data)
             {
                 shaderTable->SetHostExceptionRecordTypeData(programGroupEP->GetRecord<T>(data));
             }
@@ -1531,6 +1523,35 @@ namespace rtlib
 
                 handle->SetStackSize(0, 0, continuationStackSizes, maxTraversableDepth);
 
+            }
+        };
+        struct TracerData
+        {
+            std::unordered_map<std::string, PipelineData>                                        pipelines;
+            std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>                                        paramsBuffer;
+
+            template<typename ParamsType>
+            void InitParams(RTLib::Ext::OPX7::OPX7Context* context, ParamsType params) {
+                auto desc = RTLib::Ext::CUDA::CUDABufferCreateDesc();
+                desc.flags = RTLib::Ext::CUDA::CUDAMemoryFlags::eDefault;
+                desc.sizeInBytes = sizeof(ParamsType);
+                desc.pData = &params;
+                paramsBuffer = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(context->CreateBuffer(desc));
+            }
+
+            void Free() {
+                for (auto& [name, pipeline] : pipelines)
+                {
+                    pipeline.Free();
+                }
+                pipelines.clear();
+                paramsBuffer->Destroy();
+                paramsBuffer.reset();
+            }
+
+            void Launch(RTLib::Ext::CUDA::CUDAStream* stream, std::string pipelineName, int width, int height)
+            {
+                pipelines[pipelineName].Launch(stream, paramsBuffer.get(), width, height);
             }
         };
 
