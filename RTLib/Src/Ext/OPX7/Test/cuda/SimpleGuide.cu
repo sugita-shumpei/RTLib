@@ -104,6 +104,7 @@ extern "C" __global__ void     __raygen__default () {
             color += hrec.userData.radiance;
 
             if (isnan(hrec.rayDirection.x) || isnan(hrec.rayDirection.y) || isnan(hrec.rayDirection.z) ||
+                isnan(hrec.userData.throughPut.x) || isnan(hrec.userData.throughPut.y) || isnan(hrec.userData.throughPut.z)||
                 isnan(hrec.userData.radiance.x) || isnan(hrec.userData.radiance.y) || isnan(hrec.userData.radiance.z)) {
                 printf("error\n");
                 break;
@@ -357,19 +358,19 @@ extern "C" __global__ void     __closesthit__radiance() {
                 bsdfPdf = (select_prob * cosinePdf1 + (1.0f - select_prob) * phongPdf1);
             }
             
-            //if (((params.flags&PARAM_FLAG_USE_TREE)== PARAM_FLAG_USE_TREE)&& ((params.flags & PARAM_FLAG_BUILD) == PARAM_FLAG_BUILD)) {
-            //    if (RTLib::Ext::CUDA::Math::random_float1(xor32) < params.tree.fraction) {
-            //        direction = RTLib::Ext::CUDA::Math::normalize(dTree->Sample(xor32));
-            //        cosine    = RTLib::Ext::CUDA::Math::dot(direction, fNormal);
-            //        auto cosinePdf2 = RTLib::Ext::CUDA::Math::max(cosine * RTLIB_M_INV_PI, 0.0f);
-            //        auto phongPdf2  = getValPhongPDF(direction, reflDir, shinness);
-            //        bsdfVal = diffuse * RTLIB_M_INV_PI + specular * phongPdf2;
-            //        bsdfPdf = (select_prob * cosinePdf2 + (1.0f - select_prob) * phongPdf2);
-            //    }
-            //    dTreePdf = RTLib::Ext::CUDA::Math::max(dTree->Pdf(direction),0.0f);
-            //    woPdf    = params.tree.fraction * bsdfPdf + (1.0f - params.tree.fraction) * dTreePdf;
-            //}
-            //else 
+            if (((params.flags&PARAM_FLAG_USE_TREE)== PARAM_FLAG_USE_TREE)&& ((params.flags & PARAM_FLAG_BUILD) == PARAM_FLAG_BUILD)) {
+                if (RTLib::Ext::CUDA::Math::random_float1(xor32) < params.tree.fraction) {
+                    direction = RTLib::Ext::CUDA::Math::normalize(dTree->Sample(xor32));
+                    cosine    = RTLib::Ext::CUDA::Math::dot(direction, fNormal);
+                    auto cosinePdf2 = RTLib::Ext::CUDA::Math::max(cosine * RTLIB_M_INV_PI, 0.0f);
+                    auto phongPdf2  = getValPhongPDF(direction, reflDir, shinness);
+                    bsdfVal = diffuse * RTLIB_M_INV_PI + specular * phongPdf2;
+                    bsdfPdf = (select_prob * cosinePdf2 + (1.0f - select_prob) * phongPdf2);
+                }
+                dTreePdf = RTLib::Ext::CUDA::Math::max(dTree->Pdf(direction),0.0f);
+                woPdf    = params.tree.fraction * bsdfPdf + (1.0f - params.tree.fraction) * dTreePdf;
+            }
+            else 
             {
                 dTreePdf = 0.0f;
                 woPdf = bsdfPdf;

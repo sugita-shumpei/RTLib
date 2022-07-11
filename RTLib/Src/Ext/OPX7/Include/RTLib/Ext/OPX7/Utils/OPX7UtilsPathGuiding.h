@@ -450,14 +450,14 @@ namespace RTLib
 						return factor * sum;
 					}
 					RTLIB_INLINE RTLIB_DEVICE      void  AddStatisticalWeightAtomic(float val)noexcept {
-#ifdef __CUDA_ARCH__
+#ifdef __CUDACC__
 						atomicAdd(&statisticalWeight, val);
 #else
 						statisticalWeight += val;
 #endif
 					}
 					RTLIB_INLINE RTLIB_DEVICE      void  AddSumAtomic(float val)noexcept {
-#ifdef __CUDA_ARCH__
+#ifdef __CUDACC__
 						atomicAdd(&sum, val);
 #else
 						sum += val;
@@ -514,9 +514,6 @@ namespace RTLib
 					template<DirectionalFilter dFilter>
 					RTLIB_INLINE RTLIB_DEVICE      void  Record(const DTreeRecord& rec) noexcept {
 						if (!rec.isDelta) {
-							if (rec.woPdf == 0.0f) {
-								printf("FATAL BUG\n");
-							}
 							float irradiance = rec.radiance / rec.woPdf;
 							building.RecordIrradiance<dFilter>(RTLib::Ext::CUDA::Math::dir_to_canonical(rec.direction), irradiance, rec.statisticalWeight);
 						}

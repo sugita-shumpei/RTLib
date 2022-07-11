@@ -7,7 +7,7 @@ int main(int argc, const char* argv[]) {
     auto yRange = 128;
     int imageSizeX = 1024;
     int imageSizeY = 1024;
-    auto baseSamples = 500000;
+    auto baseSamples = 10000;
     if (argc > 1) {
         isAllRange = false;
         if (std::string(argv[1]) == "--xcenter") {
@@ -24,7 +24,7 @@ int main(int argc, const char* argv[]) {
         }
     }
     //return RTLibExtOPX7TestApplication(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/../scene.json", "DEF", false).Run();
-    auto filePath = std::filesystem::path(RTLIB_EXT_OPX7_TEST_DATA_PATH"\\..\\Result\\Scene0\\Depth=4");
+    auto filePath = std::filesystem::path(RTLIB_EXT_OPX7_TEST_DATA_PATH"\\..\\Result\\Scene1\\Depth=10").make_preferred();
     auto baseImageData = std::vector<float3>();
     {
         baseImageData.resize(1024 * 1024);
@@ -37,6 +37,8 @@ int main(int argc, const char* argv[]) {
     auto defMAEs = std::vector<std::pair<unsigned int, float>>();
     auto neeMAEs = std::vector<std::pair<unsigned int, float>>();
     auto risMAEs = std::vector<std::pair<unsigned int, float>>();
+    auto pgdefMAEs = std::vector<std::pair<unsigned int, float>>();
+    auto pgneeMAEs = std::vector<std::pair<unsigned int, float>>();
     for (std::filesystem::directory_entry pipelineDir : std::filesystem::directory_iterator(filePath)) {
         if (pipelineDir.is_directory()) {
             for (std::filesystem::directory_entry imageDir : std::filesystem::directory_iterator(pipelineDir.path())) {
@@ -90,6 +92,12 @@ int main(int argc, const char* argv[]) {
                     if (pipeline == "RIS") {
                         risMAEs.push_back({ std::stoi(sampleStr),mae });
                     }
+                    if (pipeline == "PGDEF") {
+                        pgdefMAEs.push_back({ std::stoi(sampleStr),mae });
+                    }
+                    if (pipeline == "PGNEE") {
+                        pgneeMAEs.push_back({ std::stoi(sampleStr),mae });
+                    }
                 }
 
             }
@@ -104,6 +112,12 @@ int main(int argc, const char* argv[]) {
     std::sort(std::begin(risMAEs), std::end(risMAEs), [](const auto& a, const auto& b) {
         return a.first < b.first;
         });
+    std::sort(std::begin(pgdefMAEs), std::end(pgdefMAEs), [](const auto& a, const auto& b) {
+        return a.first < b.first;
+        });
+    std::sort(std::begin(pgneeMAEs), std::end(pgneeMAEs), [](const auto& a, const auto& b) {
+        return a.first < b.first;
+        });
     for (auto& [sample, value] : defMAEs) {
         std::cout << "DEF: " << sample << "," << value << std::endl;
     }
@@ -112,5 +126,11 @@ int main(int argc, const char* argv[]) {
     }
     for (auto& [sample, value] : risMAEs) {
         std::cout << "RIS: " << sample << "," << value << std::endl;
+    }
+    for (auto& [sample, value] : pgdefMAEs) {
+        std::cout << "PGDEF: " << sample << "," << value << std::endl;
+    }
+    for (auto& [sample, value] : pgneeMAEs) {
+        std::cout << "PGNEE: " << sample << "," << value << std::endl;
     }
 }
