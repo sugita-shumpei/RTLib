@@ -257,7 +257,6 @@ enum   ParamFlag
     PARAM_FLAG_USE_GRID = 4,
     PARAM_FLAG_USE_TREE = 8,
     PARAM_FLAG_BUILD    = 16,
-    PARAM_FLAG_FINAL    = 32,
 };
 enum   DebugFrameType
 {

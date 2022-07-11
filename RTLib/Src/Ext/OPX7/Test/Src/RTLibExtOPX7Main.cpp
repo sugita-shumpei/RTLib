@@ -1,7 +1,7 @@
 #include <RTLibExtOPX7TestApplication.h>
 int main()
 {
-    auto testApp = RTLibExtOPX7TestApplication(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/../scene2.json", "DEF", true,false,true);
+    auto testApp = RTLibExtOPX7TestApplication(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/../scene.json", "DEF", true,false,true);
     try
     {
         testApp.Initialize();
@@ -10,9 +10,9 @@ int main()
         auto maxSamples = testApp.GetMaxSamples();
         auto samplesPerSave = testApp.GetSamplesPerSave();
         {
-            testApp.SetPipelineName("PGDEF");
-            testApp.SetMaxSamples(10000);
-            testApp.SetSamplesPerSave(1000);
+            testApp.SetPipelineName("DEF");
+            testApp.SetMaxSamples(100);
+            testApp.SetSamplesPerSave(10);
             testApp.MainLoop();
         }
         testApp.SetPipelineName(pipelineName);
