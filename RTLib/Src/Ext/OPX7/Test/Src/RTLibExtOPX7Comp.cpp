@@ -24,7 +24,7 @@ int main(int argc, const char* argv[]) {
         }
     }
     //return RTLibExtOPX7TestApplication(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/../scene.json", "DEF", false).Run();
-    auto filePath = std::filesystem::path(RTLIB_EXT_OPX7_TEST_DATA_PATH"\\..\\Result\\Scene1\\Depth=10").make_preferred();
+    auto filePath = std::filesystem::path(RTLIB_EXT_OPX7_TEST_DATA_PATH"\\..\\Result\\Scene0\\Depth=10").make_preferred();
     auto baseImageData = std::vector<float3>();
     {
         baseImageData.resize(1024 * 1024);
@@ -39,6 +39,7 @@ int main(int argc, const char* argv[]) {
     auto risMAEs = std::vector<std::pair<unsigned int, float>>();
     auto pgdefMAEs = std::vector<std::pair<unsigned int, float>>();
     auto pgneeMAEs = std::vector<std::pair<unsigned int, float>>();
+    auto pgrisMAEs = std::vector<std::pair<unsigned int, float>>();
     for (std::filesystem::directory_entry pipelineDir : std::filesystem::directory_iterator(filePath)) {
         if (pipelineDir.is_directory()) {
             for (std::filesystem::directory_entry imageDir : std::filesystem::directory_iterator(pipelineDir.path())) {
@@ -98,6 +99,9 @@ int main(int argc, const char* argv[]) {
                     if (pipeline == "PGNEE") {
                         pgneeMAEs.push_back({ std::stoi(sampleStr),mae });
                     }
+                    if (pipeline == "PGRIS") {
+                        pgrisMAEs.push_back({ std::stoi(sampleStr),mae });
+                    }
                 }
 
             }
@@ -132,5 +136,8 @@ int main(int argc, const char* argv[]) {
     }
     for (auto& [sample, value] : pgneeMAEs) {
         std::cout << "PGNEE: " << sample << "," << value << std::endl;
+    }
+    for (auto& [sample, value] : pgrisMAEs) {
+        std::cout << "PGRIS: " << sample << "," << value << std::endl;
     }
 }

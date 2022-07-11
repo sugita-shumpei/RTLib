@@ -30,6 +30,7 @@ public:
         this->InitRisTracer();
         this->InitSdTreeDefTracer();
         this->InitSdTreeNeeTracer();
+        this->InitSdTreeRisTracer();
         this->InitFrameResourceCUDA();
         if (m_EnableVis)
         {
@@ -60,6 +61,7 @@ public:
             m_KeyBoardManager->UpdateState(GLFW_KEY_F4);
             m_KeyBoardManager->UpdateState(GLFW_KEY_F5);
             m_KeyBoardManager->UpdateState(GLFW_KEY_F6);
+            m_KeyBoardManager->UpdateState(GLFW_KEY_F7);
 
 
             m_KeyBoardManager->UpdateState(GLFW_KEY_W);
@@ -200,10 +202,12 @@ private:
 
     void InitDefTracer();
     void InitNeeTracer();
-    void InitDbgTracer();
     void InitRisTracer();
+    void InitDbgTracer();
+
     void InitSdTreeDefTracer();
     void InitSdTreeNeeTracer();
+    void InitSdTreeRisTracer();
 
     void FreeTracers();
 
@@ -285,13 +289,23 @@ private:
                 params.flags |= PARAM_FLAG_USE_GRID;
             }
         }
-        if ((m_CurTracerName == "PGDEF")||((m_CurTracerName == "PGNEE"))) {
+        if ((m_CurTracerName == "PGDEF")||((m_CurTracerName == "PGNEE"))|| (m_CurTracerName == "PGRIS")) {
             params.flags      = PARAM_FLAG_NONE;
             if (m_EnableTree) {
                 params.tree   = m_SdTreeController->GetGpuSTree();
                 params.flags |= PARAM_FLAG_USE_TREE;
             }
-            params.flags     |= PARAM_FLAG_NEE;
+            
+            if (m_CurTracerName == "PGNEE")
+            {
+                params.flags |= PARAM_FLAG_NEE;
+            }
+            if (m_CurTracerName == "PGRIS")
+            {
+                params.flags |= PARAM_FLAG_NEE;
+                params.flags |= PARAM_FLAG_RIS;
+            }
+
             if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecord)
             {
                 params.flags |= PARAM_FLAG_NONE;

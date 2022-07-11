@@ -1,7 +1,7 @@
 #include <RTLibExtOPX7TestApplication.h>
 int main()
 {
-    auto testApp = RTLibExtOPX7TestApplication(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/../scene2.json", "DEF", true,false,true);
+    auto testApp = RTLibExtOPX7TestApplication(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/../scene.json", "DEF", false,false,true);
     try
     {
         testApp.Initialize();
@@ -10,7 +10,7 @@ int main()
         auto maxSamples = testApp.GetMaxSamples();
         auto samplesPerSave = testApp.GetSamplesPerSave();
         {
-            testApp.SetTracerName("PGNEE");
+            testApp.SetTracerName("PGRIS");
             testApp.SetMaxSamples(100);
             testApp.SetSamplesPerSave(10);
             testApp.MainLoop();
