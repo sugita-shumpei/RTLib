@@ -192,7 +192,7 @@ namespace RTLib
 							//(s0+s2)/(s0+s1+s2+s3)
 							float boundary = partial / total;
 							auto  origin = make_float2(0.0f);
-							float sample = RTLib::Ext::CUDA::Math::random_float1(rng);
+							float sample = rtlib::random_float1(rng);
 
 							if (sample < boundary)
 							{
@@ -242,7 +242,7 @@ namespace RTLib
 							//(s0+s2)/(s0+s1+s2+s3)
 							float boundary = partial / total;
 							auto  origin = make_float2(0.0f);
-							float sample = RTLib::Ext::CUDA::Math::random_float1(rng);
+							float sample = rtlib::random_float1(rng);
 
 							if (sample < boundary)
 							{
@@ -267,7 +267,7 @@ namespace RTLib
 
 							if (cur->IsLeaf(idx) || cur->sums[idx] <= 0.0f)
 							{
-								result += size * RTLib::Ext::CUDA::Math::random_float2(rng);
+								result += size * rtlib::random_float2(rng);
 								break;
 							}
 
@@ -471,16 +471,16 @@ namespace RTLib
 					RTLIB_INLINE RTLIB_HOST_DEVICE auto SampleAndPdf(RNG& rng, float& pdf_value)const noexcept -> float2 {
 						if (GetMean() <= 0.0f) {
 							pdf_value = 1.0f / (4.0f * RTLIB_M_PI);
-							return RTLib::Ext::CUDA::Math::random_float2(rng);
+							return rtlib::random_float2(rng);
 						}
-						return RTLib::Ext::CUDA::Math::clamp(nodes[0].SampleAndPdf(rng, nodes, pdf_value), make_float2(0.0f), make_float2(1.0f));
+						return rtlib::clamp(nodes[0].SampleAndPdf(rng, nodes, pdf_value), make_float2(0.0f), make_float2(1.0f));
 					}
 					template<typename RNG>
 					RTLIB_INLINE RTLIB_HOST_DEVICE auto Sample(RNG& rng)const noexcept -> float2 {
 						if (GetMean() <= 0.0f) {
-							return RTLib::Ext::CUDA::Math::random_float2(rng);
+							return rtlib::random_float2(rng);
 						}
-						return RTLib::Ext::CUDA::Math::clamp(nodes[0].Sample(rng, nodes), make_float2(0.0f), make_float2(1.0f));
+						return rtlib::clamp(nodes[0].Sample(rng, nodes), make_float2(0.0f), make_float2(1.0f));
 					}
 					RTLIB_INLINE RTLIB_HOST_DEVICE auto Pdf(float2 p)const noexcept -> float {
 						if (GetMean() <= 0.0f) {
@@ -515,7 +515,7 @@ namespace RTLib
 					RTLIB_INLINE RTLIB_DEVICE      void  Record(const DTreeRecord& rec) noexcept {
 						if (!rec.isDelta) {
 							float irradiance = rec.radiance / rec.woPdf;
-							building.RecordIrradiance<dFilter>(RTLib::Ext::CUDA::Math::dir_to_canonical(rec.direction), irradiance, rec.statisticalWeight);
+							building.RecordIrradiance<dFilter>(rtlib::dir_to_canonical(rec.direction), irradiance, rec.statisticalWeight);
 						}
 					}
 					template<typename RNG>
@@ -524,10 +524,10 @@ namespace RTLib
 					}
 					template<typename RNG>
 					RTLIB_INLINE RTLIB_HOST_DEVICE auto  Sample(RNG& rng)const noexcept -> float3 {
-						return RTLib::Ext::CUDA::Math::canonical_to_dir(sampling.Sample(rng));
+						return rtlib::canonical_to_dir(sampling.Sample(rng));
 					}
 					RTLIB_INLINE RTLIB_HOST_DEVICE auto  Pdf(const float3& dir)const noexcept -> float {
-						return sampling.Pdf(RTLib::Ext::CUDA::Math::dir_to_canonical(dir));
+						return sampling.Pdf(rtlib::dir_to_canonical(dir));
 					}
 					DTree building;
 					DTree sampling;
@@ -829,8 +829,7 @@ namespace RTLib
 					}
 					template<SpatialFilter sFilter, DirectionalFilter dFilter, typename STreeType>
 					RTLIB_INLINE RTLIB_HOST_DEVICE void Commit(STreeType& sTree, float statisticalWeight)noexcept
-					{/*
-						printf("OK1!");*/
+					{
 						if (!dTree) {
 							return;
 						}
@@ -858,7 +857,7 @@ namespace RTLib
 						}
 
 						localRadiance *= fabsf(cosine);
-						printf("localRadiance=(%f,%f,%f)\n",localRadiance.x,localRadiance.y,localRadiance.z);
+						//printf("localRadiance=(%f,%f,%f)\n",localRadiance.x,localRadiance.y,localRadiance.z);
 						float3 product = localRadiance * bsdfVal;
 						float localRadianceAvg = (localRadiance.x + localRadiance.y + localRadiance.z) / 3.0f;
 						float productAvg = (product.x + product.y + product.z) / 3.0f;
@@ -1396,67 +1395,55 @@ namespace RTLib
 						//GPU Upload Memory
 						{
 							auto desc = RTLib::Ext::CUDA::CUDABufferCreateDesc();
-							desc.sizeInBytes = sizeof(sTreeNodes[0]) * std::size(sTreeNodes);
+							desc.sizeInBytes = sizeof(sTreeNodes[0]) * std::size(sTreeNodes[0]);
 							desc.pData       = nullptr;
 
 							if (m_GpuSTreeNodes) {
 								if (m_GpuSTreeNodes->GetSizeInBytes() != desc.sizeInBytes)
 								{
 									m_GpuSTreeNodes->Destroy();
-									m_GpuSTreeNodes = CUDABufferPtr(m_Context->CreateBuffer(desc));
+									m_GpuSTreeNodes = CUDABufferPtr(context->CreateBuffer(desc));
 								}
-							}
-							else {
-								m_GpuSTreeNodes = CUDABufferPtr(m_Context->CreateBuffer(desc));
 							}
 						}
 						{
 							auto desc = RTLib::Ext::CUDA::CUDABufferCreateDesc();
-							desc.sizeInBytes   = sizeof(dTreeWrappers[0]) * std::size(dTreeWrappers);
+							desc.sizeInBytes   = sizeof(dTreeWrappers[0]) * std::size(dTreeWrappers[0]);
 							desc.pData         = nullptr;
 
 							if (m_GpuDTreeWrappers) {
 								if (m_GpuDTreeWrappers->GetSizeInBytes() != desc.sizeInBytes)
 								{
 									m_GpuDTreeWrappers->Destroy();
-									m_GpuDTreeWrappers = CUDABufferPtr(m_Context->CreateBuffer(desc));
+									m_GpuDTreeWrappers = CUDABufferPtr(context->CreateBuffer(desc));
 								}
-							}
-							else {
-								m_GpuDTreeWrappers = CUDABufferPtr(m_Context->CreateBuffer(desc));
 							}
 						}
 						{
 							auto desc = RTLib::Ext::CUDA::CUDABufferCreateDesc();
-							desc.sizeInBytes        = sizeof(dTreeNodesBuilding[0]) * std::size(dTreeNodesBuilding);
+							desc.sizeInBytes        = sizeof(dTreeNodesBuilding[0]) * std::size(dTreeNodesBuilding[0]);
 							desc.pData              = nullptr;
 
 							if (m_GpuDTreeNodesBuilding) {
 								if (m_GpuDTreeNodesBuilding->GetSizeInBytes() != desc.sizeInBytes)
 								{
 									m_GpuDTreeNodesBuilding->Destroy();
-									m_GpuDTreeNodesBuilding = CUDABufferPtr(m_Context->CreateBuffer(desc));
+									m_GpuDTreeNodesBuilding = CUDABufferPtr(context->CreateBuffer(desc));
 								}
-							}
-							else {
-								m_GpuDTreeNodesBuilding = CUDABufferPtr(m_Context->CreateBuffer(desc));
 							}
 						}
 						{
 							auto desc = RTLib::Ext::CUDA::CUDABufferCreateDesc();
-							desc.sizeInBytes        = sizeof(dTreeNodesSampling[0]) * std::size(dTreeNodesSampling);
+							desc.sizeInBytes        = sizeof(dTreeNodesSampling[0]) * std::size(dTreeNodesSampling[0]);
 							desc.pData              = nullptr;
-							m_GpuDTreeNodesSampling = CUDABufferPtr(m_Context->CreateBuffer(desc));
+							m_GpuDTreeNodesSampling = CUDABufferPtr(context->CreateBuffer(desc));
 
 							if (m_GpuDTreeNodesSampling) {
 								if (m_GpuDTreeNodesSampling->GetSizeInBytes() != desc.sizeInBytes)
 								{
 									m_GpuDTreeNodesSampling->Destroy();
-									m_GpuDTreeNodesSampling = CUDABufferPtr(m_Context->CreateBuffer(desc));
+									m_GpuDTreeNodesSampling = CUDABufferPtr(context->CreateBuffer(desc));
 								}
-							}
-							else {
-								m_GpuDTreeNodesSampling = CUDABufferPtr(m_Context->CreateBuffer(desc));
 							}
 						}
 						{
@@ -1467,7 +1454,7 @@ namespace RTLib
 								sTreeNodes[i] = m_CpuSTree.Node(i).GetGpuHandle();
 								if (m_CpuSTree.Node(i).isLeaf) {
 									//DTREE
-									sTreeNodes[i].dTree = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<DTreeWrapper>(m_GpuDTreeWrappers.get()) + dTreeIndex;
+									sTreeNodes[i].dTree = m_GpuDTreeWrappers.getDevicePtr() + dTreeIndex;
 									//Optimizer
 									//BUILDING
 									dTreeWrappers[dTreeIndex].building = m_CpuSTree.Node(i).dTree.building.GetGpuHandle();
@@ -1479,7 +1466,7 @@ namespace RTLib
 									dTreeNodeOffsetBuilding += m_CpuSTree.Node(i).dTree.building.GetNumNodes();
 									//SAMPLING
 									dTreeWrappers[dTreeIndex].sampling = m_CpuSTree.Node(i).dTree.sampling.GetGpuHandle();
-									dTreeWrappers[dTreeIndex].sampling.nodes = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<DTreeNode>(m_GpuDTreeNodesSampling.get()) + dTreeNodeOffsetSampling;
+									dTreeWrappers[dTreeIndex].sampling.nodes = m_GpuDTreeNodesSampling.getDevicePtr() + dTreeNodeOffsetSampling;
 									for (size_t j = 0; j < m_CpuSTree.Node(i).dTree.sampling.GetNumNodes(); ++j) {
 										//SUMS
 										dTreeNodesSampling[dTreeNodeOffsetSampling + j] = m_CpuSTree.Node(i).dTree.sampling.Node(j);
@@ -1498,25 +1485,25 @@ namespace RTLib
 							memoryBufferCopy.size      = m_GpuSTreeNodes->GetSizeInBytes();
 							memoryBufferCopy.srcData   = sTreeNodes.data();
 							memoryBufferCopy.dstOffset = 0;
-							RTLIB_CORE_ASSERT_IF_FAILED(m_Context->CopyMemoryToBuffer(m_GpuSTreeNodes.get(), { memoryBufferCopy }));
+							RTLIB_CORE_ASSERT_IF_FAILED(m_Context->CopyMemoryToBuffer(m_GpuSTreeNodes.get(), {desc}));
 							memoryBufferCopy.size      = m_GpuDTreeWrappers->GetSizeInBytes();
 							memoryBufferCopy.srcData   = dTreeWrappers.data();
 							memoryBufferCopy.dstOffset = 0;
-							RTLIB_CORE_ASSERT_IF_FAILED(m_Context->CopyMemoryToBuffer(m_GpuDTreeWrappers.get(), { memoryBufferCopy }));
+							RTLIB_CORE_ASSERT_IF_FAILED(m_Context->CopyMemoryToBuffer(m_GpuDTreeWrappers.get(), { desc }));
 							memoryBufferCopy.size      = m_GpuDTreeNodesBuilding->GetSizeInBytes();
 							memoryBufferCopy.srcData   = dTreeNodesBuilding.data();
 							memoryBufferCopy.dstOffset = 0;
-							RTLIB_CORE_ASSERT_IF_FAILED(m_Context->CopyMemoryToBuffer(m_GpuDTreeNodesBuilding.get(), { memoryBufferCopy }));
+							RTLIB_CORE_ASSERT_IF_FAILED(m_Context->CopyMemoryToBuffer(m_GpuDTreeNodesBuilding.get(), { desc }));
 							memoryBufferCopy.size      = m_GpuDTreeNodesSampling->GetSizeInBytes();
 							memoryBufferCopy.srcData   = dTreeNodesSampling.data();
 							memoryBufferCopy.dstOffset = 0;
-							RTLIB_CORE_ASSERT_IF_FAILED(m_Context->CopyMemoryToBuffer(m_GpuDTreeNodesSampling.get(), { memoryBufferCopy }));
+							RTLIB_CORE_ASSERT_IF_FAILED(m_Context->CopyMemoryToBuffer(m_GpuDTreeNodesSampling.get(), { desc }));
 						}
 #ifndef NDEBUG
 						std::cout << "Upload(Info)\n";
-						std::cout << "GpuSTreeNodes          : " <<         m_GpuSTreeNodes->GetSizeInBytes() / (1024.0f * 1024.0f) << "MB\n";
-						std::cout << "GpuDTreeNodes(Building): " << m_GpuDTreeNodesBuilding->GetSizeInBytes() / (1024.0f * 1024.0f) << "MB\n";
-						std::cout << "GpuDTreeNodes(Sampling): " << m_GpuDTreeNodesSampling->GetSizeInBytes() / (1024.0f * 1024.0f) << "MB\n";
+						std::cout << "GpuSTreeNodes          : " <<         m_GpuSTreeNodes.getSizeInBytes() / (1024.0f * 1024.0f) << "MB\n";
+						std::cout << "GpuDTreeNodes(Building): " << m_GpuDTreeNodesBuilding.getSizeInBytes() / (1024.0f * 1024.0f) << "MB\n";
+						std::cout << "GpuDTreeNodes(Sampling): " << m_GpuDTreeNodesSampling.getSizeInBytes() / (1024.0f * 1024.0f) << "MB\n";
 #endif
 					}
 					void Download() noexcept {
@@ -1532,17 +1519,8 @@ namespace RTLib
 						}
 						std::vector<DTreeWrapper> dTreeWrappers(gpuDTreeCnt);
 						std::vector<DTreeNode>    dTreeNodesBuilding(gpuDTreeNodeCntBuilding);
-						{
-							auto bufferMemoryCopy = RTLib::Ext::CUDA::CUDABufferMemoryCopy();
-							bufferMemoryCopy.size      = m_GpuDTreeWrappers->GetSizeInBytes();
-							bufferMemoryCopy.dstData   = dTreeWrappers.data();
-							bufferMemoryCopy.srcOffset = 0;
-							RTLIB_CORE_ASSERT_IF_FAILED(m_Context->CopyBufferToMemory(m_GpuDTreeWrappers.get(), { bufferMemoryCopy }));
-							bufferMemoryCopy.size = m_GpuDTreeNodesBuilding->GetSizeInBytes();
-							bufferMemoryCopy.dstData = dTreeNodesBuilding.data();
-							bufferMemoryCopy.srcOffset = 0;
-							RTLIB_CORE_ASSERT_IF_FAILED(m_Context->CopyBufferToMemory(m_GpuDTreeNodesBuilding.get(), { bufferMemoryCopy }));
-						}
+						m_GpuDTreeWrappers.download(dTreeWrappers);
+						m_GpuDTreeNodesBuilding.download(dTreeNodesBuilding);
 						{
 							size_t cpuDTreeIndex = 0;
 							size_t cpuDTreeNodeOffsetBuilding = 0;
@@ -1584,7 +1562,7 @@ namespace RTLib
 						STree sTree;
 						sTree.aabbMax = m_CpuSTree.GetAabbMax();
 						sTree.aabbMin = m_CpuSTree.GetAabbMin();
-						sTree.nodes    = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<STreeNode>(m_GpuSTreeNodes.get());
+						sTree.nodes = m_GpuSTreeNodes.getDevicePtr();
 						sTree.fraction = 0.5f;
 						return sTree;
 					}
@@ -1646,7 +1624,7 @@ namespace RTLib
 									++nPointsNodes;
 								}
 
-								auto statisticalWeight = dTree.GetStatisticalWeightSampling();
+								const auto statisticalWeight = dTree.GetStatisticalWeightSampling();
 								maxStatisticalWeight = std::max<float>(maxStatisticalWeight, statisticalWeight);
 								minStatisticalWeight = std::min<float>(minStatisticalWeight, statisticalWeight);
 								avgStatisticalWeight += statisticalWeight;
@@ -2036,17 +2014,8 @@ namespace RTLib
 						}
 						std::vector<DTreeWrapper> dTreeWrappers(gpuDTreeCnt);
 						std::vector<DTreeNode>    dTreeNodesBuilding(gpuDTreeNodeCntBuilding);
-						{
-							auto bufferMemoryCopy = RTLib::Ext::CUDA::CUDABufferMemoryCopy();
-							bufferMemoryCopy.size      = m_GpuDTreeWrappers->GetSizeInBytes();
-							bufferMemoryCopy.dstData   = dTreeWrappers.data();
-							bufferMemoryCopy.srcOffset = 0;
-							RTLIB_CORE_ASSERT_IF_FAILED(m_Context->CopyBufferToMemory(m_GpuDTreeWrappers.get(), { bufferMemoryCopy }));
-							bufferMemoryCopy.size = m_GpuDTreeNodesBuilding->GetSizeInBytes();
-							bufferMemoryCopy.dstData = dTreeNodesBuilding.data();
-							bufferMemoryCopy.srcOffset = 0;
-							RTLIB_CORE_ASSERT_IF_FAILED(m_Context->CopyBufferToMemory(m_GpuDTreeNodesBuilding.get(), { bufferMemoryCopy }));
-						}
+						m_GpuDTreeWrappers.download(dTreeWrappers);
+						m_GpuDTreeNodesBuilding.download(dTreeNodesBuilding);
 						{
 							size_t cpuDTreeIndex = 0;
 							size_t cpuDTreeNodeOffsetBuilding = 0;
@@ -2203,8 +2172,6 @@ namespace RTLib
 					using DTreeWrapper = DTreeWrapperT<kDTreeStackDepth>;
 					using DTree = DTreeT<kDTreeStackDepth>;
 					using DTreeNode = DTreeNodeT<kDTreeStackDepth>;
-
-					using TraceVertex = TraceVertexT<kDTreeStackDepth>;
 				};
             }
         }
