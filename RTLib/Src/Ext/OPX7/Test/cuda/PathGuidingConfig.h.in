@@ -3,10 +3,13 @@
 #include <RTLib/Ext/OPX7/Utils/OPX7UtilsPathGuiding.h>
 #cmakedefine RTLIB_EXT_OPX7_TEST_PATH_GUIDING_STREE_STACK_DEPTH @RTLIB_EXT_OPX7_TEST_PATH_GUIDING_STREE_STACK_DEPTH@
 #cmakedefine RTLIB_EXT_OPX7_TEST_PATH_GUIDING_DTREE_STACK_DEPTH @RTLIB_EXT_OPX7_TEST_PATH_GUIDING_DTREE_STACK_DEPTH@
+#cmakedefine RTLIB_EXT_OPX7_TEST_PATH_GUIDING_MAX_VERTEX_COUNT  @RTLIB_EXT_OPX7_TEST_PATH_GUIDING_MAX_VERTEX_COUNT@
 namespace rtlib
 {
 	namespace test
 	{
+		using SpatialFilter     = RTLib::Ext::OPX7::Utils::SpatialFilter;
+		using DirectionalFilter = RTLib::Ext::OPX7::Utils::DirectionalFilter;
 		using PathGuidingTraits = RTLib::Ext::OPX7::Utils::PathGuidingTraits<RTLIB_EXT_OPX7_TEST_PATH_GUIDING_STREE_STACK_DEPTH, RTLIB_EXT_OPX7_TEST_PATH_GUIDING_DTREE_STACK_DEPTH>;
 		using DTreeWrapper   = PathGuidingTraits::DTreeWrapper;
 		using DTree          = PathGuidingTraits::DTree;
@@ -17,6 +20,8 @@ namespace rtlib
 		
 		using STreeNode2     = PathGuidingTraits::STreeNode2;
 		using STree2         = PathGuidingTraits::STree2;
+
+		using TraceVertex    = PathGuidingTraits::TraceVertex;
 #ifndef __CUDACC__
 		using RTDTreeWrapper = PathGuidingTraits::RTDTreeWrapper;
 		using RTDTree        = PathGuidingTraits::RTDTree;

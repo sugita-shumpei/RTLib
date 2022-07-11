@@ -37,6 +37,8 @@ int main(int argc, const char* argv[]) {
     auto defMAEs = std::vector<std::pair<unsigned int, float>>();
     auto neeMAEs = std::vector<std::pair<unsigned int, float>>();
     auto risMAEs = std::vector<std::pair<unsigned int, float>>();
+    
+
     for (std::filesystem::directory_entry pipelineDir : std::filesystem::directory_iterator(filePath)) {
         if (pipelineDir.is_directory()) {
             for (std::filesystem::directory_entry imageDir : std::filesystem::directory_iterator(pipelineDir.path())) {
@@ -91,7 +93,6 @@ int main(int argc, const char* argv[]) {
                         risMAEs.push_back({ std::stoi(sampleStr),mae });
                     }
                 }
-
             }
         }
     }

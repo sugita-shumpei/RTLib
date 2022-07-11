@@ -67,12 +67,14 @@ add_library(RTLib-Ext-OPX7-Test-Lib
     ${CMAKE_CURRENT_SOURCE_DIR}/Test/Src/RTLibExtOPX7Test.cpp
 
     ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/SimpleKernel.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/SimpleKernel.cu
+    ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/SimpleTrace.cu
+    ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/SimpleGuide.cu
     ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/PathGuidingConfig.h.in
 )
 
 set(RTLIB_EXT_OPX7_TEST_PATH_GUIDING_STREE_STACK_DEPTH 69)
 set(RTLIB_EXT_OPX7_TEST_PATH_GUIDING_DTREE_STACK_DEPTH 24)
+set(RTLIB_EXT_OPX7_TEST_PATH_GUIDING_MAX_VERTEX_COUNT  11)
 
 configure_file(
     ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/PathGuidingConfig.h.in
@@ -83,12 +85,16 @@ target_include_directories(RTLib-Ext-OPX7-Test-Lib PUBLIC ${CMAKE_CURRENT_SOURCE
 
 target_link_libraries(RTLib-Ext-OPX7-Test-Lib PUBLIC RTLib-Ext-OPX7 tinyexr::tinyexr stb::stb RTLib-Utils)
 add_custom_command(TARGET RTLib-Ext-OPX7-Test-Lib PRE_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/SimpleKernel.cu ${CMAKE_CURRENT_BINARY_DIR}/Test/cuda/SimpleKernel.cu
     COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/SimpleKernel.h  ${CMAKE_CURRENT_BINARY_DIR}/Test/cuda/SimpleKernel.h
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/SimpleTrace.cu ${CMAKE_CURRENT_BINARY_DIR}/Test/cuda/SimpleTrace.cu
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/SimpleGuide.cu ${CMAKE_CURRENT_BINARY_DIR}/Test/cuda/SimpleGuide.cu
 )
 add_custom_command(TARGET RTLib-Ext-OPX7-Test-Lib POST_BUILD
-    COMMAND ${CUDAToolkit_NVCC_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/SimpleKernel.cu ${RTLIB_EXT_OPX7_TEST_NVCC_OPTIONS} -ptx -o ${CMAKE_CURRENT_BINARY_DIR}/Test/cuda/SimpleKernel.ptx
-    COMMAND ${CUDAToolkit_NVCC_EXECUTABLE} -optix-ir ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/SimpleKernel.cu ${RTLIB_EXT_OPX7_TEST_NVCC_OPTIONS} -o ${CMAKE_CURRENT_BINARY_DIR}/Test/cuda/SimpleKernel.optixir
+    COMMAND ${CUDAToolkit_NVCC_EXECUTABLE}           ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/SimpleTrace.cu ${RTLIB_EXT_OPX7_TEST_NVCC_OPTIONS} -ptx -o ${CMAKE_CURRENT_BINARY_DIR}/Test/cuda/SimpleTrace.ptx
+    COMMAND ${CUDAToolkit_NVCC_EXECUTABLE} -optix-ir ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/SimpleTrace.cu ${RTLIB_EXT_OPX7_TEST_NVCC_OPTIONS}      -o ${CMAKE_CURRENT_BINARY_DIR}/Test/cuda/SimpleTrace.optixir
+
+    COMMAND ${CUDAToolkit_NVCC_EXECUTABLE}           ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/SimpleGuide.cu ${RTLIB_EXT_OPX7_TEST_NVCC_OPTIONS} -ptx -o ${CMAKE_CURRENT_BINARY_DIR}/Test/cuda/SimpleGuide.ptx
+    COMMAND ${CUDAToolkit_NVCC_EXECUTABLE} -optix-ir ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/SimpleGuide.cu ${RTLIB_EXT_OPX7_TEST_NVCC_OPTIONS}      -o ${CMAKE_CURRENT_BINARY_DIR}/Test/cuda/SimpleGuide.optixir
 )
 
 set_target_properties(RTLib-Ext-OPX7-Test-Lib PROPERTIES FOLDER RTLib/RTLib/Ext/OPX7)

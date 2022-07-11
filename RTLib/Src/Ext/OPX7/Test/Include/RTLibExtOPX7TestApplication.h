@@ -4,9 +4,9 @@
 class RTLibExtOPX7TestApplication
 {
 public:
-    RTLibExtOPX7TestApplication(const std::string& scenePath, std::string defPipelineName, bool enableVis = true, bool enableGrid = false,bool enableTree = false) noexcept
+    RTLibExtOPX7TestApplication(const std::string& scenePath, std::string defTracerName, bool enableVis = true, bool enableGrid = false,bool enableTree = false) noexcept
     {
-        m_CurPipelineName = defPipelineName;
+        m_CurTracerName   = defTracerName;
         m_ScenePath       = scenePath;
         m_EnableVis       = enableVis;
         m_EnableGrid      = enableGrid;
@@ -24,11 +24,11 @@ public:
             this->InitSdTree();
         }
         this->InitPtxString();
-        this->InitDefPipeline();
-        this->InitNeePipeline();
-        this->InitDbgPipeline();
-        this->InitRisPipeline();
-        this->InitSdTreeDefPipeline();
+        this->InitDefTracer();
+        this->InitNeeTracer();
+        this->InitDbgTracer();
+        this->InitRisTracer();
+        this->InitDefGuideTracer();
         this->InitFrameResourceCUDA();
         if (m_EnableVis)
         {
@@ -64,6 +64,7 @@ public:
             m_KeyBoardManager->UpdateState(GLFW_KEY_A);
             m_KeyBoardManager->UpdateState(GLFW_KEY_S);
             m_KeyBoardManager->UpdateState(GLFW_KEY_D);
+            m_KeyBoardManager->UpdateState(GLFW_KEY_P);
 
             m_KeyBoardManager->UpdateState(GLFW_KEY_UP);
             m_KeyBoardManager->UpdateState(GLFW_KEY_DOWN);
@@ -81,6 +82,11 @@ public:
         m_SamplesForAccum = 0;
         m_TimesForAccum = 0;
         this->UpdateTimeStamp();
+        m_Variables.SetBool("Started", true);
+        m_Variables.SetUInt32("SampleForBudget"  , m_SceneData.config.maxSamples);
+        m_Variables.SetUInt32("SamplePerLaunch"  , m_SceneData.config.samples);
+        m_Variables.SetFloat1("RatioForBudget"   , 0.1f);
+        m_Variables.SetUInt32("IterationForBuilt", 0.1f);
         while (!this->FinishTrace())
         {
             this->UpdateTrace();
@@ -116,7 +122,7 @@ public:
         this->FreeOGL4();
         this->FreeGLFW();
         this->FreeFrameResourceCUDA();
-        this->FreePipelines();
+        this->FreeTracers();
         if (m_EnableTree) {
             this->FreeSdTree();
         }
@@ -147,8 +153,8 @@ public:
     void SetWidth (unsigned int width  ) noexcept  { m_SceneData.config.width = width ; }
     void SetHeight(unsigned int height ) noexcept  { m_SceneData.config.height= height; }
 
-    auto GetPipelineName()const noexcept -> std::string { return m_CurPipelineName; }
-    void SetPipelineName(const std::string pipelineName)noexcept { m_CurPipelineName = pipelineName; }
+    auto GetPipelineName()const noexcept -> std::string { return m_CurTracerName; }
+    void SetPipelineName(const std::string pipelineName)noexcept { m_CurTracerName = pipelineName; }
 
     auto GetSamplesPerSave()const noexcept -> unsigned int {
         return m_SceneData.config.samplesPerSave;
@@ -193,13 +199,13 @@ private:
 
     void InitPtxString();
 
-    void InitDefPipeline();
-    void InitNeePipeline();
-    void InitDbgPipeline();
-    void InitRisPipeline();
-    void InitSdTreeDefPipeline();
+    void InitDefTracer();
+    void InitNeeTracer();
+    void InitDbgTracer();
+    void InitRisTracer();
+    void InitDefGuideTracer();
 
-    void FreePipelines();
+    void FreeTracers();
 
     void InitFrameResourceCUDA();
     void FreeFrameResourceCUDA();
@@ -223,7 +229,9 @@ private:
 
     void UpdateTimeStamp();
     void TraceFrame(RTLib::Ext::CUDA::CUDAStream* stream);
-
+private:
+    void TraceBegPgDefPipeline();
+    void TraceEndPgDefPipeline();
 private:
     std::string m_ScenePath;
     rtlib::test::SceneData m_SceneData;
@@ -237,7 +245,7 @@ private:
     std::unordered_map<std::string, rtlib::test::TextureData> m_TextureMap;
     std::unordered_map<std::string, rtlib::test::GeometryAccelerationStructureData> m_GeometryASMap;
     std::unordered_map<std::string, rtlib::test::InstanceAccelerationStructureData> m_InstanceASMap;
-    std::unordered_map<std::string, rtlib::test::PipelineData> m_PipelineMap;
+    std::unordered_map<std::string, rtlib::test::TracerData>  m_TracerMap;
 
     std::unique_ptr<RTLib::Ext::CUDA::CUDAStream> m_Stream;
     rtlib::test::UploadBuffer<MeshLight>          m_lightBuffer;
@@ -254,8 +262,10 @@ private:
     std::unique_ptr<RTLib::Ext::CUGL::CUGLBuffer>           m_FrameBufferCUGL;
 
 
-    std::string m_CurPipelineName = "DEF";
-    std::string m_PrvPipelineName = "DEF";
+    std::string m_CurTracerName = "DEF";
+    std::string m_PrvTracerName = "DEF";
+
+    RTLib::Core::VariableMap m_Variables;
 
     unsigned int m_DebugFrameType = DEBUG_FRAME_TYPE_NORMAL;
 

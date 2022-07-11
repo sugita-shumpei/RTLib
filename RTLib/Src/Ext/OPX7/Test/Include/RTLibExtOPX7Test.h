@@ -1334,18 +1334,19 @@ namespace rtlib
             std::unique_ptr<RTLib::Ext::OPX7::OPX7Module> handle;
             RTLib::Ext::OPX7::OPX7ModuleCompileOptions    options;
         };
+
         struct PipelineData
         {
-            RTLib::Ext::OPX7::OPX7PipelineLinkOptions     linkOptions;
-            RTLib::Ext::OPX7::OPX7PipelineCompileOptions  compileOptions;
-            std::unique_ptr<RTLib::Ext::OPX7::OPX7Pipeline> handle;
+            RTLib::Ext::OPX7::OPX7PipelineLinkOptions           linkOptions;
+            RTLib::Ext::OPX7::OPX7PipelineCompileOptions        compileOptions;
+            std::unique_ptr<RTLib::Ext::OPX7::OPX7Pipeline>     handle;
             std::unique_ptr<RTLib::Ext::OPX7::OPX7ProgramGroup> programGroupRG;
             std::unique_ptr<RTLib::Ext::OPX7::OPX7ProgramGroup> programGroupEP;
             std::unordered_map<std::string, std::unique_ptr<RTLib::Ext::OPX7::OPX7ProgramGroup>> programGroupMSs;
             std::unordered_map<std::string, std::unique_ptr<RTLib::Ext::OPX7::OPX7ProgramGroup>> programGroupHGs;
-            std::unordered_map<std::string, ModuleData>   modules;
-            std::unique_ptr<RTLib::Ext::OPX7::OPX7ShaderTable> shaderTable;
-            std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer> paramsBuffer;
+            std::unordered_map<std::string, ModuleData>         modules;
+            std::unique_ptr<RTLib::Ext::OPX7::OPX7ShaderTable>  shaderTable;
+            std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>       paramsBuffer;
 
             void Free() {
                 handle->Destroy();
@@ -1396,6 +1397,7 @@ namespace rtlib
             {
                 paramsBuffer = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(context->CreateBuffer({ RTLib::Ext::CUDA::CUDAMemoryFlags::eDefault,sizeInBytes, pData }));
             }
+
 
             void LoadModule(RTLib::Ext::OPX7::OPX7Context* context, std::string moduleName, const RTLib::Ext::OPX7::OPX7ModuleCompileOptions& moduleOptions, const std::vector<char>& ptxString)
             {
@@ -1532,6 +1534,25 @@ namespace rtlib
                 handle->SetStackSize(0, 0, continuationStackSizes, maxTraversableDepth);
 
             }
+        };
+
+        struct TracerData
+        {
+            void Launch(RTLib::Ext::CUDA::CUDAStream* stream, int width, int height)
+            {
+                pipelineDatas.at(pipelineName).Launch(stream, width, height);
+            }
+            void Free() {
+                for (auto& [name, pipeline] : pipelineDatas) {
+                    pipeline.Free();
+                }
+            }
+
+            auto GetPipelineData()->PipelineData& {
+                return pipelineDatas.at(pipelineName);
+            }
+            std::unordered_map<std::string, PipelineData> pipelineDatas;
+            std::string                                   pipelineName;
         };
 
         struct  EventState
