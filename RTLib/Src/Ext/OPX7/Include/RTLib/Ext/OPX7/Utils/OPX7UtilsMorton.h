@@ -253,7 +253,7 @@ namespace RTLib
 
                     RTLIB_INLINE RTLIB_DEVICE void Record(const float2& w_in, float value)noexcept
                     {
-                        unsigned int posX = w_in.x * ::(2.0, level);
+                        unsigned int posX = w_in.x * ::powf(2.0, level);
                         unsigned int posY = w_in.y * ::powf(2.0, level);
                         unsigned int code = Morton2Utils<BestLevel()>::GetCodeFromPosIdx(posX, posY);
                         for (unsigned int i = 1; i <= level; ++i)
@@ -266,7 +266,7 @@ namespace RTLib
                         weights[0] += value;
                     }
                     template<typename RNG>
-                    RTLIB_INLINE RTLIB_DEVICE auto SampleAndPdf(RNG& rng, float& pdf)const noexcept->float2
+                    RTLIB_INLINE RTLIB_DEVICE auto SampleAndPdf(float& pdf, RNG& rng)const noexcept->float2
                     {
                         unsigned int size = 4;
                         unsigned int offset = 1;

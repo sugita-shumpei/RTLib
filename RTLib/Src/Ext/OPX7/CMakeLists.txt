@@ -36,6 +36,7 @@ set(RTLIB_EXT_OPX7_SOURCES
     
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/OPX7/Utils/OPX7UtilsPathGuiding.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/OPX7/Utils/OPX7UtilsMorton.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/OPX7/Utils/OPX7UtilsGrid.h
 )
 
 add_library(RTLib-Ext-OPX7
