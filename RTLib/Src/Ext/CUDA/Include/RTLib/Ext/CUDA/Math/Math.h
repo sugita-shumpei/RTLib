@@ -726,7 +726,7 @@ namespace RTLib
                     }
                     return make_float2(tht / RTLIB_M_PI, phi / RTLIB_M_2PI);
                 }
-                RTLIB_INLINE RTLIB_DEVICE int pop_count32(unsigned int ui32)
+                RTLIB_INLINE RTLIB_DEVICE int   pop_count32(unsigned int ui32)
                 {
 #ifdef __CUDA_ARCH__
                     return __popc(ui32);
@@ -742,6 +742,8 @@ namespace RTLib
                 {
                     return 0.2126f * rgb.x + 0.7152f * rgb.y + 0.0722f * rgb.z;
                 }
+
+
             }
 
         }

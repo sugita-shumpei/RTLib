@@ -9,6 +9,7 @@
 #include <RTLib/Ext/CUDA/Math/Hash.h>
 #include <RTLib/Ext/OPX7/OPX7Payload.h>
 #include <RTLib/Ext/OPX7/Utils/OPX7UtilsPathGuiding.h>
+#include <RTLib/Ext/OPX7/Utils/OPX7UtilsMorton.h>
 #include <PathGuidingConfig.h>
 //#define TEST_SKIP_TEXTURE_SAMPLE
 //#define   TEST11_SHOW_EMISSON_COLOR
@@ -224,6 +225,76 @@ private:
     }
 #endif
 };
+
+template<unsigned int MaxLevel>
+using MortonQuadTree = RTLib::Ext::OPX7::Utils::MortonQuadTree<MaxLevel>;
+
+template<unsigned int MaxLevel>
+struct MortonQuadTreeWrapper
+{
+
+    RTLIB_INLINE RTLIB_DEVICE auto GetBuildingTree( unsigned int spatialIndex)const ->MortonQuadTree<MaxLevel>
+    {
+        float* weightsBuildingForNode = weightsBuilding + countPerNode * spatialIndex;
+        return MortonQuadTree<MaxLevel>(level, weightsBuildingForNode);
+    }
+    RTLIB_INLINE RTLIB_DEVICE auto GetSamplingTree( unsigned int spatialIndex)const ->MortonQuadTree<MaxLevel>
+    {
+        float* weightsSamplingForNode = weightsBuilding + countPerNode * spatialIndex;
+        return MortonQuadTree<MaxLevel>(level, weightsSamplingForNode);
+    }
+
+    RTLIB_INLINE RTLIB_DEVICE auto Record(unsigned int spatialIndex, const float3& direction, float value)
+    {
+        if (spatialIndex == UINT_MAX) { return; }
+        auto tree = GetBuildingTree(spatialIndex);
+        auto dir2 = RTLib::Ext::CUDA::Math::dir_to_canonical(direction);
+        tree.Record(dir2, value);
+    }
+
+    template<typename RNG>
+    RTLIB_INLINE RTLIB_DEVICE auto SampleAndPdf(unsigned int spatialIndex, float& pdf, RNG& rng)const -> float3
+    {
+        if (spatialIndex == UINT_MAX) {
+            pdf = 0.25f * RTLIB_M_INV_PI;
+            float2 dir2 = RTLib::Ext::CUDA::Math::random_float2(rng);
+            return RTLib::Ext::CUDA::Math::dir_to_canonical(dir2);
+        }
+        auto tree = GetSamplingTree(spatialIndex);
+        auto dir2 = tree.SampleAndPdf(rng,pdf);
+        pdf *= (0.25f * RTLIB_M_INV_PI);
+        return RTLib::Ext::CUDA::Math::dir_to_canonical(dir2);
+    }
+
+    template<typename RNG>
+    RTLIB_INLINE RTLIB_DEVICE auto Sample(unsigned int spatialIndex,RNG& rng)const -> float3
+    {
+        if (spatialIndex == UINT_MAX) {
+            float2 dir2 = RTLib::Ext::CUDA::Math::random_float2(rng);
+            return RTLib::Ext::CUDA::Math::dir_to_canonical(dir2);
+        }
+        auto tree = GetSamplingTree(spatialIndex);
+        auto dir2 = tree.Sample(rng);
+        return RTLib::Ext::CUDA::Math::dir_to_canonical(dir2);
+    }
+
+    template<typename RNG>
+    RTLIB_INLINE RTLIB_DEVICE auto Pdf(unsigned int spatialIndex, const float3& direction)const -> float
+    {
+        if (spatialIndex == UINT_MAX) {
+            return 0.25f * RTLIB_M_INV_PI;
+        }
+        auto dir2 = RTLib::Ext::CUDA::Math::dir_to_canonical(direction);
+        auto tree = GetSamplingTree(spatialIndex);
+        return tree.Pdf(dir2) * 0.25f * RTLIB_M_INV_PI;
+    }
+
+    unsigned int level;
+    unsigned int countPerNode;
+    float*       weightsBuilding;
+    float*       weightsSampling;
+};
+
 template<typename T>
 struct Reservoir
 {
