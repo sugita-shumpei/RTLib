@@ -31,6 +31,9 @@ public:
         this->InitSdTreeDefTracer();
         this->InitSdTreeNeeTracer();
         this->InitSdTreeRisTracer();
+        this->InitHashTreeDefTracer();
+        this->InitHashTreeNeeTracer();
+        this->InitHashTreeRisTracer();
         this->InitFrameResourceCUDA();
         if (m_EnableVis)
         {
@@ -62,6 +65,9 @@ public:
             m_KeyBoardManager->UpdateState(GLFW_KEY_F5);
             m_KeyBoardManager->UpdateState(GLFW_KEY_F6);
             m_KeyBoardManager->UpdateState(GLFW_KEY_F7);
+            m_KeyBoardManager->UpdateState(GLFW_KEY_F8);
+            m_KeyBoardManager->UpdateState(GLFW_KEY_F9);
+            m_KeyBoardManager->UpdateState(GLFW_KEY_F10);
 
 
             m_KeyBoardManager->UpdateState(GLFW_KEY_W);
@@ -84,9 +90,24 @@ public:
         m_EventState.isClearFrame = true;
         m_SamplesForAccum = 0;
         m_TimesForAccum   = 0;
-        if (m_EnableTree) {
-            m_SdTreeController->Start();
+
+        if ((m_CurTracerName == "PGDEF") || 
+            (m_CurTracerName == "PGNEE") || 
+            (m_CurTracerName == "PGRIS") ) {
+            if (m_EnableTree) {
+                m_SdTreeController->Start();
+            }
+
         }
+
+        if ((m_CurTracerName == "HTDEF") ||
+            (m_CurTracerName == "HTNEE") ||
+            (m_CurTracerName == "HTRIS")) {
+            if (m_EnableGrid) {
+                m_MortonQuadTreeController->Start();
+            }
+        }
+
         this->UpdateTimeStamp();
         while (!this->FinishTrace())
         {
@@ -209,6 +230,10 @@ private:
     void InitSdTreeNeeTracer();
     void InitSdTreeRisTracer();
 
+    void InitHashTreeDefTracer();
+    void InitHashTreeNeeTracer();
+    void InitHashTreeRisTracer();
+
     void FreeTracers();
 
     void InitFrameResourceCUDA();
@@ -262,14 +287,22 @@ private:
         params.lights.count = m_lightBuffer.cpuHandle.size();
         params.lights.data = reinterpret_cast<MeshLight*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_lightBuffer.gpuHandle.get()));
         params.grid = m_HashBufferCUDA.GetHandle();
-
+        if (m_EnableGrid) {
+            params.diffuseGridBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<float4>(m_HashBufferCUDA.dataGpuHandle.get());
+        }
+        if (m_CurTracerName == "DBG") {
+            if (m_EnableGrid) {
+                params.flags |= PARAM_FLAG_USE_GRID;
+                params.mortonTree = m_MortonQuadTreeController->GetGpuHandle();
+            }
+        }
         if (m_CurTracerName == "DEF")
         {
             params.flags = PARAM_FLAG_NONE;
 
             if (m_EnableGrid) {
-
                 params.flags |= PARAM_FLAG_USE_GRID;
+                params.mortonTree = m_MortonQuadTree->GetGpuHandle();
             }
         }
         if (m_CurTracerName == "NEE")
@@ -279,17 +312,19 @@ private:
             if (m_EnableGrid) {
 
                 params.flags |= PARAM_FLAG_USE_GRID;
+                params.mortonTree = m_MortonQuadTree->GetGpuHandle();
             }
         }
         if (m_CurTracerName == "RIS") {
             params.flags      = PARAM_FLAG_NEE | PARAM_FLAG_RIS;
 
             if (m_EnableGrid) {
-
                 params.flags |= PARAM_FLAG_USE_GRID;
+                params.mortonTree = m_MortonQuadTree->GetGpuHandle();
             }
         }
-        if ((m_CurTracerName == "PGDEF")||((m_CurTracerName == "PGNEE"))|| (m_CurTracerName == "PGRIS")) {
+        if ((m_CurTracerName=="PGDEF")||((m_CurTracerName=="PGNEE"))||(m_CurTracerName=="PGRIS"))
+        {
             params.flags      = PARAM_FLAG_NONE;
             if (m_EnableTree) {
                 params.tree   = m_SdTreeController->GetGpuSTree();
@@ -320,6 +355,38 @@ private:
                 params.flags |= PARAM_FLAG_FINAL;
             }
         }
+        if ((m_CurTracerName=="HTDEF")||((m_CurTracerName=="HTNEE"))||(m_CurTracerName=="HTRIS"))
+        {
+            if (m_EnableGrid) {
+                params.mortonTree = m_MortonQuadTreeController->GetGpuHandle();
+                params.grid       = m_HashBufferCUDA.GetHandle();
+                params.flags     |= PARAM_FLAG_USE_GRID;
+            }
+
+            if (m_CurTracerName == "HTNEE")
+            {
+                params.flags |= PARAM_FLAG_NEE;
+            }
+            if (m_CurTracerName == "HTRIS")
+            {
+                params.flags |= PARAM_FLAG_NEE;
+                params.flags |= PARAM_FLAG_RIS;
+            }
+
+            if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecord)
+            {
+                params.flags |= PARAM_FLAG_NONE;
+            }
+            if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecordAndSample)
+            {
+                params.flags |= PARAM_FLAG_BUILD;
+            }
+            if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateSample)
+            {
+                params.flags |= PARAM_FLAG_BUILD;
+                params.flags |= PARAM_FLAG_FINAL;
+            }
+        }
         return params;
     }
 private:
@@ -345,13 +412,14 @@ private:
     rtlib::test::HashGrid3Buffer<float4>            m_HashBufferCUDA;
     std::unique_ptr<rtlib::test::RTSTreeWrapper>    m_SdTree;
     std::unique_ptr<rtlib::test::RTSTreeController> m_SdTreeController;
+    std::unique_ptr<rtlib::test::RTMortonQuadTreeWrapper> m_MortonQuadTree;
+    std::unique_ptr<rtlib::test::RTMortonQuadTreeController> m_MortonQuadTreeController;
 
     std::unique_ptr<RTLib::Ext::GLFW::GL::GLFWOpenGLWindow> m_GlfwWindow;
     std::unique_ptr<RTLib::Ext::GL::GLRectRenderer>         m_RectRendererGL;
     std::unique_ptr<RTLib::Ext::GL::GLBuffer>               m_FrameBufferGL;
     std::unique_ptr<RTLib::Ext::GL::GLTexture>              m_FrameTextureGL;
     std::unique_ptr<RTLib::Ext::CUGL::CUGLBuffer>           m_FrameBufferCUGL;
-
 
     std::string m_CurTracerName = "DEF";
     std::string m_PrvTracerName = "DEF";

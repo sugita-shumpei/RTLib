@@ -71,6 +71,7 @@ add_library(RTLib-Ext-OPX7-Test-Lib
     ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/SimpleKernel.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/SimpleTrace.cu
     ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/SimpleGuide.cu
+    ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/SimpleGuide2.cu
     ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/PathGuidingConfig.h.in
 )
 
@@ -89,9 +90,10 @@ target_link_libraries(RTLib-Ext-OPX7-Test-Lib PUBLIC RTLib-Ext-OPX7 tinyexr::tin
 
 add_custom_target(RTLib-Ext-OPX7-Test-Lib-Build-Kernel)
 add_custom_command(TARGET RTLib-Ext-OPX7-Test-Lib-Build-Kernel PRE_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/SimpleKernel.h ${CMAKE_CURRENT_BINARY_DIR}/Test/cuda/SimpleKernel.h
-    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/SimpleTrace.cu ${CMAKE_CURRENT_BINARY_DIR}/Test/cuda/SimpleTrace.cu
-    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/SimpleGuide.cu ${CMAKE_CURRENT_BINARY_DIR}/Test/cuda/SimpleGuide.cu
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/SimpleKernel.h  ${CMAKE_CURRENT_BINARY_DIR}/Test/cuda/SimpleKernel.h
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/SimpleTrace.cu  ${CMAKE_CURRENT_BINARY_DIR}/Test/cuda/SimpleTrace.cu
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/SimpleGuide.cu  ${CMAKE_CURRENT_BINARY_DIR}/Test/cuda/SimpleGuide.cu
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/SimpleGuide2.cu ${CMAKE_CURRENT_BINARY_DIR}/Test/cuda/SimpleGuide2.cu
 )
 add_custom_command(TARGET RTLib-Ext-OPX7-Test-Lib-Build-Kernel POST_BUILD
     COMMAND ${CUDAToolkit_NVCC_EXECUTABLE}           ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/SimpleTrace.cu ${RTLIB_EXT_OPX7_TEST_NVCC_OPTIONS} -ptx -o ${CMAKE_CURRENT_BINARY_DIR}/Test/cuda/SimpleTrace.ptx
@@ -99,6 +101,9 @@ add_custom_command(TARGET RTLib-Ext-OPX7-Test-Lib-Build-Kernel POST_BUILD
 
     COMMAND ${CUDAToolkit_NVCC_EXECUTABLE}           ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/SimpleGuide.cu ${RTLIB_EXT_OPX7_TEST_NVCC_OPTIONS} -ptx -o ${CMAKE_CURRENT_BINARY_DIR}/Test/cuda/SimpleGuide.ptx
     COMMAND ${CUDAToolkit_NVCC_EXECUTABLE} -optix-ir ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/SimpleGuide.cu ${RTLIB_EXT_OPX7_TEST_NVCC_OPTIONS}      -o ${CMAKE_CURRENT_BINARY_DIR}/Test/cuda/SimpleGuide.optixir
+
+    COMMAND ${CUDAToolkit_NVCC_EXECUTABLE}           ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/SimpleGuide2.cu ${RTLIB_EXT_OPX7_TEST_NVCC_OPTIONS} -ptx -o ${CMAKE_CURRENT_BINARY_DIR}/Test/cuda/SimpleGuide2.ptx
+    COMMAND ${CUDAToolkit_NVCC_EXECUTABLE} -optix-ir ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/SimpleGuide2.cu ${RTLIB_EXT_OPX7_TEST_NVCC_OPTIONS}      -o ${CMAKE_CURRENT_BINARY_DIR}/Test/cuda/SimpleGuide2.optixir
 )
 
 add_dependencies(RTLib-Ext-OPX7-Test-Lib RTLib-Ext-OPX7-Test-Lib-Build-Kernel)

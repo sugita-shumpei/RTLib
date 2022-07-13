@@ -1669,13 +1669,12 @@ namespace rtlib
                     context->CopyMemoryToBuffer(gpuHandle.get(), { desc });
                 }
             }
-            auto GetHandle()const noexcept -> RegularGrid3<T>
+            auto GetHandle()const noexcept -> RTLib::Ext::OPX7::Utils::RegularGrid3 
             {
-                RegularGrid3<T> grid3;
+                RegularGrid3 grid3;
                 grid3.aabbOffset = aabbMin;
                 grid3.aabbSize = aabbMax - aabbMin;
                 grid3.bounds = bounds;
-                grid3.data = reinterpret_cast<T*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(gpuHandle.get()));
                 return grid3;
             }
         };
@@ -1728,19 +1727,19 @@ namespace rtlib
 
                 }
             }
-            auto GetHandle()const noexcept -> HashGrid3<T>
+            auto GetHandle()const noexcept -> HashGrid3
             {
-                HashGrid3<T> grid3;
+                HashGrid3 grid3;
                 grid3.aabbOffset = aabbMin;
                 grid3.aabbSize = aabbMax - aabbMin;
                 grid3.bounds   = bounds;
                 grid3.size     = dataCpuHandle.size();
-                grid3.data     = reinterpret_cast<T*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(    dataGpuHandle.get()));
                 grid3.checkSums= reinterpret_cast<unsigned int*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(checkSumGpuHandle.get()));
                 return grid3;
             }
         };
-
+        using RTMortonQuadTreeWrapper = RTLib::Ext::OPX7::Utils::RTMortonQuadTreeWrapperT<3>;
+        using RTMortonQuadTreeController = RTLib::Ext::OPX7::Utils::RTMortonQuadTreeControllerT<3>;
 
         inline auto SpecifyMaterialType(const RTLib::Core::VariableMap& material) -> HitgroupType
         {

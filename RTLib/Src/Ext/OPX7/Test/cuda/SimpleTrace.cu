@@ -89,9 +89,7 @@ extern "C" __global__ void     __raygen__default () {
             break;
         }
     }
-    
     result += color;
-    
     // printf("%f, %lf\n", texCoord.x, texCoord.y);
     params.accumBuffer[params.width * idx.y + idx.x] = result;
     result =  result  / static_cast<float>(params.samplesForLaunch + params.samplesForAccum);
@@ -258,10 +256,10 @@ extern "C" __global__ void __closesthit__radiance() {
     auto prevHitFlags = hrec->flags;
     auto currHitFlags = static_cast<unsigned int>(0);
 
-    {
-        unsigned int gridIndex = params.grid.FindCellIndex(position);
+    if (params.flags&PARAM_FLAG_USE_GRID) {
+        unsigned int gridIndex = params.grid.Find(position);
         if (gridIndex != UINT32_MAX) {
-            auto& val = params.grid.data[gridIndex];
+            auto& val = params.diffuseGridBuffer[gridIndex];
             atomicAdd(&val.x, diffuse.x);
             atomicAdd(&val.y, diffuse.y);
             atomicAdd(&val.z, diffuse.z);
@@ -460,9 +458,9 @@ extern "C" __global__ void __closesthit__radiance_sphere() {
     auto currHitFlags = static_cast<unsigned int>(0);
 
     if (params.flags & PARAM_FLAG_USE_GRID) {
-        unsigned int gridIndex = params.grid.FindCellIndex(position);
+        unsigned int gridIndex = params.grid.Find(position);
         if (gridIndex != UINT32_MAX) {
-            auto& val = params.grid.data[gridIndex];
+            auto& val = params.diffuseGridBuffer[gridIndex];
             atomicAdd(&val.x, diffuse.x);
             atomicAdd(&val.y, diffuse.y);
             atomicAdd(&val.z, diffuse.z);
@@ -655,11 +653,21 @@ extern "C" __global__ void    __closesthit__debug() {
     hrec->normal = normal;
     hrec->cosine = 0.0f;
     hrec->flags  = 0;
-    float3 gridIndexF = (position - params.grid.aabbOffset) / params.grid.aabbSize;
-    hrec->userData.gridIndex = params.grid.FindCellIndex(position);
-    if (hrec->userData.gridIndex!=UINT32_MAX) {
-        auto gridValue = params.grid.data[hrec->userData.gridIndex];
-        hrec->userData.gridValue = (gridValue.w > 0.0f) ? make_float3(gridValue.x, gridValue.y, gridValue.z) / gridValue.w : make_float3(0.0f);
+
+    if (params.flags & PARAM_FLAG_USE_GRID)
+    {
+        float3 gridIndexF = (position - params.grid.aabbOffset) / params.grid.aabbSize;
+        hrec->userData.gridIndex = params.grid.Find(position);
+        if (hrec->userData.gridIndex != UINT32_MAX) {
+            //auto gridValue = params.diffuseGridBuffer[hrec->userData.gridIndex];
+            auto gridValue = make_float4(make_float3(params.mortonTree.GetSamplingTree(hrec->userData.gridIndex).weights[0]),1.0f);
+            hrec->userData.gridValue = (gridValue.w > 0.0f) ? make_float3(gridValue.x, gridValue.y, gridValue.z) / gridValue.w : make_float3(0.0f);
+        }
+        else {
+            hrec->userData.gridIndex = UINT32_MAX;
+            hrec->userData.gridValue = make_float3(0.0f);
+        }
+
     }
     else {
         hrec->userData.gridValue = make_float3(0.0f);
@@ -688,11 +696,20 @@ extern "C" __global__ void    __closesthit__debug_sphere() {
     hrec->normal = normal;
     hrec->cosine = 0.0f;
     hrec->flags = 0;
-    float3 gridIndexF = (position - params.grid.aabbOffset) / params.grid.aabbSize;
-    hrec->userData.gridIndex = params.grid.FindCellIndex(position);
-    if (hrec->userData.gridIndex != UINT32_MAX) {
-        auto gridValue = params.grid.data[hrec->userData.gridIndex];
-        hrec->userData.gridValue = (gridValue.w > 0.0f) ? make_float3(gridValue.x, gridValue.y, gridValue.z) / gridValue.w : make_float3(0.0f);
+    if (params.flags & PARAM_FLAG_USE_GRID)
+    {
+
+        float3 gridIndexF = (position - params.grid.aabbOffset) / params.grid.aabbSize;
+        hrec->userData.gridIndex = params.grid.Find(position);
+        if (hrec->userData.gridIndex != UINT32_MAX) {
+            //auto gridValue = params.diffuseGridBuffer[hrec->userData.gridIndex];
+            auto gridValue = make_float4(make_float3(params.mortonTree.GetSamplingTree(hrec->userData.gridIndex).weights[0]), 1.0f);
+            hrec->userData.gridValue = (gridValue.w > 0.0f) ? make_float3(gridValue.x, gridValue.y, gridValue.z) / gridValue.w : make_float3(0.0f);
+        }
+        else {
+            hrec->userData.gridIndex = UINT32_MAX;
+            hrec->userData.gridValue = make_float3(0.0f);
+        }
     }
     else {
         hrec->userData.gridValue = make_float3(0.0f);

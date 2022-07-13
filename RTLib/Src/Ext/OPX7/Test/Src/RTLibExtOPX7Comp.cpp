@@ -24,7 +24,7 @@ int main(int argc, const char* argv[]) {
         }
     }
     //return RTLibExtOPX7TestApplication(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/../scene.json", "DEF", false).Run();
-    auto filePath = std::filesystem::path(RTLIB_EXT_OPX7_TEST_DATA_PATH"\\..\\Result\\Scene0\\Depth=10").make_preferred();
+    auto filePath = std::filesystem::path(RTLIB_EXT_OPX7_TEST_DATA_PATH"\\..\\Result\\Scene1\\Depth=10").make_preferred();
     auto baseImageData = std::vector<float3>();
     {
         baseImageData.resize(1024 * 1024);
@@ -40,6 +40,9 @@ int main(int argc, const char* argv[]) {
     auto pgdefMAEs = std::vector<std::pair<unsigned int, float>>();
     auto pgneeMAEs = std::vector<std::pair<unsigned int, float>>();
     auto pgrisMAEs = std::vector<std::pair<unsigned int, float>>();
+    auto htdefMAEs = std::vector<std::pair<unsigned int, float>>();
+    auto htneeMAEs = std::vector<std::pair<unsigned int, float>>();
+    auto htrisMAEs = std::vector<std::pair<unsigned int, float>>();
     for (std::filesystem::directory_entry pipelineDir : std::filesystem::directory_iterator(filePath)) {
         if (pipelineDir.is_directory()) {
             for (std::filesystem::directory_entry imageDir : std::filesystem::directory_iterator(pipelineDir.path())) {
@@ -102,6 +105,15 @@ int main(int argc, const char* argv[]) {
                     if (pipeline == "PGRIS") {
                         pgrisMAEs.push_back({ std::stoi(sampleStr),mae });
                     }
+                    if (pipeline == "HTDEF") {
+                        htdefMAEs.push_back({ std::stoi(sampleStr),mae });
+                    }
+                    if (pipeline == "HTNEE") {
+                        htneeMAEs.push_back({ std::stoi(sampleStr),mae });
+                    }
+                    if (pipeline == "HTRIS") {
+                        htrisMAEs.push_back({ std::stoi(sampleStr),mae });
+                    }
                 }
 
             }
@@ -122,6 +134,18 @@ int main(int argc, const char* argv[]) {
     std::sort(std::begin(pgneeMAEs), std::end(pgneeMAEs), [](const auto& a, const auto& b) {
         return a.first < b.first;
         });
+    std::sort(std::begin(pgrisMAEs), std::end(pgrisMAEs), [](const auto& a, const auto& b) {
+        return a.first < b.first;
+        });
+    std::sort(std::begin(htdefMAEs), std::end(htdefMAEs), [](const auto& a, const auto& b) {
+        return a.first < b.first;
+        });
+    std::sort(std::begin(htneeMAEs), std::end(htneeMAEs), [](const auto& a, const auto& b) {
+        return a.first < b.first;
+        });
+    std::sort(std::begin(htrisMAEs), std::end(htrisMAEs), [](const auto& a, const auto& b) {
+        return a.first < b.first;
+        });
     for (auto& [sample, value] : defMAEs) {
         std::cout << "DEF: " << sample << "," << value << std::endl;
     }
@@ -139,5 +163,14 @@ int main(int argc, const char* argv[]) {
     }
     for (auto& [sample, value] : pgrisMAEs) {
         std::cout << "PGRIS: " << sample << "," << value << std::endl;
+    }
+    for (auto& [sample, value] : htdefMAEs) {
+        std::cout << "HTDEF: " << sample << "," << value << std::endl;
+    }
+    for (auto& [sample, value] : htneeMAEs) {
+        std::cout << "HTNEE: " << sample << "," << value << std::endl;
+    }
+    for (auto& [sample, value] : htrisMAEs) {
+        std::cout << "HTRIS: " << sample << "," << value << std::endl;
     }
 }

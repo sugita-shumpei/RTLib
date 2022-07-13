@@ -2,7 +2,7 @@
 void SampleTest()
 {
     auto quadTreeBuffer = std::vector<float>(341, 0.0f);
-    auto quadTree = RTLib::Ext::OPX7::Utils::MortonQuadTree<4>(4, quadTreeBuffer.data());
+    auto quadTree = RTLib::Ext::OPX7::Utils::MortonQuadTreeT<4>(4, quadTreeBuffer.data());
     //00|00|00|00    21->840mb
     //00|00|00|00|00 85->3.4gb
     auto rnd = std::random_device();
@@ -22,7 +22,7 @@ void SampleTest()
 }
 int main()
 {
-    auto testApp = RTLibExtOPX7TestApplication(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/../scene.json", "DEF", true,false,true);
+    auto testApp = RTLibExtOPX7TestApplication(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/../scene2.json", "PGDEF", true,true,true);
     try
     {
         testApp.Initialize();
