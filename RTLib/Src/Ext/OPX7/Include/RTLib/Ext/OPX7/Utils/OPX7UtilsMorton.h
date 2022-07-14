@@ -254,6 +254,9 @@ namespace RTLib
 
                     RTLIB_INLINE RTLIB_DEVICE void Record(const float2& w_in, float value)noexcept
                     {
+                        if (isinf(value)||isnan(value)) {
+                            printf("FATAL\n");
+                        }
                         unsigned int posX = w_in.x * ::powf(2.0, level);
                         unsigned int posY = w_in.y * ::powf(2.0, level);
                         unsigned int code = Morton2Utils<BestLevel()>::GetCodeFromPosIdx(posX, posY);
@@ -264,7 +267,7 @@ namespace RTLib
                             AtomicAdd(weights[arrIndex], value);
                             code >>= 2;
                         }
-                        weights[0] += value;
+                        AtomicAdd(weights[0], value);
                     }
                     template<typename RNG>
                     RTLIB_INLINE RTLIB_DEVICE auto SampleAndPdf(float& pdf, RNG& rng)const noexcept->float2
@@ -319,8 +322,8 @@ namespace RTLib
                         auto  indices = Morton2Utils<BestLevel()>::GetPosIdxFromCode(code);
                         auto  xPosIdx = indices.x;
                         auto  yPosIdx = indices.y;
-                        float posX = (xPosIdx + 0.5f * CUDA::Math::random_float1(rng)) * ::powf(0.5, level);
-                        float posY = (yPosIdx + 0.5f * CUDA::Math::random_float1(rng)) * ::powf(0.5, level);
+                        float posX = (xPosIdx + CUDA::Math::random_float1(rng)) * ::powf(0.5, level);
+                        float posY = (yPosIdx + CUDA::Math::random_float1(rng)) * ::powf(0.5, level);
                         pdf = total / weights[0] * ::powf(4.0f, level);
                         //printf("pdf=%lf\n", pdf);
                         return {posX, posY};
@@ -376,8 +379,8 @@ namespace RTLib
                         auto  indices = Morton2Utils<BestLevel()>::GetPosIdxFromCode(code);
                         auto  xPosIdx = indices[0];
                         auto  yPosIdx = indices[1];
-                        float posX = (xPosIdx + 0.5f * CUDA::Math::random_float1(rng)) * ::powf(0.5, level);
-                        float posY = (yPosIdx + 0.5f * CUDA::Math::random_float1(rng)) * ::powf(0.5, level);
+                        float posX = (xPosIdx + CUDA::Math::random_float1(rng)) * ::powf(0.5, level);
+                        float posY = (yPosIdx + CUDA::Math::random_float1(rng)) * ::powf(0.5, level);
                         return {posX, posY};
                     }
                     RTLIB_INLINE RTLIB_DEVICE auto Pdf(const  float2& w_in)const noexcept -> float
