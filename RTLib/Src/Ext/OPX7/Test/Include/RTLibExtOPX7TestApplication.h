@@ -125,12 +125,12 @@ public:
         {
             m_HashBufferCUDA.Download(m_Opx7Context.get());
             float v = 0.0f;
-            for (auto& gridVal : m_HashBufferCUDA.dataCpuHandle) {
-                if (gridVal.w != 0.0f) {
+            for (auto& gridVal : m_HashBufferCUDA.checkSumCpuHandle) {
+                if (gridVal != 0.0f) {
                     v += 1.0f;
                 }
             }
-            v /= static_cast<float>(m_HashBufferCUDA.dataCpuHandle.size());
+            v /= static_cast<float>(m_HashBufferCUDA.checkSumCpuHandle.size());
             std::cout << "Capacity: " << v * 100.0f << "%" << std::endl;
         }
     }
@@ -288,7 +288,7 @@ private:
         params.lights.data = reinterpret_cast<MeshLight*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_lightBuffer.gpuHandle.get()));
         params.grid = m_HashBufferCUDA.GetHandle();
         if (m_EnableGrid) {
-            params.diffuseGridBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<float4>(m_HashBufferCUDA.dataGpuHandle.get());
+            params.diffuseGridBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<float4>(m_DiffuseBufferCUDA.get());
         }
         if (m_CurTracerName == "DBG") {
             if (m_EnableGrid) {
@@ -409,7 +409,8 @@ private:
     std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>   m_AccumBufferCUDA;
     std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>   m_FrameBufferCUDA;
     std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>   m_SeedBufferCUDA;
-    rtlib::test::HashGrid3Buffer<float4>            m_HashBufferCUDA;
+    rtlib::test::DoubleBufferedHashGrid3Buffer      m_HashBufferCUDA;
+    std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>   m_DiffuseBufferCUDA;
     std::unique_ptr<rtlib::test::RTSTreeWrapper>    m_SdTree;
     std::unique_ptr<rtlib::test::RTSTreeController> m_SdTreeController;
     std::unique_ptr<rtlib::test::RTMortonQuadTreeWrapper> m_MortonQuadTree;

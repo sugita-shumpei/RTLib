@@ -466,12 +466,12 @@ namespace RTLib
                     template<typename RNG>
                     RTLIB_INLINE RTLIB_DEVICE auto SampleAndPdf(unsigned int spatialIndex, float& pdf, RNG& rng)const -> float3
                     {
-                        if (spatialIndex == UINT_MAX)
-                        {
-                            pdf = 0.25f * RTLIB_M_INV_PI;
-                            float2 dir2 = RTLib::Ext::CUDA::Math::random_float2(rng);
-                            return RTLib::Ext::CUDA::Math::canonical_to_dir(dir2);
-                        }
+                        //if (spatialIndex == UINT_MAX)
+                        //{
+                        //    pdf = 0.25f * RTLIB_M_INV_PI;
+                        //    float2 dir2 = RTLib::Ext::CUDA::Math::random_float2(rng);
+                        //    return RTLib::Ext::CUDA::Math::canonical_to_dir(dir2);
+                        //}
                         
                         auto tree = GetSamplingTree(spatialIndex);
                         auto dir2 = tree.SampleAndPdf(pdf,rng);
@@ -482,11 +482,11 @@ namespace RTLib
                     template<typename RNG>
                     RTLIB_INLINE RTLIB_DEVICE auto Sample(unsigned int spatialIndex, RNG& rng)const -> float3
                     {
-                        if (spatialIndex == UINT_MAX) 
-                        {
-                            float2 dir2 = RTLib::Ext::CUDA::Math::random_float2(rng);
-                            return RTLib::Ext::CUDA::Math::dir_to_canonical(dir2);
-                        }
+                        //if (spatialIndex == UINT_MAX) 
+                        //{
+                        //    float2 dir2 = RTLib::Ext::CUDA::Math::random_float2(rng);
+                        //    return RTLib::Ext::CUDA::Math::dir_to_canonical(dir2);
+                        //}
                         auto tree = GetSamplingTree(spatialIndex);
                         auto dir2 = tree.Sample(rng);
                         return RTLib::Ext::CUDA::Math::dir_to_canonical(dir2);
@@ -494,10 +494,10 @@ namespace RTLib
 
                     RTLIB_INLINE RTLIB_DEVICE auto Pdf(unsigned int spatialIndex, const float3& direction)const -> float
                     {
-                        if (spatialIndex == UINT_MAX) 
-                        {
-                            return 0.25f * RTLIB_M_INV_PI;
-                        }
+                        //if (spatialIndex == UINT_MAX) 
+                        //{
+                        //    return 0.25f * RTLIB_M_INV_PI;
+                        //}
                         auto dir2 = RTLib::Ext::CUDA::Math::dir_to_canonical(direction);
                         auto tree = GetSamplingTree(spatialIndex);
                         return tree.Pdf(dir2) * 0.25f * RTLIB_M_INV_PI;
@@ -594,20 +594,6 @@ namespace RTLib
                     }
                     void Update()
                     {
-                        {
-                            auto copy = RTLib::Ext::CUDA::CUDABufferMemoryCopy();
-                            copy.size = sizeof(float) * m_MaxHashSize * m_WeightBufferCountPerNodes;
-                            copy.srcOffset = 0;
-                            auto data = std::vector<float>(copy.size / sizeof(float), 0.0f);
-                            copy.dstData = data.data();
-                            RTLIB_CORE_ASSERT_IF_FAILED(
-                                m_Context->CopyBufferToMemory(
-                                    GetWeightBufferBuilding(),
-                                    { copy }
-                                )
-                            );
-
-                        }
                         m_WeightBufferIndexBuilding = 1 - m_WeightBufferIndexBuilding;
                         {
                             auto copy = RTLib::Ext::CUDA::CUDAMemoryBufferCopy();
@@ -621,6 +607,24 @@ namespace RTLib
                                     { copy }
                                 )
                             );
+                        }
+                        {
+                            auto copy = RTLib::Ext::CUDA::CUDABufferMemoryCopy();
+                            copy.size = sizeof(float) * m_MaxHashSize * m_WeightBufferCountPerNodes;
+                            copy.srcOffset = 0;
+                            auto data = std::vector<float>(copy.size / sizeof(float), 0.0f);
+                            copy.dstData = data.data();
+                            RTLIB_CORE_ASSERT_IF_FAILED(
+                                m_Context->CopyBufferToMemory(
+                                    GetWeightBufferSampling(),
+                                    { copy }
+                                )
+                            );
+                            auto average = float(0.0f);
+                            for (auto& elem : data) {
+                                average += elem;
+                            }
+                            std::cout << "average: " << average / static_cast<float>(data.size()) << std::endl;
                         }
                         
                     }
@@ -690,7 +694,8 @@ namespace RTLib
                         TraceStateSample = 2,
                     };
 
-                    RTMortonQuadTreeControllerT(RTMortonQuadTreeWrapperT<MaxLevel>* tree,
+                    RTMortonQuadTreeControllerT(
+                        RTMortonQuadTreeWrapperT<MaxLevel>* tree,
                         unsigned int sampleForBudget  /*ALL SAMPLES FOR TRACE*/,
                         unsigned int iterationForBuilt/*ITERATION FOR BUILT*/ = 0,
                         float         ratioForBudget  /*RATIO FOR RECORDING TREE*/ = 0.5f,
@@ -740,8 +745,8 @@ namespace RTLib
                             }
 
                             if (m_SampleForRemain > m_SampleForPass) {
-                                printf("UpdateHashTree\n");
-                                m_Tree->Update();
+                                //printf("UpdateHashTree\n");
+                                //m_Tree->Update();
                             }
                         }
                         if (m_CurIteration > m_IterationForBuilt) {
@@ -755,7 +760,15 @@ namespace RTLib
                         else {
                             m_TraceState = TraceStateRecord;
                         }
-
+                        if (m_TraceState == TraceStateRecordAndSample) {
+                            std::cout << "[Record And Sample] ";
+                        }
+                        if (m_TraceState == TraceStateSample) {
+                            std::cout << "[Sample Only] ";
+                        }
+                        if (m_TraceState == TraceStateRecord) {
+                            std::cout << "[Record Only] ";
+                        }
                         std::cout << "CurIteration: " << m_CurIteration << " SamplePerTmp: " << m_SamplePerTmp << std::endl;
 
                     }
@@ -799,11 +812,12 @@ namespace RTLib
                     bool            m_TraceStart = false;
                     bool            m_TraceExecuting = false;
                     unsigned int    m_SamplePerAll = 0;
-                    unsigned int    m_SamplePerTmp = 0;
                     unsigned int    m_SampleForRemain = 0;
                     unsigned int    m_SampleForPass = 0;
                     TraceState      m_TraceState = TraceStateRecord;
                     unsigned int    m_CurIteration = 0;
+                public:
+                    unsigned int    m_SamplePerTmp = 0;
                 };
 #endif
             }

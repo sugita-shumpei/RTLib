@@ -235,22 +235,28 @@ void RTLibExtOPX7TestApplication::LoadScene()
 {
     m_HashBufferCUDA.aabbMin = make_float3(m_WorldAabbMin[0] - 0.005f, m_WorldAabbMin[1] - 0.005f, m_WorldAabbMin[2] - 0.005f);
     m_HashBufferCUDA.aabbMax = make_float3(m_WorldAabbMax[0] + 0.005f, m_WorldAabbMax[1] + 0.005f, m_WorldAabbMax[2] + 0.005f);
-    m_HashBufferCUDA.Alloc(make_uint3(1024, 1024, 1024), 1024* 1024*2);
+    m_HashBufferCUDA.Alloc(make_uint3(32, 32, 32), 32* 32* 8);
     m_HashBufferCUDA.Upload(m_Opx7Context.get());
-
+    {
+        auto desc = RTLib::Ext::CUDA::CUDABufferCreateDesc();
+        desc.sizeInBytes = sizeof(float4) * m_HashBufferCUDA.checkSumCpuHandle.size();
+        m_DiffuseBufferCUDA = std::unique_ptr <RTLib::Ext::CUDA::CUDABuffer>(
+            m_Opx7Context->CreateBuffer(desc)
+        );
+    }
     if (m_EnableGrid) {
         m_MortonQuadTree           = std::make_unique<rtlib::test::RTMortonQuadTreeWrapper>(m_Opx7Context.get(),m_HashBufferCUDA.checkSumCpuHandle.size(), 3);
         m_MortonQuadTree->Allocate();
         m_MortonQuadTreeController = std::make_unique<rtlib::test::RTMortonQuadTreeController>(
-            m_MortonQuadTree.get(), (uint32_t)m_SceneData.config.maxSamples, 0, 0.5f, m_SceneData.config.samples
+            m_MortonQuadTree.get(), (uint32_t)m_SceneData.config.maxSamples, 3, 0.5f, m_SceneData.config.samples
         );
     }
 }
 
  void RTLibExtOPX7TestApplication::FreeGrids()
 {
-    m_HashBufferCUDA.dataGpuHandle->Destroy();
-    m_HashBufferCUDA.checkSumGpuHandle->Destroy();
+    m_HashBufferCUDA.checkSumGpuHandles[0]->Destroy();
+    m_HashBufferCUDA.checkSumGpuHandles[1]->Destroy();
     if (m_EnableGrid) {
         m_MortonQuadTree->Destroy();
         m_MortonQuadTree.reset();
@@ -2611,18 +2617,39 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
     stream->CopyMemoryToBuffer(m_TracerMap[m_CurTracerName].paramsBuffer.get(), { { &params, 0, sizeof(params) } });
 
     m_TracerMap[m_CurTracerName].Launch(stream, m_PipelineName, m_SceneData.config.width, m_SceneData.config.height);
-
+    bool shouldSync = false;
+    if ((m_CurTracerName == "DEF")    || (m_CurTracerName == "NEE") || (m_CurTracerName == "RIS")) {
+        if (m_EnableGrid) {
+            shouldSync = true;
+            if (stream) {
+                RTLIB_CORE_ASSERT_IF_FAILED(stream->Synchronize());
+            }
+            m_HashBufferCUDA.Update(m_Opx7Context.get());
+        }
+    }
     if ((m_CurTracerName == "PGDEF") || (m_CurTracerName == "PGNEE") || (m_CurTracerName == "PGRIS")) {
-        if (stream) {
-            RTLIB_CORE_ASSERT_IF_FAILED(stream->Synchronize());
+        if (!shouldSync) {
+            if (stream) {
+                RTLIB_CORE_ASSERT_IF_FAILED(stream->Synchronize());
+            }
+            shouldSync = true;
         }
         m_SdTreeController->EndTrace();
     }
     if ((m_CurTracerName == "HTDEF") || (m_CurTracerName == "HTNEE") || (m_CurTracerName == "HTRIS")) {
-        if (stream) {
-            RTLIB_CORE_ASSERT_IF_FAILED(stream->Synchronize());
+        if (!shouldSync) {
+            if (stream) {
+                RTLIB_CORE_ASSERT_IF_FAILED(stream->Synchronize());
+            }
+            shouldSync = true;
         }
         m_MortonQuadTreeController->EndTrace();
+        if (m_MortonQuadTreeController->m_SamplePerTmp == 0)
+        {
+            if (m_EnableGrid) {
+                m_HashBufferCUDA.Update(m_Opx7Context.get());
+            }
+        }
     }
     if (m_CurTracerName != "DBG") {
         m_SamplesForAccum += m_SceneData.config.samples;

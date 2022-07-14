@@ -1635,7 +1635,7 @@ namespace rtlib
         }
 
         template<typename T>
-        struct RegularGrid3Buffer
+        struct RegularGrid3TypeBuffer
         {
             float3                                        aabbMin;
             float3                                        aabbMax;
@@ -1680,7 +1680,7 @@ namespace rtlib
         };
 
         template<typename T>
-        struct    HashGrid3Buffer
+        struct    HashGrid3TypeBuffer
         {
             float3                                        aabbMin;
             float3                                        aabbMax;
@@ -1738,6 +1738,75 @@ namespace rtlib
                 return grid3;
             }
         };
+
+        struct DoubleBufferedHashGrid3Buffer
+        {
+            float3                                        aabbMin;
+            float3                                        aabbMax;
+            uint3                                         bounds;
+            unsigned int                                  curIndex;
+            std::vector<unsigned int>                     checkSumCpuHandle;
+            std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer> checkSumGpuHandles[2];
+
+            auto GetCurCheckSumGpuHandle() noexcept -> RTLib::Ext::CUDA::CUDABuffer*
+            {
+                return checkSumGpuHandles[curIndex].get();
+            }
+            auto GetPrvCheckSumGpuHandle() noexcept -> RTLib::Ext::CUDA::CUDABuffer*
+            {
+                return checkSumGpuHandles[1-curIndex].get();
+            }
+
+            void Alloc(uint3 bnds, unsigned int size) {
+                bounds   = bnds;
+                checkSumCpuHandle.resize(size);
+                curIndex = 0;
+            }
+            void Download(RTLib::Ext::CUDA::CUDAContext* context) {
+                auto desc = RTLib::Ext::CUDA::CUDABufferMemoryCopy();
+                desc.srcOffset = 0;
+                desc.dstData   = checkSumCpuHandle.data();
+                desc.size      = checkSumCpuHandle.size() * sizeof(checkSumCpuHandle[0]);
+                context->CopyBufferToMemory(GetCurCheckSumGpuHandle(), {desc});
+            }
+            void Upload(  RTLib::Ext::CUDA::CUDAContext* context) {
+                if (!checkSumGpuHandles[0]) {
+                    auto desc = RTLib::Ext::CUDA::CUDABufferCreateDesc();
+                    desc.flags = RTLib::Ext::CUDA::CUDAMemoryFlags::eDefault;
+                    desc.pData = checkSumCpuHandle.data();
+                    desc.sizeInBytes = checkSumCpuHandle.size() * sizeof(checkSumCpuHandle[0]);
+                    checkSumGpuHandles[0] = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(context->CreateBuffer(desc));
+                    checkSumGpuHandles[1] = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(context->CreateBuffer(desc));
+                }
+                else {
+                    auto desc = RTLib::Ext::CUDA::CUDAMemoryBufferCopy();
+                    desc.dstOffset = 0;
+                    desc.srcData = checkSumCpuHandle.data();
+                    desc.size = checkSumCpuHandle.size() * sizeof(checkSumCpuHandle[0]);
+                    context->CopyMemoryToBuffer(checkSumGpuHandles[0].get(), {desc});
+                    context->CopyMemoryToBuffer(checkSumGpuHandles[1].get(), { desc });
+                }
+            }
+            void Update(  RTLib::Ext::CUDA::CUDAContext* context) {
+                std::cout << "Update Double Buffered Hash Grid\n";
+                auto curCheckSumGpuAddress = RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(GetCurCheckSumGpuHandle());
+                auto prvCheckSumGpuAddress = RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(GetPrvCheckSumGpuHandle());
+                cuMemcpyDtoD(prvCheckSumGpuAddress, curCheckSumGpuAddress, checkSumCpuHandle.size() * sizeof(checkSumCpuHandle[0]));
+                curIndex = (1 + curIndex)%2;
+            }
+            auto GetHandle() noexcept -> RTLib::Ext::OPX7::Utils::DoubleBufferedHashGrid3
+            {
+                RTLib::Ext::OPX7::Utils::DoubleBufferedHashGrid3 grid3;
+                grid3.aabbOffset = aabbMin;
+                grid3.aabbSize = aabbMax - aabbMin;
+                grid3.bounds = bounds;
+                grid3.size = checkSumCpuHandle.size();
+                grid3.prvCheckSums = reinterpret_cast<unsigned int*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(GetPrvCheckSumGpuHandle()));
+                grid3.curCheckSums = reinterpret_cast<unsigned int*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(GetCurCheckSumGpuHandle()));
+                return grid3;
+            }
+        };
+
         using RTMortonQuadTreeWrapper = RTLib::Ext::OPX7::Utils::RTMortonQuadTreeWrapperT<3>;
         using RTMortonQuadTreeController = RTLib::Ext::OPX7::Utils::RTMortonQuadTreeControllerT<3>;
 

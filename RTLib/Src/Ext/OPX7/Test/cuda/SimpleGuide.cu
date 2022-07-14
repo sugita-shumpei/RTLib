@@ -763,7 +763,7 @@ extern "C" __global__ void     __closesthit__debug() {
     hrec->cosine = 0.0f;
     hrec->flags  = 0;
     float3 gridIndexF = (position - params.grid.aabbOffset) / params.grid.aabbSize;
-    hrec->userData.gridIndex = params.grid.Find(position);
+    hrec->userData.gridIndex = params.grid.FindFromCur(position);
     if (hrec->userData.gridIndex!=UINT32_MAX) {
         auto gridValue = params.diffuseGridBuffer[hrec->userData.gridIndex];
         hrec->userData.gridValue = (gridValue.w > 0.0f) ? make_float3(gridValue.x, gridValue.y, gridValue.z) / gridValue.w : make_float3(0.0f);
@@ -796,7 +796,7 @@ extern "C" __global__ void     __closesthit__debug_sphere() {
     hrec->cosine = 0.0f;
     hrec->flags = 0;
     float3 gridIndexF = (position - params.grid.aabbOffset) / params.grid.aabbSize;
-    hrec->userData.gridIndex = params.grid.Find(position);
+    hrec->userData.gridIndex = params.grid.FindFromCur(position);
     if (hrec->userData.gridIndex != UINT32_MAX) {
         auto gridValue = params.diffuseGridBuffer[hrec->userData.gridIndex];
         hrec->userData.gridValue = (gridValue.w > 0.0f) ? make_float3(gridValue.x, gridValue.y, gridValue.z) / gridValue.w : make_float3(0.0f);

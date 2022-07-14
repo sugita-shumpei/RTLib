@@ -256,8 +256,8 @@ extern "C" __global__ void __closesthit__radiance() {
     auto prevHitFlags = hrec->flags;
     auto currHitFlags = static_cast<unsigned int>(0);
 
-    if (params.flags&PARAM_FLAG_USE_GRID) {
-        unsigned int gridIndex = params.grid.Find(position);
+    if (params.flags & PARAM_FLAG_USE_GRID) {
+        unsigned int gridIndex = params.grid.FindFromCur(position);
         if (gridIndex != UINT32_MAX) {
             auto& val = params.diffuseGridBuffer[gridIndex];
             atomicAdd(&val.x, diffuse.x);
@@ -458,7 +458,7 @@ extern "C" __global__ void __closesthit__radiance_sphere() {
     auto currHitFlags = static_cast<unsigned int>(0);
 
     if (params.flags & PARAM_FLAG_USE_GRID) {
-        unsigned int gridIndex = params.grid.Find(position);
+        unsigned int gridIndex = params.grid.FindFromCur(position);
         if (gridIndex != UINT32_MAX) {
             auto& val = params.diffuseGridBuffer[gridIndex];
             atomicAdd(&val.x, diffuse.x);
@@ -657,10 +657,10 @@ extern "C" __global__ void    __closesthit__debug() {
     if (params.flags & PARAM_FLAG_USE_GRID)
     {
         float3 gridIndexF = (position - params.grid.aabbOffset) / params.grid.aabbSize;
-        hrec->userData.gridIndex = params.grid.Find(position);
+        hrec->userData.gridIndex = params.grid.FindFromPrv(position);
         if (hrec->userData.gridIndex != UINT32_MAX) {
             //auto gridValue = params.diffuseGridBuffer[hrec->userData.gridIndex];
-            auto gridValue = make_float4(make_float3(params.mortonTree.GetSamplingTree(hrec->userData.gridIndex).weights[0]),1.0f);
+            auto gridValue = params.diffuseGridBuffer[hrec->userData.gridIndex];
             hrec->userData.gridValue = (gridValue.w > 0.0f) ? make_float3(gridValue.x, gridValue.y, gridValue.z) / gridValue.w : make_float3(0.0f);
         }
         else {
@@ -700,10 +700,10 @@ extern "C" __global__ void    __closesthit__debug_sphere() {
     {
 
         float3 gridIndexF = (position - params.grid.aabbOffset) / params.grid.aabbSize;
-        hrec->userData.gridIndex = params.grid.Find(position);
+        hrec->userData.gridIndex = params.grid.FindFromPrv(position);
         if (hrec->userData.gridIndex != UINT32_MAX) {
             //auto gridValue = params.diffuseGridBuffer[hrec->userData.gridIndex];
-            auto gridValue = make_float4(make_float3(params.mortonTree.GetSamplingTree(hrec->userData.gridIndex).weights[0]), 1.0f);
+            auto gridValue = params.diffuseGridBuffer[hrec->userData.gridIndex];
             hrec->userData.gridValue = (gridValue.w > 0.0f) ? make_float3(gridValue.x, gridValue.y, gridValue.z) / gridValue.w : make_float3(0.0f);
         }
         else {

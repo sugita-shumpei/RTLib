@@ -124,7 +124,7 @@ using MortonQTree        = RTLib::Ext::OPX7::Utils::MortonQuadTreeT<3>;
 using MortonQTreeWrapper = RTLib::Ext::OPX7::Utils::MortonQuadTreeWrapperT<3>;
 using MortonTraceVertex  = RTLib::Ext::OPX7::Utils::MortonTraceVertexT<3>;
 using HashGrid3          = RTLib::Ext::OPX7::Utils::HashGrid3;
-
+using DoubleBufferedHashGrid3 = RTLib::Ext::OPX7::Utils::DoubleBufferedHashGrid3;
 template<typename T>
 struct Reservoir
 {
@@ -187,7 +187,7 @@ struct Params {
     unsigned int              debugFrameType;
     OptixTraversableHandle         gasHandle;
     MeshLightList                     lights;
-    HashGrid3                           grid;
+    DoubleBufferedHashGrid3             grid;
     rtlib::test::STree                  tree;
 };
 struct RayGenData {
