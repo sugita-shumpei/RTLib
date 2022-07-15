@@ -431,179 +431,179 @@ namespace RTLib
                     return x < edge ? 0 : 1;
                 }
                 // powN
-                RTLIB_INLINE RTLIB_HOST_DEVICE signed char pow2(const signed char v)
+                RTLIB_INLINE RTLIB_HOST_DEVICE RTLIB_CONSTEXPR signed char pow2(const signed char v)
                 {
                     return v * v;
                 }
-                RTLIB_INLINE RTLIB_HOST_DEVICE signed char pow3(const signed char v)
+                RTLIB_INLINE RTLIB_HOST_DEVICE RTLIB_CONSTEXPR signed char pow3(const signed char v)
                 {
                     return v * v * v;
                 }
-                RTLIB_INLINE RTLIB_HOST_DEVICE signed char pow4(const signed char v)
+                RTLIB_INLINE RTLIB_HOST_DEVICE RTLIB_CONSTEXPR signed char pow4(const signed char v)
                 {
                     return v * v * v * v;
                 }
-                RTLIB_INLINE RTLIB_HOST_DEVICE signed char pow5(const signed char v)
+                RTLIB_INLINE RTLIB_HOST_DEVICE RTLIB_CONSTEXPR signed char pow5(const signed char v)
                 {
                     return v * v * v * v * v;
                 }
-                RTLIB_INLINE RTLIB_HOST_DEVICE short pow2(const short v)
+                RTLIB_INLINE RTLIB_HOST_DEVICE RTLIB_CONSTEXPR short pow2(const short v)
                 {
                     return v * v;
                 }
-                RTLIB_INLINE RTLIB_HOST_DEVICE short pow3(const short v)
+                RTLIB_INLINE RTLIB_HOST_DEVICE RTLIB_CONSTEXPR short pow3(const short v)
                 {
                     return v * v * v;
                 }
-                RTLIB_INLINE RTLIB_HOST_DEVICE short pow4(const short v)
+                RTLIB_INLINE RTLIB_HOST_DEVICE RTLIB_CONSTEXPR short pow4(const short v)
                 {
                     return v * v * v * v;
                 }
-                RTLIB_INLINE RTLIB_HOST_DEVICE short pow5(const short v)
+                RTLIB_INLINE RTLIB_HOST_DEVICE RTLIB_CONSTEXPR short pow5(const short v)
                 {
                     return v * v * v * v * v;
                 }
-                RTLIB_INLINE RTLIB_HOST_DEVICE int pow2(const int v)
+                RTLIB_INLINE RTLIB_HOST_DEVICE RTLIB_CONSTEXPR int pow2(const int v)
                 {
                     return v * v;
                 }
-                RTLIB_INLINE RTLIB_HOST_DEVICE int pow3(const int v)
+                RTLIB_INLINE RTLIB_HOST_DEVICE RTLIB_CONSTEXPR int pow3(const int v)
                 {
                     return v * v * v;
                 }
-                RTLIB_INLINE RTLIB_HOST_DEVICE int pow4(const int v)
+                RTLIB_INLINE RTLIB_HOST_DEVICE RTLIB_CONSTEXPR int pow4(const int v)
                 {
                     return v * v * v * v;
                 }
-                RTLIB_INLINE RTLIB_HOST_DEVICE int pow5(const int v)
+                RTLIB_INLINE RTLIB_HOST_DEVICE RTLIB_CONSTEXPR int pow5(const int v)
                 {
                     return v * v * v * v * v;
                 }
-                RTLIB_INLINE RTLIB_HOST_DEVICE long pow2(const long v)
+                RTLIB_INLINE RTLIB_HOST_DEVICE RTLIB_CONSTEXPR long pow2(const long v)
                 {
                     return v * v;
                 }
-                RTLIB_INLINE RTLIB_HOST_DEVICE long pow3(const long v)
+                RTLIB_INLINE RTLIB_HOST_DEVICE RTLIB_CONSTEXPR long pow3(const long v)
                 {
                     return v * v * v;
                 }
-                RTLIB_INLINE RTLIB_HOST_DEVICE long pow4(const long v)
+                RTLIB_INLINE RTLIB_HOST_DEVICE RTLIB_CONSTEXPR long pow4(const long v)
                 {
                     return v * v * v * v;
                 }
-                RTLIB_INLINE RTLIB_HOST_DEVICE long pow5(const long v)
+                RTLIB_INLINE RTLIB_HOST_DEVICE RTLIB_CONSTEXPR long pow5(const long v)
                 {
                     return v * v * v * v * v;
                 }
-                RTLIB_INLINE RTLIB_HOST_DEVICE long long pow2(const long long v)
+                RTLIB_INLINE RTLIB_HOST_DEVICE RTLIB_CONSTEXPR long long pow2(const long long v)
                 {
                     return v * v;
                 }
-                RTLIB_INLINE RTLIB_HOST_DEVICE long long pow3(const long long v)
+                RTLIB_INLINE RTLIB_HOST_DEVICE RTLIB_CONSTEXPR long long pow3(const long long v)
                 {
                     return v * v * v;
                 }
-                RTLIB_INLINE RTLIB_HOST_DEVICE long long pow4(const long long v)
+                RTLIB_INLINE RTLIB_HOST_DEVICE RTLIB_CONSTEXPR long long pow4(const long long v)
                 {
                     return v * v * v * v;
                 }
-                RTLIB_INLINE RTLIB_HOST_DEVICE long long pow5(const long long v)
+                RTLIB_INLINE RTLIB_HOST_DEVICE RTLIB_CONSTEXPR long long pow5(const long long v)
                 {
                     return v * v * v * v * v;
                 }
-                RTLIB_INLINE RTLIB_HOST_DEVICE unsigned char pow2(const unsigned char v)
+                RTLIB_INLINE RTLIB_HOST_DEVICE RTLIB_CONSTEXPR unsigned char pow2(const unsigned char v)
                 {
                     return v * v;
                 }
-                RTLIB_INLINE RTLIB_HOST_DEVICE unsigned char pow3(const unsigned char v)
+                RTLIB_INLINE RTLIB_HOST_DEVICE RTLIB_CONSTEXPR unsigned char pow3(const unsigned char v)
                 {
                     return v * v * v;
                 }
-                RTLIB_INLINE RTLIB_HOST_DEVICE unsigned char pow4(const unsigned char v)
+                RTLIB_INLINE RTLIB_HOST_DEVICE RTLIB_CONSTEXPR unsigned char pow4(const unsigned char v)
                 {
                     return v * v * v * v;
                 }
-                RTLIB_INLINE RTLIB_HOST_DEVICE unsigned char pow5(const unsigned char v)
+                RTLIB_INLINE RTLIB_HOST_DEVICE RTLIB_CONSTEXPR unsigned char pow5(const unsigned char v)
                 {
                     return v * v * v * v * v;
                 }
-                RTLIB_INLINE RTLIB_HOST_DEVICE unsigned short pow2(const unsigned short v)
+                RTLIB_INLINE RTLIB_HOST_DEVICE RTLIB_CONSTEXPR unsigned short pow2(const unsigned short v)
                 {
                     return v * v;
                 }
-                RTLIB_INLINE RTLIB_HOST_DEVICE unsigned short pow3(const unsigned short v)
+                RTLIB_INLINE RTLIB_HOST_DEVICE RTLIB_CONSTEXPR unsigned short pow3(const unsigned short v)
                 {
                     return v * v * v;
                 }
-                RTLIB_INLINE RTLIB_HOST_DEVICE unsigned short pow4(const unsigned short v)
+                RTLIB_INLINE RTLIB_HOST_DEVICE RTLIB_CONSTEXPR unsigned short pow4(const unsigned short v)
                 {
                     return v * v * v * v;
                 }
-                RTLIB_INLINE RTLIB_HOST_DEVICE unsigned short pow5(const unsigned short v)
+                RTLIB_INLINE RTLIB_HOST_DEVICE RTLIB_CONSTEXPR unsigned short pow5(const unsigned short v)
                 {
                     return v * v * v * v * v;
                 }
-                RTLIB_INLINE RTLIB_HOST_DEVICE unsigned int pow2(const unsigned int v)
+                RTLIB_INLINE RTLIB_HOST_DEVICE RTLIB_CONSTEXPR unsigned int pow2(const unsigned int v)
                 {
                     return v * v;
                 }
-                RTLIB_INLINE RTLIB_HOST_DEVICE unsigned int pow3(const unsigned int v)
+                RTLIB_INLINE RTLIB_HOST_DEVICE RTLIB_CONSTEXPR unsigned int pow3(const unsigned int v)
                 {
                     return v * v * v;
                 }
-                RTLIB_INLINE RTLIB_HOST_DEVICE unsigned int pow4(const unsigned int v)
+                RTLIB_INLINE RTLIB_HOST_DEVICE RTLIB_CONSTEXPR unsigned int pow4(const unsigned int v)
                 {
                     return v * v * v * v;
                 }
-                RTLIB_INLINE RTLIB_HOST_DEVICE unsigned int pow5(const unsigned int v)
+                RTLIB_INLINE RTLIB_HOST_DEVICE RTLIB_CONSTEXPR unsigned int pow5(const unsigned int v)
                 {
                     return v * v * v * v * v;
                 }
-                RTLIB_INLINE RTLIB_HOST_DEVICE unsigned long pow2(const unsigned long v)
+                RTLIB_INLINE RTLIB_HOST_DEVICE RTLIB_CONSTEXPR unsigned long pow2(const unsigned long v)
                 {
                     return v * v;
                 }
-                RTLIB_INLINE RTLIB_HOST_DEVICE unsigned long pow3(const unsigned long v)
+                RTLIB_INLINE RTLIB_HOST_DEVICE RTLIB_CONSTEXPR unsigned long pow3(const unsigned long v)
                 {
                     return v * v * v;
                 }
-                RTLIB_INLINE RTLIB_HOST_DEVICE unsigned long pow4(const unsigned long v)
+                RTLIB_INLINE RTLIB_HOST_DEVICE RTLIB_CONSTEXPR unsigned long pow4(const unsigned long v)
                 {
                     return v * v * v * v;
                 }
-                RTLIB_INLINE RTLIB_HOST_DEVICE unsigned long pow5(const unsigned long v)
+                RTLIB_INLINE RTLIB_HOST_DEVICE RTLIB_CONSTEXPR unsigned long pow5(const unsigned long v)
                 {
                     return v * v * v * v * v;
                 }
-                RTLIB_INLINE RTLIB_HOST_DEVICE unsigned long long pow2(const unsigned long long v)
+                RTLIB_INLINE RTLIB_HOST_DEVICE RTLIB_CONSTEXPR unsigned long long pow2(const unsigned long long v)
                 {
                     return v * v;
                 }
-                RTLIB_INLINE RTLIB_HOST_DEVICE unsigned long long pow3(const unsigned long long v)
+                RTLIB_INLINE RTLIB_HOST_DEVICE RTLIB_CONSTEXPR unsigned long long pow3(const unsigned long long v)
                 {
                     return v * v * v;
                 }
-                RTLIB_INLINE RTLIB_HOST_DEVICE unsigned long long pow4(const unsigned long long v)
+                RTLIB_INLINE RTLIB_HOST_DEVICE RTLIB_CONSTEXPR unsigned long long pow4(const unsigned long long v)
                 {
                     return v * v * v * v;
                 }
-                RTLIB_INLINE RTLIB_HOST_DEVICE unsigned long long pow5(const unsigned long long v)
+                RTLIB_INLINE RTLIB_HOST_DEVICE RTLIB_CONSTEXPR unsigned long long pow5(const unsigned long long v)
                 {
                     return v * v * v * v * v;
                 }
-                RTLIB_INLINE RTLIB_HOST_DEVICE float pow2(const float v)
+                RTLIB_INLINE RTLIB_HOST_DEVICE RTLIB_CONSTEXPR float pow2(const float v)
                 {
                     return v * v;
                 }
-                RTLIB_INLINE RTLIB_HOST_DEVICE float pow3(const float v)
+                RTLIB_INLINE RTLIB_HOST_DEVICE RTLIB_CONSTEXPR float pow3(const float v)
                 {
                     return v * v * v;
                 }
-                RTLIB_INLINE RTLIB_HOST_DEVICE float pow4(const float v)
+                RTLIB_INLINE RTLIB_HOST_DEVICE RTLIB_CONSTEXPR float pow4(const float v)
                 {
                     return v * v * v * v;
                 }
-                RTLIB_INLINE RTLIB_HOST_DEVICE float pow5(const float v)
+                RTLIB_INLINE RTLIB_HOST_DEVICE RTLIB_CONSTEXPR float pow5(const float v)
                 {
                     return v * v * v * v * v;
                 }

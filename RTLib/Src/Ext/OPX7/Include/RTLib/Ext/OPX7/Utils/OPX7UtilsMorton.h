@@ -573,12 +573,12 @@ namespace RTLib
                 class  RTMortonQuadTreeWrapperT
                 {
                 public:
+                    static inline constexpr auto kWeightBufferCountPerNodes = ((static_cast<size_t>(1) << (2 * (MaxLevel+1))) - 1) / 3;
                     RTMortonQuadTreeWrapperT(RTLib::Ext::CUDA::CUDAContext* context, unsigned int maxHashSize, unsigned int maxTreeLevel)
                     {
                         m_Context      = context;
                         m_MaxHashSize  = maxHashSize;
                         m_MaxTreeLevel = std::min(maxTreeLevel, MaxLevel);
-                        m_WeightBufferCountPerNodes = (powf(4, m_MaxTreeLevel + 1) - 1) / 3;
                         m_WeightBufferIndexBuilding = 0;
                     }
 
@@ -587,7 +587,7 @@ namespace RTLib
                         RTLib::Ext::CUDA::CUDABufferCreateDesc desc = {};
 
                         desc.flags = RTLib::Ext::CUDA::CUDAMemoryFlags::eDefault;
-                        desc.sizeInBytes = sizeof(float) * m_MaxHashSize* m_WeightBufferCountPerNodes;
+                        desc.sizeInBytes = sizeof(float) * m_MaxHashSize* kWeightBufferCountPerNodes;
                         if (!m_WeightBuffersCUDA[0]) {
                             m_WeightBuffersCUDA[0] = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(m_Context->CreateBuffer(desc));
                         }
@@ -600,7 +600,7 @@ namespace RTLib
                         m_WeightBufferIndexBuilding = 1 - m_WeightBufferIndexBuilding;
                         {
                             auto copy = RTLib::Ext::CUDA::CUDAMemoryBufferCopy();
-                            copy.size = sizeof(float) * m_MaxHashSize * m_WeightBufferCountPerNodes;
+                            copy.size = sizeof(float) * m_MaxHashSize * kWeightBufferCountPerNodes;
                             copy.dstOffset = 0;
                             auto data = std::vector<float>(copy.size / sizeof(float), 0.0f);
                             copy.srcData = data.data();
@@ -613,9 +613,9 @@ namespace RTLib
                         }
                         {
                             auto copy = RTLib::Ext::CUDA::CUDABufferMemoryCopy();
-                            copy.size = sizeof(float) * m_MaxHashSize * m_WeightBufferCountPerNodes;
+                            copy.size = sizeof(float) * m_MaxHashSize * kWeightBufferCountPerNodes;
                             copy.srcOffset = 0;
-                            auto data = std::vector<float[85]>(m_MaxHashSize);
+                            auto data = std::vector<float[kWeightBufferCountPerNodes]>(m_MaxHashSize);
                             auto* pData = &data[0][0];
                             copy.dstData= pData;
                             RTLIB_CORE_ASSERT_IF_FAILED(
@@ -670,7 +670,7 @@ namespace RTLib
                     void Clear() {
 
                         auto copy = RTLib::Ext::CUDA::CUDAMemoryBufferCopy();
-                        copy.size = sizeof(float) * m_MaxHashSize * m_WeightBufferCountPerNodes;
+                        copy.size = sizeof(float) * m_MaxHashSize * kWeightBufferCountPerNodes;
                         copy.dstOffset = 0;
                         auto data = std::vector<float>(copy.size / sizeof(float), 0.0f);
                         copy.srcData = data.data();
@@ -691,7 +691,7 @@ namespace RTLib
                     auto GetGpuHandle() noexcept -> MortonQuadTreeWrapperT<MaxLevel>
                     {
                         return MortonQuadTreeWrapperT<MaxLevel>(
-                            m_MaxTreeLevel, m_WeightBufferCountPerNodes,
+                            m_MaxTreeLevel, kWeightBufferCountPerNodes,
                             RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<float>(GetWeightBufferBuilding()),
                             RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<float>(GetWeightBufferSampling())
                         );
@@ -706,7 +706,6 @@ namespace RTLib
                     RTLib::Ext::CUDA::CUDAContext*                m_Context;
                     unsigned int                                  m_MaxHashSize;
                     unsigned int                                  m_MaxTreeLevel;
-                    unsigned int                                  m_WeightBufferCountPerNodes;
                     std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer> m_WeightBuffersCUDA[2];
                     uint8_t                                       m_WeightBufferIndexBuilding;
                 };

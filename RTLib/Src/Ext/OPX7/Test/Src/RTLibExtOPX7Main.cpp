@@ -22,7 +22,7 @@ void SampleTest()
 }
 int main()
 {
-    auto testApp = RTLibExtOPX7TestApplication(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/../scene2.json", "HTDEF", true,true,true);
+    auto testApp = RTLibExtOPX7TestApplication(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/../scene2.json", "HTNEE", true,true,true);
     try
     {
         testApp.Initialize();

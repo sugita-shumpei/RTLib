@@ -187,7 +187,7 @@ namespace RTLib
                     RTLIB_INLINE RTLIB_HOST_DEVICE auto FindFromCur(const HashGridFindInfo& info)const noexcept -> unsigned int
                     {
                         if (info.isFounded) {
-                            return info.blockIndex * kBlockSize + info.cellIndex;
+                            return kBlockSize * info.cellIndex + info.blockIndex;
                         }
                         unsigned int checkSum  = info.checkSum;
                         unsigned int cellIndex = info.cellIndex;

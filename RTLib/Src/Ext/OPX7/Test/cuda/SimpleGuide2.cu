@@ -322,7 +322,9 @@ extern "C" __global__ void     __closesthit__radiance() {
             auto info = RTLib::Ext::OPX7::Utils::HashGridFindInfo();
             auto prvGridIndex = UINT32_MAX;
             if ((params.flags & PARAM_FLAG_USE_GRID) == PARAM_FLAG_USE_GRID) {
-                prvGridIndex = params.grid.FindFromPrv(position);
+                //prvGridIndex = params.grid.FindFromPrv(position);
+                params.grid.FindFromPrv(position, info);
+                prvGridIndex = params.grid.FindFromPrv(info);
             }
             auto reflDir    = RTLib::Ext::CUDA::Math::normalize(RTLib::Ext::CUDA::Math::reflect(inDir, fNormal));
             auto direction0 = sampleCosinePDF(fNormal, xor32);
@@ -426,9 +428,12 @@ extern "C" __global__ void     __closesthit__radiance() {
                 currHitFlags |= HIT_RECORD_FLAG_COUNT_EMITTED;
             }
 
-            if (((params.flags & PARAM_FLAG_USE_GRID) == PARAM_FLAG_USE_GRID) && ((params.flags & PARAM_FLAG_FINAL) != PARAM_FLAG_FINAL))
+            if (((params.flags & PARAM_FLAG_USE_GRID) == PARAM_FLAG_USE_GRID) && ((params.flags & PARAM_FLAG_FINAL) != PARAM_FLAG_FINAL) && (prvGridIndex==UINT32_MAX))
             {
-                curGridIndex = params.grid.FindFromCur(position);
+                curGridIndex = params.grid.FindFromCur(info);
+            }
+            else {
+                curGridIndex = prvGridIndex;
             }
             break;
         }
@@ -558,7 +563,8 @@ extern "C" __global__ void     __closesthit__radiance_sphere() {
             auto info = RTLib::Ext::OPX7::Utils::HashGridFindInfo();
             auto prvGridIndex = UINT32_MAX;
             if ((params.flags & PARAM_FLAG_USE_GRID) == PARAM_FLAG_USE_GRID) {
-                 params.grid.FindFromPrv(position, info);
+                //prvGridIndex = params.grid.FindFromPrv(position);
+                params.grid.FindFromPrv(position, info);
                 prvGridIndex = params.grid.FindFromPrv(info);
             }
             auto reflDir = RTLib::Ext::CUDA::Math::normalize(RTLib::Ext::CUDA::Math::reflect(inDir, fNormal));
@@ -586,13 +592,13 @@ extern "C" __global__ void     __closesthit__radiance_sphere() {
                 bsdfVal = diffuse * RTLIB_M_INV_PI + specular * phongPdf1;
                 bsdfPdf = (select_prob * cosinePdf1 + (1.0f - select_prob) * phongPdf1);
             }
-
-
             if (((params.flags & PARAM_FLAG_USE_GRID) == PARAM_FLAG_USE_GRID) && ((params.flags & PARAM_FLAG_BUILD) == PARAM_FLAG_BUILD) && (prvGridIndex != UINT32_MAX)) {
-                printf("koko\n");
                 if (RTLib::Ext::CUDA::Math::random_float1(xor32) < params.mortonTree.fraction) {
                     direction = RTLib::Ext::CUDA::Math::normalize(params.mortonTree.SampleAndPdf(prvGridIndex, dTreePdf, xor32));
-                    printf("1 (direction,pdf)=((%lf, %lf, %lf), %lf)\n", direction.x, direction.y, direction.z, dTreePdf);
+                    //if (dTreePdf != 0.25f * RTLIB_M_INV_PI)
+                    //{
+                    //    printf("1 (direction,pdf)=((%lf, %lf, %lf), %lf)\n", direction.x, direction.y, direction.z, dTreePdf);
+                    //}
                     cosine = RTLib::Ext::CUDA::Math::dot(direction, fNormal);
                     auto cosinePdf2 = RTLib::Ext::CUDA::Math::max(cosine * RTLIB_M_INV_PI, 0.0f);
                     auto phongPdf2 = getValPhongPDF(direction, reflDir, shinness);
@@ -601,7 +607,10 @@ extern "C" __global__ void     __closesthit__radiance_sphere() {
                 }
                 else {
                     dTreePdf = RTLib::Ext::CUDA::Math::max(params.mortonTree.Pdf(prvGridIndex, direction), 0.0f);
-                    printf("2 (direction,pdf)=((%lf, %lf, %lf), %lf)\n", direction.x, direction.y, direction.z, dTreePdf);
+                    //if (dTreePdf != 0.25f * RTLIB_M_INV_PI)
+                    //{
+                    //    printf("2 (direction,pdf)=((%lf, %lf, %lf), %lf)\n", direction.x, direction.y, direction.z, dTreePdf);
+                    //}
 
                 }
                 woPdf = params.mortonTree.fraction * dTreePdf + (1.0f - params.mortonTree.fraction) * bsdfPdf;
@@ -660,9 +669,12 @@ extern "C" __global__ void     __closesthit__radiance_sphere() {
                 currHitFlags |= HIT_RECORD_FLAG_COUNT_EMITTED;
             }
 
-            if (((params.flags & PARAM_FLAG_USE_GRID) == PARAM_FLAG_USE_GRID) && ((params.flags & PARAM_FLAG_FINAL) != PARAM_FLAG_FINAL))
+            if (((params.flags & PARAM_FLAG_USE_GRID) == PARAM_FLAG_USE_GRID) && ((params.flags & PARAM_FLAG_FINAL) != PARAM_FLAG_FINAL) && (prvGridIndex == UINT32_MAX))
             {
                 curGridIndex = params.grid.FindFromCur(info);
+            }
+            else {
+                curGridIndex = prvGridIndex;
             }
             break;
         }

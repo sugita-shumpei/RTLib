@@ -9,4 +9,5 @@
 #define RTLIB_HOST_DEVICE 
 #define RTLIB_INLINE inline
 #endif
+#define RTLIB_CONSTEXPR constexpr
 #endif

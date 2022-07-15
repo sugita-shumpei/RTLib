@@ -1807,8 +1807,8 @@ namespace rtlib
             }
         };
 
-        using RTMortonQuadTreeWrapper = RTLib::Ext::OPX7::Utils::RTMortonQuadTreeWrapperT<3>;
-        using RTMortonQuadTreeController = RTLib::Ext::OPX7::Utils::RTMortonQuadTreeControllerT<3>;
+        using RTMortonQuadTreeWrapper = RTLib::Ext::OPX7::Utils::RTMortonQuadTreeWrapperT<4>;
+        using RTMortonQuadTreeController = RTLib::Ext::OPX7::Utils::RTMortonQuadTreeControllerT<4>;
 
         inline auto SpecifyMaterialType(const RTLib::Core::VariableMap& material) -> HitgroupType
         {

@@ -120,9 +120,9 @@ struct MeshLightList
 #endif
 };
 /**/
-using MortonQTree        = RTLib::Ext::OPX7::Utils::MortonQuadTreeT<3>;
-using MortonQTreeWrapper = RTLib::Ext::OPX7::Utils::MortonQuadTreeWrapperT<3>;
-using MortonTraceVertex  = RTLib::Ext::OPX7::Utils::MortonTraceVertexT<3>;
+using MortonQTree        = RTLib::Ext::OPX7::Utils::MortonQuadTreeT<4>;
+using MortonQTreeWrapper = RTLib::Ext::OPX7::Utils::MortonQuadTreeWrapperT<4>;
+using MortonTraceVertex  = RTLib::Ext::OPX7::Utils::MortonTraceVertexT<4>;
 using HashGrid3          = RTLib::Ext::OPX7::Utils::HashGrid3;
 using DoubleBufferedHashGrid3 = RTLib::Ext::OPX7::Utils::DoubleBufferedHashGrid3;
 template<typename T>
