@@ -38,8 +38,8 @@ int main()
             //testApp.SetMaxSamples(1000);
             //testApp.SetSamplesPerSave(100);
             //testApp.MainLoop();
-            //testApp.SetMaxSamples(10000);
-            //testApp.SetSamplesPerSave(1000);
+            testApp.SetMaxSamples(1000);
+            testApp.SetSamplesPerSave(100);
             testApp.MainLoop();
         }
         testApp.SetTracerName(pipelineName);

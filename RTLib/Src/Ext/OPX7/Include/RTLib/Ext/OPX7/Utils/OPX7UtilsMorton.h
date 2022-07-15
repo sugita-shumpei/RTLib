@@ -615,17 +615,43 @@ namespace RTLib
                             auto copy = RTLib::Ext::CUDA::CUDABufferMemoryCopy();
                             copy.size = sizeof(float) * m_MaxHashSize * m_WeightBufferCountPerNodes;
                             copy.srcOffset = 0;
-                            auto data = std::vector<float>(copy.size / sizeof(float), 0.0f);
-                            copy.dstData = data.data();
+                            auto data = std::vector<float[85]>(m_MaxHashSize);
+                            auto* pData = &data[0][0];
+                            copy.dstData= pData;
                             RTLIB_CORE_ASSERT_IF_FAILED(
                                 m_Context->CopyBufferToMemory(
                                     GetWeightBufferSampling(),
                                     { copy }
                                 )
                             );
+                            {
+                                for (int i = 0; i < 10; ++i) {
+                                    float mip_3[64];
+                                    for (int j = 0; j < 64; ++j) {
+                                        auto offsetPtr = data[0] + 21;
+                                        auto idx = Morton2Utils<4>::GetPosIdxFromCode(j);
+                                        mip_3[8 * idx.y + idx.x] = offsetPtr[j];
+                                    }
+
+                                    {
+
+                                        std::ofstream file("./quad_buffer_3_" + std::to_string(i) + ".csv");
+                                        auto offsetPtr = data[0] + 21;
+                                        for (int j = 0; j < 64; ++j) {
+                                            file << mip_3[j] << ", ";
+                                            if (j % 8==7) {
+                                                file << std::endl;
+                                            }
+                                        }
+                                        file.close();
+                                    }
+                                }
+                            }
                             auto average = float(0.0f);
                             for (auto& elem : data) {
-                                average += elem;
+                                for (auto& v : elem) {
+                                    average += v;
+                                }
                             }
                             std::cout << "average: " << average / static_cast<float>(data.size()) << std::endl;
                         }

@@ -660,8 +660,8 @@ extern "C" __global__ void    __closesthit__debug() {
         hrec->userData.gridIndex = params.grid.FindFromPrv(position);
         if (hrec->userData.gridIndex != UINT32_MAX) {
             //auto gridValue = params.diffuseGridBuffer[hrec->userData.gridIndex];
-            auto gridValue = params.diffuseGridBuffer[hrec->userData.gridIndex];
-            hrec->userData.gridValue = (gridValue.w > 0.0f) ? make_float3(gridValue.x, gridValue.y, gridValue.z) / gridValue.w : make_float3(0.0f);
+            auto gridValue = make_float3(params.mortonTree.GetBuildingTree(hrec->userData.gridIndex).weights[0]);
+            hrec->userData.gridValue = gridValue;
         }
         else {
             hrec->userData.gridIndex = UINT32_MAX;

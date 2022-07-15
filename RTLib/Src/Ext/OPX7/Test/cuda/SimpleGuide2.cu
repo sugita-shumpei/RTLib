@@ -322,20 +322,19 @@ extern "C" __global__ void     __closesthit__radiance() {
             auto info = RTLib::Ext::OPX7::Utils::HashGridFindInfo();
             auto prvGridIndex = UINT32_MAX;
             if ((params.flags & PARAM_FLAG_USE_GRID) == PARAM_FLAG_USE_GRID) {
-                params.grid.FindFromPrv(position, info);
-                prvGridIndex = params.grid.FindFromPrv(info);
+                prvGridIndex = params.grid.FindFromPrv(position);
             }
-            auto reflDir = RTLib::Ext::CUDA::Math::normalize(RTLib::Ext::CUDA::Math::reflect(inDir, fNormal));
+            auto reflDir    = RTLib::Ext::CUDA::Math::normalize(RTLib::Ext::CUDA::Math::reflect(inDir, fNormal));
             auto direction0 = sampleCosinePDF(fNormal, xor32);
             auto direction1 = samplePhongPDF(reflDir, shinness, xor32);
-            auto cosine0 = RTLib::Ext::CUDA::Math::dot(direction0, fNormal);
-            auto cosine1 = RTLib::Ext::CUDA::Math::dot(direction1, fNormal);
-            auto cosinePdf0 = RTLib::Ext::CUDA::Math::max(cosine0 * RTLIB_M_INV_PI, 0.0f);
-            auto cosinePdf1 = RTLib::Ext::CUDA::Math::max(cosine1 * RTLIB_M_INV_PI, 0.0f);
-            auto phongPdf0 = getValPhongPDF(direction0, reflDir, shinness);
-            auto phongPdf1 = getValPhongPDF(direction1, reflDir, shinness);
-            auto aver_diff = (diffuse.x + diffuse.y + diffuse.z) / 3.0f;
-            auto aver_spec = (specular.x + specular.y + specular.z) / 3.0f;
+            auto cosine0     = RTLib::Ext::CUDA::Math::dot(direction0, fNormal);
+            auto cosine1     = RTLib::Ext::CUDA::Math::dot(direction1, fNormal);
+            auto cosinePdf0  = RTLib::Ext::CUDA::Math::max(cosine0 * RTLIB_M_INV_PI, 0.0f);
+            auto cosinePdf1  = RTLib::Ext::CUDA::Math::max(cosine1 * RTLIB_M_INV_PI, 0.0f);
+            auto phongPdf0   = getValPhongPDF(direction0, reflDir, shinness);
+            auto phongPdf1   = getValPhongPDF(direction1, reflDir, shinness);
+            auto aver_diff   = (diffuse.x + diffuse.y + diffuse.z) / 3.0f;
+            auto aver_spec   = (specular.x + specular.y + specular.z) / 3.0f;
             auto select_prob = (aver_diff) / (aver_diff + aver_spec);
 
             if (RTLib::Ext::CUDA::Math::random_float1(xor32) < select_prob) {
@@ -429,7 +428,7 @@ extern "C" __global__ void     __closesthit__radiance() {
 
             if (((params.flags & PARAM_FLAG_USE_GRID) == PARAM_FLAG_USE_GRID) && ((params.flags & PARAM_FLAG_FINAL) != PARAM_FLAG_FINAL))
             {
-                curGridIndex = params.grid.FindFromCur(info);
+                curGridIndex = params.grid.FindFromCur(position);
             }
             break;
         }

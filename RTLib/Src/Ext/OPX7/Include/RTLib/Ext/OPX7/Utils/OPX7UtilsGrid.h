@@ -242,11 +242,14 @@ namespace RTLib
                     }
 
                 private:
+                    static RTLIB_INLINE RTLIB_HOST_DEVICE auto Hash1(uint3 idx, unsigned int size)noexcept->unsigned int {
+                        return RTLib::Ext::CUDA::Math::pcg1d(size + idx.z + RTLib::Ext::CUDA::Math::pcg1d(idx.y + RTLib::Ext::CUDA::Math::pcg1d(idx.x)));
+                    }
                     RTLIB_INLINE RTLIB_HOST_DEVICE auto GetCurCellIndex(const uint3 idx)const noexcept -> unsigned int
                     {
                         //unsigned long long baseIndex = bounds.x * bounds.y * iLen.z + bounds.x * iLen.y + iLen.x;
                         //return RTLib::Ext::CUDA::Math::hash6432shift(baseIndex) % size;
-                        auto cellIndex = RTLib::Ext::CUDA::Math::pcg1d(idx.z + RTLib::Ext::CUDA::Math::pcg1d(idx.y + RTLib::Ext::CUDA::Math::pcg1d(idx.x))) % (size / kBlockSize);
+                        auto cellIndex = Hash1(idx,size) % (size / kBlockSize);
                         //auto checkSum  = RTLib::Ext::CUDA::Math::max(RTLib::Ext::CUDA::Math::xxhash(idx.z + RTLib::Ext::CUDA::Math::xxhash(idx.y + RTLib::Ext::CUDA::Math::xxhash(idx.x))) % (size / kBlockSize), (unsigned int)1);
                         auto checkSum = 1 + bounds.x * bounds.y * idx.z + bounds.x * idx.y + idx.x;
                         int i = 0;
@@ -266,7 +269,7 @@ namespace RTLib
                             }
                         }
                         if (i == kBlockSize) {
-                            printf("BUG IN GRID\n");
+                            //printf("BUG IN GRID\n");
                             return UINT32_MAX;
                         }
                         return i + cellIndex * kBlockSize;
@@ -275,7 +278,7 @@ namespace RTLib
                     {
                         //unsigned long long baseIndex = bounds.x * bounds.y * iLen.z + bounds.x * iLen.y + iLen.x;
                         //return RTLib::Ext::CUDA::Math::hash6432shift(baseIndex) % size;
-                        auto cellIndex = RTLib::Ext::CUDA::Math::pcg1d(idx.z + RTLib::Ext::CUDA::Math::pcg1d(idx.y + RTLib::Ext::CUDA::Math::pcg1d(idx.x))) % (size / kBlockSize);
+                        auto cellIndex = Hash1(idx, size) % (size / kBlockSize);
                         //auto checkSum = RTLib::Ext::CUDA::Math::max(RTLib::Ext::CUDA::Math::xxhash(idx.z + RTLib::Ext::CUDA::Math::xxhash(idx.y + RTLib::Ext::CUDA::Math::xxhash(idx.x))) % (size / kBlockSize), (unsigned int)1);
                         auto checkSum = 1 + bounds.x * bounds.y * idx.z + bounds.x * idx.y + idx.x;
                         int i = 0;
@@ -294,7 +297,7 @@ namespace RTLib
                     }
                     RTLIB_INLINE RTLIB_HOST_DEVICE void GetCurCellInfo(const uint3 idx, HashGridFindInfo& info)const noexcept
                     {
-                        info.cellIndex = RTLib::Ext::CUDA::Math::pcg1d(idx.z + RTLib::Ext::CUDA::Math::pcg1d(idx.y + RTLib::Ext::CUDA::Math::pcg1d(idx.x))) % (size / kBlockSize);
+                        info.cellIndex = Hash1(idx, size) % (size / kBlockSize);
                         //info.checkSum  = RTLib::Ext::CUDA::Math::max(RTLib::Ext::CUDA::Math::xxhash(idx.z + RTLib::Ext::CUDA::Math::xxhash(idx.y + RTLib::Ext::CUDA::Math::xxhash(idx.x))) % (size / kBlockSize), (unsigned int)1);
                         info.checkSum = 1 + bounds.x * bounds.y * idx.z + bounds.x * idx.y + idx.x;
                         info.isFounded = true;
@@ -315,14 +318,14 @@ namespace RTLib
                             }
                         }
                         if (i == kBlockSize) {
-                            printf("BUG IN GRID\n");
+                            //printf("BUG IN GRID\n");
                             info.isFounded = false;
                         }
                         info.blockIndex = i;
                     }
                     RTLIB_INLINE RTLIB_HOST_DEVICE void GetPrvCellInfo(const uint3 idx, HashGridFindInfo& info)const noexcept
                     {
-                        info.cellIndex = RTLib::Ext::CUDA::Math::pcg1d(idx.z + RTLib::Ext::CUDA::Math::pcg1d(idx.y + RTLib::Ext::CUDA::Math::pcg1d(idx.x))) % (size / kBlockSize);
+                        info.cellIndex = Hash1(idx, size) % (size / kBlockSize);
                         //info.checkSum  = RTLib::Ext::CUDA::Math::max(RTLib::Ext::CUDA::Math::xxhash(idx.z + RTLib::Ext::CUDA::Math::xxhash(idx.y + RTLib::Ext::CUDA::Math::xxhash(idx.x))) % (size / kBlockSize), (unsigned int)1);
                         info.checkSum = 1 + bounds.x * bounds.y * idx.z + bounds.x * idx.y + idx.x;
                         info.isFounded = true;
