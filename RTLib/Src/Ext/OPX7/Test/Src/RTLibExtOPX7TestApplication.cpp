@@ -244,6 +244,7 @@ void RTLibExtOPX7TestApplication::LoadScene()
             m_Opx7Context->CreateBuffer(desc)
         );
     }
+
     if (m_EnableGrid) {
         m_MortonQuadTree           = std::make_unique<rtlib::test::RTMortonQuadTreeWrapper>(m_Opx7Context.get(),m_HashBufferCUDA.checkSumCpuHandle.size(), 4);
         m_MortonQuadTree->Allocate();
@@ -260,6 +261,8 @@ void RTLibExtOPX7TestApplication::LoadScene()
     if (m_EnableGrid) {
         m_MortonQuadTree->Destroy();
         m_MortonQuadTree.reset();
+        //m_MortonQuadTreeController->Destroy();
+        m_MortonQuadTreeController.reset();
     }
 }
 

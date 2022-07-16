@@ -35,14 +35,26 @@ set(RTLIB_EXT_OPX7_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/OPX7ShaderTable.cpp
     
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/OPX7/Utils/OPX7UtilsPathGuiding.h
+
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/OPX7/Utils/OPX7UtilsMorton.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Src/Utils/OPX7UtilsMorton.cpp
+
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/OPX7/Utils/OPX7UtilsGrid.h
+
+    ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/OPX7/Utils/OPX7UtilsMortonBuild.cu
+
+    ${CMAKE_CURRENT_BINARY_DIR}/OPX7UtilsMortonBuild.ptx.h
 )
 
 add_library(RTLib-Ext-OPX7
     ${RTLIB_EXT_OPX7_SOURCES}
 )
-target_include_directories(RTLib-Ext-OPX7 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Include)
+add_custom_command(TARGET RTLib-Ext-OPX7 PRE_BUILD
+    COMMAND ${CUDAToolkit_NVCC_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/OPX7/Utils/OPX7UtilsMortonBuild.cu -arch compute_75 -use_fast_math -lineinfo -rdc true -m64 --std c++17 -ptx -o ${CMAKE_CURRENT_BINARY_DIR}/OPX7UtilsMortonBuild.ptx
+    COMMAND ${CUDAToolkit_BIN_DIR}\\bin2c --const -st --name OPX7UtilsMortonBuildPtxBinary ${CMAKE_CURRENT_BINARY_DIR}/OPX7UtilsMortonBuild.ptx > ${CMAKE_CURRENT_BINARY_DIR}/OPX7UtilsMortonBuild.ptx.h
+)
+
+target_include_directories(RTLib-Ext-OPX7 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Include PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(RTLib-Ext-OPX7 PUBLIC RTLib-Ext-CUGL OptiX::OptiX RTLib-Ext-GLFW-GL)
 set_target_properties(RTLib-Ext-OPX7 PROPERTIES FOLDER RTLib/RTLib/Ext/OPX7)
 
@@ -74,7 +86,6 @@ add_library(RTLib-Ext-OPX7-Test-Lib
     ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/SimpleGuide2.cu
     ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/PathGuidingConfig.h.in
 )
-
 set(RTLIB_EXT_OPX7_TEST_PATH_GUIDING_TRACE_VERTEX_SIZE 10)
 set(RTLIB_EXT_OPX7_TEST_PATH_GUIDING_STREE_STACK_DEPTH 69)
 set(RTLIB_EXT_OPX7_TEST_PATH_GUIDING_DTREE_STACK_DEPTH 24)

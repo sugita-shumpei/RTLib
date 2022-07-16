@@ -22,7 +22,7 @@ void SampleTest()
 }
 int main()
 {
-    auto testApp = RTLibExtOPX7TestApplication(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/../scene4.json", "HTDEF", false,true,false);
+    auto testApp = RTLibExtOPX7TestApplication(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/../scene2.json", "HTDEF", false,true,false);
     try
     {
         testApp.Initialize();
@@ -38,8 +38,8 @@ int main()
             //testApp.SetMaxSamples(1000);
             //testApp.SetSamplesPerSave(100);
             //testApp.MainLoop();
-            testApp.SetMaxSamples(10000);
-            testApp.SetSamplesPerSave(1000);
+            testApp.SetMaxSamples(1000);
+            testApp.SetSamplesPerSave(100);
             testApp.MainLoop();
         }
         testApp.SetTracerName(pipelineName);

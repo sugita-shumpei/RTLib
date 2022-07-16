@@ -103,7 +103,7 @@ extern "C" __global__ void     __raygen__default() {
             if (isnan(hrec.rayDirection.x) || isnan(hrec.rayDirection.y) || isnan(hrec.rayDirection.z) ||
                 isnan(hrec.userData.throughPut.x) || isnan(hrec.userData.throughPut.y) || isnan(hrec.userData.throughPut.z) ||
                 isnan(hrec.userData.radiance.x) || isnan(hrec.userData.radiance.y) || isnan(hrec.userData.radiance.z)) {
-                printf("error\n");
+                /*printf("error\n");*/
                 break;
             }
 
@@ -127,6 +127,7 @@ extern "C" __global__ void     __raygen__default() {
             color += hrec.userData.radiance;
 
             if (isnan(hrec.rayDirection.x) || isnan(hrec.rayDirection.y) || isnan(hrec.rayDirection.z) ||
+                isnan(hrec.userData.throughPut.x) || isnan(hrec.userData.throughPut.y) || isnan(hrec.userData.throughPut.z) ||
                 isnan(hrec.userData.radiance.x) || isnan(hrec.userData.radiance.y) || isnan(hrec.userData.radiance.z)) {
                 printf("error\n");
                 break;
@@ -494,9 +495,9 @@ extern "C" __global__ void     __closesthit__radiance() {
             woPdf = fabsf(cosine);
             bsdfPdf = 0.0f;
             dTreePdf = 0.0f;
-            //if (isnan(direction.x) || isnan(direction.y) || isnan(direction.z)) {
-            //    printf("IOR: %lf Cos: %lf IDir: (%lf %lf %lf) Norm: (%lf %lf %lf) Refl: (%lf %lf %lf) ODir: (%lf %lf %lf) fresnell=%lf\n", rRefIdx, cosine_i, inDir.x, inDir.y, inDir.z, rNormal.x, rNormal.y, rNormal.z, reflDir.x, reflDir.y, reflDir.z, direction.x, direction.y, direction.z, fresnell);
-            //}
+            if (isnan(direction.x) || isnan(direction.y) || isnan(direction.z)) {
+                printf("IOR: %lf Cos: %lf IDir: (%lf %lf %lf) Norm: (%lf %lf %lf) Refl: (%lf %lf %lf) ODir: (%lf %lf %lf) fresnell=%lf\n", rRefIdx, cosine_i, inDir.x, inDir.y, inDir.z, rNormal.x, rNormal.y, rNormal.z, reflDir.x, reflDir.y, reflDir.z, direction.x, direction.y, direction.z, fresnell);
+            }
             currHitFlags |= HIT_RECORD_FLAG_COUNT_EMITTED;
             currHitFlags |= HIT_RECORD_FLAG_DELTA_MATERIAL;
             break;
@@ -544,7 +545,6 @@ extern "C" __global__ void     __closesthit__radiance_sphere() {
     auto shinness = hgData->shinness;
 
     auto xor32 = RTLib::Ext::CUDA::Math::Xorshift32(hrec->seed);
-
 
     auto direction = make_float3(0.0f);
     auto cosine = float(0.0f);

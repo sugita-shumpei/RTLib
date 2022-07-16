@@ -1,7 +1,7 @@
 #ifndef RTLIB_RTLIB_EXT_CUDA_MATH_RTLIB_MATH_H
 #define RTLIB_RTLIB_EXT_CUDA_MATH_RTLIB_MATH_H
 #include <cuda.h>
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
 #include <bitset>
 #include <algorithm>
 #include <cmath>
@@ -683,49 +683,6 @@ namespace RTLib
 
 #endif
                 }
-                RTLIB_INLINE RTLIB_HOST_DEVICE float3 canonical_to_dir(const float2 &p)
-                {
-                    const float cosTheta = 2.0f * p.x - 1.0f;
-                    const float sinTheta = sqrtf(1.0f - cosTheta * cosTheta);
-                    const float phi = RTLIB_M_2PI * p.y;
-                    const float cosPhi = ::cosf(phi);
-                    const float sinPhi = ::sinf(phi);
-                    return make_float3(sinTheta * cosPhi, sinTheta * sinPhi, cosTheta);
-                }
-                RTLIB_INLINE RTLIB_HOST_DEVICE float2 dir_to_canonical(const float3 &d)
-                {
-                    if (!isfinite(d.x) || !isfinite(d.y) || !isfinite(d.z))
-                    {
-                        return make_float2(0, 0);
-                    }
-                    const float z = RTLib::Ext::CUDA::Math::clamp(d.z, -1.0f, 1.0f);
-                    float phi = atan2f(d.y, d.x);
-                    while (phi < 0.0f)
-                    {
-                        phi += RTLIB_M_2PI;
-                    }
-                    return make_float2((z + 1.0f) / 2.0f, phi / RTLIB_M_2PI);
-                }
-                RTLIB_INLINE RTLIB_HOST_DEVICE float3 spherical_to_dir(const float2 &p)
-                {
-                    const float tht = RTLIB_M_PI * p.x;
-                    const float cosTht = ::cosf(tht);
-                    const float sinTht = ::sinf(tht);
-                    const float phi = RTLIB_M_2PI * p.y;
-                    const float cosPhi = ::cosf(phi);
-                    const float sinPhi = ::sinf(phi);
-                    return make_float3(sinTht * cosPhi, sinTht * sinPhi, cosTht);
-                }
-                RTLIB_INLINE RTLIB_HOST_DEVICE float2 dir_to_spherical(const float3 &d)
-                {
-                    const float tht = ::acosf(d.z);
-                    float phi = atan2f(d.y, d.x);
-                    while (phi < 0.0f)
-                    {
-                        phi += RTLIB_M_2PI;
-                    }
-                    return make_float2(tht / RTLIB_M_PI, phi / RTLIB_M_2PI);
-                }
                 RTLIB_INLINE RTLIB_DEVICE int   pop_count32(unsigned int ui32)
                 {
 #ifdef __CUDA_ARCH__
@@ -734,15 +691,6 @@ namespace RTLib
                     return std::bitset<32>(ui32).count();
 #endif
                 }
-                RTLIB_INLINE RTLIB_DEVICE float to_average_rgb(const float3 &rgb)
-                {
-                    return (rgb.x + rgb.y + rgb.z) / 3.0f;
-                }
-                RTLIB_INLINE RTLIB_DEVICE float to_luminance(const float3 &rgb)
-                {
-                    return 0.2126f * rgb.x + 0.7152f * rgb.y + 0.0722f * rgb.z;
-                }
-
 
             }
 

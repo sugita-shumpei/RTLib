@@ -106,7 +106,7 @@ extern "C" __global__ void     __raygen__default () {
             if (isnan(hrec.rayDirection.x) || isnan(hrec.rayDirection.y) || isnan(hrec.rayDirection.z) ||
                 isnan(hrec.userData.throughPut.x) || isnan(hrec.userData.throughPut.y) || isnan(hrec.userData.throughPut.z)||
                 isnan(hrec.userData.radiance.x) || isnan(hrec.userData.radiance.y) || isnan(hrec.userData.radiance.z)) {
-                printf("error\n");
+                /*printf("error\n");*/
                 break;
             }
 

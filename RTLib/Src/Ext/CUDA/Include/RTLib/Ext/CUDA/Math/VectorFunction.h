@@ -1,9 +1,9 @@
-#ifndef RTLIB_VECTOR_FUNCTION_H
-#define RTLIB_VECTOR_FUNCTION_H
+#ifndef RTLIB_EXT_OPX7_MATH_VECTOR_FUNCTION_H
+#define RTLIB_EXT_OPX7_MATH_VECTOR_FUNCTION_H
 #include <cuda_runtime.h>
 #include <RTLib/Ext/CUDA/Math/Preprocessors.h>
 #include <RTLib/Ext/CUDA/Math/Math.h>
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
 #include <cmath>
 #endif
 RTLIB_INLINE RTLIB_HOST_DEVICE bool operator==(const char2 &v0, const char2 &v1)
@@ -3831,7 +3831,7 @@ namespace RTLib
         // max
         RTLIB_INLINE RTLIB_HOST_DEVICE char2 max(const char2 &v0, const char2 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::max;
 #endif
           return make_char2(max(v0.x, v1.x), max(v0.y, v1.y));
@@ -3839,7 +3839,7 @@ namespace RTLib
         // min
         RTLIB_INLINE RTLIB_HOST_DEVICE char2 min(const char2 &v0, const char2 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::min;
 #endif
           return make_char2(min(v0.x, v1.x), min(v0.y, v1.y));
@@ -3878,7 +3878,7 @@ namespace RTLib
         // max
         RTLIB_INLINE RTLIB_HOST_DEVICE char3 max(const char3 &v0, const char3 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::max;
 #endif
           return make_char3(max(v0.x, v1.x), max(v0.y, v1.y), max(v0.z, v1.z));
@@ -3886,7 +3886,7 @@ namespace RTLib
         // min
         RTLIB_INLINE RTLIB_HOST_DEVICE char3 min(const char3 &v0, const char3 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::min;
 #endif
           return make_char3(min(v0.x, v1.x), min(v0.y, v1.y), min(v0.z, v1.z));
@@ -3925,7 +3925,7 @@ namespace RTLib
         // max
         RTLIB_INLINE RTLIB_HOST_DEVICE char4 max(const char4 &v0, const char4 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::max;
 #endif
           return make_char4(max(v0.x, v1.x), max(v0.y, v1.y), max(v0.z, v1.z), max(v0.w, v1.w));
@@ -3933,7 +3933,7 @@ namespace RTLib
         // min
         RTLIB_INLINE RTLIB_HOST_DEVICE char4 min(const char4 &v0, const char4 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::min;
 #endif
           return make_char4(min(v0.x, v1.x), min(v0.y, v1.y), min(v0.z, v1.z), min(v0.w, v1.w));
@@ -3972,7 +3972,7 @@ namespace RTLib
         // max
         RTLIB_INLINE RTLIB_HOST_DEVICE short2 max(const short2 &v0, const short2 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::max;
 #endif
           return make_short2(max(v0.x, v1.x), max(v0.y, v1.y));
@@ -3980,7 +3980,7 @@ namespace RTLib
         // min
         RTLIB_INLINE RTLIB_HOST_DEVICE short2 min(const short2 &v0, const short2 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::min;
 #endif
           return make_short2(min(v0.x, v1.x), min(v0.y, v1.y));
@@ -4019,7 +4019,7 @@ namespace RTLib
         // max
         RTLIB_INLINE RTLIB_HOST_DEVICE short3 max(const short3 &v0, const short3 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::max;
 #endif
           return make_short3(max(v0.x, v1.x), max(v0.y, v1.y), max(v0.z, v1.z));
@@ -4027,7 +4027,7 @@ namespace RTLib
         // min
         RTLIB_INLINE RTLIB_HOST_DEVICE short3 min(const short3 &v0, const short3 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::min;
 #endif
           return make_short3(min(v0.x, v1.x), min(v0.y, v1.y), min(v0.z, v1.z));
@@ -4066,7 +4066,7 @@ namespace RTLib
         // max
         RTLIB_INLINE RTLIB_HOST_DEVICE short4 max(const short4 &v0, const short4 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::max;
 #endif
           return make_short4(max(v0.x, v1.x), max(v0.y, v1.y), max(v0.z, v1.z), max(v0.w, v1.w));
@@ -4074,7 +4074,7 @@ namespace RTLib
         // min
         RTLIB_INLINE RTLIB_HOST_DEVICE short4 min(const short4 &v0, const short4 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::min;
 #endif
           return make_short4(min(v0.x, v1.x), min(v0.y, v1.y), min(v0.z, v1.z), min(v0.w, v1.w));
@@ -4113,7 +4113,7 @@ namespace RTLib
         // max
         RTLIB_INLINE RTLIB_HOST_DEVICE int2 max(const int2 &v0, const int2 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::max;
 #endif
           return make_int2(max(v0.x, v1.x), max(v0.y, v1.y));
@@ -4121,7 +4121,7 @@ namespace RTLib
         // min
         RTLIB_INLINE RTLIB_HOST_DEVICE int2 min(const int2 &v0, const int2 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::min;
 #endif
           return make_int2(min(v0.x, v1.x), min(v0.y, v1.y));
@@ -4160,7 +4160,7 @@ namespace RTLib
         // max
         RTLIB_INLINE RTLIB_HOST_DEVICE int3 max(const int3 &v0, const int3 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::max;
 #endif
           return make_int3(max(v0.x, v1.x), max(v0.y, v1.y), max(v0.z, v1.z));
@@ -4168,7 +4168,7 @@ namespace RTLib
         // min
         RTLIB_INLINE RTLIB_HOST_DEVICE int3 min(const int3 &v0, const int3 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::min;
 #endif
           return make_int3(min(v0.x, v1.x), min(v0.y, v1.y), min(v0.z, v1.z));
@@ -4207,7 +4207,7 @@ namespace RTLib
         // max
         RTLIB_INLINE RTLIB_HOST_DEVICE int4 max(const int4 &v0, const int4 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::max;
 #endif
           return make_int4(max(v0.x, v1.x), max(v0.y, v1.y), max(v0.z, v1.z), max(v0.w, v1.w));
@@ -4215,7 +4215,7 @@ namespace RTLib
         // min
         RTLIB_INLINE RTLIB_HOST_DEVICE int4 min(const int4 &v0, const int4 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::min;
 #endif
           return make_int4(min(v0.x, v1.x), min(v0.y, v1.y), min(v0.z, v1.z), min(v0.w, v1.w));
@@ -4254,7 +4254,7 @@ namespace RTLib
         // max
         RTLIB_INLINE RTLIB_HOST_DEVICE long2 max(const long2 &v0, const long2 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::max;
 #endif
           return make_long2(max(v0.x, v1.x), max(v0.y, v1.y));
@@ -4262,7 +4262,7 @@ namespace RTLib
         // min
         RTLIB_INLINE RTLIB_HOST_DEVICE long2 min(const long2 &v0, const long2 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::min;
 #endif
           return make_long2(min(v0.x, v1.x), min(v0.y, v1.y));
@@ -4301,7 +4301,7 @@ namespace RTLib
         // max
         RTLIB_INLINE RTLIB_HOST_DEVICE long3 max(const long3 &v0, const long3 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::max;
 #endif
           return make_long3(max(v0.x, v1.x), max(v0.y, v1.y), max(v0.z, v1.z));
@@ -4309,7 +4309,7 @@ namespace RTLib
         // min
         RTLIB_INLINE RTLIB_HOST_DEVICE long3 min(const long3 &v0, const long3 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::min;
 #endif
           return make_long3(min(v0.x, v1.x), min(v0.y, v1.y), min(v0.z, v1.z));
@@ -4348,7 +4348,7 @@ namespace RTLib
         // max
         RTLIB_INLINE RTLIB_HOST_DEVICE long4 max(const long4 &v0, const long4 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::max;
 #endif
           return make_long4(max(v0.x, v1.x), max(v0.y, v1.y), max(v0.z, v1.z), max(v0.w, v1.w));
@@ -4356,7 +4356,7 @@ namespace RTLib
         // min
         RTLIB_INLINE RTLIB_HOST_DEVICE long4 min(const long4 &v0, const long4 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::min;
 #endif
           return make_long4(min(v0.x, v1.x), min(v0.y, v1.y), min(v0.z, v1.z), min(v0.w, v1.w));
@@ -4395,7 +4395,7 @@ namespace RTLib
         // max
         RTLIB_INLINE RTLIB_HOST_DEVICE longlong2 max(const longlong2 &v0, const longlong2 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::max;
 #endif
           return make_longlong2(max(v0.x, v1.x), max(v0.y, v1.y));
@@ -4403,7 +4403,7 @@ namespace RTLib
         // min
         RTLIB_INLINE RTLIB_HOST_DEVICE longlong2 min(const longlong2 &v0, const longlong2 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::min;
 #endif
           return make_longlong2(min(v0.x, v1.x), min(v0.y, v1.y));
@@ -4442,7 +4442,7 @@ namespace RTLib
         // max
         RTLIB_INLINE RTLIB_HOST_DEVICE longlong3 max(const longlong3 &v0, const longlong3 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::max;
 #endif
           return make_longlong3(max(v0.x, v1.x), max(v0.y, v1.y), max(v0.z, v1.z));
@@ -4450,7 +4450,7 @@ namespace RTLib
         // min
         RTLIB_INLINE RTLIB_HOST_DEVICE longlong3 min(const longlong3 &v0, const longlong3 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::min;
 #endif
           return make_longlong3(min(v0.x, v1.x), min(v0.y, v1.y), min(v0.z, v1.z));
@@ -4489,7 +4489,7 @@ namespace RTLib
         // max
         RTLIB_INLINE RTLIB_HOST_DEVICE longlong4 max(const longlong4 &v0, const longlong4 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::max;
 #endif
           return make_longlong4(max(v0.x, v1.x), max(v0.y, v1.y), max(v0.z, v1.z), max(v0.w, v1.w));
@@ -4497,7 +4497,7 @@ namespace RTLib
         // min
         RTLIB_INLINE RTLIB_HOST_DEVICE longlong4 min(const longlong4 &v0, const longlong4 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::min;
 #endif
           return make_longlong4(min(v0.x, v1.x), min(v0.y, v1.y), min(v0.z, v1.z), min(v0.w, v1.w));
@@ -4536,7 +4536,7 @@ namespace RTLib
         // max
         RTLIB_INLINE RTLIB_HOST_DEVICE uchar2 max(const uchar2 &v0, const uchar2 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::max;
 #endif
           return make_uchar2(max(v0.x, v1.x), max(v0.y, v1.y));
@@ -4544,7 +4544,7 @@ namespace RTLib
         // min
         RTLIB_INLINE RTLIB_HOST_DEVICE uchar2 min(const uchar2 &v0, const uchar2 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::min;
 #endif
           return make_uchar2(min(v0.x, v1.x), min(v0.y, v1.y));
@@ -4583,7 +4583,7 @@ namespace RTLib
         // max
         RTLIB_INLINE RTLIB_HOST_DEVICE uchar3 max(const uchar3 &v0, const uchar3 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::max;
 #endif
           return make_uchar3(max(v0.x, v1.x), max(v0.y, v1.y), max(v0.z, v1.z));
@@ -4591,7 +4591,7 @@ namespace RTLib
         // min
         RTLIB_INLINE RTLIB_HOST_DEVICE uchar3 min(const uchar3 &v0, const uchar3 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::min;
 #endif
           return make_uchar3(min(v0.x, v1.x), min(v0.y, v1.y), min(v0.z, v1.z));
@@ -4630,7 +4630,7 @@ namespace RTLib
         // max
         RTLIB_INLINE RTLIB_HOST_DEVICE uchar4 max(const uchar4 &v0, const uchar4 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::max;
 #endif
           return make_uchar4(max(v0.x, v1.x), max(v0.y, v1.y), max(v0.z, v1.z), max(v0.w, v1.w));
@@ -4638,7 +4638,7 @@ namespace RTLib
         // min
         RTLIB_INLINE RTLIB_HOST_DEVICE uchar4 min(const uchar4 &v0, const uchar4 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::min;
 #endif
           return make_uchar4(min(v0.x, v1.x), min(v0.y, v1.y), min(v0.z, v1.z), min(v0.w, v1.w));
@@ -4677,7 +4677,7 @@ namespace RTLib
         // max
         RTLIB_INLINE RTLIB_HOST_DEVICE ushort2 max(const ushort2 &v0, const ushort2 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::max;
 #endif
           return make_ushort2(max(v0.x, v1.x), max(v0.y, v1.y));
@@ -4685,7 +4685,7 @@ namespace RTLib
         // min
         RTLIB_INLINE RTLIB_HOST_DEVICE ushort2 min(const ushort2 &v0, const ushort2 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::min;
 #endif
           return make_ushort2(min(v0.x, v1.x), min(v0.y, v1.y));
@@ -4724,7 +4724,7 @@ namespace RTLib
         // max
         RTLIB_INLINE RTLIB_HOST_DEVICE ushort3 max(const ushort3 &v0, const ushort3 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::max;
 #endif
           return make_ushort3(max(v0.x, v1.x), max(v0.y, v1.y), max(v0.z, v1.z));
@@ -4732,7 +4732,7 @@ namespace RTLib
         // min
         RTLIB_INLINE RTLIB_HOST_DEVICE ushort3 min(const ushort3 &v0, const ushort3 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::min;
 #endif
           return make_ushort3(min(v0.x, v1.x), min(v0.y, v1.y), min(v0.z, v1.z));
@@ -4771,7 +4771,7 @@ namespace RTLib
         // max
         RTLIB_INLINE RTLIB_HOST_DEVICE ushort4 max(const ushort4 &v0, const ushort4 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::max;
 #endif
           return make_ushort4(max(v0.x, v1.x), max(v0.y, v1.y), max(v0.z, v1.z), max(v0.w, v1.w));
@@ -4779,7 +4779,7 @@ namespace RTLib
         // min
         RTLIB_INLINE RTLIB_HOST_DEVICE ushort4 min(const ushort4 &v0, const ushort4 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::min;
 #endif
           return make_ushort4(min(v0.x, v1.x), min(v0.y, v1.y), min(v0.z, v1.z), min(v0.w, v1.w));
@@ -4818,7 +4818,7 @@ namespace RTLib
         // max
         RTLIB_INLINE RTLIB_HOST_DEVICE uint2 max(const uint2 &v0, const uint2 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::max;
 #endif
           return make_uint2(max(v0.x, v1.x), max(v0.y, v1.y));
@@ -4826,7 +4826,7 @@ namespace RTLib
         // min
         RTLIB_INLINE RTLIB_HOST_DEVICE uint2 min(const uint2 &v0, const uint2 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::min;
 #endif
           return make_uint2(min(v0.x, v1.x), min(v0.y, v1.y));
@@ -4865,7 +4865,7 @@ namespace RTLib
         // max
         RTLIB_INLINE RTLIB_HOST_DEVICE uint3 max(const uint3 &v0, const uint3 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::max;
 #endif
           return make_uint3(max(v0.x, v1.x), max(v0.y, v1.y), max(v0.z, v1.z));
@@ -4873,7 +4873,7 @@ namespace RTLib
         // min
         RTLIB_INLINE RTLIB_HOST_DEVICE uint3 min(const uint3 &v0, const uint3 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::min;
 #endif
           return make_uint3(min(v0.x, v1.x), min(v0.y, v1.y), min(v0.z, v1.z));
@@ -4912,7 +4912,7 @@ namespace RTLib
         // max
         RTLIB_INLINE RTLIB_HOST_DEVICE uint4 max(const uint4 &v0, const uint4 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::max;
 #endif
           return make_uint4(max(v0.x, v1.x), max(v0.y, v1.y), max(v0.z, v1.z), max(v0.w, v1.w));
@@ -4920,7 +4920,7 @@ namespace RTLib
         // min
         RTLIB_INLINE RTLIB_HOST_DEVICE uint4 min(const uint4 &v0, const uint4 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::min;
 #endif
           return make_uint4(min(v0.x, v1.x), min(v0.y, v1.y), min(v0.z, v1.z), min(v0.w, v1.w));
@@ -4959,7 +4959,7 @@ namespace RTLib
         // max
         RTLIB_INLINE RTLIB_HOST_DEVICE ulong2 max(const ulong2 &v0, const ulong2 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::max;
 #endif
           return make_ulong2(max(v0.x, v1.x), max(v0.y, v1.y));
@@ -4967,7 +4967,7 @@ namespace RTLib
         // min
         RTLIB_INLINE RTLIB_HOST_DEVICE ulong2 min(const ulong2 &v0, const ulong2 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::min;
 #endif
           return make_ulong2(min(v0.x, v1.x), min(v0.y, v1.y));
@@ -5006,7 +5006,7 @@ namespace RTLib
         // max
         RTLIB_INLINE RTLIB_HOST_DEVICE ulong3 max(const ulong3 &v0, const ulong3 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::max;
 #endif
           return make_ulong3(max(v0.x, v1.x), max(v0.y, v1.y), max(v0.z, v1.z));
@@ -5014,7 +5014,7 @@ namespace RTLib
         // min
         RTLIB_INLINE RTLIB_HOST_DEVICE ulong3 min(const ulong3 &v0, const ulong3 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::min;
 #endif
           return make_ulong3(min(v0.x, v1.x), min(v0.y, v1.y), min(v0.z, v1.z));
@@ -5053,7 +5053,7 @@ namespace RTLib
         // max
         RTLIB_INLINE RTLIB_HOST_DEVICE ulong4 max(const ulong4 &v0, const ulong4 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::max;
 #endif
           return make_ulong4(max(v0.x, v1.x), max(v0.y, v1.y), max(v0.z, v1.z), max(v0.w, v1.w));
@@ -5061,7 +5061,7 @@ namespace RTLib
         // min
         RTLIB_INLINE RTLIB_HOST_DEVICE ulong4 min(const ulong4 &v0, const ulong4 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::min;
 #endif
           return make_ulong4(min(v0.x, v1.x), min(v0.y, v1.y), min(v0.z, v1.z), min(v0.w, v1.w));
@@ -5100,7 +5100,7 @@ namespace RTLib
         // max
         RTLIB_INLINE RTLIB_HOST_DEVICE ulonglong2 max(const ulonglong2 &v0, const ulonglong2 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::max;
 #endif
           return make_ulonglong2(max(v0.x, v1.x), max(v0.y, v1.y));
@@ -5108,7 +5108,7 @@ namespace RTLib
         // min
         RTLIB_INLINE RTLIB_HOST_DEVICE ulonglong2 min(const ulonglong2 &v0, const ulonglong2 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::min;
 #endif
           return make_ulonglong2(min(v0.x, v1.x), min(v0.y, v1.y));
@@ -5147,7 +5147,7 @@ namespace RTLib
         // max
         RTLIB_INLINE RTLIB_HOST_DEVICE ulonglong3 max(const ulonglong3 &v0, const ulonglong3 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::max;
 #endif
           return make_ulonglong3(max(v0.x, v1.x), max(v0.y, v1.y), max(v0.z, v1.z));
@@ -5155,7 +5155,7 @@ namespace RTLib
         // min
         RTLIB_INLINE RTLIB_HOST_DEVICE ulonglong3 min(const ulonglong3 &v0, const ulonglong3 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::min;
 #endif
           return make_ulonglong3(min(v0.x, v1.x), min(v0.y, v1.y), min(v0.z, v1.z));
@@ -5194,7 +5194,7 @@ namespace RTLib
         // max
         RTLIB_INLINE RTLIB_HOST_DEVICE ulonglong4 max(const ulonglong4 &v0, const ulonglong4 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::max;
 #endif
           return make_ulonglong4(max(v0.x, v1.x), max(v0.y, v1.y), max(v0.z, v1.z), max(v0.w, v1.w));
@@ -5202,7 +5202,7 @@ namespace RTLib
         // min
         RTLIB_INLINE RTLIB_HOST_DEVICE ulonglong4 min(const ulonglong4 &v0, const ulonglong4 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::min;
 #endif
           return make_ulonglong4(min(v0.x, v1.x), min(v0.y, v1.y), min(v0.z, v1.z), min(v0.w, v1.w));
@@ -5241,7 +5241,7 @@ namespace RTLib
         // max
         RTLIB_INLINE RTLIB_HOST_DEVICE float2 max(const float2 &v0, const float2 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::max;
 #endif
           return make_float2(max(v0.x, v1.x), max(v0.y, v1.y));
@@ -5249,7 +5249,7 @@ namespace RTLib
         // min
         RTLIB_INLINE RTLIB_HOST_DEVICE float2 min(const float2 &v0, const float2 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::min;
 #endif
           return make_float2(min(v0.x, v1.x), min(v0.y, v1.y));
@@ -5288,7 +5288,7 @@ namespace RTLib
         // max
         RTLIB_INLINE RTLIB_HOST_DEVICE float3 max(const float3 &v0, const float3 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::max;
 #endif
           return make_float3(max(v0.x, v1.x), max(v0.y, v1.y), max(v0.z, v1.z));
@@ -5296,7 +5296,7 @@ namespace RTLib
         // min
         RTLIB_INLINE RTLIB_HOST_DEVICE float3 min(const float3 &v0, const float3 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::min;
 #endif
           return make_float3(min(v0.x, v1.x), min(v0.y, v1.y), min(v0.z, v1.z));
@@ -5335,7 +5335,7 @@ namespace RTLib
         // max
         RTLIB_INLINE RTLIB_HOST_DEVICE float4 max(const float4 &v0, const float4 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::max;
 #endif
           return make_float4(max(v0.x, v1.x), max(v0.y, v1.y), max(v0.z, v1.z), max(v0.w, v1.w));
@@ -5343,7 +5343,7 @@ namespace RTLib
         // min
         RTLIB_INLINE RTLIB_HOST_DEVICE float4 min(const float4 &v0, const float4 &v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::min;
 #endif
           return make_float4(min(v0.x, v1.x), min(v0.y, v1.y), min(v0.z, v1.z), min(v0.w, v1.w));
@@ -5417,7 +5417,7 @@ namespace RTLib
         // expf
         RTLIB_INLINE RTLIB_HOST_DEVICE float2 expf(const float2 &v)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::expf;
 #endif
           return make_float2(::expf(v.x), ::expf(v.y));
@@ -5425,7 +5425,7 @@ namespace RTLib
         // logf
         RTLIB_INLINE RTLIB_HOST_DEVICE float2 logf(const float2 &v)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::logf;
 #endif
           return make_float2(::logf(v.x), ::logf(v.y));
@@ -5433,7 +5433,7 @@ namespace RTLib
         // sinf
         RTLIB_INLINE RTLIB_HOST_DEVICE float2 sinf(const float2 &v)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::sinf;
 #endif
           return make_float2(::sinf(v.x), ::sinf(v.y));
@@ -5441,7 +5441,7 @@ namespace RTLib
         // cosf
         RTLIB_INLINE RTLIB_HOST_DEVICE float2 cosf(const float2 &v)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::cosf;
 #endif
           return make_float2(::cosf(v.x), ::cosf(v.y));
@@ -5449,7 +5449,7 @@ namespace RTLib
         // tanf
         RTLIB_INLINE RTLIB_HOST_DEVICE float2 tanf(const float2 &v)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::tanf;
 #endif
           return make_float2(::tanf(v.x), ::tanf(v.y));
@@ -5457,7 +5457,7 @@ namespace RTLib
         // powf
         RTLIB_INLINE RTLIB_HOST_DEVICE float2 powf(const float2 &v0, const float v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::powf;
 #endif
           return make_float2(::powf(v0.x, v1), ::powf(v0.y, v1));
@@ -5495,7 +5495,7 @@ namespace RTLib
         // expf
         RTLIB_INLINE RTLIB_HOST_DEVICE float3 expf(const float3 &v)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::expf;
 #endif
           return make_float3(::expf(v.x), ::expf(v.y), ::expf(v.z));
@@ -5503,7 +5503,7 @@ namespace RTLib
         // logf
         RTLIB_INLINE RTLIB_HOST_DEVICE float3 logf(const float3 &v)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::logf;
 #endif
           return make_float3(::logf(v.x), ::logf(v.y), ::logf(v.z));
@@ -5511,7 +5511,7 @@ namespace RTLib
         // sinf
         RTLIB_INLINE RTLIB_HOST_DEVICE float3 sinf(const float3 &v)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::sinf;
 #endif
           return make_float3(::sinf(v.x), ::sinf(v.y), ::sinf(v.z));
@@ -5519,7 +5519,7 @@ namespace RTLib
         // cosf
         RTLIB_INLINE RTLIB_HOST_DEVICE float3 cosf(const float3 &v)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::cosf;
 #endif
           return make_float3(::cosf(v.x), ::cosf(v.y), ::cosf(v.z));
@@ -5527,7 +5527,7 @@ namespace RTLib
         // tanf
         RTLIB_INLINE RTLIB_HOST_DEVICE float3 tanf(const float3 &v)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::tanf;
 #endif
           return make_float3(::tanf(v.x), ::tanf(v.y), ::tanf(v.z));
@@ -5535,7 +5535,7 @@ namespace RTLib
         // powf
         RTLIB_INLINE RTLIB_HOST_DEVICE float3 powf(const float3 &v0, const float v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::powf;
 #endif
           return make_float3(::powf(v0.x, v1), ::powf(v0.y, v1), ::powf(v0.z, v1));
@@ -5573,7 +5573,7 @@ namespace RTLib
         // expf
         RTLIB_INLINE RTLIB_HOST_DEVICE float4 expf(const float4 &v)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::expf;
 #endif
           return make_float4(::expf(v.x), ::expf(v.y), ::expf(v.z), ::expf(v.w));
@@ -5581,7 +5581,7 @@ namespace RTLib
         // logf
         RTLIB_INLINE RTLIB_HOST_DEVICE float4 logf(const float4 &v)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::logf;
 #endif
           return make_float4(::logf(v.x), ::logf(v.y), ::logf(v.z), ::logf(v.w));
@@ -5589,7 +5589,7 @@ namespace RTLib
         // sinf
         RTLIB_INLINE RTLIB_HOST_DEVICE float4 sinf(const float4 &v)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::sinf;
 #endif
           return make_float4(::sinf(v.x), ::sinf(v.y), ::sinf(v.z), ::sinf(v.w));
@@ -5597,7 +5597,7 @@ namespace RTLib
         // cosf
         RTLIB_INLINE RTLIB_HOST_DEVICE float4 cosf(const float4 &v)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::cosf;
 #endif
           return make_float4(::cosf(v.x), ::cosf(v.y), ::cosf(v.z), ::cosf(v.w));
@@ -5605,7 +5605,7 @@ namespace RTLib
         // tanf
         RTLIB_INLINE RTLIB_HOST_DEVICE float4 tanf(const float4 &v)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::tanf;
 #endif
           return make_float4(::tanf(v.x), ::tanf(v.y), ::tanf(v.z), ::tanf(v.w));
@@ -5613,7 +5613,7 @@ namespace RTLib
         // powf
         RTLIB_INLINE RTLIB_HOST_DEVICE float4 powf(const float4 &v0, const float v1)
         {
-#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+#if defined(__cplusplus) && !defined(__CUDACC__)
           using std::powf;
 #endif
           return make_float4(::powf(v0.x, v1), ::powf(v0.y, v1), ::powf(v0.z, v1), ::powf(v0.w, v1));
@@ -5695,6 +5695,58 @@ namespace RTLib
             return direction.x * m_Tangent + direction.y * m_Binormal + direction.z * m_Normal;
           }
         };
+        RTLIB_INLINE RTLIB_HOST_DEVICE float3 canonical_to_dir(const float2& p)
+        {
+            const float cosTheta = 2.0f * p.x - 1.0f;
+            const float sinTheta = sqrtf(1.0f - cosTheta * cosTheta);
+            const float phi = RTLIB_M_2PI * p.y;
+            const float cosPhi = ::cosf(phi);
+            const float sinPhi = ::sinf(phi);
+            return make_float3(sinTheta * cosPhi, sinTheta * sinPhi, cosTheta);
+        }
+        RTLIB_INLINE RTLIB_HOST_DEVICE float2 dir_to_canonical(const float3& d)
+        {
+            if (!isfinite(d.x) || !isfinite(d.y) || !isfinite(d.z))
+            {
+                return make_float2(0, 0);
+            }
+            const float z = RTLib::Ext::CUDA::Math::clamp(d.z, -1.0f, 1.0f);
+            float phi = atan2f(d.y, d.x);
+            while (phi < 0.0f)
+            {
+                phi += RTLIB_M_2PI;
+            }
+            return make_float2((z + 1.0f) / 2.0f, phi / RTLIB_M_2PI);
+        }
+        RTLIB_INLINE RTLIB_HOST_DEVICE float3 spherical_to_dir(const float2& p)
+        {
+            const float tht = RTLIB_M_PI * p.x;
+            const float cosTht = ::cosf(tht);
+            const float sinTht = ::sinf(tht);
+            const float phi = RTLIB_M_2PI * p.y;
+            const float cosPhi = ::cosf(phi);
+            const float sinPhi = ::sinf(phi);
+            return make_float3(sinTht * cosPhi, sinTht * sinPhi, cosTht);
+        }
+        RTLIB_INLINE RTLIB_HOST_DEVICE float2 dir_to_spherical(const float3& d)
+        {
+            const float tht = ::acosf(d.z);
+            float phi = atan2f(d.y, d.x);
+            while (phi < 0.0f)
+            {
+                phi += RTLIB_M_2PI;
+            }
+            return make_float2(tht / RTLIB_M_PI, phi / RTLIB_M_2PI);
+        }
+        RTLIB_INLINE RTLIB_DEVICE float to_average_rgb(const float3& rgb)
+        {
+            return (rgb.x + rgb.y + rgb.z) / 3.0f;
+        }
+        RTLIB_INLINE RTLIB_DEVICE float to_luminance(const float3& rgb)
+        {
+            return 0.2126f * rgb.x + 0.7152f * rgb.y + 0.0722f * rgb.z;
+        }
+
 
       }
 
