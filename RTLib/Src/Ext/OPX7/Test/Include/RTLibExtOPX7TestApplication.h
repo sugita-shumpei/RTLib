@@ -183,6 +183,7 @@ public:
     }
     void SetSamplesPerSave(unsigned int samplesPerSave)noexcept {
         m_SceneData.config.samplesPerSave = samplesPerSave;
+        
     }
 
     auto GetMaxSamples()const noexcept -> unsigned int {
@@ -191,6 +192,9 @@ public:
     void SetMaxSamples(unsigned int maxSamples)
         noexcept {
         m_SceneData.config.maxSamples = maxSamples;
+        if (m_EnableGrid) {
+            m_MortonQuadTreeController->SetSampleForBudget(maxSamples);
+        }
     }
 private:
     static void CursorPosCallback(RTLib::Core::Window* window, double x, double y);

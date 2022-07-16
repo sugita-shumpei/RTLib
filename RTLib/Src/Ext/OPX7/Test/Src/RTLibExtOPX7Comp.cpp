@@ -7,7 +7,7 @@ int main(int argc, const char* argv[]) {
     auto yRange = 128;
     int imageSizeX = 1024;
     int imageSizeY = 1024;
-    auto baseSamples = 10000;
+    auto baseSamples = 100000;
     if (argc > 1) {
         isAllRange = false;
         if (std::string(argv[1]) == "--xcenter") {
@@ -24,7 +24,7 @@ int main(int argc, const char* argv[]) {
         }
     }
     //return RTLibExtOPX7TestApplication(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/../scene.json", "DEF", false).Run();
-    auto filePath = std::filesystem::path(RTLIB_EXT_OPX7_TEST_DATA_PATH"\\..\\Result\\Scene1\\Depth=10").make_preferred();
+    auto filePath = std::filesystem::path(RTLIB_EXT_OPX7_TEST_DATA_PATH"\\..\\Result\\Scene2\\Depth=10").make_preferred();
     auto baseImageData = std::vector<float3>();
     {
         baseImageData.resize(1024 * 1024);
@@ -34,20 +34,20 @@ int main(int argc, const char* argv[]) {
         }
         imageFile.close();
     }
-    auto defMAEs = std::vector<std::pair<unsigned int, float>>();
-    auto neeMAEs = std::vector<std::pair<unsigned int, float>>();
-    auto risMAEs = std::vector<std::pair<unsigned int, float>>();
-    auto pgdefMAEs = std::vector<std::pair<unsigned int, float>>();
-    auto pgneeMAEs = std::vector<std::pair<unsigned int, float>>();
-    auto pgrisMAEs = std::vector<std::pair<unsigned int, float>>();
-    auto htdefMAEs = std::vector<std::pair<unsigned int, float>>();
-    auto htneeMAEs = std::vector<std::pair<unsigned int, float>>();
-    auto htrisMAEs = std::vector<std::pair<unsigned int, float>>();
+    auto defMAEs   = std::vector<std::tuple<unsigned int, float, float>>();
+    auto neeMAEs   = std::vector<std::tuple<unsigned int, float, float>>();
+    auto risMAEs   = std::vector<std::tuple<unsigned int, float, float>>();
+    auto pgdefMAEs = std::vector<std::tuple<unsigned int, float, float>>();
+    auto pgneeMAEs = std::vector<std::tuple<unsigned int, float, float>>();
+    auto pgrisMAEs = std::vector<std::tuple<unsigned int, float, float>>();
+    auto htdefMAEs = std::vector<std::tuple<unsigned int, float, float>>();
+    auto htneeMAEs = std::vector<std::tuple<unsigned int, float, float>>();
+    auto htrisMAEs = std::vector<std::tuple<unsigned int, float, float>>();
     for (std::filesystem::directory_entry pipelineDir : std::filesystem::directory_iterator(filePath)) {
         if (pipelineDir.is_directory()) {
             for (std::filesystem::directory_entry imageDir : std::filesystem::directory_iterator(pipelineDir.path())) {
                 auto compImageData = std::vector<float3>();
-                if (imageDir.path().extension() == ".bin") {
+                if (imageDir.path().extension() == ".json") {
                     auto filename = imageDir.path().filename();
                     std::string result, pipeline, sampleStr;
                     std::stringstream ss(filename.string());
@@ -56,8 +56,15 @@ int main(int argc, const char* argv[]) {
                         std::getline(ss, pipeline, '_');
                         std::getline(ss, sampleStr, '.');
                     }
+                    auto binFilePath = std::filesystem::path();
+                    auto time        = float(0.0f);
+                    {
+                        std::ifstream jsonFile(imageDir.path());
+                        auto json   = nlohmann::json::parse(jsonFile);
+                        time        = json.at("Time").get<float>();
+                    }
                     compImageData.resize(imageSizeX * imageSizeY);
-                    std::ifstream imageFile(imageDir.path(), std::ios::binary);
+                    std::ifstream imageFile(pipelineDir.path()/("result_"+ pipeline+"_"+sampleStr+".bin"), std::ios::binary);
                     if (imageFile.is_open()) {
                         imageFile.read((char*)compImageData.data(), compImageData.size() * sizeof(compImageData[0]));
                     }
@@ -88,31 +95,31 @@ int main(int argc, const char* argv[]) {
                         mae /= static_cast<float>(xRange * yRange);
                     }
                     if (pipeline == "DEF") {
-                        defMAEs.push_back({ std::stoi(sampleStr),mae });
+                        defMAEs.push_back({ std::stoi(sampleStr),time,mae });
                     }
                     if (pipeline == "NEE") {
-                        neeMAEs.push_back({ std::stoi(sampleStr),mae });
+                        neeMAEs.push_back({ std::stoi(sampleStr),time,mae });
                     }
                     if (pipeline == "RIS") {
-                        risMAEs.push_back({ std::stoi(sampleStr),mae });
+                        risMAEs.push_back({ std::stoi(sampleStr),time,mae });
                     }
                     if (pipeline == "PGDEF") {
-                        pgdefMAEs.push_back({ std::stoi(sampleStr),mae });
+                        pgdefMAEs.push_back({ std::stoi(sampleStr),time,mae });
                     }
                     if (pipeline == "PGNEE") {
-                        pgneeMAEs.push_back({ std::stoi(sampleStr),mae });
+                        pgneeMAEs.push_back({ std::stoi(sampleStr),time,mae });
                     }
                     if (pipeline == "PGRIS") {
-                        pgrisMAEs.push_back({ std::stoi(sampleStr),mae });
+                        pgrisMAEs.push_back({ std::stoi(sampleStr),time,mae });
                     }
                     if (pipeline == "HTDEF") {
-                        htdefMAEs.push_back({ std::stoi(sampleStr),mae });
+                        htdefMAEs.push_back({ std::stoi(sampleStr),time,mae });
                     }
                     if (pipeline == "HTNEE") {
-                        htneeMAEs.push_back({ std::stoi(sampleStr),mae });
+                        htneeMAEs.push_back({ std::stoi(sampleStr),time,mae });
                     }
                     if (pipeline == "HTRIS") {
-                        htrisMAEs.push_back({ std::stoi(sampleStr),mae });
+                        htrisMAEs.push_back({ std::stoi(sampleStr),time,mae });
                     }
                 }
 
@@ -120,57 +127,57 @@ int main(int argc, const char* argv[]) {
         }
     }
     std::sort(std::begin(defMAEs), std::end(defMAEs), [](const auto& a, const auto& b) {
-        return a.first < b.first;
+        return std::get<0>(a) < std::get<0>(b);
         });
     std::sort(std::begin(neeMAEs), std::end(neeMAEs), [](const auto& a, const auto& b) {
-        return a.first < b.first;
+        return std::get<0>(a) < std::get<0>(b);
         });
     std::sort(std::begin(risMAEs), std::end(risMAEs), [](const auto& a, const auto& b) {
-        return a.first < b.first;
+        return std::get<0>(a) < std::get<0>(b);
         });
     std::sort(std::begin(pgdefMAEs), std::end(pgdefMAEs), [](const auto& a, const auto& b) {
-        return a.first < b.first;
+        return std::get<0>(a) < std::get<0>(b);
         });
     std::sort(std::begin(pgneeMAEs), std::end(pgneeMAEs), [](const auto& a, const auto& b) {
-        return a.first < b.first;
+        return std::get<0>(a) < std::get<0>(b);
         });
     std::sort(std::begin(pgrisMAEs), std::end(pgrisMAEs), [](const auto& a, const auto& b) {
-        return a.first < b.first;
+        return std::get<0>(a) < std::get<0>(b);
         });
     std::sort(std::begin(htdefMAEs), std::end(htdefMAEs), [](const auto& a, const auto& b) {
-        return a.first < b.first;
+        return std::get<0>(a) < std::get<0>(b);
         });
     std::sort(std::begin(htneeMAEs), std::end(htneeMAEs), [](const auto& a, const auto& b) {
-        return a.first < b.first;
+        return std::get<0>(a) < std::get<0>(b);
         });
     std::sort(std::begin(htrisMAEs), std::end(htrisMAEs), [](const auto& a, const auto& b) {
-        return a.first < b.first;
+        return std::get<0>(a) < std::get<0>(b);
         });
-    for (auto& [sample, value] : defMAEs) {
-        std::cout << "DEF: " << sample << "," << value << std::endl;
+    for (auto& [sample, time,value] : defMAEs) {
+        std::cout << "DEF: " << sample << "," << time << ", " << value << std::endl;
     }
-    for (auto& [sample, value] : neeMAEs) {
-        std::cout << "NEE: " << sample << "," << value << std::endl;
+    for (auto& [sample, time, value] : neeMAEs) {
+        std::cout << "NEE: " << sample << "," << time << ", " << value << std::endl;
     }
-    for (auto& [sample, value] : risMAEs) {
-        std::cout << "RIS: " << sample << "," << value << std::endl;
+    for (auto& [sample, time, value] : risMAEs) {
+        std::cout << "RIS: " << sample << "," << time << ", " << value << std::endl;
     }
-    for (auto& [sample, value] : pgdefMAEs) {
-        std::cout << "PGDEF: " << sample << "," << value << std::endl;
+    for (auto& [sample, time, value] : pgdefMAEs) {
+        std::cout << "PGDEF: " << sample << "," << time << ", " << value << std::endl;
     }
-    for (auto& [sample, value] : pgneeMAEs) {
-        std::cout << "PGNEE: " << sample << "," << value << std::endl;
+    for (auto& [sample, time, value] : pgneeMAEs) {
+        std::cout << "PGNEE: " << sample << "," << time << ", " << value << std::endl;
     }
-    for (auto& [sample, value] : pgrisMAEs) {
-        std::cout << "PGRIS: " << sample << "," << value << std::endl;
+    for (auto& [sample, time, value] : pgrisMAEs) {
+        std::cout << "PGRIS: " << sample << "," << time << ", " << value << std::endl;
     }
-    for (auto& [sample, value] : htdefMAEs) {
-        std::cout << "HTDEF: " << sample << "," << value << std::endl;
+    for (auto& [sample, time, value] : htdefMAEs) {
+        std::cout << "HTDEF: " << sample << "," << time << ", " << value << std::endl;
     }
-    for (auto& [sample, value] : htneeMAEs) {
-        std::cout << "HTNEE: " << sample << "," << value << std::endl;
+    for (auto& [sample, time, value] : htneeMAEs) {
+        std::cout << "HTNEE: " << sample << "," << time << ", " << value << std::endl;
     }
-    for (auto& [sample, value] : htrisMAEs) {
-        std::cout << "HTRIS: " << sample << "," << value << std::endl;
+    for (auto& [sample, time, value] : htrisMAEs) {
+        std::cout << "HTRIS: " << sample << "," << time << ", " << value << std::endl;
     }
 }

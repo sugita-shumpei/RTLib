@@ -1788,7 +1788,9 @@ namespace rtlib
                 }
             }
             void Update(  RTLib::Ext::CUDA::CUDAContext* context) {
+            #ifndef NDEBUG
                 std::cout << "Update Double Buffered Hash Grid\n";
+            #endif
                 auto curCheckSumGpuAddress = RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(GetCurCheckSumGpuHandle());
                 auto prvCheckSumGpuAddress = RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(GetPrvCheckSumGpuHandle());
                 cuMemcpyDtoD(prvCheckSumGpuAddress, curCheckSumGpuAddress, checkSumCpuHandle.size() * sizeof(checkSumCpuHandle[0]));

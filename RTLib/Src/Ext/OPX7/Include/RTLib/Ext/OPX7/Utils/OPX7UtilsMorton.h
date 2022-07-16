@@ -611,6 +611,7 @@ namespace RTLib
                                 )
                             );
                         }
+#ifndef NDEBUG
                         {
                             auto copy = RTLib::Ext::CUDA::CUDABufferMemoryCopy();
                             copy.size = sizeof(float) * m_MaxHashSize * kWeightBufferCountPerNodes;
@@ -655,7 +656,7 @@ namespace RTLib
                             }
                             std::cout << "average: " << average / static_cast<float>(data.size()) << std::endl;
                         }
-                        
+#endif
                     }
                     void Destroy() {
                         if (m_WeightBuffersCUDA[0]) {
@@ -768,7 +769,9 @@ namespace RTLib
                             m_SampleForPass = std::min<uint32_t>(m_SampleForRemain, (1 << m_CurIteration) * m_SamplePerLaunch);
                             if ((m_SampleForRemain - m_SampleForPass < 2 * m_SampleForPass) ||
                                 (m_SamplePerAll >= m_RatioForBudget * static_cast<float>(m_SampleForBudget))) {
+#ifndef NDEBUG
                                 std::cout << "Final: this->m_SamplePerAll=" << m_SamplePerAll << std::endl;
+#endif
                                 m_SampleForPass = m_SampleForRemain;
                             }
 
@@ -788,6 +791,7 @@ namespace RTLib
                         else {
                             m_TraceState = TraceStateRecord;
                         }
+#ifndef NDEBUG
                         if (m_TraceState == TraceStateRecordAndSample) {
                             std::cout << "[Record And Sample] ";
                         }
@@ -798,6 +802,7 @@ namespace RTLib
                             std::cout << "[Record Only] ";
                         }
                         std::cout << "CurIteration: " << m_CurIteration << " SamplePerTmp: " << m_SamplePerTmp << std::endl;
+#endif
 
                     }
 
@@ -810,7 +815,9 @@ namespace RTLib
 
                         if (m_SamplePerTmp >= m_SampleForPass)
                         {
+#ifndef NDEBUG
                             printf("UpdateHashTree\n");
+#endif
                             m_Tree->Update();
 
                             m_CurIteration++;
