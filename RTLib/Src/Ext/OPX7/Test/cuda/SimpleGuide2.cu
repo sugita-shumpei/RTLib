@@ -78,7 +78,7 @@ extern "C" __global__ void     __raygen__default() {
     hrec.userData.depth = 0;
     hrec.userData.gridIndex = UINT32_MAX;
     if (((params.flags & PARAM_FLAG_USE_GRID) == PARAM_FLAG_USE_GRID) && ((params.flags & PARAM_FLAG_FINAL) != PARAM_FLAG_FINAL)) {
-        MortonTraceVertex traceVertices[rtlib::test::kTraceVertexSize];
+    rtlib:: test::MortonTraceVertex traceVertices[rtlib::test::kTraceVertexSize];
         while (true) {
             unsigned int traceVertexDepth = RTLib::Ext::CUDA::Math::min(hrec.userData.depth, (unsigned int)rtlib::test::kTraceVertexSize);
             TraceRadiance(params.gasHandle, hrec.rayOrigin, hrec.rayDirection, 0.0001f, 1.0e20f, hrec);

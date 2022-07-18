@@ -67,9 +67,10 @@ namespace RTLib
                     unsigned char blockIndex;
                     bool           isFounded;
                 };
-                struct HashGrid3
+                template<unsigned int BlockSize>
+                struct HashGrid3T
                 {
-                    static inline constexpr unsigned int kBlockSize = 32;
+                    static inline constexpr unsigned int kBlockSize = BlockSize;
                     float3        aabbOffset;
                     float3        aabbSize;
                     uint3         bounds;
@@ -152,10 +153,11 @@ namespace RTLib
                         info.blockIndex = i;
                     }
                 };
-                
-                struct DoubleBufferedHashGrid3
+
+                template<unsigned int BlockSize>
+                struct DoubleBufferedHashGrid3T
                 {
-                    static inline constexpr unsigned int kBlockSize = 32;
+                    static inline constexpr unsigned int kBlockSize = BlockSize;
                     float3        aabbOffset;
                     float3        aabbSize;
                     uint3         bounds;

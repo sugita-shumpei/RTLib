@@ -365,6 +365,7 @@ private:
                 params.mortonTree = m_MortonQuadTreeController->GetGpuHandle();
                 params.grid       = m_HashBufferCUDA.GetHandle();
                 params.flags     |= PARAM_FLAG_USE_GRID;
+                params.mortonTree.level = RTLib::Ext::CUDA::Math::min(params.mortonTree.level, rtlib::test::MortonQTreeWrapper::kMaxTreeLevel);
             }
 
             if (m_CurTracerName == "HTNEE")

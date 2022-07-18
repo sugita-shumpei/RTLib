@@ -85,6 +85,7 @@ add_library(RTLib-Ext-OPX7-Test-Lib
     ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/SimpleGuide.cu
     ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/SimpleGuide2.cu
     ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/PathGuidingConfig.h.in
+    ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/MortonTreeConfig.h.in
 )
 set(RTLIB_EXT_OPX7_TEST_PATH_GUIDING_TRACE_VERTEX_SIZE 10)
 set(RTLIB_EXT_OPX7_TEST_PATH_GUIDING_STREE_STACK_DEPTH 69)
@@ -94,7 +95,13 @@ configure_file(
     ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/PathGuidingConfig.h.in
     ${CMAKE_CURRENT_BINARY_DIR}/Test/cuda/PathGuidingConfig.h
 )
-
+set(RTLIB_EXT_OPX7_TEST_MORTON_TREE_TRACE_VERTEX_SIZE 10)
+set(RTLIB_EXT_OPX7_TEST_MORTON_TREE_MAX_LEVEL         6)
+set(RTLIB_EXT_OPX7_TEST_HASH_GRID_BLOCK_SIZE          32)
+configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/MortonTreeConfig.h.in
+    ${CMAKE_CURRENT_BINARY_DIR}/Test/cuda/MortonTreeConfig.h
+)
 target_include_directories(RTLib-Ext-OPX7-Test-Lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Test/Include ${CMAKE_CURRENT_BINARY_DIR}/Test/cuda PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/Test )
 
 target_link_libraries(RTLib-Ext-OPX7-Test-Lib PUBLIC RTLib-Ext-OPX7 tinyexr::tinyexr stb::stb RTLib-Utils)

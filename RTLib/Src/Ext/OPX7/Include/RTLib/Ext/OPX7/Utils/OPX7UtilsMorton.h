@@ -239,14 +239,14 @@ namespace RTLib
                     RTLIB_INLINE RTLIB_HOST_DEVICE static auto GetArrayIndexFromMortonCodeLocal(unsigned int mortonCode, unsigned int level) noexcept -> unsigned int {
                         //1//4//16
                         //   4//16//64
-                        mortonCode &= static_cast<unsigned int>(::powf(2.0f, level) - 1);
-                        return (::powf(4, level) - 1) / 3 + mortonCode;
+                        mortonCode &= static_cast<unsigned int>(::exp2f(level) - 1);
+                        return (::exp2f(2*level) - 1) / 3 + mortonCode;
                     }
                     RTLIB_INLINE RTLIB_HOST_DEVICE static auto GetArrayIndexFromMortonCodeGlobal(unsigned int mortonCode) noexcept -> unsigned int {
                         //1//4//16
                         //   4//16//64
                         unsigned int level = ::log2(mortonCode + 1) / 2;
-                        return (::powf(4, level) - 1) / 3 + mortonCode;
+                        return (::exp2f(2*level) - 1) / 3 + mortonCode;
                     }
                 };
 
@@ -261,11 +261,12 @@ namespace RTLib
 
                     RTLIB_INLINE RTLIB_DEVICE void Record(const float2& w_in, float value)noexcept
                     {
-                        if (isinf(value)||isnan(value)) {
-                            printf("FATAL\n");
-                        }
-                        unsigned int posX = w_in.x * ::powf(2.0, level);
-                        unsigned int posY = w_in.y * ::powf(2.0, level);
+                        //if (isinf(value)||isnan(value)) {
+                        //    return;
+                        //}
+                        const float numNodes = ::exp2f(level);
+                        unsigned int posX = w_in.x * numNodes;
+                        unsigned int posY = w_in.y * numNodes;
                         unsigned int code = Morton2Utils<BestLevel()>::GetCodeFromPosIdx(posX, posY);
 #if !RTLIB_EXT_OPX7_UTILS_OPX7_UTILS_MORTON_BUILD_BY_CUDA_KERNEL
                         for (unsigned int i = 1; i <= level; ++i)
@@ -278,7 +279,7 @@ namespace RTLib
                         
                         AtomicAdd(weights[0], value);
 #else
-                        unsigned int arrIndex = (::exp2f(2*level) - 1) / 3 + code;
+                        unsigned int arrIndex = (numNodes * numNodes - 1) / 3 + code;
                         AtomicAdd(weights[arrIndex], value);
 #endif
                     }
@@ -335,9 +336,9 @@ namespace RTLib
                         auto  indices = Morton2Utils<BestLevel()>::GetPosIdxFromCode(code);
                         auto  xPosIdx = indices.x;
                         auto  yPosIdx = indices.y;
-                        float posX = (xPosIdx + CUDA::Math::random_float1(rng)) * ::powf(0.5, level);
-                        float posY = (yPosIdx + CUDA::Math::random_float1(rng)) * ::powf(0.5, level);
-                        pdf = total / weights[0] * ::powf(4.0f, level);
+                        float posX = (xPosIdx + CUDA::Math::random_float1(rng)) / ::exp2f(level);
+                        float posY = (yPosIdx + CUDA::Math::random_float1(rng)) / ::exp2f(level);
+                        pdf = total / weights[0] * ::exp2f(2.0f* level);
                         //printf("pdf=%lf\n", pdf);
                         return {posX, posY};
                     }
@@ -392,8 +393,9 @@ namespace RTLib
                         auto  indices = Morton2Utils<BestLevel()>::GetPosIdxFromCode(code);
                         auto  xPosIdx = indices[0];
                         auto  yPosIdx = indices[1];
-                        float posX = (xPosIdx + CUDA::Math::random_float1(rng)) * ::powf(0.5, level);
-                        float posY = (yPosIdx + CUDA::Math::random_float1(rng)) * ::powf(0.5, level);
+                        const auto numNodes = ::exp2f(level);
+                        float posX = (xPosIdx + CUDA::Math::random_float1(rng)) / numNodes;
+                        float posY = (yPosIdx + CUDA::Math::random_float1(rng)) / numNodes;
                         return {posX, posY};
                     }
                     RTLIB_INLINE RTLIB_DEVICE auto Pdf(const  float2& w_in)const noexcept -> float
@@ -401,25 +403,26 @@ namespace RTLib
                         if (weights[0] <= 0.0f) {
                             return 1.0f;
                         }
-                        unsigned int posX = w_in.x * ::powf(2.0, level);
-                        unsigned int posY = w_in.y * ::powf(2.0, level);
+                        const auto numNodes = ::exp2f(level);
+                        unsigned int posX = w_in.x * numNodes;
+                        unsigned int posY = w_in.y * numNodes;
                         unsigned int code = Morton2Utils<BestLevel()>::GetCodeFromPosIdx(posX, posY);
-                        unsigned int arrIdx = (::powf(4, level) - 1) / 3 + code;
-                        auto pdf = weights[arrIdx] / weights[0] * ::powf(4.0f, level);
+                        unsigned int arrIdx = (numNodes*numNodes - 1) / 3 + code;
+                        auto pdf = weights[arrIdx] / weights[0] * numNodes*numNodes;
                         //printf("pdf=%lf\n", pdf);
                         return pdf;
                     }
                     RTLIB_INLINE RTLIB_DEVICE static constexpr auto BestLevel()noexcept -> unsigned int
                     {
-                        if (MaxLevel == 0) { return 1; }
-                        if (MaxLevel == 1) { return 1; }
-                        if (MaxLevel == 2) { return 1; }
-                        if (MaxLevel == 3) { return 2; }
-                        if (MaxLevel == 4) { return 2; }
-                        if (MaxLevel == 5) { return 3; }
-                        if (MaxLevel == 6) { return 3; }
-                        if (MaxLevel == 7) { return 3; }
-                        if (MaxLevel == 8) { return 3; }
+                        if (MaxLevel == 0) { return 1; }//(001)00
+                        if (MaxLevel == 1) { return 1; }//(005)AB00         -> A0 B0  
+                        if (MaxLevel == 2) { return 1; }//(016)ABCD         -> AC BD  
+                        if (MaxLevel == 3) { return 2; }//(085)ABCDEFG00    -> ACE0 BDF0  
+                        if (MaxLevel == 4) { return 2; }//(149)ABCDEFGHI    -> ACEG BDFH 
+                        if (MaxLevel == 5) { return 3; }//
+                        if (MaxLevel == 6) { return 3; }//
+                        if (MaxLevel == 7) { return 3; }//
+                        if (MaxLevel == 8) { return 3; }//
                         if (MaxLevel == 9) { return 4; }
                         if (MaxLevel == 10) { return 4; }
                         if (MaxLevel == 11) { return 4; }
@@ -448,6 +451,7 @@ namespace RTLib
                 template<unsigned int MaxLevel>
                 struct MortonQuadTreeWrapperT
                 {
+                    static inline constexpr unsigned int kMaxTreeLevel = MaxLevel;
                     RTLIB_INLINE RTLIB_DEVICE MortonQuadTreeWrapperT()noexcept {}
                     RTLIB_INLINE RTLIB_DEVICE MortonQuadTreeWrapperT(unsigned int level_, unsigned int countPerNode_, float* weightsBuilding_, float* weightsSampling_)
                     {
@@ -557,7 +561,7 @@ namespace RTLib
                             (isfinite(bsdfVal.x) && bsdfVal.x >= 0.0f) &&
                             (isfinite(bsdfVal.y) && bsdfVal.y >= 0.0f) &&
                             (isfinite(bsdfVal.z) && bsdfVal.z >= 0.0f);
-                        if (woPdf <= 0.0f || !isValidRadiance || !isValidBsdfVal)
+                        if (woPdf <= 0.0f || isnan(woPdf) || !isValidRadiance || !isValidBsdfVal)
                         {
                             return;
                         }
@@ -577,7 +581,6 @@ namespace RTLib
                         float3 product = localRadiance * bsdfVal;
                         float localRadianceAvg = (localRadiance.x + localRadiance.y + localRadiance.z) / 3.0f;
                         //float productAvg = (product.x + product.y + product.z) / 3.0f;
-                        
                         mortonQuadTree.Record(gridIdx, rayDirection, localRadianceAvg / woPdf);
                     }
                 };
@@ -614,29 +617,8 @@ namespace RTLib
                     void Update(RTLib::Ext::CUDA::CUDAStream* stream = nullptr)
                     {
                         m_WeightBufferIndexBuilding = 1 - m_WeightBufferIndexBuilding;
-                        {
-                            auto copy = RTLib::Ext::CUDA::CUDAMemoryBufferCopy();
-                            copy.size = sizeof(float) * m_MaxHashSize * kWeightBufferCountPerNodes;
-                            copy.dstOffset = 0;
-                            auto data = std::vector<float>(copy.size / sizeof(float), 0.0f);
-                            copy.srcData = data.data();
-                            if (stream) {
-                                RTLIB_CORE_ASSERT_IF_FAILED(
-                                    stream->CopyMemoryToBuffer(
-                                        GetWeightBufferBuilding(),
-                                        { copy }
-                                    )
-                                );
-                            }
-                            else {
-                                RTLIB_CORE_ASSERT_IF_FAILED(
-                                    m_Context->CopyMemoryToBuffer(
-                                        GetWeightBufferBuilding(),
-                                        { copy }
-                                    )
-                                );
-                            }
-                        }
+                        auto weightBufferGpuAddress = CUDA::CUDANatives::GetCUdeviceptr(GetWeightBufferBuilding());
+                        cuMemsetD16Async(weightBufferGpuAddress, 0.0f, m_MaxHashSize * kWeightBufferCountPerNodes, CUDA::CUDANatives::GetCUstream(stream));
                     }
 
                     void Destroy() {
@@ -744,7 +726,8 @@ namespace RTLib
                     )noexcept
                         :m_Tree{ tree }, m_SampleForBudget{ sampleForBudget }, m_SamplePerLaunch{ samplePerLaunch }, m_IterationForBuilt{ iterationForBuilt }, m_RatioForBudget{ ratioForBudget }{
                         m_Module = std::unique_ptr<CUDA::CUDAModule>(RTLib::Ext::CUDA::CUDAModule::LoadFromData(m_Tree->GetContext(), GetPtxMortonQuadTreeBuildKernel()));
-                        m_Kernel = std::unique_ptr<CUDA::CUDAFunction>(m_Module->LoadFunction("mortonBuildKernel"));
+                        m_BuildKernel = std::unique_ptr<CUDA::CUDAFunction>(m_Module->LoadFunction("mortonBuildKernel"));
+                        m_ClearKernel = std::unique_ptr<CUDA::CUDAFunction>(m_Module->LoadFunction("mortonClearKernel"));
                     }
 
                     void SetSampleForBudget(unsigned int sampleForBudget)noexcept { m_SampleForBudget = sampleForBudget; }
@@ -834,6 +817,7 @@ namespace RTLib
                             printf("UpdateHashTree\n");
 #endif
                             m_Tree->Update(stream);
+                            //this->LaunchClearKernel(stream);
 #if RTLIB_EXT_OPX7_UTILS_OPX7_UTILS_MORTON_BUILD_BY_CUDA_KERNEL
                             this->LaunchBuildKernel(stream);
 #endif
@@ -879,12 +863,41 @@ namespace RTLib
                         }
                         launchDesc.sharedMemBytes = 0;
                         launchDesc.stream = stream;
-                        return m_Kernel->Launch(launchDesc);
+                        return m_BuildKernel->Launch(launchDesc);
+                    }
+
+                    bool LaunchClearKernel(CUDA::CUDAStream* stream = nullptr)
+                    {
+                        CUDA::CUDAKernelLaunchDesc launchDesc = {};
+
+                        launchDesc.blockDimX = 1024;
+                        launchDesc.blockDimY = 1;
+                        launchDesc.blockDimZ = 1;
+
+                        launchDesc.gridDimX = ((m_Tree->GetMaxHashSize() * kWeightBufferCountPerNodes + 1024 - 1) / 1024) * 1024;
+                        launchDesc.gridDimY = 1;
+                        launchDesc.gridDimZ = 1;
+                        {
+                            auto weightBuilding = CUDA::CUDANatives::GetCUdeviceptr(m_Tree->GetWeightBufferBuilding());
+                            unsigned int numWeightBuilding = m_Tree->GetMaxHashSize() * kWeightBufferCountPerNodes;
+                            launchDesc.kernelParams.resize(2);
+                            launchDesc.kernelParams[0] = &weightBuilding;
+                            launchDesc.kernelParams[1] = &numWeightBuilding;
+                        }
+                        launchDesc.sharedMemBytes = 0;
+                        launchDesc.stream = stream;
+                        return m_ClearKernel->Launch(launchDesc);
+                    }
+
+                    auto GetIteration()const noexcept -> unsigned int
+                    {
+                        return m_CurIteration;
                     }
                 private:
                     RTMortonQuadTreeWrapperT<MaxLevel>* m_Tree   = nullptr;
                     std::unique_ptr<CUDA::CUDAModule>   m_Module = nullptr;
-                    std::unique_ptr<CUDA::CUDAFunction> m_Kernel = nullptr;
+                    std::unique_ptr<CUDA::CUDAFunction> m_BuildKernel = nullptr;
+                    std::unique_ptr<CUDA::CUDAFunction> m_ClearKernel = nullptr;
                     unsigned int    m_SampleForBudget = 0;
                     unsigned int    m_SamplePerLaunch = 0;
                     unsigned int    m_IterationForBuilt = 0;

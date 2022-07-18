@@ -14,3 +14,9 @@ extern "C" __global__ void mortonBuildKernel(float* weightBuilding, unsigned int
         
     }
 }
+extern "C" __global__ void mortonClearKernel(float* weightBuilding, unsigned int numWeightBuilding) {
+    const unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < numWeightBuilding) {
+        weightBuilding[idx] = 0.0f;
+    }
+}

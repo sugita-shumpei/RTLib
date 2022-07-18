@@ -1796,9 +1796,9 @@ namespace rtlib
                 cuMemcpyDtoD(prvCheckSumGpuAddress, curCheckSumGpuAddress, checkSumCpuHandle.size() * sizeof(checkSumCpuHandle[0]));
                 curIndex = (1 + curIndex)%2;
             }
-            auto GetHandle() noexcept -> RTLib::Ext::OPX7::Utils::DoubleBufferedHashGrid3
+            auto GetHandle() noexcept -> rtlib::test::DoubleBufferedHashGrid3
             {
-                RTLib::Ext::OPX7::Utils::DoubleBufferedHashGrid3 grid3;
+                rtlib::test::DoubleBufferedHashGrid3 grid3;
                 grid3.aabbOffset = aabbMin;
                 grid3.aabbSize = aabbMax - aabbMin;
                 grid3.bounds = bounds;
@@ -1808,9 +1808,6 @@ namespace rtlib
                 return grid3;
             }
         };
-
-        using RTMortonQuadTreeWrapper = RTLib::Ext::OPX7::Utils::RTMortonQuadTreeWrapperT<3>;
-        using RTMortonQuadTreeController = RTLib::Ext::OPX7::Utils::RTMortonQuadTreeControllerT<3>;
 
         inline auto SpecifyMaterialType(const RTLib::Core::VariableMap& material) -> HitgroupType
         {

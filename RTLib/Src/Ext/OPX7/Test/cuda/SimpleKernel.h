@@ -12,6 +12,7 @@
 #include <RTLib/Ext/OPX7/Utils/OPX7UtilsMorton.h>
 #include <RTLib/Ext/OPX7/Utils/OPX7UtilsGrid.h>
 #include <PathGuidingConfig.h>
+#include <MortonTreeConfig.h>
 //#define TEST_SKIP_TEXTURE_SAMPLE
 //#define   TEST11_SHOW_EMISSON_COLOR
 //#define TEST11_SHOW_NORMAL
@@ -120,11 +121,6 @@ struct MeshLightList
 #endif
 };
 /**/
-using MortonQTree        = RTLib::Ext::OPX7::Utils::MortonQuadTreeT<3>;
-using MortonQTreeWrapper = RTLib::Ext::OPX7::Utils::MortonQuadTreeWrapperT<3>;
-using MortonTraceVertex  = RTLib::Ext::OPX7::Utils::MortonTraceVertexT<3>;
-using HashGrid3          = RTLib::Ext::OPX7::Utils::HashGrid3;
-using DoubleBufferedHashGrid3 = RTLib::Ext::OPX7::Utils::DoubleBufferedHashGrid3;
 template<typename T>
 struct Reservoir
 {
@@ -173,22 +169,22 @@ enum   DebugFrameType
     DEBUG_FRAME_TYPE_COUNT = 8,
 };
 struct Params {
-    unsigned int*                 seedBuffer;
-    float3*                      accumBuffer;
-    uchar4*                      frameBuffer;
-    float4*                diffuseGridBuffer;
-    MortonQTreeWrapper            mortonTree;
-    unsigned int                       width;
-    unsigned int                      height;
-    unsigned int                    maxDepth;
-    unsigned int            samplesForLaunch;
-    unsigned int             samplesForAccum;
-    unsigned int                       flags;
-    unsigned int              debugFrameType;
-    OptixTraversableHandle         gasHandle;
-    MeshLightList                     lights;
-    DoubleBufferedHashGrid3             grid;
-    rtlib::test::STree                  tree;
+    unsigned int*                   seedBuffer;
+    float3*                        accumBuffer;
+    uchar4*                        frameBuffer;
+    float4*                  diffuseGridBuffer;
+    rtlib::test::MortonQTreeWrapper mortonTree;
+    unsigned int                         width;
+    unsigned int                        height;
+    unsigned int                      maxDepth;
+    unsigned int              samplesForLaunch;
+    unsigned int               samplesForAccum;
+    unsigned int                         flags;
+    unsigned int                debugFrameType;
+    OptixTraversableHandle           gasHandle;
+    MeshLightList                       lights;
+    rtlib::test::DoubleBufferedHashGrid3  grid;
+    rtlib::test::STree                    tree;
 };
 struct RayGenData {
     float3 u, v, w;
