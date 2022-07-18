@@ -4,7 +4,11 @@
 #include <RTLib/Ext/CUDA/Math/Random.h>
 #include <RTLib/Ext/CUDA/Math/VectorFunction.h>
 #ifndef __CUDACC__
+#include <RTLib/Ext/CUDA/CUDAContext.h>
 #include <RTLib/Ext/CUDA/CUDABuffer.h>
+#include <RTLib/Ext/CUDA/CUDAModule.h>
+#include <RTLib/Ext/CUDA/CUDAFunction.h>
+#include <RTLib/Ext/CUDA/CUDANatives.h>
 #include <fstream>
 #include <stack>
 #include <vector>
@@ -20,6 +24,9 @@
 #include <algorithm>
 #include <functional>
 #endif
+#ifndef RTLIB_EXT_OPX7_UTILS_OPX7_UTILS_MORTON_BUILD_BY_CUDA_KERNEL
+#define RTLIB_EXT_OPX7_UTILS_OPX7_UTILS_MORTON_BUILD_BY_CUDA_KERNEL 1
+#endif
 namespace RTLib
 {
     namespace Ext
@@ -28,7 +35,7 @@ namespace RTLib
         {
             namespace Utils
             {
-                                
+                
                 struct MortonUtils
                 {
                     RTLIB_INLINE RTLIB_DEVICE static uint32_t Part1By1_16(uint32_t x) {
@@ -260,6 +267,7 @@ namespace RTLib
                         unsigned int posX = w_in.x * ::powf(2.0, level);
                         unsigned int posY = w_in.y * ::powf(2.0, level);
                         unsigned int code = Morton2Utils<BestLevel()>::GetCodeFromPosIdx(posX, posY);
+#if !RTLIB_EXT_OPX7_UTILS_OPX7_UTILS_MORTON_BUILD_BY_CUDA_KERNEL
                         for (unsigned int i = 1; i <= level; ++i)
                         {
                             //std::cout << "code: " << std::bitset<MaxLevel * 2>(code) << " offset: " << (::powf(4, level + 1 - i) - 1) / 3 << std::endl;
@@ -267,7 +275,12 @@ namespace RTLib
                             AtomicAdd(weights[arrIndex], value);
                             code >>= 2;
                         }
+                        
                         AtomicAdd(weights[0], value);
+#else
+                        unsigned int arrIndex = (::exp2f(2*level) - 1) / 3 + code;
+                        AtomicAdd(weights[arrIndex], value);
+#endif
                     }
                     template<typename RNG>
                     RTLIB_INLINE RTLIB_DEVICE auto SampleAndPdf(float& pdf, RNG& rng)const noexcept->float2
@@ -569,6 +582,8 @@ namespace RTLib
                     }
                 };
 #ifndef __CUDACC__
+                auto GetPtxMortonQuadTreeBuildKernel() -> const unsigned char*;
+
                 template<unsigned int MaxLevel>
                 class  RTMortonQuadTreeWrapperT
                 {
@@ -595,7 +610,8 @@ namespace RTLib
                             m_WeightBuffersCUDA[1] = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(m_Context->CreateBuffer(desc));
                         }
                     }
-                    void Update()
+
+                    void Update(RTLib::Ext::CUDA::CUDAStream* stream = nullptr)
                     {
                         m_WeightBufferIndexBuilding = 1 - m_WeightBufferIndexBuilding;
                         {
@@ -604,60 +620,25 @@ namespace RTLib
                             copy.dstOffset = 0;
                             auto data = std::vector<float>(copy.size / sizeof(float), 0.0f);
                             copy.srcData = data.data();
-                            RTLIB_CORE_ASSERT_IF_FAILED(
-                                m_Context->CopyMemoryToBuffer(
-                                    GetWeightBufferBuilding(),
-                                    { copy }
-                                )
-                            );
-                        }
-#ifndef NDEBUG
-                        {
-                            auto copy = RTLib::Ext::CUDA::CUDABufferMemoryCopy();
-                            copy.size = sizeof(float) * m_MaxHashSize * kWeightBufferCountPerNodes;
-                            copy.srcOffset = 0;
-                            auto data = std::vector<float[kWeightBufferCountPerNodes]>(m_MaxHashSize);
-                            auto* pData = &data[0][0];
-                            copy.dstData= pData;
-                            RTLIB_CORE_ASSERT_IF_FAILED(
-                                m_Context->CopyBufferToMemory(
-                                    GetWeightBufferSampling(),
-                                    { copy }
-                                )
-                            );
-                            {
-                                for (int i = 0; i < 10; ++i) {
-                                    float mip_3[64];
-                                    for (int j = 0; j < 64; ++j) {
-                                        auto offsetPtr = data[0] + 21;
-                                        auto idx = Morton2Utils<4>::GetPosIdxFromCode(j);
-                                        mip_3[8 * idx.y + idx.x] = offsetPtr[j];
-                                    }
-
-                                    {
-
-                                        std::ofstream file("./quad_buffer_3_" + std::to_string(i) + ".csv");
-                                        auto offsetPtr = data[0] + 21;
-                                        for (int j = 0; j < 64; ++j) {
-                                            file << mip_3[j] << ", ";
-                                            if (j % 8==7) {
-                                                file << std::endl;
-                                            }
-                                        }
-                                        file.close();
-                                    }
-                                }
+                            if (stream) {
+                                RTLIB_CORE_ASSERT_IF_FAILED(
+                                    stream->CopyMemoryToBuffer(
+                                        GetWeightBufferBuilding(),
+                                        { copy }
+                                    )
+                                );
                             }
-                            auto average = float(0.0f);
-                            for (auto& elem : data) {
-                                for (auto& v : elem) {
-                                    average += v;
-                                }
+                            else {
+                                RTLIB_CORE_ASSERT_IF_FAILED(
+                                    m_Context->CopyMemoryToBuffer(
+                                        GetWeightBufferBuilding(),
+                                        { copy }
+                                    )
+                                );
                             }
-                            std::cout << "average: " << average / static_cast<float>(data.size()) << std::endl;
                         }
-#endif
                     }
+
                     void Destroy() {
                         if (m_WeightBuffersCUDA[0]) {
                             m_WeightBuffersCUDA[0]->Destroy();
@@ -668,25 +649,44 @@ namespace RTLib
                             m_WeightBuffersCUDA[1].reset();
                         }
                     }
-                    void Clear() {
+
+                    void Clear(RTLib::Ext::CUDA::CUDAStream* stream = nullptr) {
 
                         auto copy = RTLib::Ext::CUDA::CUDAMemoryBufferCopy();
                         copy.size = sizeof(float) * m_MaxHashSize * kWeightBufferCountPerNodes;
                         copy.dstOffset = 0;
                         auto data = std::vector<float>(copy.size / sizeof(float), 0.0f);
                         copy.srcData = data.data();
-                        RTLIB_CORE_ASSERT_IF_FAILED(
-                            m_Context->CopyMemoryToBuffer(
-                                m_WeightBuffersCUDA[0].get(),
-                                { copy }
-                            )
-                        );
-                        RTLIB_CORE_ASSERT_IF_FAILED(
-                            m_Context->CopyMemoryToBuffer(
-                                m_WeightBuffersCUDA[1].get(),
-                                { copy }
-                            )
-                        );
+                        if (stream) {
+
+                            RTLIB_CORE_ASSERT_IF_FAILED(
+                                stream->CopyMemoryToBuffer(
+                                    m_WeightBuffersCUDA[0].get(),
+                                    { copy }
+                                )
+                            );
+                            RTLIB_CORE_ASSERT_IF_FAILED(
+                                stream->CopyMemoryToBuffer(
+                                    m_WeightBuffersCUDA[1].get(),
+                                    { copy }
+                                )
+                            );
+                        }
+                        else {
+
+                            RTLIB_CORE_ASSERT_IF_FAILED(
+                                m_Context->CopyMemoryToBuffer(
+                                    m_WeightBuffersCUDA[0].get(),
+                                    { copy }
+                                )
+                            );
+                            RTLIB_CORE_ASSERT_IF_FAILED(
+                                m_Context->CopyMemoryToBuffer(
+                                    m_WeightBuffersCUDA[1].get(),
+                                    { copy }
+                                )
+                            );
+                        }
                     }
 
                     auto GetGpuHandle() noexcept -> MortonQuadTreeWrapperT<MaxLevel>
@@ -697,10 +697,21 @@ namespace RTLib
                             RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<float>(GetWeightBufferSampling())
                         );
                     }
-                private:
+
+                    auto GetContext()noexcept -> CUDA::CUDAContext* { return m_Context; }
+
+                    auto GetMaxTreeLevel()const noexcept -> unsigned int { return m_MaxTreeLevel; }
+
+                    auto GetMaxHashSize()const noexcept  -> unsigned int { return m_MaxHashSize;  }
+
+                    auto GetNodePerElement()const noexcept -> unsigned int {
+                        return  ((static_cast<unsigned int>(1) << (2 * (m_MaxTreeLevel + 1))) - 1) / 3;
+                    }
+
                     auto GetWeightBufferBuilding()      noexcept ->       RTLib::Ext::CUDA::CUDABuffer* {
                         return m_WeightBuffersCUDA[m_WeightBufferIndexBuilding].get();
                     }
+
                     auto GetWeightBufferSampling()      noexcept ->       RTLib::Ext::CUDA::CUDABuffer* {
                         return m_WeightBuffersCUDA[1-m_WeightBufferIndexBuilding].get();
                     }
@@ -715,6 +726,7 @@ namespace RTLib
                 class  RTMortonQuadTreeControllerT
                 {
                 public:
+                    static inline constexpr auto kWeightBufferCountPerNodes = RTMortonQuadTreeWrapperT<MaxLevel>::kWeightBufferCountPerNodes;
 
                     enum TraceState
                     {
@@ -730,7 +742,10 @@ namespace RTLib
                         float         ratioForBudget  /*RATIO FOR RECORDING TREE*/ = 0.5f,
                         unsigned int samplePerLaunch  /*SAMPLES PER LAUNCH*/ = 1
                     )noexcept
-                        :m_Tree{ tree }, m_SampleForBudget{ sampleForBudget }, m_SamplePerLaunch{ samplePerLaunch }, m_IterationForBuilt{ iterationForBuilt }, m_RatioForBudget{ ratioForBudget }{}
+                        :m_Tree{ tree }, m_SampleForBudget{ sampleForBudget }, m_SamplePerLaunch{ samplePerLaunch }, m_IterationForBuilt{ iterationForBuilt }, m_RatioForBudget{ ratioForBudget }{
+                        m_Module = std::unique_ptr<CUDA::CUDAModule>(RTLib::Ext::CUDA::CUDAModule::LoadFromData(m_Tree->GetContext(), GetPtxMortonQuadTreeBuildKernel()));
+                        m_Kernel = std::unique_ptr<CUDA::CUDAFunction>(m_Module->LoadFunction("mortonBuildKernel"));
+                    }
 
                     void SetSampleForBudget(unsigned int sampleForBudget)noexcept { m_SampleForBudget = sampleForBudget; }
 
@@ -806,7 +821,7 @@ namespace RTLib
 
                     }
 
-                    void EndTrace() {
+                    void EndTrace(CUDA::CUDAStream* stream = nullptr) {
                         if (!m_Tree || !m_TraceExecuting) {
                             return;
                         }
@@ -818,8 +833,10 @@ namespace RTLib
 #ifndef NDEBUG
                             printf("UpdateHashTree\n");
 #endif
-                            m_Tree->Update();
-
+                            m_Tree->Update(stream);
+#if RTLIB_EXT_OPX7_UTILS_OPX7_UTILS_MORTON_BUILD_BY_CUDA_KERNEL
+                            this->LaunchBuildKernel(stream);
+#endif
                             m_CurIteration++;
                             m_SamplePerTmp = 0;
                         }
@@ -837,8 +854,37 @@ namespace RTLib
                     auto GetState()const noexcept -> TraceState {
                         return m_TraceState;
                     }
+
+                    bool LaunchBuildKernel(CUDA::CUDAStream* stream = nullptr)
+                    {
+                        CUDA::CUDAKernelLaunchDesc launchDesc = {};
+
+                        launchDesc.blockDimX = 1024;
+                        launchDesc.blockDimY = 1;
+                        launchDesc.blockDimZ = 1;
+
+                        launchDesc.gridDimX  = ((m_Tree->GetMaxHashSize() + 1024 - 1) / 1024)*1024;
+                        launchDesc.gridDimY  = 1;
+                        launchDesc.gridDimZ  = 1;
+                        {
+                            auto weightBuilding = CUDA::CUDANatives::GetCUdeviceptr(m_Tree->GetWeightBufferSampling());
+                            unsigned int level            = m_Tree->GetMaxTreeLevel();
+                            unsigned int nodesPerElement  = kWeightBufferCountPerNodes;
+                            unsigned int numNodes         = m_Tree->GetMaxHashSize();
+                            launchDesc.kernelParams.resize(4);
+                            launchDesc.kernelParams[0] = &weightBuilding;
+                            launchDesc.kernelParams[1] = &level;
+                            launchDesc.kernelParams[2] = &nodesPerElement;
+                            launchDesc.kernelParams[3] = &numNodes;
+                        }
+                        launchDesc.sharedMemBytes = 0;
+                        launchDesc.stream = stream;
+                        return m_Kernel->Launch(launchDesc);
+                    }
                 private:
-                    RTMortonQuadTreeWrapperT<MaxLevel>* m_Tree = nullptr;
+                    RTMortonQuadTreeWrapperT<MaxLevel>* m_Tree   = nullptr;
+                    std::unique_ptr<CUDA::CUDAModule>   m_Module = nullptr;
+                    std::unique_ptr<CUDA::CUDAFunction> m_Kernel = nullptr;
                     unsigned int    m_SampleForBudget = 0;
                     unsigned int    m_SamplePerLaunch = 0;
                     unsigned int    m_IterationForBuilt = 0;

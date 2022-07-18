@@ -20,24 +20,18 @@ void SampleTest()
         std::cout << "(" << val.x << "," << val.y << "): " << pdf << "vs" << quadTree.Pdf(val) << std::endl;
     }
 }
-int main()
+void TracerTest()
 {
-    auto testApp = RTLibExtOPX7TestApplication(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/../scene2.json", "HTDEF", false,true,false);
+
+    auto testApp = RTLibExtOPX7TestApplication(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/../scene2.json", "HTDEF", false, true, false);
     try
     {
         testApp.Initialize();
 
-        auto pipelineName    = testApp.GetTracerName();
-        auto maxSamples     = testApp.GetMaxSamples();
+        auto pipelineName = testApp.GetTracerName();
+        auto maxSamples = testApp.GetMaxSamples();
         auto samplesPerSave = testApp.GetSamplesPerSave();
         {
-            //testApp.SetTracerName("PGRIS");
-            //testApp.SetMaxSamples(100);
-            //testApp.SetSamplesPerSave(10);
-            //testApp.MainLoop();
-            //testApp.SetMaxSamples(1000);
-            //testApp.SetSamplesPerSave(100);
-            //testApp.MainLoop();
             testApp.SetMaxSamples(1000);
             testApp.SetSamplesPerSave(100);
             testApp.MainLoop();
@@ -56,6 +50,8 @@ int main()
     //RTLibExtOPX7TestApplication(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/../scene.json", "DEF", false).Run();
     //RTLibExtOPX7TestApplication(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/../scene.json", "NEE", false).Run();
     //RTLibExtOPX7TestApplication(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/../scene.json", "RIS", false).Run();
-
-    
+}
+int main()
+{   
+    TracerTest();
 }

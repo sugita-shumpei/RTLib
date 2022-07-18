@@ -246,7 +246,7 @@ void RTLibExtOPX7TestApplication::LoadScene()
     }
 
     if (m_EnableGrid) {
-        m_MortonQuadTree           = std::make_unique<rtlib::test::RTMortonQuadTreeWrapper>(m_Opx7Context.get(),m_HashBufferCUDA.checkSumCpuHandle.size(), 4);
+        m_MortonQuadTree           = std::make_unique<rtlib::test::RTMortonQuadTreeWrapper>(m_Opx7Context.get(),m_HashBufferCUDA.checkSumCpuHandle.size(), 3);
         m_MortonQuadTree->Allocate();
         m_MortonQuadTreeController = std::make_unique<rtlib::test::RTMortonQuadTreeController>(
             m_MortonQuadTree.get(), (uint32_t)m_SceneData.config.maxSamples, 0, 0.5f, m_SceneData.config.samples
