@@ -451,12 +451,12 @@ namespace RTLib
                 template<unsigned int MaxLevel>
                 struct MortonQuadTreeWrapperT
                 {
-                    static inline constexpr unsigned int kMaxTreeLevel = MaxLevel;
+                    static inline constexpr auto kMaxTreeLevel = MaxLevel;
+                    static inline constexpr auto kCountPerNodes= ((static_cast<size_t>(1) << (2 * (MaxLevel + 1))) - 1) / 3;
                     RTLIB_INLINE RTLIB_DEVICE MortonQuadTreeWrapperT()noexcept {}
-                    RTLIB_INLINE RTLIB_DEVICE MortonQuadTreeWrapperT(unsigned int level_, unsigned int countPerNode_, float* weightsBuilding_, float* weightsSampling_)
+                    RTLIB_INLINE RTLIB_DEVICE MortonQuadTreeWrapperT(unsigned int level_, float* weightsBuilding_, float* weightsSampling_)
                     {
                         level           = level_;
-                        countPerNode    = countPerNode_;
                         weightsBuilding = weightsBuilding_;
                         weightsSampling = weightsSampling_;
                         fraction        = 0.3f;
@@ -464,13 +464,13 @@ namespace RTLib
 
                     RTLIB_INLINE RTLIB_DEVICE auto GetBuildingTree(unsigned int spatialIndex)const ->MortonQuadTreeT<MaxLevel>
                     {
-                        float* weightsBuildingForNode = weightsBuilding + countPerNode * spatialIndex;
+                        float* weightsBuildingForNode = weightsBuilding + kCountPerNodes * spatialIndex;
                         return MortonQuadTreeT<MaxLevel>(level, weightsBuildingForNode);
                     }
 
                     RTLIB_INLINE RTLIB_DEVICE auto GetSamplingTree(unsigned int spatialIndex)const ->MortonQuadTreeT<MaxLevel>
                     {
-                        float* weightsSamplingForNode = weightsSampling + countPerNode * spatialIndex;
+                        float* weightsSamplingForNode = weightsSampling + kCountPerNodes * spatialIndex;
                         return MortonQuadTreeT<MaxLevel>(level, weightsSamplingForNode);
                     }
 
@@ -524,7 +524,6 @@ namespace RTLib
                     }
 
                     unsigned int level;
-                    unsigned int countPerNode;
                     float        fraction;
                     float* weightsBuilding;
                     float* weightsSampling;
@@ -618,7 +617,7 @@ namespace RTLib
                     {
                         m_WeightBufferIndexBuilding = 1 - m_WeightBufferIndexBuilding;
                         auto weightBufferGpuAddress = CUDA::CUDANatives::GetCUdeviceptr(GetWeightBufferBuilding());
-                        cuMemsetD16Async(weightBufferGpuAddress, 0.0f, m_MaxHashSize * kWeightBufferCountPerNodes, CUDA::CUDANatives::GetCUstream(stream));
+                        cuMemsetD32Async(weightBufferGpuAddress, 0.0f, m_MaxHashSize * kWeightBufferCountPerNodes, CUDA::CUDANatives::GetCUstream(stream));
                     }
 
                     void Destroy() {
@@ -674,7 +673,7 @@ namespace RTLib
                     auto GetGpuHandle() noexcept -> MortonQuadTreeWrapperT<MaxLevel>
                     {
                         return MortonQuadTreeWrapperT<MaxLevel>(
-                            m_MaxTreeLevel, kWeightBufferCountPerNodes,
+                            m_MaxTreeLevel,
                             RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<float>(GetWeightBufferBuilding()),
                             RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<float>(GetWeightBufferSampling())
                         );

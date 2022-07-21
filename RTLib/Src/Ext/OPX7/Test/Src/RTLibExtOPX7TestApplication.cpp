@@ -237,7 +237,7 @@ void RTLibExtOPX7TestApplication::LoadScene()
     m_HashBufferCUDA.aabbMin = make_float3(m_WorldAabbMin[0] - 0.05f, m_WorldAabbMin[1] - 0.05f, m_WorldAabbMin[2] - 0.05f);
     m_HashBufferCUDA.aabbMax = make_float3(m_WorldAabbMax[0] + 0.05f, m_WorldAabbMax[1] + 0.05f, m_WorldAabbMax[2] + 0.05f);
     //1024*1024*4*341*2=2.4GB
-    m_HashBufferCUDA.Alloc(make_uint3(2, 2, 2), 1024 * 1024 );
+    m_HashBufferCUDA.Alloc(make_uint3(32, 32, 32), 1024 * 1024 );
     m_HashBufferCUDA.Upload(m_Opx7Context.get());
     {
         auto desc = RTLib::Ext::CUDA::CUDABufferCreateDesc();

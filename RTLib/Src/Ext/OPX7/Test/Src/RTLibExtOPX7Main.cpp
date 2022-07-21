@@ -23,7 +23,7 @@ void SampleTest()
 void TracerTest()
 {
 
-    auto testApp = RTLibExtOPX7TestApplication(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/../scene2.json", "HTNEE", true, true, false);
+    auto testApp = RTLibExtOPX7TestApplication(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/../scene2.json", "HTDEF", true, true, false);
     try
     {
         testApp.Initialize();
@@ -32,8 +32,8 @@ void TracerTest()
         auto maxSamples = testApp.GetMaxSamples();
         auto samplesPerSave = testApp.GetSamplesPerSave();
         {
-            testApp.SetMaxSamples(10000);
-            testApp.SetSamplesPerSave(1000);
+            testApp.SetMaxSamples(1000);
+            testApp.SetSamplesPerSave(100);
             testApp.MainLoop();
         }
         testApp.SetTracerName(pipelineName);
