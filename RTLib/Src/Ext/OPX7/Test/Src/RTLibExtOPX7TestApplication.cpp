@@ -235,7 +235,7 @@ void RTLibExtOPX7TestApplication::LoadScene()
 {
     m_HashBufferCUDA.aabbMin = make_float3(m_WorldAabbMin[0] - 0.005f, m_WorldAabbMin[1] - 0.005f, m_WorldAabbMin[2] - 0.005f);
     m_HashBufferCUDA.aabbMax = make_float3(m_WorldAabbMax[0] + 0.005f, m_WorldAabbMax[1] + 0.005f, m_WorldAabbMax[2] + 0.005f);
-    m_HashBufferCUDA.Alloc(make_uint3(128, 64, 128), 128 * 128 * 6);
+    m_HashBufferCUDA.Alloc(make_uint3(64, 32, 64), 128 * 128 * 4);
     m_HashBufferCUDA.Upload(m_Opx7Context.get());
     {
         auto desc = RTLib::Ext::CUDA::CUDABufferCreateDesc();
@@ -249,7 +249,7 @@ void RTLibExtOPX7TestApplication::LoadScene()
         m_MortonQuadTree           = std::make_unique<rtlib::test::RTMortonQuadTreeWrapper>(m_Opx7Context.get(),m_HashBufferCUDA.checkSumCpuHandle.size(), 30);
         m_MortonQuadTree->Allocate();
         m_MortonQuadTreeController = std::make_unique<rtlib::test::RTMortonQuadTreeController>(
-            m_MortonQuadTree.get(), (uint32_t)m_SceneData.config.maxSamples, 0, 0.5f, m_SceneData.config.samples
+            m_MortonQuadTree.get(), (uint32_t)m_SceneData.config.maxSamples, 3, 0.5f, m_SceneData.config.samples
         );
     }
 }

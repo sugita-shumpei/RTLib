@@ -429,7 +429,7 @@ extern "C" __global__ void     __closesthit__radiance() {
                 currHitFlags |= HIT_RECORD_FLAG_COUNT_EMITTED;
             }
 
-            if (((params.flags & PARAM_FLAG_USE_GRID) == PARAM_FLAG_USE_GRID) && ((params.flags & PARAM_FLAG_FINAL) != PARAM_FLAG_FINAL) && (prvGridIndex==UINT32_MAX))
+            if (((params.flags & PARAM_FLAG_USE_GRID) == PARAM_FLAG_USE_GRID) && ((params.flags & PARAM_FLAG_BUILD) != PARAM_FLAG_BUILD) && (prvGridIndex==UINT32_MAX))
             {
                 curGridIndex = params.grid.FindFromCur(info);
             }
@@ -669,7 +669,7 @@ extern "C" __global__ void     __closesthit__radiance_sphere() {
                 currHitFlags |= HIT_RECORD_FLAG_COUNT_EMITTED;
             }
 
-            if (((params.flags & PARAM_FLAG_USE_GRID) == PARAM_FLAG_USE_GRID) && ((params.flags & PARAM_FLAG_FINAL) != PARAM_FLAG_FINAL) && (prvGridIndex == UINT32_MAX))
+            if (((params.flags & PARAM_FLAG_USE_GRID) == PARAM_FLAG_USE_GRID) && ((params.flags & PARAM_FLAG_BUILD) != PARAM_FLAG_BUILD) && (prvGridIndex == UINT32_MAX))
             {
                 curGridIndex = params.grid.FindFromCur(info);
             }

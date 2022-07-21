@@ -32,8 +32,8 @@ void TracerTest()
         auto maxSamples = testApp.GetMaxSamples();
         auto samplesPerSave = testApp.GetSamplesPerSave();
         {
-            testApp.SetMaxSamples(1000);
-            testApp.SetSamplesPerSave(100);
+            testApp.SetMaxSamples(100);
+            testApp.SetSamplesPerSave(10);
             testApp.MainLoop();
         }
         testApp.SetTracerName(pipelineName);
