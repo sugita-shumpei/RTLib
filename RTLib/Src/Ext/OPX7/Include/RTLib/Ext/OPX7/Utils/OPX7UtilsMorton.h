@@ -618,7 +618,7 @@ namespace RTLib
                     {
                         m_WeightBufferIndexBuilding = 1 - m_WeightBufferIndexBuilding;
                         auto weightBufferGpuAddress = CUDA::CUDANatives::GetCUdeviceptr(GetWeightBufferBuilding());
-                        cuMemsetD16Async(weightBufferGpuAddress, 0.0f, m_MaxHashSize * kWeightBufferCountPerNodes, CUDA::CUDANatives::GetCUstream(stream));
+                        cuMemsetD32Async(weightBufferGpuAddress, 0.0f, m_MaxHashSize * kWeightBufferCountPerNodes, CUDA::CUDANatives::GetCUstream(stream));
                     }
 
                     void Destroy() {
