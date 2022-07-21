@@ -661,7 +661,7 @@ extern "C" __global__ void    __closesthit__debug() {
         if (hrec->userData.gridIndex != UINT32_MAX) {
             //auto gridValue = params.diffuseGridBuffer[hrec->userData.gridIndex];
             auto gridValue = make_float3(params.mortonTree.GetBuildingTree(hrec->userData.gridIndex).weights[0]);
-            hrec->userData.gridValue = gridValue;
+            hrec->userData.gridValue = make_float3(1.0f,gridValue.x>0.0f,isnan(gridValue.x));
         }
         else {
             hrec->userData.gridIndex = UINT32_MAX;

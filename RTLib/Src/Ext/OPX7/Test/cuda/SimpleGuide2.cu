@@ -41,8 +41,10 @@ static __forceinline__ __device__ float3       samplePhongPDF(const float3& refl
 }
 static __forceinline__ __device__ float        getValPhongPDF(const float3& direction, const float3& reflectDir, float shinness)
 {
-
-    const auto reflCos = RTLib::Ext::CUDA::Math::max(RTLib::Ext::CUDA::Math::dot(reflectDir, direction), 0.0f);
+    const auto reflCos = RTLib::Ext::CUDA::Math::dot(reflectDir, direction);
+    if (reflCos <= 0.0f) {
+        return 0.0f;
+    }
     return (shinness + 2.0f) * powf(reflCos, shinness) / RTLIB_M_2PI;
 }
 extern "C" __global__ void     __raygen__default() {
@@ -336,22 +338,40 @@ extern "C" __global__ void     __closesthit__radiance() {
             auto cosinePdf1  = RTLib::Ext::CUDA::Math::max(cosine1 * RTLIB_M_INV_PI, 0.0f);
             auto phongPdf0   = getValPhongPDF(direction0, reflDir, shinness);
             auto phongPdf1   = getValPhongPDF(direction1, reflDir, shinness);
-            auto aver_diff   = (diffuse.x + diffuse.y + diffuse.z) / 3.0f;
+            auto aver_diff   = ( diffuse.x +  diffuse.y +  diffuse.z) / 3.0f;
             auto aver_spec   = (specular.x + specular.y + specular.z) / 3.0f;
-            auto select_prob = (aver_diff) / (aver_diff + aver_spec);
-
+            auto select_prob = 0.0f;
+            if ((aver_diff  != 0.0f) && (aver_spec!= 0.0f)) {
+                select_prob  = (aver_diff) / (aver_diff + aver_spec);
+            }
+            else {
+                select_prob  = 0.5f;
+            }
             if (RTLib::Ext::CUDA::Math::random_float1(xor32) < select_prob) {
                 direction = direction0;
                 cosine = cosine0;
                 bsdfVal = diffuse * RTLIB_M_INV_PI + specular * phongPdf0;
                 bsdfPdf = (select_prob * cosinePdf0 + (1.0f - select_prob) * phongPdf0);
+                if (isnan(bsdfPdf)) {
+                    auto reflCos = RTLib::Ext::CUDA::Math::max(RTLib::Ext::CUDA::Math::dot(reflDir, direction), 0.0f);
+                    auto phongParam = powf(reflCos, shinness);
+                    printf("bsdfPdf is nan %lf %lf\n", aver_diff, aver_spec);
+                }
             }
             else {
                 direction = direction1;
                 cosine = cosine1;
                 bsdfVal = diffuse * RTLIB_M_INV_PI + specular * phongPdf1;
                 bsdfPdf = (select_prob * cosinePdf1 + (1.0f - select_prob) * phongPdf1);
+
+                if (isnan(bsdfPdf)) {
+                    auto reflCos = RTLib::Ext::CUDA::Math::max(RTLib::Ext::CUDA::Math::dot(reflDir, direction), 0.0f);
+                    auto phongParam = powf(reflCos, shinness);
+                    printf("bsdfPdf is nan %lf %lf\n", aver_diff, aver_spec);
+                }
             }
+
+
             if (((params.flags & PARAM_FLAG_USE_GRID) == PARAM_FLAG_USE_GRID) && ((params.flags & PARAM_FLAG_BUILD) == PARAM_FLAG_BUILD) && (prvGridIndex != UINT32_MAX)) {
                 if (RTLib::Ext::CUDA::Math::random_float1(xor32) < params.mortonTree.fraction) {
                     direction = RTLib::Ext::CUDA::Math::normalize(params.mortonTree.SampleAndPdf(prvGridIndex, dTreePdf, xor32));
@@ -374,6 +394,11 @@ extern "C" __global__ void     __closesthit__radiance() {
 
                 }
                 woPdf = params.mortonTree.fraction * dTreePdf + (1.0f - params.mortonTree.fraction) * bsdfPdf;
+                if (isnan(woPdf)) {
+                    auto reflCos = RTLib::Ext::CUDA::Math::max(RTLib::Ext::CUDA::Math::dot(reflDir, direction), 0.0f);
+                    auto phongParam = powf(reflCos, shinness);
+                    printf("1: woPdf is nan (%lf, %lf, %lf) phongParam = %lf shinness = %lf reflCos = %lf cosine = %lf bsdfPdf=%lf dTreePdf=%lf\n", direction.x, direction.y, direction.z, phongParam, shinness, reflCos, cosine, bsdfPdf, dTreePdf);
+                }
             }
             else
             {
@@ -495,9 +520,6 @@ extern "C" __global__ void     __closesthit__radiance() {
             woPdf = fabsf(cosine);
             bsdfPdf = 0.0f;
             dTreePdf = 0.0f;
-            if (isnan(direction.x) || isnan(direction.y) || isnan(direction.z)) {
-                printf("IOR: %lf Cos: %lf IDir: (%lf %lf %lf) Norm: (%lf %lf %lf) Refl: (%lf %lf %lf) ODir: (%lf %lf %lf) fresnell=%lf\n", rRefIdx, cosine_i, inDir.x, inDir.y, inDir.z, rNormal.x, rNormal.y, rNormal.z, reflDir.x, reflDir.y, reflDir.z, direction.x, direction.y, direction.z, fresnell);
-            }
             currHitFlags |= HIT_RECORD_FLAG_COUNT_EMITTED;
             currHitFlags |= HIT_RECORD_FLAG_DELTA_MATERIAL;
             break;
@@ -578,20 +600,38 @@ extern "C" __global__ void     __closesthit__radiance_sphere() {
             auto phongPdf1 = getValPhongPDF(direction1, reflDir, shinness);
             auto aver_diff = (diffuse.x + diffuse.y + diffuse.z) / 3.0f;
             auto aver_spec = (specular.x + specular.y + specular.z) / 3.0f;
-            auto select_prob = (aver_diff) / (aver_diff + aver_spec);
+            auto select_prob = 0.0f;
+            if ((aver_diff != 0.0f) && (aver_spec != 0.0f)) {
+                select_prob = (aver_diff) / (aver_diff + aver_spec);
+            }
+            else {
+                select_prob = 0.5f;
+            }
 
             if (RTLib::Ext::CUDA::Math::random_float1(xor32) < select_prob) {
                 direction = direction0;
                 cosine = cosine0;
                 bsdfVal = diffuse * RTLIB_M_INV_PI + specular * phongPdf0;
                 bsdfPdf = (select_prob * cosinePdf0 + (1.0f - select_prob) * phongPdf0);
+                if (isnan(bsdfPdf)) {
+                    auto reflCos = RTLib::Ext::CUDA::Math::max(RTLib::Ext::CUDA::Math::dot(reflDir, direction), 0.0f);
+                    auto phongParam = powf(reflCos, shinness);
+                    printf("0: woPdf is nan (%lf, %lf, %lf) phongParam = %lf shinness = %lf reflCos = %lf cosine = %lf bsdfPdf=%lf cosinePdf=%lf phongBsdf=%lf\n", direction.x, direction.y, direction.z, phongParam, shinness, reflCos, cosine, bsdfPdf, cosinePdf0, phongPdf0);
+                }
             }
             else {
                 direction = direction1;
                 cosine = cosine1;
                 bsdfVal = diffuse * RTLIB_M_INV_PI + specular * phongPdf1;
                 bsdfPdf = (select_prob * cosinePdf1 + (1.0f - select_prob) * phongPdf1);
+
+                if (isnan(bsdfPdf)) {
+                    auto reflCos = RTLib::Ext::CUDA::Math::max(RTLib::Ext::CUDA::Math::dot(reflDir, direction), 0.0f);
+                    auto phongParam = powf(reflCos, shinness);
+                    printf("0: woPdf is nan (%lf, %lf, %lf) phongParam = %lf shinness = %lf reflCos = %lf cosine = %lf bsdfPdf=%lf cosinePdf=%lf phongBsdf=%lf\n", direction.x, direction.y, direction.z, phongParam, shinness, reflCos, cosine, bsdfPdf, cosinePdf1, phongPdf1);
+                }
             }
+
             if (((params.flags & PARAM_FLAG_USE_GRID) == PARAM_FLAG_USE_GRID) && ((params.flags & PARAM_FLAG_BUILD) == PARAM_FLAG_BUILD) && (prvGridIndex != UINT32_MAX)) {
                 if (RTLib::Ext::CUDA::Math::random_float1(xor32) < params.mortonTree.fraction) {
                     direction = RTLib::Ext::CUDA::Math::normalize(params.mortonTree.SampleAndPdf(prvGridIndex, dTreePdf, xor32));
@@ -614,6 +654,11 @@ extern "C" __global__ void     __closesthit__radiance_sphere() {
 
                 }
                 woPdf = params.mortonTree.fraction * dTreePdf + (1.0f - params.mortonTree.fraction) * bsdfPdf;
+                if (isnan(woPdf)) {
+                    auto reflCos = RTLib::Ext::CUDA::Math::max(RTLib::Ext::CUDA::Math::dot(reflDir, direction),0.0f);
+                    auto phongParam = powf(reflCos, shinness);
+                    printf("woPdf is nan (%lf, %lf, %lf) phongParam = %lf shinness = %lf reflCos = %lf cosine = %lf bsdfPdf=%lf dTreePdf=%lf\n", direction.x, direction.y, direction.z,phongParam, shinness, reflCos, cosine, bsdfPdf, dTreePdf);
+                }
             }
             else
             {
