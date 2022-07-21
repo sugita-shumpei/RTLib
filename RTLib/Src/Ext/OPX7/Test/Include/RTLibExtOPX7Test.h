@@ -186,17 +186,29 @@ namespace rtlib
             unsigned int samplesPerSave;
             unsigned int maxSamples;
             unsigned int maxDepth;
+            RTLib::Core::VariableMap custom;
+            std::unordered_map<std::string, RTLib::Core::VariableMap> tracers;
         };
 
         template<typename JsonType>
         inline void   to_json(JsonType& j, const TraceConfigData& v) {
-            j["ImagePath"]  = v.imagePath;
-            j["Width"     ] = v.width;
-            j["Height"    ] = v.height;
-            j["Samples"   ] = v.samples;
+            j["ImagePath"]      = v.imagePath;
+            j["Width"     ]     = v.width;
+            j["Height"    ]     = v.height;
+            j["Samples"   ]     = v.samples;
             j["SamplesPerSave"] = v.samplesPerSave;
-            j["MaxSamples"] = v.maxSamples;
-            j["MaxDepth"]   = v.maxDepth;
+            j["MaxSamples"]     = v.maxSamples;
+            j["MaxDepth"]       = v.maxDepth;
+            if (!v.custom.IsEmpty())
+            {
+                j["Custom"] = v.custom;
+            }
+            for (auto& [name, tracer] : v.tracers)
+            {
+                if (tracer.IsEmpty()) {
+                    j["Tracers"][name] = tracer;
+                }
+            }
         }
         template<typename JsonType>
         inline void from_json(const JsonType& j, TraceConfigData& v) {
@@ -207,6 +219,16 @@ namespace rtlib
             v.samplesPerSave = j.at("SamplesPerSave").get<unsigned int>();
             v.maxSamples     = j.at("MaxSamples").get<unsigned int>();
             v.maxDepth       = j.at("MaxDepth"  ).get<unsigned int>();
+            if (j.count( "Custom") > 0) {
+                v.custom     = j.at("Custom").get<RTLib::Core::VariableMap>();
+            }
+            if (j.count("Tracers") > 0)
+            {
+                for(const auto& elem:j.at("Tracers").items())
+                {
+                    v.tracers[elem.key()] = elem.value().get<RTLib::Core::VariableMap>();
+                }
+            }
         }
 
         struct ImageConfigData
@@ -1787,13 +1809,19 @@ namespace rtlib
                     context->CopyMemoryToBuffer(checkSumGpuHandles[1].get(), { desc });
                 }
             }
-            void Update(  RTLib::Ext::CUDA::CUDAContext* context) {
+            void Update(  RTLib::Ext::CUDA::CUDAContext* context, RTLib::Ext::CUDA::CUDAStream* stream = nullptr) {
             #ifndef NDEBUG
                 std::cout << "Update Double Buffered Hash Grid\n";
             #endif
                 auto curCheckSumGpuAddress = RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(GetCurCheckSumGpuHandle());
                 auto prvCheckSumGpuAddress = RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(GetPrvCheckSumGpuHandle());
-                cuMemcpyDtoD(prvCheckSumGpuAddress, curCheckSumGpuAddress, checkSumCpuHandle.size() * sizeof(checkSumCpuHandle[0]));
+                if (!stream) {
+                    cuMemcpyDtoD(prvCheckSumGpuAddress, curCheckSumGpuAddress, checkSumCpuHandle.size() * sizeof(checkSumCpuHandle[0]));
+                }
+                else {
+                    auto cuStream = RTLib::Ext::CUDA::CUDANatives::GetCUstream(stream);
+                    cuMemcpyDtoDAsync(prvCheckSumGpuAddress, curCheckSumGpuAddress, checkSumCpuHandle.size() * sizeof(checkSumCpuHandle[0]), cuStream);
+                }
                 curIndex = (1 + curIndex)%2;
             }
             auto GetHandle() noexcept -> rtlib::test::DoubleBufferedHashGrid3

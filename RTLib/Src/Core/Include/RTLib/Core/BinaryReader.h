@@ -95,6 +95,17 @@ namespace RTLib {
             auto EnumerateFloat3Data()const noexcept -> const std::unordered_map<std::string, std::array<float, 3>>& { return m_Float3Data; }
             auto EnumerateFloat4Data()const noexcept -> const std::unordered_map<std::string, std::array<float, 4>>& { return m_Float4Data; }
             auto EnumerateStringData()const noexcept -> const std::unordered_map<std::string, std::string>& { return m_StringData; }
+
+            bool IsEmpty()const noexcept
+            {
+                return EnumerateBoolData().empty() &&
+                       EnumerateUInt32Data().empty() &&
+                       EnumerateFloat1Data().empty() &&
+                       EnumerateFloat2Data().empty() &&
+                       EnumerateFloat3Data().empty() &&
+                       EnumerateFloat4Data().empty() &&
+                       EnumerateStringData().empty();
+            }
         private:
             std::unordered_map<std::string, uint32_t>              m_UInt32Data;
             std::unordered_map<std::string, bool>                  m_BoolData;

@@ -5,7 +5,7 @@ int main(int argc, const char* argv[]) {
     auto yCenter = unsigned int(662);
     auto xRange = 128;
     auto yRange = 128;
-    auto baseSamples = 10000;
+    auto baseSamples = 1000000;
     if (argc > 1) {
         isAllRange = false;
         if (std::string(argv[1]) == "--xcenter") {
@@ -22,7 +22,7 @@ int main(int argc, const char* argv[]) {
         }
     }
     //return RTLibExtOPX7TestApplication(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/../scene.json", "DEF", false).Run();
-    auto filePath = std::filesystem::path(RTLIB_EXT_OPX7_TEST_DATA_PATH"\\..\\Result\\Scene0\\Depth=10").make_preferred();
+    auto filePath = std::filesystem::path(RTLIB_EXT_OPX7_TEST_DATA_PATH"\\..\\Result\\Scene1\\Depth=10").make_preferred();
     auto baseImageData = std::vector<float3>();
     auto imageSizeX = static_cast<int>(0);
     auto imageSizeY = static_cast<int>(0);

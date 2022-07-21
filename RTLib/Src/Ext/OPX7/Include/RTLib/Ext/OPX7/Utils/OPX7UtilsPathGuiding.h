@@ -1350,7 +1350,8 @@ namespace RTLib
 					using CUDABufferPtr = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>;
 				public:
 					RTSTreeWrapperT(RTLib::Ext::CUDA::CUDAContext* context, const float3& aabbMin, const float3& aabbMax, unsigned int maxDTreeDepth = 20)noexcept :m_CpuSTree{ aabbMin,aabbMax }, m_Context{context}, m_MaxDTreeDepth{ maxDTreeDepth }{}
-					void Upload()noexcept {
+					void Upload(CUDA::CUDAStream* stream = nullptr)noexcept {
+						bool isNeededSync = false;
 						//Uploadは両方必要
 						const size_t gpuSTreeNodeCnt = m_CpuSTree.GetNumNodes();
 						size_t gpuDTreeCnt = 0;
@@ -1377,12 +1378,24 @@ namespace RTLib
 							if (m_GpuSTreeNodes) {
 								if (m_GpuSTreeNodes->GetSizeInBytes() != desc.sizeInBytes)
 								{
+									if (!isNeededSync) { 
+										if (stream) {
+											stream->Synchronize();
+										}
+									}
 									m_GpuSTreeNodes->Destroy();
 									m_GpuSTreeNodes = CUDABufferPtr(m_Context->CreateBuffer(desc));
+									isNeededSync = true;
 								}
 							}
 							else {
+								if (!isNeededSync) {
+									if (stream) {
+										stream->Synchronize();
+									}
+								}
 								m_GpuSTreeNodes = CUDABufferPtr(m_Context->CreateBuffer(desc));
+								isNeededSync = true;
 							}
 						}
 						{
@@ -1393,12 +1406,24 @@ namespace RTLib
 							if (m_GpuDTreeWrappers) {
 								if (m_GpuDTreeWrappers->GetSizeInBytes() != desc.sizeInBytes)
 								{
+									if (!isNeededSync) {
+										if (stream) {
+											stream->Synchronize();
+										}
+									}
 									m_GpuDTreeWrappers->Destroy();
 									m_GpuDTreeWrappers = CUDABufferPtr(m_Context->CreateBuffer(desc));
+									isNeededSync = true;
 								}
 							}
 							else {
+								if (!isNeededSync) {
+									if (stream) {
+										stream->Synchronize();
+									}
+								}
 								m_GpuDTreeWrappers = CUDABufferPtr(m_Context->CreateBuffer(desc));
+								isNeededSync = true;
 							}
 						}
 						{
@@ -1409,12 +1434,24 @@ namespace RTLib
 							if (m_GpuDTreeNodesBuilding) {
 								if (m_GpuDTreeNodesBuilding->GetSizeInBytes() != desc.sizeInBytes)
 								{
+									if (!isNeededSync) {
+										if (stream) {
+											stream->Synchronize();
+										}
+									}
 									m_GpuDTreeNodesBuilding->Destroy();
 									m_GpuDTreeNodesBuilding = CUDABufferPtr(m_Context->CreateBuffer(desc));
+									isNeededSync = true;
 								}
 							}
 							else {
+								if (!isNeededSync) {
+									if (stream) {
+										stream->Synchronize();
+									}
+								}
 								m_GpuDTreeNodesBuilding = CUDABufferPtr(m_Context->CreateBuffer(desc));
+								isNeededSync = true;
 							}
 						}
 						{
@@ -1426,12 +1463,24 @@ namespace RTLib
 							if (m_GpuDTreeNodesSampling) {
 								if (m_GpuDTreeNodesSampling->GetSizeInBytes() != desc.sizeInBytes)
 								{
+									if (!isNeededSync) {
+										if (stream) {
+											stream->Synchronize();
+										}
+									}
 									m_GpuDTreeNodesSampling->Destroy();
 									m_GpuDTreeNodesSampling = CUDABufferPtr(m_Context->CreateBuffer(desc));
+									isNeededSync = true;
 								}
 							}
 							else {
+								if (!isNeededSync) {
+									if (stream) {
+										stream->Synchronize();
+									}
+								}
 								m_GpuDTreeNodesSampling = CUDABufferPtr(m_Context->CreateBuffer(desc));
+								isNeededSync = true;
 							}
 						}
 						{
@@ -1468,7 +1517,7 @@ namespace RTLib
 							}
 						}
 						//Upload
-						{
+						if (!stream) {
 							auto memoryBufferCopy = RTLib::Ext::CUDA::CUDAMemoryBufferCopy();
 							memoryBufferCopy.size      = m_GpuSTreeNodes->GetSizeInBytes();
 							memoryBufferCopy.srcData   = sTreeNodes.data();
@@ -1487,12 +1536,33 @@ namespace RTLib
 							memoryBufferCopy.dstOffset = 0;
 							RTLIB_CORE_ASSERT_IF_FAILED(m_Context->CopyMemoryToBuffer(m_GpuDTreeNodesSampling.get(), { memoryBufferCopy }));
 						}
+						else {
+							auto memoryBufferCopy = RTLib::Ext::CUDA::CUDAMemoryBufferCopy();
+							memoryBufferCopy.size = m_GpuSTreeNodes->GetSizeInBytes();
+							memoryBufferCopy.srcData = sTreeNodes.data();
+							memoryBufferCopy.dstOffset = 0;
+							RTLIB_CORE_ASSERT_IF_FAILED(stream->CopyMemoryToBuffer(m_GpuSTreeNodes.get(), { memoryBufferCopy }));
+							memoryBufferCopy.size = m_GpuDTreeWrappers->GetSizeInBytes();
+							memoryBufferCopy.srcData = dTreeWrappers.data();
+							memoryBufferCopy.dstOffset = 0;
+							RTLIB_CORE_ASSERT_IF_FAILED(stream->CopyMemoryToBuffer(m_GpuDTreeWrappers.get(), { memoryBufferCopy }));
+							memoryBufferCopy.size = m_GpuDTreeNodesBuilding->GetSizeInBytes();
+							memoryBufferCopy.srcData = dTreeNodesBuilding.data();
+							memoryBufferCopy.dstOffset = 0;
+							RTLIB_CORE_ASSERT_IF_FAILED(stream->CopyMemoryToBuffer(m_GpuDTreeNodesBuilding.get(), { memoryBufferCopy }));
+							memoryBufferCopy.size = m_GpuDTreeNodesSampling->GetSizeInBytes();
+							memoryBufferCopy.srcData = dTreeNodesSampling.data();
+							memoryBufferCopy.dstOffset = 0;
+							RTLIB_CORE_ASSERT_IF_FAILED(stream->CopyMemoryToBuffer(m_GpuDTreeNodesSampling.get(), { memoryBufferCopy }));
+						}
+#ifndef NDEBUG
 						std::cout << "Upload(Info)\n";
 						std::cout << "GpuSTreeNodes          : " << m_GpuSTreeNodes->GetSizeInBytes()         / (1024.0f * 1024.0f) << "MB\n";
 						std::cout << "GpuDTreeNodes(Building): " << m_GpuDTreeNodesBuilding->GetSizeInBytes() / (1024.0f * 1024.0f) << "MB\n";
 						std::cout << "GpuDTreeNodes(Sampling): " << m_GpuDTreeNodesSampling->GetSizeInBytes() / (1024.0f * 1024.0f) << "MB\n";
+#endif
 					}
-					void Download() noexcept {
+					void Download(CUDA::CUDAStream* stream = nullptr) noexcept {
 						//ダウンロードが必要なのはBuildingだけ
 						const size_t gpuSTreeNodeCnt = m_CpuSTree.GetNumNodes();
 						size_t gpuDTreeCnt = 0;
@@ -1505,7 +1575,7 @@ namespace RTLib
 						}
 						std::vector<DTreeWrapper> dTreeWrappers(gpuDTreeCnt);
 						std::vector<DTreeNode>    dTreeNodesBuilding(gpuDTreeNodeCntBuilding);
-						{
+						if(!stream) {
 							auto bufferMemoryCopy      = RTLib::Ext::CUDA::CUDABufferMemoryCopy();
 							bufferMemoryCopy.size      = m_GpuDTreeWrappers->GetSizeInBytes();
 							bufferMemoryCopy.dstData   = dTreeWrappers.data();
@@ -1515,6 +1585,17 @@ namespace RTLib
 							bufferMemoryCopy.dstData   = dTreeNodesBuilding.data();
 							bufferMemoryCopy.srcOffset = 0;
 							RTLIB_CORE_ASSERT_IF_FAILED(m_Context->CopyBufferToMemory(m_GpuDTreeNodesBuilding.get(), { bufferMemoryCopy }));
+						}
+						else {
+							auto bufferMemoryCopy = RTLib::Ext::CUDA::CUDABufferMemoryCopy();
+							bufferMemoryCopy.size = m_GpuDTreeWrappers->GetSizeInBytes();
+							bufferMemoryCopy.dstData = dTreeWrappers.data();
+							bufferMemoryCopy.srcOffset = 0;
+							RTLIB_CORE_ASSERT_IF_FAILED(stream->CopyBufferToMemory(m_GpuDTreeWrappers.get(), { bufferMemoryCopy }));
+							bufferMemoryCopy.size = m_GpuDTreeNodesBuilding->GetSizeInBytes();
+							bufferMemoryCopy.dstData = dTreeNodesBuilding.data();
+							bufferMemoryCopy.srcOffset = 0;
+							RTLIB_CORE_ASSERT_IF_FAILED(stream->CopyBufferToMemory(m_GpuDTreeNodesBuilding.get(), { bufferMemoryCopy }));
 						}
 						{
 							size_t cpuDTreeIndex = 0;
@@ -1703,7 +1784,7 @@ namespace RTLib
 						m_TraceStart = true;
 					}
 
-					void BegTrace() {
+					void BegTrace(CUDA::CUDAStream* stream = nullptr) {
 						if (!m_STree) {
 							return;
 						}
@@ -1723,7 +1804,7 @@ namespace RTLib
 
 							m_STree->Destroy();
 							m_STree->Clear();
-							m_STree->Upload();
+							m_STree->Upload(stream);
 						}
 						if (!m_TraceExecuting) {
 							return;
@@ -1740,9 +1821,9 @@ namespace RTLib
 							}
 
 							if (m_SampleForRemain > m_SampleForPass) {
-								m_STree->Download();
+								m_STree->Download(stream);
 								m_STree->Reset(m_CurIteration, m_SampleForPass);
-								m_STree->Upload();
+								m_STree->Upload(stream);
 							}
 						}
 						if (m_CurIteration > m_IterationForBuilt) {
@@ -1756,12 +1837,13 @@ namespace RTLib
 						else {
 							m_TraceState = TraceStateRecord;
 						}
-
+#ifndef NDEBUG
 						std::cout << "CurIteration: " << m_CurIteration << " SamplePerTmp: " << m_SamplePerTmp << std::endl;
+#endif
 
 					}
 
-					void EndTrace() {
+					void EndTrace(CUDA::CUDAStream* stream = nullptr) {
 						if (!m_STree || !m_TraceExecuting) {
 							return;
 						}
@@ -1770,9 +1852,9 @@ namespace RTLib
 
 						if (m_SamplePerTmp >= m_SampleForPass)
 						{
-							m_STree->Download();
+							m_STree->Download(stream);
 							m_STree->Build();
-							m_STree->Upload();
+							m_STree->Upload(stream);
 
 							m_CurIteration++;
 							m_SamplePerTmp = 0;

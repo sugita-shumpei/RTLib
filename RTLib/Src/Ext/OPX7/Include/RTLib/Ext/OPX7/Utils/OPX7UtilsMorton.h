@@ -602,6 +602,10 @@ namespace RTLib
 
                     void Allocate()
                     {
+
+#ifndef NDEBUG
+                        std::cout << "Allocate" << std::endl;
+#endif
                         RTLib::Ext::CUDA::CUDABufferCreateDesc desc = {};
 
                         desc.flags = RTLib::Ext::CUDA::CUDAMemoryFlags::eDefault;
@@ -616,12 +620,19 @@ namespace RTLib
 
                     void Update(RTLib::Ext::CUDA::CUDAStream* stream = nullptr)
                     {
+#ifndef NDEBUG
+                        std::cout << "Update" << std::endl;
+
+#endif
                         m_WeightBufferIndexBuilding = 1 - m_WeightBufferIndexBuilding;
                         auto weightBufferGpuAddress = CUDA::CUDANatives::GetCUdeviceptr(GetWeightBufferBuilding());
                         cuMemsetD32Async(weightBufferGpuAddress, 0.0f, m_MaxHashSize * kWeightBufferCountPerNodes, CUDA::CUDANatives::GetCUstream(stream));
                     }
 
                     void Destroy() {
+#ifndef NDEBUG
+                        std::cout << "Destroy" << std::endl;
+#endif
                         if (m_WeightBuffersCUDA[0]) {
                             m_WeightBuffersCUDA[0]->Destroy();
                             m_WeightBuffersCUDA[0].reset();
@@ -633,7 +644,9 @@ namespace RTLib
                     }
 
                     void Clear(RTLib::Ext::CUDA::CUDAStream* stream = nullptr) {
-
+#ifndef NDEBUG
+                        std::cout << "Clear" << std::endl;
+#endif
                         auto copy = RTLib::Ext::CUDA::CUDAMemoryBufferCopy();
                         copy.size = sizeof(float) * m_MaxHashSize * kWeightBufferCountPerNodes;
                         copy.dstOffset = 0;
@@ -746,7 +759,7 @@ namespace RTLib
                             m_SamplePerTmp = 0;
                             m_CurIteration = 0;
 
-                            m_TraceStart = false;
+                            m_TraceStart     = false;
                             m_TraceExecuting = true;
 
                             m_SampleForRemain = ((m_SampleForBudget - 1 + m_SamplePerLaunch) / m_SamplePerLaunch) * m_SamplePerLaunch;
@@ -813,15 +826,19 @@ namespace RTLib
 
                         if (m_SamplePerTmp >= m_SampleForPass)
                         {
-#ifndef NDEBUG
-                            printf("UpdateHashTree\n");
-#endif
-                            m_Tree->Update(stream);
-                            //this->LaunchClearKernel(stream);
-#if RTLIB_EXT_OPX7_UTILS_OPX7_UTILS_MORTON_BUILD_BY_CUDA_KERNEL
-                            this->LaunchBuildKernel(stream);
-#endif
                             m_CurIteration++;
+
+                            if (m_CurIteration > m_IterationForBuilt) {
+#ifndef NDEBUG
+                                printf("UpdateHashTree\n");
+
+#endif
+                                m_Tree->Update(stream);
+                                //this->LaunchClearKernel(stream);
+#if RTLIB_EXT_OPX7_UTILS_OPX7_UTILS_MORTON_BUILD_BY_CUDA_KERNEL
+                                this->LaunchBuildKernel(stream);
+#endif
+                            }
                             m_SamplePerTmp = 0;
                         }
                         if (m_SamplePerAll > m_SampleForBudget) {

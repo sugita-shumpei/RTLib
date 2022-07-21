@@ -235,7 +235,31 @@ void RTLibExtOPX7TestApplication::LoadScene()
 {
     m_HashBufferCUDA.aabbMin = make_float3(m_WorldAabbMin[0] - 0.005f, m_WorldAabbMin[1] - 0.005f, m_WorldAabbMin[2] - 0.005f);
     m_HashBufferCUDA.aabbMax = make_float3(m_WorldAabbMax[0] + 0.005f, m_WorldAabbMax[1] + 0.005f, m_WorldAabbMax[2] + 0.005f);
-    m_HashBufferCUDA.Alloc(make_uint3(64, 32, 64), 128 * 128 * 4);
+    auto hashGridCellSize = static_cast<unsigned int>(128*128*4);
+    auto hashGridGridSize = make_uint3(128,64,128);
+    if (m_SceneData.config.custom.HasFloat1("HashGrid.CellSize")&&
+        m_SceneData.config.custom.HasFloat3("HashGrid.GridSize")) {
+        hashGridCellSize = m_SceneData.config.custom.GetFloat1("HashGrid.CellSize");
+        hashGridGridSize = make_uint3(
+            m_SceneData.config.custom.GetFloat3("HashGrid.GridSize")[0],
+            m_SceneData.config.custom.GetFloat3("HashGrid.GridSize")[1],
+            m_SceneData.config.custom.GetFloat3("HashGrid.GridSize")[2]
+        );
+    }
+    auto ratioForBudget = static_cast<float>(0.5f);
+    if (m_SceneData.config.custom.HasFloat1("MortonTree.RatioForBudget")) {
+        ratioForBudget = m_SceneData.config.custom.GetFloat1("MortonTree.RatioForBudget");
+    }
+    auto iterationForBuilt = static_cast<unsigned int>(3);
+    if (m_SceneData.config.custom.HasUInt32("MortonTree.IterationForBuilt")) {
+        iterationForBuilt = m_SceneData.config.custom.GetUInt32("MortonTree.IterationForBuilt");
+    }
+    std::cout << "HashGrid.GridSize: (" << hashGridGridSize.x << "," << hashGridGridSize.y << "," << hashGridGridSize.z << ")\n";
+    std::cout << "HashGrid.CellSize:  " << hashGridCellSize   << "\n";
+    std::cout << "MortonTree.RatioForBudget   :  " << ratioForBudget    << "\n";
+    std::cout << "MortonTree.IterationForBuilt:  " << iterationForBuilt << "\n";
+
+    m_HashBufferCUDA.Alloc(hashGridGridSize, hashGridCellSize);
     m_HashBufferCUDA.Upload(m_Opx7Context.get());
     {
         auto desc = RTLib::Ext::CUDA::CUDABufferCreateDesc();
@@ -249,7 +273,7 @@ void RTLibExtOPX7TestApplication::LoadScene()
         m_MortonQuadTree           = std::make_unique<rtlib::test::RTMortonQuadTreeWrapper>(m_Opx7Context.get(),m_HashBufferCUDA.checkSumCpuHandle.size(), 30);
         m_MortonQuadTree->Allocate();
         m_MortonQuadTreeController = std::make_unique<rtlib::test::RTMortonQuadTreeController>(
-            m_MortonQuadTree.get(), (uint32_t)m_SceneData.config.maxSamples, 3, 0.5f, m_SceneData.config.samples
+            m_MortonQuadTree.get(), (uint32_t)m_SceneData.config.maxSamples, iterationForBuilt, ratioForBudget, m_SceneData.config.samples
         );
     }
 }
@@ -2588,7 +2612,7 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
     m_PipelineName = "Trace";
     if ((m_CurTracerName == "PGDEF")||(m_CurTracerName == "PGNEE") || (m_CurTracerName == "PGRIS"))
     {
-        m_SdTreeController->BegTrace();
+        m_SdTreeController->BegTrace(stream);
         if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecord)
         {
             m_PipelineName = "Build";
@@ -2631,26 +2655,14 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
         }
     }
     if ((m_CurTracerName == "PGDEF") || (m_CurTracerName == "PGNEE") || (m_CurTracerName == "PGRIS")) {
-        if (!shouldSync) {
-            if (stream) {
-                RTLIB_CORE_ASSERT_IF_FAILED(stream->Synchronize());
-            }
-            shouldSync = true;
-        }
-        m_SdTreeController->EndTrace();
+        m_SdTreeController->EndTrace(stream);
     }
     if ((m_CurTracerName == "HTDEF") || (m_CurTracerName == "HTNEE") || (m_CurTracerName == "HTRIS")) {
-        if (!shouldSync) {
-            if (stream) {
-                RTLIB_CORE_ASSERT_IF_FAILED(stream->Synchronize());
-            }
-            shouldSync = true;
-        }
-        m_MortonQuadTreeController->EndTrace();
+        m_MortonQuadTreeController->EndTrace(stream);
         if (m_MortonQuadTreeController->m_SamplePerTmp == 0)
         {
             if (m_EnableGrid) {
-                m_HashBufferCUDA.Update(m_Opx7Context.get());
+                m_HashBufferCUDA.Update(m_Opx7Context.get(),stream);
             }
         }
     }

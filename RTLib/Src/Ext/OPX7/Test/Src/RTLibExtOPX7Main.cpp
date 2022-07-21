@@ -23,7 +23,7 @@ void SampleTest()
 void TracerTest()
 {
 
-    auto testApp = RTLibExtOPX7TestApplication(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/../scene.json", "HTRIS", false, true, false);
+    auto testApp = RTLibExtOPX7TestApplication(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/../scene.json", "HTDEF", false, true, false);
     try
     {
         testApp.Initialize();
