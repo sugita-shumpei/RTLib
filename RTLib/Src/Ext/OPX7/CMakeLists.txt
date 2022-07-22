@@ -112,16 +112,20 @@ add_custom_command(TARGET RTLib-Ext-OPX7-Test-Lib-Build-Kernel PRE_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/SimpleTrace.cu  ${CMAKE_CURRENT_BINARY_DIR}/Test/cuda/SimpleTrace.cu
     COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/SimpleGuide.cu  ${CMAKE_CURRENT_BINARY_DIR}/Test/cuda/SimpleGuide.cu
     COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/SimpleGuide2.cu ${CMAKE_CURRENT_BINARY_DIR}/Test/cuda/SimpleGuide2.cu
+
 )
 add_custom_command(TARGET RTLib-Ext-OPX7-Test-Lib-Build-Kernel POST_BUILD
     COMMAND ${CUDAToolkit_NVCC_EXECUTABLE}           ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/SimpleTrace.cu ${RTLIB_EXT_OPX7_TEST_NVCC_OPTIONS} -ptx -o ${CMAKE_CURRENT_BINARY_DIR}/Test/cuda/SimpleTrace.ptx
     COMMAND ${CUDAToolkit_NVCC_EXECUTABLE} -optix-ir ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/SimpleTrace.cu ${RTLIB_EXT_OPX7_TEST_NVCC_OPTIONS}      -o ${CMAKE_CURRENT_BINARY_DIR}/Test/cuda/SimpleTrace.optixir
+    COMMAND ${CUDAToolkit_BIN_DIR}\\bin2c --const -st --name RTLibExtOPX7UtilsSimpleTraceOptixIRBinary     ${CMAKE_CURRENT_BINARY_DIR}/Test/cuda/SimpleTrace.optixir > ${CMAKE_CURRENT_BINARY_DIR}/Test/cuda/SimpleTrace.optixir.h
 
     COMMAND ${CUDAToolkit_NVCC_EXECUTABLE}           ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/SimpleGuide.cu ${RTLIB_EXT_OPX7_TEST_NVCC_OPTIONS} -ptx -o ${CMAKE_CURRENT_BINARY_DIR}/Test/cuda/SimpleGuide.ptx
     COMMAND ${CUDAToolkit_NVCC_EXECUTABLE} -optix-ir ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/SimpleGuide.cu ${RTLIB_EXT_OPX7_TEST_NVCC_OPTIONS}      -o ${CMAKE_CURRENT_BINARY_DIR}/Test/cuda/SimpleGuide.optixir
+    COMMAND ${CUDAToolkit_BIN_DIR}\\bin2c --const -st --name RTLibExtOPX7UtilsSimpleGuideOptixIRBinary     ${CMAKE_CURRENT_BINARY_DIR}/Test/cuda/SimpleGuide.optixir > ${CMAKE_CURRENT_BINARY_DIR}/Test/cuda/SimpleGuide.optixir.h
 
     COMMAND ${CUDAToolkit_NVCC_EXECUTABLE}           ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/SimpleGuide2.cu ${RTLIB_EXT_OPX7_TEST_NVCC_OPTIONS} -ptx -o ${CMAKE_CURRENT_BINARY_DIR}/Test/cuda/SimpleGuide2.ptx
     COMMAND ${CUDAToolkit_NVCC_EXECUTABLE} -optix-ir ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/SimpleGuide2.cu ${RTLIB_EXT_OPX7_TEST_NVCC_OPTIONS}      -o ${CMAKE_CURRENT_BINARY_DIR}/Test/cuda/SimpleGuide2.optixir
+    COMMAND ${CUDAToolkit_BIN_DIR}\\bin2c --const -st --name RTLibExtOPX7UtilsSimpleGuide2OptixIRBinary     ${CMAKE_CURRENT_BINARY_DIR}/Test/cuda/SimpleGuide2.optixir > ${CMAKE_CURRENT_BINARY_DIR}/Test/cuda/SimpleGuide2.optixir.h
 )
 
 add_dependencies(RTLib-Ext-OPX7-Test-Lib RTLib-Ext-OPX7-Test-Lib-Build-Kernel)
