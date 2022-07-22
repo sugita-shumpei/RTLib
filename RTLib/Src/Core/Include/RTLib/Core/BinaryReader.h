@@ -25,6 +25,17 @@
     std::memcpy(&value, &middle, sizeof(float)*CNT);\
     return value; \
 }
+#define RTLIB_CORE_VARIABLE_MAP_METHOD_DECLARE_GET_OR(Name) auto Get##Name##Or(const std::string& keyName, Internal##Name defaultValue)const noexcept-> Internal##Name { \
+    if (m_##Name##Data.count(keyName)>0){ return m_##Name##Data.at(keyName);} \
+    return defaultValue;\
+}
+#define RTLIB_CORE_VARIABLE_MAP_METHOD_DECLARE_GET_FLOAT_N_AS(CNT) template<typename T> auto GetFloat##CNT##As(const std::string& keyName)const noexcept -> T{ \
+    static_assert(sizeof(T)==sizeof(float)*CNT);\
+    Internal##Float##CNT middle = GetFloat##CNT(keyName); \
+    T value {}; \
+    std::memcpy(&value, &middle, sizeof(float)*CNT);\
+    return value; \
+}
 #define RTLIB_CORE_VARIABLE_MAP_METHOD_DECLARE_POP(Name) auto Pop##Name(const std::string& keyName)noexcept -> Internal##Name { \
     auto val = Get##Name(keyName); \
     m_##Name##Data.erase(keyName); \
@@ -67,6 +78,13 @@ namespace RTLib {
             RTLIB_CORE_VARIABLE_MAP_METHOD_DECLARE_GET(Float3);
             RTLIB_CORE_VARIABLE_MAP_METHOD_DECLARE_GET(Float4);
             RTLIB_CORE_VARIABLE_MAP_METHOD_DECLARE_GET(String);
+            RTLIB_CORE_VARIABLE_MAP_METHOD_DECLARE_GET_OR(UInt32);
+            RTLIB_CORE_VARIABLE_MAP_METHOD_DECLARE_GET_OR(Bool);
+            RTLIB_CORE_VARIABLE_MAP_METHOD_DECLARE_GET_OR(Float1);
+            RTLIB_CORE_VARIABLE_MAP_METHOD_DECLARE_GET_OR(Float2);
+            RTLIB_CORE_VARIABLE_MAP_METHOD_DECLARE_GET_OR(Float3);
+            RTLIB_CORE_VARIABLE_MAP_METHOD_DECLARE_GET_OR(Float4);
+            RTLIB_CORE_VARIABLE_MAP_METHOD_DECLARE_GET_OR(String);
             RTLIB_CORE_VARIABLE_MAP_METHOD_DECLARE_GET_FLOAT_N_AS(1);
             RTLIB_CORE_VARIABLE_MAP_METHOD_DECLARE_GET_FLOAT_N_AS(2);
             RTLIB_CORE_VARIABLE_MAP_METHOD_DECLARE_GET_FLOAT_N_AS(3);

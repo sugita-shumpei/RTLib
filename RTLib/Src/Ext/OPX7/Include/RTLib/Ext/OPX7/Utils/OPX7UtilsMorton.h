@@ -453,13 +453,13 @@ namespace RTLib
                 {
                     static inline constexpr unsigned int kMaxTreeLevel = MaxLevel;
                     RTLIB_INLINE RTLIB_DEVICE MortonQuadTreeWrapperT()noexcept {}
-                    RTLIB_INLINE RTLIB_DEVICE MortonQuadTreeWrapperT(unsigned int level_, unsigned int countPerNode_, float* weightsBuilding_, float* weightsSampling_)
+                    RTLIB_INLINE RTLIB_DEVICE MortonQuadTreeWrapperT(unsigned int level_, unsigned int countPerNode_, float* weightsBuilding_, float* weightsSampling_, float fraction_ = 0.3f)
                     {
                         level           = level_;
                         countPerNode    = countPerNode_;
                         weightsBuilding = weightsBuilding_;
                         weightsSampling = weightsSampling_;
-                        fraction        = 0.3f;
+                        fraction        = fraction_;
                     }
 
                     RTLIB_INLINE RTLIB_DEVICE auto GetBuildingTree(unsigned int spatialIndex)const ->MortonQuadTreeT<MaxLevel>
@@ -593,11 +593,13 @@ namespace RTLib
                 public:
                     static inline constexpr auto kMaxLevel = MaxLevel;
                     static inline constexpr auto kWeightBufferCountPerNodes = ((static_cast<size_t>(1) << (2 * (MaxLevel+1))) - 1) / 3;
-                    RTMortonQuadTreeWrapperT(RTLib::Ext::CUDA::CUDAContext* context, unsigned int maxHashSize, unsigned int maxTreeLevel)
+
+                    RTMortonQuadTreeWrapperT(RTLib::Ext::CUDA::CUDAContext* context, unsigned int maxHashSize, unsigned int maxTreeLevel, float fraction = 0.3f)
                     {
                         m_Context      = context;
                         m_MaxHashSize  = maxHashSize;
                         m_MaxTreeLevel = std::min(maxTreeLevel, MaxLevel);
+                        m_Fraction     = fraction;
                         m_WeightBufferIndexBuilding = 0;
                         m_WeightBufferIsEmpty[0] = false;
                         m_WeightBufferIsEmpty[1] = false;
@@ -710,7 +712,8 @@ namespace RTLib
                         return MortonQuadTreeWrapperT<MaxLevel>(
                             m_MaxTreeLevel, kWeightBufferCountPerNodes,
                             RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<float>(GetWeightBufferBuilding()),
-                            RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<float>(GetWeightBufferSampling())
+                            RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<float>(GetWeightBufferSampling()),
+                            m_Fraction
                         );
                     }
 
@@ -731,9 +734,11 @@ namespace RTLib
                     auto GetWeightBufferSampling()      noexcept ->       RTLib::Ext::CUDA::CUDABuffer* {
                         return m_WeightBuffersCUDA[1-m_WeightBufferIndexBuilding].get();
                     }
+
                     RTLib::Ext::CUDA::CUDAContext*                m_Context;
                     unsigned int                                  m_MaxHashSize;
                     unsigned int                                  m_MaxTreeLevel;
+                    float                                         m_Fraction;
                     std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer> m_WeightBuffersCUDA[2];
                     uint8_t                                       m_WeightBufferIndexBuilding;
                     bool                                          m_WeightBufferIsEmpty[2];
@@ -769,6 +774,11 @@ namespace RTLib
 
                     void Start() {
                         m_TraceStart = true;
+                    }
+                    void Destroy() {
+                        if (m_Module) { m_Module->Destory(); m_Module = nullptr; }
+                        if (m_BuildKernel) { m_BuildKernel->Destory(); m_BuildKernel = nullptr; }
+                        m_Tree = nullptr;
                     }
 
                     void BegTrace() {

@@ -169,6 +169,19 @@ public:
         return 0;
     }
 
+    void ResetGrids() {
+        FreeGrids();
+        InitGrids();
+    }
+
+    void ResetSdTree() {
+        if (!m_EnableTree) {
+            return;
+        }
+        FreeSdTree();
+        InitSdTree();
+    }
+
     auto GetWidth ()const noexcept -> unsigned int { return m_SceneData.config.width ; }
     auto GetHeight()const noexcept -> unsigned int { return m_SceneData.config.height; }
 
@@ -196,6 +209,9 @@ public:
             m_MortonQuadTreeController->SetSampleForBudget(maxSamples);
         }
     }
+
+    auto GetTraceConfig()const noexcept -> const rtlib::test::TraceConfigData& { return m_SceneData.config; }
+    auto GetTraceConfig()      noexcept ->       rtlib::test::TraceConfigData& { return m_SceneData.config; }
 private:
     static void CursorPosCallback(RTLib::Core::Window* window, double x, double y);
 

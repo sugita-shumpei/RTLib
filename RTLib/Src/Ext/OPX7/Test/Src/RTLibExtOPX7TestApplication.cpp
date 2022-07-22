@@ -254,11 +254,17 @@ void RTLibExtOPX7TestApplication::LoadScene()
     if (m_SceneData.config.custom.HasUInt32("MortonTree.IterationForBuilt")) {
         iterationForBuilt = m_SceneData.config.custom.GetUInt32("MortonTree.IterationForBuilt");
     }
+    auto fraction = 0.3f;
+    if (m_SceneData.config.custom.HasFloat1("MortonTree.Fraction"))
+    {
+        fraction = m_SceneData.config.custom.GetFloat1("MortonTree.Fraction");
+    }
     m_SceneData.config.custom.SetUInt32("MortonTree.MaxLevel", rtlib::test::RTMortonQuadTreeWrapper::kMaxLevel);
     std::cout << "HashGrid.GridSize: (" << hashGridGridSize.x << "," << hashGridGridSize.y << "," << hashGridGridSize.z << ")\n";
     std::cout << "HashGrid.CellSize:  " << hashGridCellSize   << "\n";
     std::cout << "MortonTree.RatioForBudget   :  " << ratioForBudget    << "\n";
     std::cout << "MortonTree.IterationForBuilt:  " << iterationForBuilt << "\n";
+    std::cout << "MortonTree.Fraction         :  " << fraction          << "\n";
 
     m_HashBufferCUDA.Alloc(hashGridGridSize, hashGridCellSize);
     m_HashBufferCUDA.Upload(m_Opx7Context.get());
@@ -271,7 +277,7 @@ void RTLibExtOPX7TestApplication::LoadScene()
     }
 
     if (m_EnableGrid) {
-        m_MortonQuadTree           = std::make_unique<rtlib::test::RTMortonQuadTreeWrapper>(m_Opx7Context.get(),m_HashBufferCUDA.checkSumCpuHandle.size(), 30);
+        m_MortonQuadTree           = std::make_unique<rtlib::test::RTMortonQuadTreeWrapper>(m_Opx7Context.get(),m_HashBufferCUDA.checkSumCpuHandle.size(), 30, fraction);
         m_MortonQuadTree->Allocate();
         m_MortonQuadTreeController = std::make_unique<rtlib::test::RTMortonQuadTreeController>(
             m_MortonQuadTree.get(), (uint32_t)m_SceneData.config.maxSamples, iterationForBuilt, ratioForBudget, m_SceneData.config.samples
@@ -283,10 +289,12 @@ void RTLibExtOPX7TestApplication::LoadScene()
 {
     m_HashBufferCUDA.checkSumGpuHandles[0]->Destroy();
     m_HashBufferCUDA.checkSumGpuHandles[1]->Destroy();
+    m_HashBufferCUDA.checkSumGpuHandles[0].reset();
+    m_HashBufferCUDA.checkSumGpuHandles[1].reset();
     if (m_EnableGrid) {
         m_MortonQuadTree->Destroy();
         m_MortonQuadTree.reset();
-        //m_MortonQuadTreeController->Destroy();
+        m_MortonQuadTreeController->Destroy();
         m_MortonQuadTreeController.reset();
     }
 }

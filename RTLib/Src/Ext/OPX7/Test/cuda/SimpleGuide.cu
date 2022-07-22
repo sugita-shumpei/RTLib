@@ -368,7 +368,7 @@ extern "C" __global__ void     __closesthit__radiance() {
                     bsdfPdf = (select_prob * cosinePdf2 + (1.0f - select_prob) * phongPdf2);
                 }
                 dTreePdf = RTLib::Ext::CUDA::Math::max(dTree->Pdf(direction),0.0f);
-                woPdf    = params.tree.fraction * bsdfPdf + (1.0f - params.tree.fraction) * dTreePdf;
+                woPdf    = (1.0f - params.tree.fraction) * bsdfPdf + params.tree.fraction * dTreePdf;
             }
             else 
             {
