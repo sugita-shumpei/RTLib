@@ -56,6 +56,9 @@ int main(int argc, const char* argv[]) {
                 auto compImageData = std::vector<float3>();
                 if (imageDir.path().extension() == ".json") {
                     auto filename = imageDir.path().filename();
+                    if (filename == "scene.json") {
+                        continue;
+                    }
                     std::string result, pipeline, sampleStr;
                     std::stringstream ss(filename.string());
                     {

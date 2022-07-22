@@ -22,34 +22,96 @@ void SampleTest()
 }
 void TracerTest()
 {
-
-    auto testApp = RTLibExtOPX7TestApplication(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/../scene.json", "HTDEF", false, true, false);
-    try
     {
-        testApp.Initialize();
-
-        auto pipelineName = testApp.GetTracerName();
-        auto maxSamples = testApp.GetMaxSamples();
-        auto samplesPerSave = testApp.GetSamplesPerSave();
+        auto testApp = RTLibExtOPX7TestApplication(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/../scene.json", "HTDEF", false, true, false);
+        try
         {
-            testApp.SetMaxSamples(10000);
-            testApp.SetSamplesPerSave(1000);
-            testApp.MainLoop();
-        }
-        testApp.SetTracerName(pipelineName);
-        testApp.SetMaxSamples(maxSamples);
-        testApp.SetSamplesPerSave(samplesPerSave);
+            testApp.Initialize();
 
-        testApp.Terminate();
+            auto tracerName        = testApp.GetTracerName();
+            auto maxSamples        = testApp.GetMaxSamples();
+            auto samplesPerSave    = testApp.GetSamplesPerSave();
+            auto fraction          = testApp.GetTraceConfig().custom.GetFloat1Or("MortonTree.Fraction",0.3f);
+            auto iterationForBuilt = testApp.GetTraceConfig().custom.GetUInt32Or("MortonTree.IterationForBuilt", 3);
+            auto ratioForBudget    = testApp.GetTraceConfig().custom.GetFloat1Or("MortonTree.RatioForBudget", 0.5f);
+            auto hashGridCellSize  = testApp.GetTraceConfig().custom.GetFloat1Or("HashGrid.CellSize", 32768);
+            auto imagePath         = testApp.GetTraceConfig().imagePath;
+            //std::filesystem::create_directory(std::filesystem::path(imagePath)/"Exp1");
+            //std::filesystem::create_directory(std::filesystem::path(imagePath)/"Exp2");
+            //std::filesystem::create_directory(std::filesystem::path(imagePath)/"Exp5");
+            //for (int i = 0; i < 6;++i) 
+            {
+                {
+
+                    //float newFraction  = static_cast<float>(i + 1) * 0.1f;
+                    //auto  newImagePath = std::filesystem::path(imagePath+("/Exp1/Fraction=" + std::to_string(newFraction))).lexically_normal();
+                    //std::filesystem::create_directory(newImagePath);
+                    //std::cout << newImagePath << std::endl;
+                    //testApp.GetTraceConfig().imagePath = newImagePath.string();
+                    //testApp.GetTraceConfig().custom.SetFloat1("MortonTree.Fraction", newFraction);
+                } 
+                {
+
+                //    auto  newImagePath = std::filesystem::path(imagePath+("/Exp2/IterationForBuilt=" + std::to_string(i))).lexically_normal();
+                //    std::filesystem::create_directory(newImagePath);
+                //    std::cout << newImagePath << std::endl;
+                //    testApp.GetTraceConfig().imagePath = newImagePath.string();
+                //    testApp.GetTraceConfig().custom.SetUInt32("MortonTree.IterationForBuilt", i);
+                }
+                {
+                    //float newRatioForBudget  = static_cast<float>(i + 1) * 0.1f;
+                    //auto  newImagePath = std::filesystem::path(imagePath+("/Exp3/RatioForBudget=" + std::to_string(newRatioForBudget))).lexically_normal();
+                    //std::filesystem::create_directory(newImagePath);
+                    //std::cout << newImagePath << std::endl;
+                    //testApp.GetTraceConfig().imagePath = newImagePath.string();
+                    //testApp.GetTraceConfig().custom.SetFloat1("MortonTree.RatioForBudget", newRatioForBudget);
+                }
+                //{
+                //    auto  newImagePath = std::filesystem::path(imagePath+("/Exp4/Level=" + std::to_string(rtlib::test::MortonQTreeWrapper::kMaxTreeLevel))).lexically_normal();
+                //    std::filesystem::create_directory(newImagePath);
+                //    std::cout << newImagePath << std::endl;
+                //    testApp.GetTraceConfig().imagePath = newImagePath.string();
+                ////}
+                //{
+                //    auto newHashGridCellSize = (128 * 128 * 64 / 128) * static_cast<unsigned int>(1 << i);
+                //    auto  newImagePath = std::filesystem::path(imagePath + ("/Exp5/CellSize=" + std::to_string(newHashGridCellSize))).lexically_normal();
+                //    std::filesystem::create_directory(newImagePath);
+                //    std::cout << newImagePath << std::endl;
+                //    testApp.GetTraceConfig().imagePath = newImagePath.string();
+                //    testApp.GetTraceConfig().custom.SetFloat1("HashGrid.CellSize", newHashGridCellSize);
+                //}
+                testApp.ResetGrids();
+                testApp.SetMaxSamples(100);
+                testApp.SetSamplesPerSave(100);
+                testApp.MainLoop();
+                testApp.ResetGrids();
+                testApp.SetMaxSamples(1000);
+                testApp.SetSamplesPerSave(1000);
+                testApp.MainLoop();
+                testApp.ResetGrids();
+                testApp.SetMaxSamples(10000);
+                testApp.SetSamplesPerSave(10000);
+                testApp.MainLoop();
+            }
+            testApp.GetTraceConfig().custom.SetFloat1("HashGrid.CellSize", hashGridCellSize);
+            testApp.GetTraceConfig().custom.SetFloat1("MortonTree.RatioForBudget", ratioForBudget);
+            testApp.GetTraceConfig().custom.SetFloat1("MortonTree.Fraction",fraction);
+            testApp.GetTraceConfig().custom.SetUInt32("MortonTree.IterationForBuilt", iterationForBuilt);
+            testApp.GetTraceConfig().imagePath = imagePath;
+            testApp.SetTracerName(tracerName);
+            testApp.SetMaxSamples(maxSamples);
+            testApp.SetSamplesPerSave(samplesPerSave);
+            testApp.Terminate();
+        }
+        catch (std::runtime_error& err)
+        {
+            std::cerr << err.what() << std::endl;
+        }
+        //return 0;
+        //RTLibExtOPX7TestApplication(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/../scene.json", "DEF", false).Run();
+        //RTLibExtOPX7TestApplication(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/../scene.json", "NEE", false).Run();
+        //RTLibExtOPX7TestApplication(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/../scene.json", "RIS", false).Run();
     }
-    catch (std::runtime_error& err)
-    {
-        std::cerr << err.what() << std::endl;
-    }
-    //return 0;
-    //RTLibExtOPX7TestApplication(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/../scene.json", "DEF", false).Run();
-    //RTLibExtOPX7TestApplication(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/../scene.json", "NEE", false).Run();
-    //RTLibExtOPX7TestApplication(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/../scene.json", "RIS", false).Run();
 }
 int main()
 {   

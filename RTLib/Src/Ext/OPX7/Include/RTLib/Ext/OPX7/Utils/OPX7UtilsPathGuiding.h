@@ -1349,7 +1349,7 @@ namespace RTLib
 					using CUDABuffer    = RTLib::Ext::CUDA::CUDABuffer;
 					using CUDABufferPtr = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>;
 				public:
-					RTSTreeWrapperT(RTLib::Ext::CUDA::CUDAContext* context, const float3& aabbMin, const float3& aabbMax, unsigned int maxDTreeDepth = 20)noexcept :m_CpuSTree{ aabbMin,aabbMax }, m_Context{context}, m_MaxDTreeDepth{ maxDTreeDepth }{}
+					RTSTreeWrapperT(RTLib::Ext::CUDA::CUDAContext* context, const float3& aabbMin, const float3& aabbMax, unsigned int maxDTreeDepth = 20, float fraction = 0.3f)noexcept :m_CpuSTree{ aabbMin,aabbMax }, m_Context{ context }, m_MaxDTreeDepth{ maxDTreeDepth }, m_Fraction{ fraction }{}
 					void Upload(CUDA::CUDAStream* stream = nullptr)noexcept {
 						bool isNeededSync = false;
 						//Uploadは両方必要
@@ -1639,7 +1639,7 @@ namespace RTLib
 						sTree.aabbMax  = m_CpuSTree.GetAabbMax();
 						sTree.aabbMin  = m_CpuSTree.GetAabbMin();
 						sTree.nodes    = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<STreeNode>(m_GpuSTreeNodes.get());
-						sTree.fraction = 0.5f;
+						sTree.fraction = m_Fraction;
 						return sTree;
 					}
 					void Reset(int iter, int samplePerPasses) {
@@ -1742,6 +1742,7 @@ namespace RTLib
 					CUDABufferPtr   m_GpuDTreeNodesBuilding = {};//������
 					CUDABufferPtr   m_GpuDTreeNodesSampling = {};//������
 					unsigned int    m_MaxDTreeDepth         = 0;
+					float           m_Fraction              = 0.0f;
 
 				};
 
@@ -2258,9 +2259,9 @@ namespace RTLib
 					}
 					auto GetGpuHandle()const noexcept -> STree2 {
 						STree2 sTree;
-						sTree.aabbMax = m_CpuSTree.GetAabbMax();
-						sTree.aabbMin = m_CpuSTree.GetAabbMin();
-						sTree.nodes = m_GpuSTreeNodes.getDevicePtr();
+						sTree.aabbMax  = m_CpuSTree.GetAabbMax();
+						sTree.aabbMin  = m_CpuSTree.GetAabbMin();
+						sTree.nodes    = m_GpuSTreeNodes.getDevicePtr();
 						sTree.fraction = 0.5f;
 						return sTree;
 					}

@@ -70,13 +70,14 @@ extern "C" __global__ void     __raygen__default() {
     hrec.flags = HIT_RECORD_FLAG_COUNT_EMITTED;
 
     hrec.userData.throughPut = make_float3(1.0f);
-    hrec.userData.radiance = make_float3(0.0f);
-    hrec.userData.bsdfVal = make_float3(1.0f);
-    hrec.userData.bsdfPdf = 0.0f;
-    hrec.userData.woPdf = 0.0f;
-    hrec.userData.dTreePdf = 0.0f;
-    hrec.userData.depth = 0;
-    hrec.userData.gridIndex = UINT32_MAX;
+    hrec.userData.radiance   = make_float3(0.0f);
+    hrec.userData.bsdfVal    = make_float3(1.0f);
+    hrec.userData.bsdfPdf    = 0.0f;
+    hrec.userData.woPdf      = 0.0f;
+    hrec.userData.dTreePdf   = 0.0f;
+    hrec.userData.depth      = 0;
+    hrec.userData.gridIndex  = UINT32_MAX;
+
     if (((params.flags & PARAM_FLAG_USE_GRID) == PARAM_FLAG_USE_GRID) && ((params.flags & PARAM_FLAG_FINAL) != PARAM_FLAG_FINAL)) {
     rtlib:: test::MortonTraceVertex traceVertices[rtlib::test::kTraceVertexSize];
         while (true) {

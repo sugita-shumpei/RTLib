@@ -246,19 +246,9 @@ void RTLibExtOPX7TestApplication::LoadScene()
             m_SceneData.config.custom.GetFloat3("HashGrid.GridSize")[2]
         );
     }
-    auto ratioForBudget = static_cast<float>(0.5f);
-    if (m_SceneData.config.custom.HasFloat1("MortonTree.RatioForBudget")) {
-        ratioForBudget = m_SceneData.config.custom.GetFloat1("MortonTree.RatioForBudget");
-    }
-    auto iterationForBuilt = static_cast<unsigned int>(3);
-    if (m_SceneData.config.custom.HasUInt32("MortonTree.IterationForBuilt")) {
-        iterationForBuilt = m_SceneData.config.custom.GetUInt32("MortonTree.IterationForBuilt");
-    }
-    auto fraction = 0.3f;
-    if (m_SceneData.config.custom.HasFloat1("MortonTree.Fraction"))
-    {
-        fraction = m_SceneData.config.custom.GetFloat1("MortonTree.Fraction");
-    }
+    auto ratioForBudget    = m_SceneData.config.custom.GetFloat1Or("MortonTree.RatioForBudget"   ,0.3f);
+    auto iterationForBuilt = m_SceneData.config.custom.GetUInt32Or("MortonTree.IterationForBuilt",3);
+    auto fraction          = m_SceneData.config.custom.GetFloat1Or("MortonTree.Fraction"         ,0.3f);
     m_SceneData.config.custom.SetUInt32("MortonTree.MaxLevel", rtlib::test::RTMortonQuadTreeWrapper::kMaxLevel);
     std::cout << "HashGrid.GridSize: (" << hashGridGridSize.x << "," << hashGridGridSize.y << "," << hashGridGridSize.z << ")\n";
     std::cout << "HashGrid.CellSize:  " << hashGridCellSize   << "\n";
@@ -301,13 +291,18 @@ void RTLibExtOPX7TestApplication::LoadScene()
 
  void RTLibExtOPX7TestApplication::InitSdTree()
  {
+     auto fraction          = m_SceneData.config.custom.GetFloat1Or("SdTree.Fraction"         , 0.3f);
+     auto ratioForBudget    = m_SceneData.config.custom.GetFloat1Or("SdTree.RatioForBudget"   , 0.3f);
+     auto iterationForBuilt = m_SceneData.config.custom.GetUInt32Or("SdTree.IterationForBuilt", 0);
+
      m_SdTree = std::make_unique<rtlib::test::RTSTreeWrapper>(m_Opx7Context.get(),
-         make_float3(m_WorldAabbMin[0]-0.005f, m_WorldAabbMin[1] - 0.005f, m_WorldAabbMin[2] - 0.005f),
-         make_float3(m_WorldAabbMax[0] + 0.005f, m_WorldAabbMax[1] + 0.005f, m_WorldAabbMax[2] + 0.005f)
+         make_float3(m_WorldAabbMin[0] - 0.005f, m_WorldAabbMin[1] - 0.005f, m_WorldAabbMin[2] - 0.005f),
+         make_float3(m_WorldAabbMax[0] + 0.005f, m_WorldAabbMax[1] + 0.005f, m_WorldAabbMax[2] + 0.005f),
+         20, fraction
      );
      m_SdTree->Upload();
      m_SdTreeController = std::make_unique<rtlib::test::RTSTreeController>(
-         m_SdTree.get(), (uint32_t)m_SceneData.config.maxSamples,0,0.5f,m_SceneData.config.samples
+         m_SdTree.get(), (uint32_t)m_SceneData.config.maxSamples, iterationForBuilt, ratioForBudget,m_SceneData.config.samples
      );
  }
 
