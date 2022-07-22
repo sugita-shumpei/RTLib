@@ -254,6 +254,7 @@ void RTLibExtOPX7TestApplication::LoadScene()
     if (m_SceneData.config.custom.HasUInt32("MortonTree.IterationForBuilt")) {
         iterationForBuilt = m_SceneData.config.custom.GetUInt32("MortonTree.IterationForBuilt");
     }
+    m_SceneData.config.custom.SetUInt32("MortonTree.MaxLevel", rtlib::test::RTMortonQuadTreeWrapper::kMaxLevel);
     std::cout << "HashGrid.GridSize: (" << hashGridGridSize.x << "," << hashGridGridSize.y << "," << hashGridGridSize.z << ")\n";
     std::cout << "HashGrid.CellSize:  " << hashGridCellSize   << "\n";
     std::cout << "MortonTree.RatioForBudget   :  " << ratioForBudget    << "\n";

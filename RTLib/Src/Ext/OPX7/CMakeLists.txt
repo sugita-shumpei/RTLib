@@ -96,7 +96,7 @@ configure_file(
     ${CMAKE_CURRENT_BINARY_DIR}/Test/cuda/PathGuidingConfig.h
 )
 set(RTLIB_EXT_OPX7_TEST_MORTON_TREE_TRACE_VERTEX_SIZE 10)
-set(RTLIB_EXT_OPX7_TEST_MORTON_TREE_MAX_LEVEL         6)
+set(RTLIB_EXT_OPX7_TEST_MORTON_TREE_MAX_LEVEL         7)
 set(RTLIB_EXT_OPX7_TEST_HASH_GRID_BLOCK_SIZE          32)
 configure_file(
     ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/MortonTreeConfig.h.in

@@ -591,6 +591,7 @@ namespace RTLib
                 class  RTMortonQuadTreeWrapperT
                 {
                 public:
+                    static inline constexpr auto kMaxLevel = MaxLevel;
                     static inline constexpr auto kWeightBufferCountPerNodes = ((static_cast<size_t>(1) << (2 * (MaxLevel+1))) - 1) / 3;
                     RTMortonQuadTreeWrapperT(RTLib::Ext::CUDA::CUDAContext* context, unsigned int maxHashSize, unsigned int maxTreeLevel)
                     {
@@ -598,9 +599,11 @@ namespace RTLib
                         m_MaxHashSize  = maxHashSize;
                         m_MaxTreeLevel = std::min(maxTreeLevel, MaxLevel);
                         m_WeightBufferIndexBuilding = 0;
+                        m_WeightBufferIsEmpty[0] = false;
+                        m_WeightBufferIsEmpty[1] = false;
                     }
 
-                    void Allocate()
+                    void Allocate(CUDA::CUDAStream* stream = nullptr)
                     {
 
 #ifndef NDEBUG
@@ -613,9 +616,23 @@ namespace RTLib
                         if (!m_WeightBuffersCUDA[0]) {
                             m_WeightBuffersCUDA[0] = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(m_Context->CreateBuffer(desc));
                         }
+                        else {
+                            if (!m_WeightBufferIsEmpty[0]) {
+                                auto weightBufferGpuAddress = CUDA::CUDANatives::GetCUdeviceptr(m_WeightBuffersCUDA[0].get());
+                                cuMemsetD32Async(weightBufferGpuAddress, 0.0f, m_MaxHashSize * kWeightBufferCountPerNodes, CUDA::CUDANatives::GetCUstream(stream));
+                            }
+                        }
                         if (!m_WeightBuffersCUDA[1]) {
                             m_WeightBuffersCUDA[1] = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(m_Context->CreateBuffer(desc));
                         }
+                        else {
+                            if (!m_WeightBufferIsEmpty[1]) {
+                                auto weightBufferGpuAddress = CUDA::CUDANatives::GetCUdeviceptr(m_WeightBuffersCUDA[1].get());
+                                cuMemsetD32Async(weightBufferGpuAddress, 0.0f, m_MaxHashSize * kWeightBufferCountPerNodes, CUDA::CUDANatives::GetCUstream(stream));
+                            }
+                        }
+                        m_WeightBufferIsEmpty[0] = true;
+                        m_WeightBufferIsEmpty[1] = true;
                     }
 
                     void Update(RTLib::Ext::CUDA::CUDAStream* stream = nullptr)
@@ -627,6 +644,8 @@ namespace RTLib
                         m_WeightBufferIndexBuilding = 1 - m_WeightBufferIndexBuilding;
                         auto weightBufferGpuAddress = CUDA::CUDANatives::GetCUdeviceptr(GetWeightBufferBuilding());
                         cuMemsetD32Async(weightBufferGpuAddress, 0.0f, m_MaxHashSize * kWeightBufferCountPerNodes, CUDA::CUDANatives::GetCUstream(stream));
+                        m_WeightBufferIsEmpty[    m_WeightBufferIndexBuilding] = true;
+                        m_WeightBufferIsEmpty[1 - m_WeightBufferIndexBuilding] = false;
                     }
 
                     void Destroy() {
@@ -641,48 +660,50 @@ namespace RTLib
                             m_WeightBuffersCUDA[1]->Destroy();
                             m_WeightBuffersCUDA[1].reset();
                         }
+                        m_WeightBufferIsEmpty[0] = false;
+                        m_WeightBufferIsEmpty[1] = false;
                     }
 
-                    void Clear(RTLib::Ext::CUDA::CUDAStream* stream = nullptr) {
-#ifndef NDEBUG
-                        std::cout << "Clear" << std::endl;
-#endif
-                        auto copy = RTLib::Ext::CUDA::CUDAMemoryBufferCopy();
-                        copy.size = sizeof(float) * m_MaxHashSize * kWeightBufferCountPerNodes;
-                        copy.dstOffset = 0;
-                        auto data = std::vector<float>(copy.size / sizeof(float), 0.0f);
-                        copy.srcData = data.data();
-                        if (stream) {
-
-                            RTLIB_CORE_ASSERT_IF_FAILED(
-                                stream->CopyMemoryToBuffer(
-                                    m_WeightBuffersCUDA[0].get(),
-                                    { copy }
-                                )
-                            );
-                            RTLIB_CORE_ASSERT_IF_FAILED(
-                                stream->CopyMemoryToBuffer(
-                                    m_WeightBuffersCUDA[1].get(),
-                                    { copy }
-                                )
-                            );
-                        }
-                        else {
-
-                            RTLIB_CORE_ASSERT_IF_FAILED(
-                                m_Context->CopyMemoryToBuffer(
-                                    m_WeightBuffersCUDA[0].get(),
-                                    { copy }
-                                )
-                            );
-                            RTLIB_CORE_ASSERT_IF_FAILED(
-                                m_Context->CopyMemoryToBuffer(
-                                    m_WeightBuffersCUDA[1].get(),
-                                    { copy }
-                                )
-                            );
-                        }
-                    }
+//                    void Clear(RTLib::Ext::CUDA::CUDAStream* stream = nullptr) {
+//#ifndef NDEBUG
+//                        std::cout << "Clear" << std::endl;
+//#endif
+//                        auto copy = RTLib::Ext::CUDA::CUDAMemoryBufferCopy();
+//                        copy.size = sizeof(float) * m_MaxHashSize * kWeightBufferCountPerNodes;
+//                        copy.dstOffset = 0;
+//                        auto data = std::vector<float>(copy.size / sizeof(float), 0.0f);
+//                        copy.srcData = data.data();
+//                        if (stream) {
+//
+//                            RTLIB_CORE_ASSERT_IF_FAILED(
+//                                stream->CopyMemoryToBuffer(
+//                                    m_WeightBuffersCUDA[0].get(),
+//                                    { copy }
+//                                )
+//                            );
+//                            RTLIB_CORE_ASSERT_IF_FAILED(
+//                                stream->CopyMemoryToBuffer(
+//                                    m_WeightBuffersCUDA[1].get(),
+//                                    { copy }
+//                                )
+//                            );
+//                        }
+//                        else {
+//
+//                            RTLIB_CORE_ASSERT_IF_FAILED(
+//                                m_Context->CopyMemoryToBuffer(
+//                                    m_WeightBuffersCUDA[0].get(),
+//                                    { copy }
+//                                )
+//                            );
+//                            RTLIB_CORE_ASSERT_IF_FAILED(
+//                                m_Context->CopyMemoryToBuffer(
+//                                    m_WeightBuffersCUDA[1].get(),
+//                                    { copy }
+//                                )
+//                            );
+//                        }
+//                    }
 
                     auto GetGpuHandle() noexcept -> MortonQuadTreeWrapperT<MaxLevel>
                     {
@@ -715,6 +736,7 @@ namespace RTLib
                     unsigned int                                  m_MaxTreeLevel;
                     std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer> m_WeightBuffersCUDA[2];
                     uint8_t                                       m_WeightBufferIndexBuilding;
+                    bool                                          m_WeightBufferIsEmpty[2];
                 };
 
                 template<unsigned int MaxLevel>
@@ -740,7 +762,7 @@ namespace RTLib
                         :m_Tree{ tree }, m_SampleForBudget{ sampleForBudget }, m_SamplePerLaunch{ samplePerLaunch }, m_IterationForBuilt{ iterationForBuilt }, m_RatioForBudget{ ratioForBudget }{
                         m_Module = std::unique_ptr<CUDA::CUDAModule>(RTLib::Ext::CUDA::CUDAModule::LoadFromData(m_Tree->GetContext(), GetPtxMortonQuadTreeBuildKernel()));
                         m_BuildKernel = std::unique_ptr<CUDA::CUDAFunction>(m_Module->LoadFunction("mortonBuildKernel"));
-                        m_ClearKernel = std::unique_ptr<CUDA::CUDAFunction>(m_Module->LoadFunction("mortonClearKernel"));
+                        //m_ClearKernel = std::unique_ptr<CUDA::CUDAFunction>(m_Module->LoadFunction("mortonClearKernel"));
                     }
 
                     void SetSampleForBudget(unsigned int sampleForBudget)noexcept { m_SampleForBudget = sampleForBudget; }
@@ -767,7 +789,7 @@ namespace RTLib
 
                             m_TraceState = TraceStateRecord;
 
-                            m_Tree->Destroy();
+                            //m_Tree->Destroy();
                             m_Tree->Allocate();
                         }
                         if (!m_TraceExecuting) {
@@ -883,28 +905,28 @@ namespace RTLib
                         return m_BuildKernel->Launch(launchDesc);
                     }
 
-                    bool LaunchClearKernel(CUDA::CUDAStream* stream = nullptr)
-                    {
-                        CUDA::CUDAKernelLaunchDesc launchDesc = {};
+                    //bool LaunchClearKernel(CUDA::CUDAStream* stream = nullptr)
+                    //{
+                    //    CUDA::CUDAKernelLaunchDesc launchDesc = {};
 
-                        launchDesc.blockDimX = 1024;
-                        launchDesc.blockDimY = 1;
-                        launchDesc.blockDimZ = 1;
+                    //    launchDesc.blockDimX = 1024;
+                    //    launchDesc.blockDimY = 1;
+                    //    launchDesc.blockDimZ = 1;
 
-                        launchDesc.gridDimX = ((m_Tree->GetMaxHashSize() * kWeightBufferCountPerNodes + 1024 - 1) / 1024) * 1024;
-                        launchDesc.gridDimY = 1;
-                        launchDesc.gridDimZ = 1;
-                        {
-                            auto weightBuilding = CUDA::CUDANatives::GetCUdeviceptr(m_Tree->GetWeightBufferBuilding());
-                            unsigned int numWeightBuilding = m_Tree->GetMaxHashSize() * kWeightBufferCountPerNodes;
-                            launchDesc.kernelParams.resize(2);
-                            launchDesc.kernelParams[0] = &weightBuilding;
-                            launchDesc.kernelParams[1] = &numWeightBuilding;
-                        }
-                        launchDesc.sharedMemBytes = 0;
-                        launchDesc.stream = stream;
-                        return m_ClearKernel->Launch(launchDesc);
-                    }
+                    //    launchDesc.gridDimX = ((m_Tree->GetMaxHashSize() * kWeightBufferCountPerNodes + 1024 - 1) / 1024) * 1024;
+                    //    launchDesc.gridDimY = 1;
+                    //    launchDesc.gridDimZ = 1;
+                    //    {
+                    //        auto weightBuilding = CUDA::CUDANatives::GetCUdeviceptr(m_Tree->GetWeightBufferBuilding());
+                    //        unsigned int numWeightBuilding = m_Tree->GetMaxHashSize() * kWeightBufferCountPerNodes;
+                    //        launchDesc.kernelParams.resize(2);
+                    //        launchDesc.kernelParams[0] = &weightBuilding;
+                    //        launchDesc.kernelParams[1] = &numWeightBuilding;
+                    //    }
+                    //    launchDesc.sharedMemBytes = 0;
+                    //    launchDesc.stream = stream;
+                    //    return m_ClearKernel->Launch(launchDesc);
+                    //}
 
                     auto GetIteration()const noexcept -> unsigned int
                     {
@@ -914,7 +936,7 @@ namespace RTLib
                     RTMortonQuadTreeWrapperT<MaxLevel>* m_Tree   = nullptr;
                     std::unique_ptr<CUDA::CUDAModule>   m_Module = nullptr;
                     std::unique_ptr<CUDA::CUDAFunction> m_BuildKernel = nullptr;
-                    std::unique_ptr<CUDA::CUDAFunction> m_ClearKernel = nullptr;
+                    //std::unique_ptr<CUDA::CUDAFunction> m_ClearKernel = nullptr;
                     unsigned int    m_SampleForBudget = 0;
                     unsigned int    m_SamplePerLaunch = 0;
                     unsigned int    m_IterationForBuilt = 0;
