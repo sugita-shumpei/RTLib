@@ -319,6 +319,7 @@ extern "C" __global__ void     __closesthit__radiance() {
     auto currThroughput = make_float3(0.0f);
     auto prevHitFlags = hrec->flags;
     auto currHitFlags = static_cast<unsigned int>(0);
+    const auto countEmitted = ((prevHitFlags & HIT_RECORD_FLAG_COUNT_EMITTED) == HIT_RECORD_FLAG_COUNT_EMITTED)||(hgData->type == HIT_GROUP_TYPE_DEF_LIGHT);
     rtlib::test::DTreeWrapper* dTree = nullptr;
     auto dTreeVoxelSize = make_float3(1.0f);
     if ((params.flags & PARAM_FLAG_USE_TREE) == PARAM_FLAG_USE_TREE) {
@@ -491,10 +492,7 @@ extern "C" __global__ void     __closesthit__radiance() {
         }
     } while (0);
 
-    if (prevHitFlags & HIT_RECORD_FLAG_COUNT_EMITTED)
-    {
-        radiance += prevThroughput * emission * static_cast<float>(RTLib::Ext::CUDA::Math::dot(inDir, fNormal) < 0.0f);
-    }
+    radiance += prevThroughput * emission * static_cast<float>(RTLib::Ext::CUDA::Math::dot(inDir, fNormal) < 0.0f) * static_cast<float>(countEmitted);
     if (emission.x + emission.y + emission.z > 0.0f) {
         currHitFlags |= HIT_RECORD_FLAG_FINISH;
     }
@@ -534,18 +532,18 @@ extern "C" __global__ void     __closesthit__radiance_sphere() {
 
     auto xor32 = RTLib::Ext::CUDA::Math::Xorshift32(hrec->seed);
 
-
-    auto direction      = make_float3(0.0f);
-    auto cosine         = float(0.0f);
-    auto bsdfVal        = make_float3(0.0f);
-    auto bsdfPdf        = float(0.0f);
-    auto dTreePdf       = float(0.0f);
-    auto woPdf          = float(0.0f);
-    auto radiance       = make_float3(0.0f);
+    auto direction = make_float3(0.0f);
+    auto cosine = float(0.0f);
+    auto bsdfVal = make_float3(0.0f);
+    auto bsdfPdf = float(0.0f);
+    auto dTreePdf = float(0.0f);
+    auto woPdf = float(0.0f);
+    auto radiance = make_float3(0.0f);
     auto prevThroughput = hrec->userData.throughPut;
     auto currThroughput = make_float3(0.0f);
     auto prevHitFlags = hrec->flags;
     auto currHitFlags = static_cast<unsigned int>(0);
+    const auto countEmitted = ((prevHitFlags & HIT_RECORD_FLAG_COUNT_EMITTED) == HIT_RECORD_FLAG_COUNT_EMITTED) || (hgData->type == HIT_GROUP_TYPE_DEF_LIGHT);
     rtlib::test::DTreeWrapper* dTree = nullptr;
     auto dTreeVoxelSize = make_float3(1.0f);
     if ((params.flags & PARAM_FLAG_USE_TREE) == PARAM_FLAG_USE_TREE) {
@@ -553,6 +551,9 @@ extern "C" __global__ void     __closesthit__radiance_sphere() {
         if (!dTree) {
             printf("dTree is NULL\n");
         }
+        //else {
+        //    printf("dTree is %p (%lf %lf %lf)\n", dTree, dTreeVoxelSize.x, dTreeVoxelSize.y, dTreeVoxelSize.z);
+        //}
     }
     do {
         if (hgData->type == HIT_GROUP_TYPE_PHONG) {
@@ -592,9 +593,10 @@ extern "C" __global__ void     __closesthit__radiance_sphere() {
                     bsdfPdf = (select_prob * cosinePdf2 + (1.0f - select_prob) * phongPdf2);
                 }
                 dTreePdf = RTLib::Ext::CUDA::Math::max(dTree->Pdf(direction), 0.0f);
-                woPdf = (1.0f-params.tree.fraction) * bsdfPdf + params.tree.fraction * dTreePdf;
+                woPdf = (1.0f - params.tree.fraction) * bsdfPdf + params.tree.fraction * dTreePdf;
             }
-            else {
+            else
+            {
                 dTreePdf = 0.0f;
                 woPdf = bsdfPdf;
             }
@@ -702,8 +704,8 @@ extern "C" __global__ void     __closesthit__radiance_sphere() {
                 /*currThroughput  = prevThroughput;*/
                 currThroughput = prevThroughput;
             }
-            woPdf    = fabsf(cosine);
-            bsdfPdf  = 0.0f;
+            woPdf = fabsf(cosine);
+            bsdfPdf = 0.0f;
             dTreePdf = 0.0f;
             if (isnan(direction.x) || isnan(direction.y) || isnan(direction.z)) {
                 printf("IOR: %lf Cos: %lf IDir: (%lf %lf %lf) Norm: (%lf %lf %lf) Refl: (%lf %lf %lf) ODir: (%lf %lf %lf) fresnell=%lf\n", rRefIdx, cosine_i, inDir.x, inDir.y, inDir.z, rNormal.x, rNormal.y, rNormal.z, reflDir.x, reflDir.y, reflDir.z, direction.x, direction.y, direction.z, fresnell);
@@ -714,10 +716,7 @@ extern "C" __global__ void     __closesthit__radiance_sphere() {
         }
     } while (0);
 
-    if (prevHitFlags & HIT_RECORD_FLAG_COUNT_EMITTED)
-    {
-        radiance += prevThroughput * emission * static_cast<float>(RTLib::Ext::CUDA::Math::dot(inDir, fNormal) < 0.0f);
-    }
+    radiance += prevThroughput * emission * static_cast<float>(RTLib::Ext::CUDA::Math::dot(inDir, fNormal) < 0.0f) * static_cast<float>(countEmitted);
     if (emission.x + emission.y + emission.z > 0.0f) {
         currHitFlags |= HIT_RECORD_FLAG_FINISH;
     }
@@ -730,9 +729,9 @@ extern "C" __global__ void     __closesthit__radiance_sphere() {
     hrec->flags = currHitFlags;
     hrec->userData.radiance = radiance;
     hrec->userData.throughPut = currThroughput;
-    hrec->userData.bsdfVal  = bsdfVal;
-    hrec->userData.bsdfPdf  = bsdfPdf;
-    hrec->userData.woPdf    = woPdf;
+    hrec->userData.bsdfVal = bsdfVal;
+    hrec->userData.bsdfPdf = bsdfPdf;
+    hrec->userData.woPdf = woPdf;
     hrec->userData.dTreePdf = dTreePdf;
     hrec->userData.dTreeVoxelSize = dTreeVoxelSize;
     hrec->userData.dTree = dTree;

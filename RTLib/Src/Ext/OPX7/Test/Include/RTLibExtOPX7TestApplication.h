@@ -394,6 +394,10 @@ private:
                 params.flags |= PARAM_FLAG_RIS;
             }
 
+            if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateLocate)
+            {
+                params.flags |= PARAM_FLAG_LOCATE;
+            }
             if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecord)
             {
                 params.flags |= PARAM_FLAG_NONE;

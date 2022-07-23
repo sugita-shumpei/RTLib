@@ -255,6 +255,7 @@ extern "C" __global__ void __closesthit__radiance() {
     auto currThroughput = make_float3(0.0f);
     auto prevHitFlags = hrec->flags;
     auto currHitFlags = static_cast<unsigned int>(0);
+    const auto countEmitted = ((prevHitFlags & HIT_RECORD_FLAG_COUNT_EMITTED) == HIT_RECORD_FLAG_COUNT_EMITTED) || (hgData->type == HIT_GROUP_TYPE_DEF_LIGHT);
 
     if (params.flags & PARAM_FLAG_USE_GRID) {
         unsigned int gridIndex = params.grid.FindFromCur(position);
@@ -408,10 +409,7 @@ extern "C" __global__ void __closesthit__radiance() {
         }
     } while (0);
 
-    if (prevHitFlags & HIT_RECORD_FLAG_COUNT_EMITTED)
-    {
-        radiance += prevThroughput * emission * static_cast<float>(RTLib::Ext::CUDA::Math::dot(inDir, fNormal) < 0.0f);
-    }
+    radiance += prevThroughput * emission * static_cast<float>(RTLib::Ext::CUDA::Math::dot(inDir, fNormal) < 0.0f) * static_cast<float>(countEmitted);
     if (emission.x + emission.y + emission.z > 0.0f) {
         currHitFlags |= HIT_RECORD_FLAG_FINISH;
     }

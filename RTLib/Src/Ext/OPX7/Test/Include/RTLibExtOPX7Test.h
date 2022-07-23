@@ -1837,7 +1837,7 @@ namespace rtlib
             }
         };
 
-        inline auto SpecifyMaterialType(const RTLib::Core::VariableMap& material) -> HitgroupType
+        inline auto SpecifyMaterialType(const RTLib::Core::VariableMap& material, const RTLib::Core::MeshPtr& mesh = nullptr) -> HitgroupType
         {
             auto emitCol = material.GetFloat3As<float3>("emitCol");
             auto specCol = material.GetFloat3As<float3>("specCol");
@@ -1847,7 +1847,17 @@ namespace rtlib
             auto illum    = material.GetUInt32("illum");
             if (emitCol.x + emitCol.y + emitCol.z > 0.0f)
             {
-                return HIT_GROUP_TYPE_DEF_LIGHT;
+                if (mesh) {
+                    if (mesh->GetUniqueResource()->triIndBuffer.size() > 50) {
+                        return HIT_GROUP_TYPE_NEE_LIGHT;
+                    }
+                    else {
+                        return HIT_GROUP_TYPE_DEF_LIGHT;
+                    }
+                }
+                else {
+                    return HIT_GROUP_TYPE_DEF_LIGHT;
+                }
             }
             else if (illum == 7)
             {

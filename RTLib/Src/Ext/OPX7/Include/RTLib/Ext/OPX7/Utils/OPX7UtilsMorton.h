@@ -755,16 +755,18 @@ namespace RTLib
                         TraceStateRecord = 0,
                         TraceStateRecordAndSample = 1,
                         TraceStateSample = 2,
+                        TraceStateLocate = 3
                     };
 
                     RTMortonQuadTreeControllerT(
                         RTMortonQuadTreeWrapperT<MaxLevel>* tree,
                         unsigned int sampleForBudget  /*ALL SAMPLES FOR TRACE*/,
                         unsigned int iterationForBuilt/*ITERATION FOR BUILT*/ = 0,
+                        unsigned int iterationForLocate                       = 0,
                         float         ratioForBudget  /*RATIO FOR RECORDING TREE*/ = 0.5f,
                         unsigned int samplePerLaunch  /*SAMPLES PER LAUNCH*/ = 1
                     )noexcept
-                        :m_Tree{ tree }, m_SampleForBudget{ sampleForBudget }, m_SamplePerLaunch{ samplePerLaunch }, m_IterationForBuilt{ iterationForBuilt }, m_RatioForBudget{ ratioForBudget }{
+                        :m_Tree{ tree }, m_SampleForBudget{ sampleForBudget }, m_SamplePerLaunch{ samplePerLaunch }, m_IterationForBuilt{ iterationForBuilt }, m_RatioForBudget{ ratioForBudget }, m_IterationForLocate{iterationForLocate}{
                         m_Module = std::unique_ptr<CUDA::CUDAModule>(RTLib::Ext::CUDA::CUDAModule::LoadFromData(m_Tree->GetContext(), GetPtxMortonQuadTreeBuildKernel()));
                         m_BuildKernel = std::unique_ptr<CUDA::CUDAFunction>(m_Module->LoadFunction("mortonBuildKernel"));
                         //m_ClearKernel = std::unique_ptr<CUDA::CUDAFunction>(m_Module->LoadFunction("mortonClearKernel"));
@@ -775,6 +777,7 @@ namespace RTLib
                     void Start() {
                         m_TraceStart = true;
                     }
+
                     void Destroy() {
                         if (m_Module) { m_Module->Destory(); m_Module = nullptr; }
                         if (m_BuildKernel) { m_BuildKernel->Destory(); m_BuildKernel = nullptr; }
@@ -831,8 +834,11 @@ namespace RTLib
                                 m_TraceState = TraceStateSample;
                             }
                         }
-                        else {
+                        else if (m_CurIteration > m_IterationForLocate) {
                             m_TraceState = TraceStateRecord;
+                        }
+                        else {
+                            m_TraceState = TraceStateLocate;
                         }
 #ifndef NDEBUG
                         if (m_TraceState == TraceStateRecordAndSample) {
@@ -950,6 +956,7 @@ namespace RTLib
                     unsigned int    m_SampleForBudget = 0;
                     unsigned int    m_SamplePerLaunch = 0;
                     unsigned int    m_IterationForBuilt = 0;
+                    unsigned int    m_IterationForLocate= 0;
                     float           m_RatioForBudget = 0.0f;
 
                     bool            m_TraceStart = false;

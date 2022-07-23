@@ -318,6 +318,7 @@ extern "C" __global__ void     __closesthit__radiance() {
     auto currThroughput = make_float3(0.0f);
     auto prevHitFlags = hrec->flags;
     auto currHitFlags = static_cast<unsigned int>(0);
+    const auto countEmitted = ((prevHitFlags & HIT_RECORD_FLAG_COUNT_EMITTED) == HIT_RECORD_FLAG_COUNT_EMITTED) || (hgData->type == HIT_GROUP_TYPE_DEF_LIGHT);
     auto curGridIndex = UINT32_MAX;
     do {
         if (hgData->type == HIT_GROUP_TYPE_PHONG) {
@@ -430,7 +431,7 @@ extern "C" __global__ void     __closesthit__radiance() {
                 currHitFlags |= HIT_RECORD_FLAG_COUNT_EMITTED;
             }
 
-            if (((params.flags & PARAM_FLAG_USE_GRID) == PARAM_FLAG_USE_GRID) && ((params.flags & PARAM_FLAG_BUILD) != PARAM_FLAG_BUILD) && (prvGridIndex==UINT32_MAX))
+            if (((params.flags & PARAM_FLAG_USE_GRID) == PARAM_FLAG_USE_GRID) && ((params.flags & PARAM_FLAG_LOCATE) == PARAM_FLAG_LOCATE) && (prvGridIndex==UINT32_MAX))
             {
                 curGridIndex = params.grid.FindFromCur(info);
             }
@@ -505,10 +506,7 @@ extern "C" __global__ void     __closesthit__radiance() {
         }
     } while (0);
 
-    if (prevHitFlags & HIT_RECORD_FLAG_COUNT_EMITTED)
-    {
-        radiance += prevThroughput * emission * static_cast<float>(RTLib::Ext::CUDA::Math::dot(inDir, fNormal) < 0.0f);
-    }
+    radiance += prevThroughput * emission * static_cast<float>(RTLib::Ext::CUDA::Math::dot(inDir, fNormal) < 0.0f) * static_cast<float>(countEmitted);
     if (emission.x + emission.y + emission.z > 0.0f) {
         currHitFlags |= HIT_RECORD_FLAG_FINISH;
     }
@@ -558,6 +556,7 @@ extern "C" __global__ void     __closesthit__radiance_sphere() {
     auto currThroughput = make_float3(0.0f);
     auto prevHitFlags = hrec->flags;
     auto currHitFlags = static_cast<unsigned int>(0);
+    const auto countEmitted = ((prevHitFlags & HIT_RECORD_FLAG_COUNT_EMITTED) == HIT_RECORD_FLAG_COUNT_EMITTED) || (hgData->type == HIT_GROUP_TYPE_DEF_LIGHT);
     auto curGridIndex = UINT32_MAX;
     do {
         if (hgData->type == HIT_GROUP_TYPE_PHONG) {
@@ -670,7 +669,7 @@ extern "C" __global__ void     __closesthit__radiance_sphere() {
                 currHitFlags |= HIT_RECORD_FLAG_COUNT_EMITTED;
             }
 
-            if (((params.flags & PARAM_FLAG_USE_GRID) == PARAM_FLAG_USE_GRID) && ((params.flags & PARAM_FLAG_BUILD) != PARAM_FLAG_BUILD) && (prvGridIndex == UINT32_MAX))
+            if (((params.flags & PARAM_FLAG_USE_GRID) == PARAM_FLAG_USE_GRID) && ((params.flags & PARAM_FLAG_LOCATE) == PARAM_FLAG_LOCATE) && (prvGridIndex == UINT32_MAX))
             {
                 curGridIndex = params.grid.FindFromCur(info);
             }
@@ -745,10 +744,7 @@ extern "C" __global__ void     __closesthit__radiance_sphere() {
         }
     } while (0);
 
-    if (prevHitFlags & HIT_RECORD_FLAG_COUNT_EMITTED)
-    {
-        radiance += prevThroughput * emission * static_cast<float>(RTLib::Ext::CUDA::Math::dot(inDir, fNormal) < 0.0f);
-    }
+    radiance += prevThroughput * emission * static_cast<float>(RTLib::Ext::CUDA::Math::dot(inDir, fNormal) < 0.0f) * static_cast<float>(countEmitted);
     if (emission.x + emission.y + emission.z > 0.0f) {
         currHitFlags |= HIT_RECORD_FLAG_FINISH;
     }

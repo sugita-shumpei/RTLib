@@ -148,13 +148,14 @@ struct ReservoirState
 
 enum   ParamFlag
 {
-    PARAM_FLAG_NONE     = 0,
-    PARAM_FLAG_NEE      = 1,
-    PARAM_FLAG_RIS      = 2,
+    PARAM_FLAG_NONE = 0,
+    PARAM_FLAG_NEE = 1,
+    PARAM_FLAG_RIS = 2,
     PARAM_FLAG_USE_GRID = 4,
     PARAM_FLAG_USE_TREE = 8,
-    PARAM_FLAG_BUILD    = 16,
-    PARAM_FLAG_FINAL    = 32,
+    PARAM_FLAG_BUILD = 16,
+    PARAM_FLAG_FINAL = 32,
+    PARAM_FLAG_LOCATE = 64,
 };
 enum   DebugFrameType
 {
@@ -169,10 +170,10 @@ enum   DebugFrameType
     DEBUG_FRAME_TYPE_COUNT = 8,
 };
 struct Params {
-    unsigned int*                   seedBuffer;
-    float3*                        accumBuffer;
-    uchar4*                        frameBuffer;
-    float4*                  diffuseGridBuffer;
+    unsigned int* seedBuffer;
+    float3* accumBuffer;
+    uchar4* frameBuffer;
+    float4* diffuseGridBuffer;
     rtlib::test::MortonQTreeWrapper mortonTree;
     unsigned int                         width;
     unsigned int                        height;
@@ -213,10 +214,10 @@ struct HitgroupData {
     float3              diffuse;
     float3              specular;
     float3              emission;
-    float3*             vertices;
-    float3*             normals;
-    float2*             texCrds;
-    uint3*              indices;
+    float3* vertices;
+    float3* normals;
+    float2* texCrds;
+    uint3* indices;
     cudaTextureObject_t diffuseTex;
     cudaTextureObject_t specularTex;
     cudaTextureObject_t emissionTex;

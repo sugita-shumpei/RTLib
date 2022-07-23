@@ -23,7 +23,7 @@ void SampleTest()
 void TracerTest()
 {
     {
-        auto testApp = RTLibExtOPX7TestApplication(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/../scene.json", "HTDEF", false, true, false);
+        auto testApp = RTLibExtOPX7TestApplication(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/../scene.json", "RIS", false, false, false);
         try
         {
             testApp.Initialize();
@@ -80,17 +80,17 @@ void TracerTest()
                 //    testApp.GetTraceConfig().imagePath = newImagePath.string();
                 //    testApp.GetTraceConfig().custom.SetFloat1("HashGrid.CellSize", newHashGridCellSize);
                 //}
-                testApp.ResetGrids();
-                testApp.SetMaxSamples(100);
-                testApp.SetSamplesPerSave(100);
-                testApp.MainLoop();
-                testApp.ResetGrids();
-                testApp.SetMaxSamples(1000);
-                testApp.SetSamplesPerSave(1000);
-                testApp.MainLoop();
-                testApp.ResetGrids();
-                testApp.SetMaxSamples(10000);
-                testApp.SetSamplesPerSave(10000);
+                //testApp.ResetGrids();
+                //testApp.SetMaxSamples(100);
+                //testApp.SetSamplesPerSave(100);
+                //testApp.MainLoop();
+                //testApp.ResetGrids();
+                //testApp.SetMaxSamples(1000);
+                //testApp.SetSamplesPerSave(1000);
+                //testApp.MainLoop();
+                //testApp.ResetGrids();
+                testApp.SetMaxSamples(1000000);
+                testApp.SetSamplesPerSave(100000);
                 testApp.MainLoop();
             }
             testApp.GetTraceConfig().custom.SetFloat1("HashGrid.CellSize", hashGridCellSize);
