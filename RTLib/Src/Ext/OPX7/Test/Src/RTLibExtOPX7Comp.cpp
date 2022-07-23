@@ -6,23 +6,36 @@ int main(int argc, const char* argv[]) {
     auto xRange = 128;
     auto yRange = 128;
     auto baseSamples = 1000000;
+    auto baseDir = std::string(RTLIB_EXT_OPX7_TEST_DATA_PATH"\\..\\Result\\Scene1\\Depth=10_10sec");
     if (argc > 1) {
-        isAllRange = false;
-        if (std::string(argv[1]) == "--xcenter") {
-            xCenter = std::stoi(std::string(argv[2]));
+        for (int i = 0; i < argc-1; ++i) {
+            if (std::string(argv[i]) == "--base_dir") {
+                baseDir = std::string(argv[i + 1]);
+            }
+            if (std::string(argv[i]) == "--base_smp") {
+                baseSamples = std::stoi(std::string(argv[i + 1]));
+            }
+            if (std::string(argv[i]) == "--xcenter") {
+                xCenter = std::stoi(std::string(argv[i+1]));
+                isAllRange = false;
+            }
+            if (std::string(argv[i]) == "--ycenter") {
+                yCenter = std::stoi(std::string(argv[i + 1]));
+                isAllRange = false;
+            }
+            if (std::string(argv[i]) == "--xrange") {
+                xRange = std::stoi(std::string(argv[i + 1]));
+                isAllRange = false;
+            }
+            if (std::string(argv[i]) == "--yrange") {
+                yRange = std::stoi(std::string(argv[i + 1]));
+                isAllRange = false;
+            }
         }
-        if (std::string(argv[3]) == "--ycenter") {
-            yCenter = std::stoi(std::string(argv[4]));
-        }
-        if (std::string(argv[5]) == "--xrange") {
-            xRange = std::stoi(std::string(argv[6]));
-        }
-        if (std::string(argv[7]) == "--yrange") {
-            yRange = std::stoi(std::string(argv[8]));
-        }
+        
     }
     //return RTLibExtOPX7TestApplication(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/../scene.json", "DEF", false).Run();
-    auto filePath = std::filesystem::path(RTLIB_EXT_OPX7_TEST_DATA_PATH"\\..\\Result\\Scene1\\Depth=10").make_preferred();
+    auto filePath = std::filesystem::path(baseDir).make_preferred();
     auto baseImageData = std::vector<float3>();
     auto imageSizeX = static_cast<int>(0);
     auto imageSizeY = static_cast<int>(0);

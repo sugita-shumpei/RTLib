@@ -187,6 +187,8 @@ namespace rtlib
             unsigned int maxSamples;
             float        maxTimes;
             unsigned int maxDepth;
+            bool         enableVis;
+            std::string  defTracer;
             RTLib::Core::VariableMap custom;
             std::unordered_map<std::string, RTLib::Core::VariableMap> tracers;
         };
@@ -201,6 +203,8 @@ namespace rtlib
             j["MaxSamples"]     = v.maxSamples;
             j["MaxTimes"]       = v.maxTimes;
             j["MaxDepth"]       = v.maxDepth;
+            j["EnableVis"]      = v.enableVis;
+            j["DefTracer"]      = v.defTracer;
             if (!v.custom.IsEmpty())
             {
                 j["Custom"] = v.custom;
@@ -220,6 +224,18 @@ namespace rtlib
             v.samples        = j.at("Samples"   ).get<unsigned int>();
             v.samplesPerSave = j.at("SamplesPerSave").get<unsigned int>();
             v.maxSamples     = j.at("MaxSamples").get<unsigned int>();
+            if (j.count("EnableVis") > 0) {
+                v.enableVis = j.at("EnableVis").get<bool>();
+            }
+            else {
+                v.enableVis = false;
+            }
+            if (j.count("DefTracer") > 0) {
+                v.defTracer = j.at("DefTracer").get<std::string>();
+            }
+            else {
+                v.defTracer = "NONE";
+            }
             if (j.count("MaxTimes") > 0) {
                 v.maxTimes = j.at("MaxTimes").get<float>();
             }

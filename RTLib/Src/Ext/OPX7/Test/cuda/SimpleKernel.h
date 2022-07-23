@@ -182,6 +182,7 @@ struct Params {
     unsigned int               samplesForAccum;
     unsigned int                         flags;
     unsigned int                debugFrameType;
+    unsigned int                 numCandidates;
     OptixTraversableHandle           gasHandle;
     MeshLightList                       lights;
     rtlib::test::DoubleBufferedHashGrid3  grid;

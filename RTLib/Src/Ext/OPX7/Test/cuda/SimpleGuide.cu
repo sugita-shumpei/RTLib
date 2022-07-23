@@ -387,7 +387,7 @@ extern "C" __global__ void     __closesthit__radiance() {
                         auto f_a_y  = 0.0f;
                         auto lDir_y = make_float3(0.0f);
                         auto dist_y = float(0.0f);
-                        for (int i = 0; i < 32; ++i) {
+                        for (int i = 0; i < params.numCandidates; ++i) {
                             LightRecord lRec = params.lights.Sample(position, xor32);
                             auto  ndl =  RTLib::Ext::CUDA::Math::dot(lRec.direction, fNormal    );
                             auto lndl = -RTLib::Ext::CUDA::Math::dot(lRec.direction, lRec.normal);
@@ -611,7 +611,7 @@ extern "C" __global__ void     __closesthit__radiance_sphere() {
                         auto f_a_y = 0.0f;
                         auto lDir_y = make_float3(0.0f);
                         auto dist_y = float(0.0f);
-                        for (int i = 0; i < 32; ++i) {
+                        for (int i = 0; i < params.numCandidates; ++i) {
                             LightRecord lRec = params.lights.Sample(position, xor32);
                             auto  ndl = RTLib::Ext::CUDA::Math::dot(lRec.direction, fNormal);
                             auto lndl = -RTLib::Ext::CUDA::Math::dot(lRec.direction, lRec.normal);

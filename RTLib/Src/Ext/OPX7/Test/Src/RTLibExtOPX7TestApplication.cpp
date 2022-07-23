@@ -24,6 +24,20 @@ void RTLibExtOPX7TestApplication::CursorPosCallback(RTLib::Core::Window* window,
 void RTLibExtOPX7TestApplication::LoadScene()
 {
     m_SceneData = rtlib::test::LoadScene(m_ScenePath);
+    if (!m_SceneData.config.enableVis) {
+        m_EnableVis = false;
+    }
+    if (m_SceneData.config.defTracer != "NONE")
+    {
+        m_CurTracerName = m_SceneData.config.defTracer;
+    }
+    if (!m_SceneData.config.custom.GetBoolOr("SdTree.Enable",false)) {
+        m_EnableTree = false;
+    }
+    if (!m_SceneData.config.custom.GetBoolOr("MortonTree.Enable", false)) {
+        m_EnableGrid = false;
+    }
+
 }
 
  void RTLibExtOPX7TestApplication::SaveScene()

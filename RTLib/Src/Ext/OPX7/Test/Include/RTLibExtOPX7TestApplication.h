@@ -317,6 +317,7 @@ private:
         params.lights.count = m_lightBuffer.cpuHandle.size();
         params.lights.data = reinterpret_cast<MeshLight*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_lightBuffer.gpuHandle.get()));
         params.grid = m_HashBufferCUDA.GetHandle();
+        params.numCandidates = GetTraceConfig().custom.GetUInt32Or("Ris.NumCandidates",32);
         if (m_EnableGrid) {
             params.diffuseGridBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<float4>(m_DiffuseBufferCUDA.get());
         }

@@ -23,7 +23,7 @@ void SampleTest()
 void TracerTest()
 {
     {
-        auto testApp = RTLibExtOPX7TestApplication(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/../scene.json", "DEF", false, false, false);
+        auto testApp = RTLibExtOPX7TestApplication(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/../scene.json", "RIS", true, true, true);
         try
         {
             testApp.Initialize();
@@ -81,19 +81,25 @@ void TracerTest()
                 //    testApp.GetTraceConfig().imagePath = newImagePath.string();
                 //    testApp.GetTraceConfig().custom.SetFloat1("HashGrid.CellSize", newHashGridCellSize);
                 //}
-                //testApp.ResetGrids();
-                //testApp.SetMaxSamples(100);
-                //testApp.SetSamplesPerSave(100);
-                //testApp.MainLoop();
-                //testApp.ResetGrids();
-                //testApp.SetMaxSamples(1000);
-                //testApp.SetSamplesPerSave(1000);
-                //testApp.MainLoop();
-                //testApp.ResetGrids();
-                testApp.SetMaxSamples(100000);
-                testApp.SetSamplesPerSave(10000);
-                testApp.SetMaxTimes(10000.0f);
+                testApp.ResetGrids();
+                testApp.SetMaxSamples(100);
+                testApp.SetSamplesPerSave(100);
                 testApp.MainLoop();
+                testApp.ResetGrids();
+                testApp.SetMaxSamples(1000);
+                testApp.SetSamplesPerSave(1000);
+                testApp.MainLoop();
+                testApp.ResetGrids();
+                testApp.SetMaxSamples(10000);
+                testApp.SetSamplesPerSave(10000);
+                testApp.MainLoop();
+                {
+
+                    //testApp.SetMaxSamples(2900);
+                    //testApp.SetSamplesPerSave(2900);
+                    //testApp.SetMaxTimes(60000.0f);
+                    //testApp.MainLoop();
+                }
             }
             testApp.GetTraceConfig().custom.SetFloat1("HashGrid.CellSize", hashGridCellSize);
             testApp.GetTraceConfig().custom.SetFloat1("MortonTree.RatioForBudget", ratioForBudget);
