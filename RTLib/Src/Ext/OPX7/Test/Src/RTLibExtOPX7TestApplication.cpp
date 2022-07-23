@@ -2807,11 +2807,11 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
 {
     if (m_EnableVis)
     {
-        return m_GlfwWindow->ShouldClose() || (m_SamplesForAccum >= m_SceneData.config.maxSamples);
+        return m_GlfwWindow->ShouldClose() || (m_SamplesForAccum >= m_SceneData.config.maxSamples || (m_TimesForAccum >= m_SceneData.config.maxTimes));
     }
     else
     {
-        return (m_SamplesForAccum >= m_SceneData.config.maxSamples);
+        return (m_SamplesForAccum >= m_SceneData.config.maxSamples) || (m_TimesForAccum >= m_SceneData.config.maxTimes);
     }
 }
 
@@ -3092,62 +3092,65 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
         m_TimesForAccum += m_TimesForFrame;
         if ((m_SamplesForAccum > 0) && (m_SamplesForAccum % m_SceneData.config.samplesPerSave == 0))
         {
-            auto baseSavePath = std::filesystem::path(m_SceneData.config.imagePath).make_preferred() / m_TimeStampString;
-            if (!std::filesystem::exists(baseSavePath))
-            {
-                std::filesystem::create_directory(baseSavePath);
-                std::filesystem::copy_file(m_ScenePath, baseSavePath / "scene.json");
-            }
-            auto configData    = rtlib::test::ImageConfigData();
-            configData.width   = m_SceneData.config.width;
-            configData.height  = m_SceneData.config.height;
-            configData.samples = m_SamplesForAccum;
-            configData.time      = m_TimesForAccum;
-            configData.enableVis = m_EnableVis;
-            configData.pngFilePath = baseSavePath.string() + "/result_" + m_CurTracerName + "_" + std::to_string(m_SamplesForAccum) + ".png";
-            configData.binFilePath = baseSavePath.string() + "/result_" + m_CurTracerName + "_" + std::to_string(m_SamplesForAccum) + ".bin";
-            configData.exrFilePath = baseSavePath.string() + "/result_" + m_CurTracerName + "_" + std::to_string(m_SamplesForAccum) + ".exr";
-            {
-                std::ofstream configFile (baseSavePath.string() + "/config_" + m_CurTracerName + "_" + std::to_string(m_SamplesForAccum) + ".json");
-                configFile << nlohmann::json(configData);
-                configFile.close();
-            }
-
-            auto pixelSize = m_SceneData.config.width * m_SceneData.config.height;
-            auto download_data = std::vector<float>(pixelSize * 3, 0.0f);
-            {
-                auto memoryCopy = RTLib::Ext::CUDA::CUDABufferMemoryCopy();
-                memoryCopy.dstData = download_data.data();
-                memoryCopy.srcOffset = 0;
-                memoryCopy.size = pixelSize * sizeof(float) * 3;
-                RTLIB_CORE_ASSERT_IF_FAILED(m_Opx7Context->CopyBufferToMemory(m_AccumBufferCUDA.get(), { memoryCopy }));
-            }
-            {
-                auto hdr_image_data = std::vector<float>(pixelSize * 3, 0.0f);
-                for (size_t i = 0; i < pixelSize; ++i)
-                {
-                    hdr_image_data[3 * (pixelSize - 1 - i) + 0] = download_data[3 * i + 0] / static_cast<float>(m_SamplesForAccum);
-                    hdr_image_data[3 * (pixelSize - 1 - i) + 1] = download_data[3 * i + 1] / static_cast<float>(m_SamplesForAccum);
-                    hdr_image_data[3 * (pixelSize - 1 - i) + 2] = download_data[3 * i + 2] / static_cast<float>(m_SamplesForAccum);
-                }
-                rtlib::test::SaveExrImage(configData.exrFilePath.c_str(), m_SceneData.config.width, m_SceneData.config.height, hdr_image_data);
-                std::ofstream imageBinFile(configData.binFilePath, std::ios::binary|std::ios::ate);
-                imageBinFile.write((char*)hdr_image_data.data(), hdr_image_data.size() * sizeof(hdr_image_data[0]));
-                imageBinFile.close();
-            }
-            {
-                auto png_image_data = std::vector<unsigned char>(pixelSize * 4);
-                for (size_t i = 0; i < pixelSize; ++i)
-                {
-                    png_image_data[4 * i + 0] = 255.99f * std::min(RTLib::Ext::CUDA::Math::linear_to_gamma(download_data[3 * (pixelSize - 1 - i) + 0] / static_cast<float>(m_SamplesForAccum)), 1.0f);
-                    png_image_data[4 * i + 1] = 255.99f * std::min(RTLib::Ext::CUDA::Math::linear_to_gamma(download_data[3 * (pixelSize - 1 - i) + 1] / static_cast<float>(m_SamplesForAccum)), 1.0f);
-                    png_image_data[4 * i + 2] = 255.99f * std::min(RTLib::Ext::CUDA::Math::linear_to_gamma(download_data[3 * (pixelSize - 1 - i) + 2] / static_cast<float>(m_SamplesForAccum)), 1.0f);
-                    png_image_data[4 * i + 3] = 255;
-                }
-                rtlib::test::SavePngImage(configData.pngFilePath.c_str(), m_SceneData.config.width, m_SceneData.config.height, png_image_data);
-            }
+            SaveResultImage(stream);
         }
     }
 }
 
- 
+ void RTLibExtOPX7TestApplication::SaveResultImage(RTLib::Ext::CUDA::CUDAStream* stream)
+ {
+     auto baseSavePath = std::filesystem::path(m_SceneData.config.imagePath).make_preferred() / m_TimeStampString;
+     if (!std::filesystem::exists(baseSavePath))
+     {
+         std::filesystem::create_directory(baseSavePath);
+         std::filesystem::copy_file(m_ScenePath, baseSavePath / "scene.json");
+     }
+     auto configData = rtlib::test::ImageConfigData();
+     configData.width = m_SceneData.config.width;
+     configData.height = m_SceneData.config.height;
+     configData.samples = m_SamplesForAccum;
+     configData.time = m_TimesForAccum;
+     configData.enableVis = m_EnableVis;
+     configData.pngFilePath = baseSavePath.string() + "/result_" + m_CurTracerName + "_" + std::to_string(m_SamplesForAccum) + ".png";
+     configData.binFilePath = baseSavePath.string() + "/result_" + m_CurTracerName + "_" + std::to_string(m_SamplesForAccum) + ".bin";
+     configData.exrFilePath = baseSavePath.string() + "/result_" + m_CurTracerName + "_" + std::to_string(m_SamplesForAccum) + ".exr";
+     {
+         std::ofstream configFile(baseSavePath.string() + "/config_" + m_CurTracerName + "_" + std::to_string(m_SamplesForAccum) + ".json");
+         configFile << nlohmann::json(configData);
+         configFile.close();
+     }
+
+     auto pixelSize = m_SceneData.config.width * m_SceneData.config.height;
+     auto download_data = std::vector<float>(pixelSize * 3, 0.0f);
+     {
+         auto memoryCopy = RTLib::Ext::CUDA::CUDABufferMemoryCopy();
+         memoryCopy.dstData = download_data.data();
+         memoryCopy.srcOffset = 0;
+         memoryCopy.size = pixelSize * sizeof(float) * 3;
+         RTLIB_CORE_ASSERT_IF_FAILED(m_Opx7Context->CopyBufferToMemory(m_AccumBufferCUDA.get(), { memoryCopy }));
+     }
+     {
+         auto hdr_image_data = std::vector<float>(pixelSize * 3, 0.0f);
+         for (size_t i = 0; i < pixelSize; ++i)
+         {
+             hdr_image_data[3 * (pixelSize - 1 - i) + 0] = download_data[3 * i + 0] / static_cast<float>(m_SamplesForAccum);
+             hdr_image_data[3 * (pixelSize - 1 - i) + 1] = download_data[3 * i + 1] / static_cast<float>(m_SamplesForAccum);
+             hdr_image_data[3 * (pixelSize - 1 - i) + 2] = download_data[3 * i + 2] / static_cast<float>(m_SamplesForAccum);
+         }
+         rtlib::test::SaveExrImage(configData.exrFilePath.c_str(), m_SceneData.config.width, m_SceneData.config.height, hdr_image_data);
+         std::ofstream imageBinFile(configData.binFilePath, std::ios::binary | std::ios::ate);
+         imageBinFile.write((char*)hdr_image_data.data(), hdr_image_data.size() * sizeof(hdr_image_data[0]));
+         imageBinFile.close();
+     }
+     {
+         auto png_image_data = std::vector<unsigned char>(pixelSize * 4);
+         for (size_t i = 0; i < pixelSize; ++i)
+         {
+             png_image_data[4 * i + 0] = 255.99f * std::min(RTLib::Ext::CUDA::Math::linear_to_gamma(download_data[3 * (pixelSize - 1 - i) + 0] / static_cast<float>(m_SamplesForAccum)), 1.0f);
+             png_image_data[4 * i + 1] = 255.99f * std::min(RTLib::Ext::CUDA::Math::linear_to_gamma(download_data[3 * (pixelSize - 1 - i) + 1] / static_cast<float>(m_SamplesForAccum)), 1.0f);
+             png_image_data[4 * i + 2] = 255.99f * std::min(RTLib::Ext::CUDA::Math::linear_to_gamma(download_data[3 * (pixelSize - 1 - i) + 2] / static_cast<float>(m_SamplesForAccum)), 1.0f);
+             png_image_data[4 * i + 3] = 255;
+         }
+         rtlib::test::SavePngImage(configData.pngFilePath.c_str(), m_SceneData.config.width, m_SceneData.config.height, png_image_data);
+     }
+ }

@@ -117,6 +117,7 @@ public:
             /*DrawRect*/
             this->UpdateState();
         }
+        this->SaveResultImage(m_Stream.get());
 
         m_Stream->Synchronize();
         m_Stream->Destroy();
@@ -210,6 +211,15 @@ public:
         }
     }
 
+
+    auto GetMaxTimes()const noexcept -> float {
+        return m_SceneData.config.maxTimes;
+    }
+    void SetMaxTimes(float maxTimes)
+        noexcept {
+        m_SceneData.config.maxTimes = maxTimes;
+    }
+
     auto GetTraceConfig()const noexcept -> const rtlib::test::TraceConfigData& { return m_SceneData.config; }
     auto GetTraceConfig()      noexcept ->       rtlib::test::TraceConfigData& { return m_SceneData.config; }
 private:
@@ -278,7 +288,7 @@ private:
 
     void UpdateTimeStamp();
     void TraceFrame(RTLib::Ext::CUDA::CUDAStream* stream);
-
+    void SaveResultImage(RTLib::Ext::CUDA::CUDAStream* stream);
 private:
     auto NewShaderTable()->std::unique_ptr<RTLib::Ext::OPX7::OPX7ShaderTable>
     {

@@ -23,13 +23,14 @@ void SampleTest()
 void TracerTest()
 {
     {
-        auto testApp = RTLibExtOPX7TestApplication(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/../scene.json", "RIS", false, false, false);
+        auto testApp = RTLibExtOPX7TestApplication(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/../scene.json", "DEF", false, false, false);
         try
         {
             testApp.Initialize();
 
             auto tracerName        = testApp.GetTracerName();
             auto maxSamples        = testApp.GetMaxSamples();
+            auto maxTimes          = testApp.GetMaxTimes();
             auto samplesPerSave    = testApp.GetSamplesPerSave();
             auto fraction          = testApp.GetTraceConfig().custom.GetFloat1Or("MortonTree.Fraction",0.3f);
             auto iterationForBuilt = testApp.GetTraceConfig().custom.GetUInt32Or("MortonTree.IterationForBuilt", 3);
@@ -89,8 +90,9 @@ void TracerTest()
                 //testApp.SetSamplesPerSave(1000);
                 //testApp.MainLoop();
                 //testApp.ResetGrids();
-                testApp.SetMaxSamples(1000000);
-                testApp.SetSamplesPerSave(100000);
+                testApp.SetMaxSamples(100000);
+                testApp.SetSamplesPerSave(10000);
+                testApp.SetMaxTimes(10000.0f);
                 testApp.MainLoop();
             }
             testApp.GetTraceConfig().custom.SetFloat1("HashGrid.CellSize", hashGridCellSize);
@@ -100,6 +102,7 @@ void TracerTest()
             testApp.GetTraceConfig().imagePath = imagePath;
             testApp.SetTracerName(tracerName);
             testApp.SetMaxSamples(maxSamples);
+            testApp.SetMaxTimes(maxTimes);
             testApp.SetSamplesPerSave(samplesPerSave);
             testApp.Terminate();
         }
