@@ -349,7 +349,7 @@ static __forceinline__ __device__ void TraceRadiance(OptixTraversableHandle tlas
     p6 = RTLib::Ext::CUDA::Math::to_upper(iptr);
     p7 = RTLib::Ext::CUDA::Math::to_lower(iptr);
 
-    optixTrace(tlasHandle, rayOrigin, rayDirection, rayTmin, rayTmax, 0.0f, OptixVisibilityMask(255), OPTIX_RAY_FLAG_NONE, RAY_TYPE_RADIANCE, RAY_TYPE_COUNT, RAY_TYPE_RADIANCE, p0, p1, p2, p3, p4, p5, p6, p7);
+    optixTrace(tlasHandle, rayOrigin, rayDirection, rayTmin, rayTmax, 0.0f, OptixVisibilityMask(255), OPTIX_RAY_FLAG_DISABLE_ANYHIT | OPTIX_RAY_FLAG_NONE, RAY_TYPE_RADIANCE, RAY_TYPE_COUNT, RAY_TYPE_RADIANCE, p0, p1, p2, p3, p4, p5, p6, p7);
     hrec.rayOrigin = BasicHitRecord<UserData>::AsRayOrigin(p0, p1, p2);
     float4 rayDirAndTmax = BasicHitRecord<UserData>::AsRayDirAndTmax(p3, p4, p5);
     hrec.rayDirection = RTLib::Ext::CUDA::Math::normalize(make_float3(rayDirAndTmax.x, rayDirAndTmax.y, rayDirAndTmax.z));
@@ -358,7 +358,7 @@ static __forceinline__ __device__ void TraceRadiance(OptixTraversableHandle tlas
 static __forceinline__ __device__ bool TraceOccluded(OptixTraversableHandle tlasHandle, float3  rayOrigin, float3  rayDirection, float rayTmin, float rayTmax)
 {
     unsigned int p0 = 0;
-    optixTrace(tlasHandle, rayOrigin, rayDirection, rayTmin, rayTmax, 0.0f, OptixVisibilityMask(255), OPTIX_RAY_FLAG_TERMINATE_ON_FIRST_HIT, RAY_TYPE_OCCLUDED, RAY_TYPE_COUNT, RAY_TYPE_OCCLUDED, p0);
+    optixTrace(tlasHandle, rayOrigin, rayDirection, rayTmin, rayTmax, 0.0f, OptixVisibilityMask(255), OPTIX_RAY_FLAG_DISABLE_ANYHIT|OPTIX_RAY_FLAG_TERMINATE_ON_FIRST_HIT, RAY_TYPE_OCCLUDED, RAY_TYPE_COUNT, RAY_TYPE_OCCLUDED, p0);
     return p0;
 }
 

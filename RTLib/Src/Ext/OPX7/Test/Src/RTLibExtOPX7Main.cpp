@@ -81,18 +81,56 @@ void TracerTest()
                 //    testApp.GetTraceConfig().imagePath = newImagePath.string();
                 //    testApp.GetTraceConfig().custom.SetFloat1("HashGrid.CellSize", newHashGridCellSize);
                 //}
+                //auto gridSize = 8;
+                //for (int j = 0; j < 6; ++j) {
+                //    for (int i = 0; i < 5; ++i) {
+                //        unsigned int gridCount = gridSize * gridSize * gridSize/(static_cast<unsigned int>(1)<<(i));
+                //        testApp.GetTraceConfig().imagePath = (imagePath+"\\Scene4\\Depth=10_3\\GridSize=" + std::to_string(gridSize)+"\\CellSize=" + std::to_string(gridCount));
+                //        testApp.GetTraceConfig().custom.SetFloat3("HashGrid.GridSize", { (float)gridSize,(float)gridSize ,(float)gridSize });
+                //        testApp.GetTraceConfig().custom.SetFloat1("HashGrid.CellSize", gridCount);
+                //        testApp.SetMaxSamples(100);
+                //        testApp.SetSamplesPerSave(10);
+                //        testApp.ResetSdTree();
+                //        testApp.ResetGrids();
+                //        testApp.MainLoop();
+
+                //        testApp.SetMaxSamples(1000);
+                //        testApp.SetSamplesPerSave(100);
+                //        testApp.ResetSdTree();
+                //        testApp.ResetGrids();
+                //        testApp.MainLoop();
+                //    }
+                //    gridSize *= 2;
+                //}
+                //testApp.SetMaxSamples(100);
+                //testApp.SetSamplesPerSave(10);
+                //testApp.ResetSdTree();
+                //testApp.ResetGrids();
+                //testApp.MainLoop();
+
+                //testApp.SetMaxSamples(1000);
+                //testApp.SetSamplesPerSave(100);
+                //testApp.ResetSdTree();
+                //testApp.ResetGrids();
+                //testApp.MainLoop();
+                ////testApp.ResetSdTree();
+                //testApp.SetMaxSamples(10000);
+                //testApp.SetSamplesPerSave(1000);
+                //testApp.ResetSdTree();
+                //testApp.ResetGrids();
+                ////testApp.MainLoop();
+
+                //testApp.SetMaxSamples(100000);
+                //testApp.SetSamplesPerSave(10000);
+                testApp.ResetSdTree();
                 testApp.ResetGrids();
-                testApp.SetMaxSamples(100);
-                testApp.SetSamplesPerSave(100);
                 testApp.MainLoop();
-                testApp.ResetGrids();
-                testApp.SetMaxSamples(1000);
-                testApp.SetSamplesPerSave(1000);
-                testApp.MainLoop();
-                testApp.ResetGrids();
-                testApp.SetMaxSamples(10000);
-                testApp.SetSamplesPerSave(10000);
-                testApp.MainLoop();
+
+                //testApp.SetMaxSamples(1000000);
+                //testApp.SetSamplesPerSave(100000);
+                //testApp.ResetSdTree();
+                //testApp.ResetGrids();
+                //testApp.MainLoop();
                 {
 
                     //testApp.SetMaxSamples(2900);

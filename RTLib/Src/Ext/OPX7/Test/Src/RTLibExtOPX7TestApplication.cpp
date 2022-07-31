@@ -37,7 +37,16 @@ void RTLibExtOPX7TestApplication::LoadScene()
     if (!m_SceneData.config.custom.GetBoolOr("MortonTree.Enable", false)) {
         m_EnableGrid = false;
     }
-
+    for (auto& [name, asset] : m_SceneData.objAssetManager.GetAssets())
+    {
+        for (auto& [uniqueName, uniqueRes] : asset.meshGroup->GetUniqueResources())
+        {
+            if (uniqueRes->variables.GetBoolOr("hasLight", false))
+            {
+                uniqueRes->variables.SetBool("useNEE", uniqueRes->triIndBuffer.size() > 50);
+            }
+        }
+    }
 }
 
  void RTLibExtOPX7TestApplication::SaveScene()
@@ -201,22 +210,18 @@ void RTLibExtOPX7TestApplication::LoadScene()
                             auto extSharedData = static_cast<rtlib::test::OPX7MeshSharedResourceExtData*>(mesh->GetSharedResource()->extData.get());
                             auto extUniqueData = static_cast<rtlib::test::OPX7MeshUniqueResourceExtData*>(mesh->GetUniqueResource()->extData.get());
                             auto meshLight = MeshLight();
-                            bool hasLight = false;
-                            bool useNEE = false;
-                            if (mesh->GetUniqueResource()->variables.HasBool("hasLight"))
+                            bool hasLight = mesh->GetUniqueResource()->variables.GetBoolOr("hasLight", false);
+                            bool useNEE   = mesh->GetUniqueResource()->variables.GetBoolOr("useNEE"  , false);
+                            if (hasLight && useNEE)
                             {
-                                hasLight = mesh->GetUniqueResource()->variables.GetBool("hasLight");
-                            }
-                            if (hasLight)
-                            {
-                                auto meshLight = MeshLight();
+                                auto meshLight     = MeshLight();
                                 meshLight.vertices = reinterpret_cast<float3*>(extSharedData->GetVertexBufferGpuAddress());
-                                meshLight.normals = reinterpret_cast<float3*>(extSharedData->GetNormalBufferGpuAddress());
-                                meshLight.texCrds = reinterpret_cast<float2*>(extSharedData->GetTexCrdBufferGpuAddress());
-                                meshLight.indices = reinterpret_cast<uint3*>(extUniqueData->GetTriIdxBufferGpuAddress());
+                                meshLight.normals  = reinterpret_cast<float3*>(extSharedData->GetNormalBufferGpuAddress());
+                                meshLight.texCrds  = reinterpret_cast<float2*>(extSharedData->GetTexCrdBufferGpuAddress());
+                                meshLight.indices  = reinterpret_cast<uint3*>(extUniqueData->GetTriIdxBufferGpuAddress());
                                 meshLight.indCount = mesh->GetUniqueResource()->triIndBuffer.size();
                                 meshLight.emission = meshData.materials.front().GetFloat3As<float3>("emitCol");
-                                auto emitTexStr = meshData.materials.front().GetString("emitTex");
+                                auto emitTexStr    = meshData.materials.front().GetString("emitTex");
                                 if (emitTexStr == "")
                                 {
                                     emitTexStr = "White";
@@ -3058,6 +3063,7 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
         }
         m_GlfwWindow->SwapBuffers();
     }
+
 }
 
  void RTLibExtOPX7TestApplication::UpdateTimeStamp()
@@ -3116,7 +3122,7 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
      auto baseSavePath = std::filesystem::path(m_SceneData.config.imagePath).make_preferred() / m_TimeStampString;
      if (!std::filesystem::exists(baseSavePath))
      {
-         std::filesystem::create_directory(baseSavePath);
+         std::filesystem::create_directories(baseSavePath);
          std::filesystem::copy_file(m_ScenePath, baseSavePath / "scene.json");
      }
      auto configData = rtlib::test::ImageConfigData();

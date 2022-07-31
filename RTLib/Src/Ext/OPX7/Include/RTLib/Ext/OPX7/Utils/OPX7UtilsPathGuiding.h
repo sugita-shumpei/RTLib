@@ -1726,6 +1726,22 @@ namespace RTLib
 						std::cout << "statisticalWeight: " << minStatisticalWeight << "," << avgStatisticalWeight << "," << maxStatisticalWeight << std::endl;
 #endif
 					}
+					auto GetSTreeMemoryFootPrint()const noexcept -> size_t
+					{
+						return sizeof(STree) + (m_GpuSTreeNodes ? m_GpuSTreeNodes->GetSizeInBytes() : 0);
+					}
+					auto GetDTreeMemoryFootPrint()const noexcept -> size_t
+					{
+						return GetDTreeMemoryFootPrintBuilding() + GetDTreeMemoryFootPrintSampling() + (m_GpuDTreeWrappers ? m_GpuDTreeWrappers->GetSizeInBytes() : 0);
+					}
+					auto GetDTreeMemoryFootPrintBuilding()const noexcept -> size_t
+					{
+						return m_GpuDTreeNodesBuilding ? m_GpuDTreeNodesBuilding->GetSizeInBytes() : 0;
+					}
+					auto GetDTreeMemoryFootPrintSampling()const noexcept -> size_t
+					{
+						return m_GpuDTreeNodesSampling ? m_GpuDTreeNodesSampling->GetSizeInBytes() : 0;
+					}
 					void Dump(std::string filename) {
 						std::fstream jsonFile(filename, std::ios::binary | std::ios::out);
 						jsonFile << "{\n";
@@ -1820,7 +1836,7 @@ namespace RTLib
 								std::cout << "Final: this->m_SamplePerAll=" << m_SamplePerAll << std::endl;
 								m_SampleForPass = m_SampleForRemain;
 							}
-
+							std::cout << "SampleForPass: " << m_SampleForPass << "vs SampleForRemain" << m_SampleForRemain << std::endl;
 							if (m_SampleForRemain > m_SampleForPass) {
 								m_STree->Download(stream);
 								m_STree->Reset(m_CurIteration, m_SampleForPass);

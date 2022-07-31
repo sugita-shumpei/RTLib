@@ -77,17 +77,15 @@ extern "C" __global__ void     __raygen__default () {
 
         color += hrec.userData.radiance;
 
-        ++hrec.userData.depth;
-
         if (isnan(hrec.rayDirection.x)|| isnan(hrec.rayDirection.y)|| isnan(hrec.rayDirection.z)||
             isnan(hrec.userData.radiance.x) || isnan(hrec.userData.radiance.y) || isnan(hrec.userData.radiance.z)) {
             /*printf("error\n");*/
             break;
         }
-
-        if ((hrec.flags & HIT_RECORD_FLAG_FINISH) || (hrec.userData.depth >= params.maxDepth)) {
+        if ((hrec.flags & HIT_RECORD_FLAG_FINISH) || (hrec.userData.depth >= (params.maxDepth - 1))) {
             break;
         }
+        ++hrec.userData.depth;
     }
     result += color;
     // printf("%f, %lf\n", texCoord.x, texCoord.y);
@@ -256,7 +254,7 @@ extern "C" __global__ void __closesthit__radiance() {
     auto prevHitFlags = hrec->flags;
     auto currHitFlags = static_cast<unsigned int>(0);
     const auto countEmitted = ((prevHitFlags & HIT_RECORD_FLAG_COUNT_EMITTED) == HIT_RECORD_FLAG_COUNT_EMITTED) || (hgData->type == HIT_GROUP_TYPE_DEF_LIGHT);
-
+    //FOR DEBUG
     if (params.flags & PARAM_FLAG_USE_GRID) {
         unsigned int gridIndex = params.grid.FindFromCur(position);
         if (gridIndex != UINT32_MAX) {
@@ -309,13 +307,13 @@ extern "C" __global__ void __closesthit__radiance() {
                         auto dist_y = float(0.0f);
                         for (int i = 0; i < params.numCandidates; ++i) {
                             LightRecord lRec = params.lights.Sample(position, xor32);
-                            auto  ndl =  RTLib::Ext::CUDA::Math::dot(lRec.direction, fNormal    );
-                            auto lndl = -RTLib::Ext::CUDA::Math::dot(lRec.direction, lRec.normal);
-                            auto  e   = lRec.emission * static_cast<float>(lndl > 0.0f);
-                            auto  b   = diffuse * RTLIB_M_INV_PI + specular * getValPhongPDF(lRec.direction, reflDir, shinness);
-                            auto  g   = RTLib::Ext::CUDA::Math::max(ndl, 0.0f) * RTLib::Ext::CUDA::Math::max(lndl, 0.0f) / (lRec.distance * lRec.distance);
-                            auto  f   = b * e * g;
-                            auto  f_a = RTLib::Ext::CUDA::Math::to_average_rgb(f);
+                            auto  ndl   =  RTLib::Ext::CUDA::Math::dot(lRec.direction, fNormal    );
+                            auto lndl   = -RTLib::Ext::CUDA::Math::dot(lRec.direction, lRec.normal);
+                            auto  e    = lRec.emission;
+                            auto  b    = diffuse * RTLIB_M_INV_PI + specular * getValPhongPDF(lRec.direction, reflDir, shinness);
+                            auto  g     = RTLib::Ext::CUDA::Math::max(ndl, 0.0f) * RTLib::Ext::CUDA::Math::max(lndl, 0.0f) / (lRec.distance * lRec.distance);
+                            auto  f    = b * e * g;
+                            auto  f_a   = RTLib::Ext::CUDA::Math::to_average_rgb(f);
                             if (resv.Update(lRec, f_a * lRec.invPdf, RTLib::Ext::CUDA::Math::random_float1(xor32))) {
                                 f_y    = f;
                                 f_a_y  = f_a;
@@ -343,7 +341,6 @@ extern "C" __global__ void __closesthit__radiance() {
             }
             else {
                 currHitFlags |= HIT_RECORD_FLAG_COUNT_EMITTED;
-                currHitFlags |= HIT_RECORD_FLAG_DELTA_MATERIAL;
             }
             break;
         }
@@ -405,6 +402,7 @@ extern "C" __global__ void __closesthit__radiance() {
                 printf("IOR: %lf Cos: %lf IDir: (%lf %lf %lf) Norm: (%lf %lf %lf) Refl: (%lf %lf %lf) ODir: (%lf %lf %lf) fresnell=%lf\n", rRefIdx, cosine_i, inDir.x, inDir.y, inDir.z, rNormal.x, rNormal.y, rNormal.z, reflDir.x, reflDir.y, reflDir.z, direction.x, direction.y, direction.z, fresnell);
             }
             currHitFlags |= HIT_RECORD_FLAG_COUNT_EMITTED;
+            currHitFlags |= HIT_RECORD_FLAG_DELTA_MATERIAL;
             break;
         }
     } while (0);
@@ -454,6 +452,7 @@ extern "C" __global__ void __closesthit__radiance_sphere() {
     auto currThroughput = make_float3(0.0f);
     auto prevHitFlags = hrec->flags;
     auto currHitFlags = static_cast<unsigned int>(0);
+    const auto countEmitted = ((prevHitFlags & HIT_RECORD_FLAG_COUNT_EMITTED) == HIT_RECORD_FLAG_COUNT_EMITTED) || (hgData->type == HIT_GROUP_TYPE_DEF_LIGHT);
 
     if (params.flags & PARAM_FLAG_USE_GRID) {
         unsigned int gridIndex = params.grid.FindFromCur(position);
@@ -498,7 +497,7 @@ extern "C" __global__ void __closesthit__radiance_sphere() {
             currThroughput = prevThroughput * ((bsdfPdf > 0.0f) ? (bsdfVal * fabsf(cosine) / bsdfPdf) : make_float3(0.0f));
 
             if (params.flags & PARAM_FLAG_NEE) {
-                if (hrec->userData.depth < params.maxDepth - 1) {
+                if (hrec->userData.depth < params.maxDepth-1) {
                     if (params.flags & PARAM_FLAG_RIS) {
                         Reservoir<LightRecord> resv = {};
                         auto f_y = make_float3(0.0f);
@@ -509,7 +508,7 @@ extern "C" __global__ void __closesthit__radiance_sphere() {
                             LightRecord lRec = params.lights.Sample(position, xor32);
                             auto  ndl = RTLib::Ext::CUDA::Math::dot(lRec.direction, fNormal);
                             auto lndl = -RTLib::Ext::CUDA::Math::dot(lRec.direction, lRec.normal);
-                            auto  e = lRec.emission * static_cast<float>(lndl > 0.0f);
+                            auto  e = lRec.emission;
                             auto  b = diffuse * RTLIB_M_INV_PI + specular * getValPhongPDF(lRec.direction, reflDir, shinness);
                             auto  g = RTLib::Ext::CUDA::Math::max(ndl, 0.0f) * RTLib::Ext::CUDA::Math::max(lndl, 0.0f) / (lRec.distance * lRec.distance);
                             auto  f = b * e * g;
@@ -607,10 +606,8 @@ extern "C" __global__ void __closesthit__radiance_sphere() {
         }
     } while (0);
 
-    if (prevHitFlags & HIT_RECORD_FLAG_COUNT_EMITTED)
-    {
-        radiance += prevThroughput * emission * static_cast<float>(RTLib::Ext::CUDA::Math::dot(inDir, fNormal) < 0.0f);
-    }
+    radiance += prevThroughput * emission * static_cast<float>(RTLib::Ext::CUDA::Math::dot(inDir, fNormal) < 0.0f) * static_cast<float>(countEmitted);
+
     if (emission.x + emission.y + emission.z > 0.0f) {
         currHitFlags |= HIT_RECORD_FLAG_FINISH;
     }

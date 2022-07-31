@@ -107,11 +107,9 @@ extern "C" __global__ void     __raygen__default() {
                 /*printf("error\n");*/
                 break;
             }
-
             if ((hrec.flags & HIT_RECORD_FLAG_FINISH) || (hrec.userData.depth >= (params.maxDepth - 1))) {
                 break;
             }
-
             ++hrec.userData.depth;
         }
         {
@@ -130,14 +128,12 @@ extern "C" __global__ void     __raygen__default() {
             if (isnan(hrec.rayDirection.x) || isnan(hrec.rayDirection.y) || isnan(hrec.rayDirection.z) ||
                 isnan(hrec.userData.throughPut.x) || isnan(hrec.userData.throughPut.y) || isnan(hrec.userData.throughPut.z) ||
                 isnan(hrec.userData.radiance.x) || isnan(hrec.userData.radiance.y) || isnan(hrec.userData.radiance.z)) {
-                printf("error\n");
+                //printf("error\n");
                 break;
             }
-
-            if ((hrec.flags & HIT_RECORD_FLAG_FINISH) || (hrec.userData.depth >= params.maxDepth)) {
+            if ((hrec.flags & HIT_RECORD_FLAG_FINISH) || (hrec.userData.depth >= (params.maxDepth - 1))) {
                 break;
             }
-
             ++hrec.userData.depth;
         }
     }
@@ -397,7 +393,7 @@ extern "C" __global__ void     __closesthit__radiance() {
                             LightRecord lRec = params.lights.Sample(position, xor32);
                             auto  ndl = RTLib::Ext::CUDA::Math::dot(lRec.direction, fNormal);
                             auto lndl = -RTLib::Ext::CUDA::Math::dot(lRec.direction, lRec.normal);
-                            auto  e = lRec.emission * static_cast<float>(lndl > 0.0f);
+                            auto  e = lRec.emission;
                             auto  b = diffuse * RTLIB_M_INV_PI + specular * getValPhongPDF(lRec.direction, reflDir, shinness);
                             auto  g = RTLib::Ext::CUDA::Math::max(ndl, 0.0f) * RTLib::Ext::CUDA::Math::max(lndl, 0.0f) / (lRec.distance * lRec.distance);
                             auto  f = b * e * g;
@@ -635,7 +631,7 @@ extern "C" __global__ void     __closesthit__radiance_sphere() {
                             LightRecord lRec = params.lights.Sample(position, xor32);
                             auto  ndl = RTLib::Ext::CUDA::Math::dot(lRec.direction, fNormal);
                             auto lndl = -RTLib::Ext::CUDA::Math::dot(lRec.direction, lRec.normal);
-                            auto  e = lRec.emission * static_cast<float>(lndl > 0.0f);
+                            auto  e = lRec.emission;
                             auto  b = diffuse * RTLIB_M_INV_PI + specular * getValPhongPDF(lRec.direction, reflDir, shinness);
                             auto  g = RTLib::Ext::CUDA::Math::max(ndl, 0.0f) * RTLib::Ext::CUDA::Math::max(lndl, 0.0f) / (lRec.distance * lRec.distance);
                             auto  f = b * e * g;

@@ -6,9 +6,14 @@ int main(int argc, const char* argv[]) {
     auto xRange = 128;
     auto yRange = 128;
     auto baseSamples = 1000000;
-    auto baseDir = std::string(RTLIB_EXT_OPX7_TEST_DATA_PATH"\\..\\Result\\Scene1\\Depth=10_10sec");
+    auto defPath  = std::string(RTLIB_EXT_OPX7_TEST_DATA_PATH"\\..\\Result\\Scene1\\Depth=10_10sec");
+    auto baseDir = std::string("");
+    auto compDir = std::string("");
     if (argc > 1) {
         for (int i = 0; i < argc-1; ++i) {
+            if (std::string(argv[i]) == "--comp_dir") {
+                compDir = std::string(argv[i + 1]);
+            }
             if (std::string(argv[i]) == "--base_dir") {
                 baseDir = std::string(argv[i + 1]);
             }
@@ -34,13 +39,19 @@ int main(int argc, const char* argv[]) {
         }
         
     }
+    if (baseDir.empty()) {
+        baseDir = defPath;
+    }
+    if (compDir.empty()) {
+        compDir = baseDir;
+    }
     //return RTLibExtOPX7TestApplication(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/../scene.json", "DEF", false).Run();
     auto filePath = std::filesystem::path(baseDir).make_preferred();
     auto baseImageData = std::vector<float3>();
     auto imageSizeX = static_cast<int>(0);
     auto imageSizeY = static_cast<int>(0);
     {
-        std::ifstream jsonFile(filePath / "DEF" / std::string("config_DEF_" + std::to_string(baseSamples) + ".json"), std::ios::binary);
+        std::ifstream jsonFile(std::filesystem::path(compDir).make_preferred() / "DEF" / std::string("config_DEF_" + std::to_string(baseSamples) + ".json"), std::ios::binary);
         auto jsonData = nlohmann::json::parse(jsonFile);
         jsonFile.close();
         imageSizeX = jsonData.at("Width" ).get<int>();
@@ -48,9 +59,12 @@ int main(int argc, const char* argv[]) {
     }
     {
         baseImageData.resize(imageSizeX * imageSizeY);
-        std::ifstream imageFile(filePath / "DEF" / std::string("result_DEF_" + std::to_string(baseSamples) + ".bin"), std::ios::binary);
+        std::ifstream imageFile(std::filesystem::path(compDir).make_preferred() / "DEF" / std::string("result_DEF_" + std::to_string(baseSamples) + ".bin"), std::ios::binary);
         if (imageFile.is_open()) {
             imageFile.read((char*)baseImageData.data(), baseImageData.size() * sizeof(baseImageData[0]));
+        }
+        else {
+            std::cout << "FAILED TO OPEN FILE!\n";
         }
         imageFile.close();
     }
@@ -63,7 +77,7 @@ int main(int argc, const char* argv[]) {
     auto htdefMAEs = std::vector<std::tuple<unsigned int, float, float>>();
     auto htneeMAEs = std::vector<std::tuple<unsigned int, float, float>>();
     auto htrisMAEs = std::vector<std::tuple<unsigned int, float, float>>();
-    for (std::filesystem::directory_entry pipelineDir : std::filesystem::directory_iterator(filePath)) {
+    for (std::filesystem::directory_entry pipelineDir : std::filesystem::directory_iterator(filePath)) {\
         if (pipelineDir.is_directory()) {
             for (std::filesystem::directory_entry imageDir : std::filesystem::directory_iterator(pipelineDir.path())) {
                 auto compImageData = std::vector<float3>();
@@ -176,31 +190,32 @@ int main(int argc, const char* argv[]) {
     std::sort(std::begin(htrisMAEs), std::end(htrisMAEs), [](const auto& a, const auto& b) {
         return std::get<0>(a) < std::get<0>(b);
         });
+    std::cout << "Type, Sample, Time, MAE" << std::endl;
     for (auto& [sample, time,value] : defMAEs) {
-        std::cout << "DEF: " << sample << "," << time << ", " << value << std::endl;
+        std::cout << "DEF," << sample << "," << time << ", " << value << std::endl;
     }
     for (auto& [sample, time, value] : neeMAEs) {
-        std::cout << "NEE: " << sample << "," << time << ", " << value << std::endl;
+        std::cout << "NEE," << sample << "," << time << ", " << value << std::endl;
     }
     for (auto& [sample, time, value] : risMAEs) {
-        std::cout << "RIS: " << sample << "," << time << ", " << value << std::endl;
+        std::cout << "RIS," << sample << "," << time << ", " << value << std::endl;
     }
     for (auto& [sample, time, value] : pgdefMAEs) {
-        std::cout << "PGDEF: " << sample << "," << time << ", " << value << std::endl;
+        std::cout << "PGDEF," << sample << "," << time << ", " << value << std::endl;
     }
     for (auto& [sample, time, value] : pgneeMAEs) {
-        std::cout << "PGNEE: " << sample << "," << time << ", " << value << std::endl;
+        std::cout << "PGNEE," << sample << "," << time << ", " << value << std::endl;
     }
     for (auto& [sample, time, value] : pgrisMAEs) {
-        std::cout << "PGRIS: " << sample << "," << time << ", " << value << std::endl;
+        std::cout << "PGRIS," << sample << "," << time << ", " << value << std::endl;
     }
     for (auto& [sample, time, value] : htdefMAEs) {
-        std::cout << "HTDEF: " << sample << "," << time << ", " << value << std::endl;
+        std::cout << "HTDEF," << sample << "," << time << ", " << value << std::endl;
     }
     for (auto& [sample, time, value] : htneeMAEs) {
-        std::cout << "HTNEE: " << sample << "," << time << ", " << value << std::endl;
+        std::cout << "HTNEE," << sample << "," << time << ", " << value << std::endl;
     }
     for (auto& [sample, time, value] : htrisMAEs) {
-        std::cout << "HTRIS: " << sample << "," << time << ", " << value << std::endl;
+        std::cout << "HTRIS," << sample << "," << time << ", " << value << std::endl;
     }
 }

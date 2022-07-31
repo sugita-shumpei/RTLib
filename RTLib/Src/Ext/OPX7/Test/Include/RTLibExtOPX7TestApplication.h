@@ -107,7 +107,7 @@ public:
                 m_MortonQuadTreeController->Start();
             }
         }
-
+        std::this_thread::sleep_for(std::chrono::seconds(1));
         this->UpdateTimeStamp();
         while (!this->FinishTrace())
         {
@@ -117,6 +117,8 @@ public:
             /*DrawRect*/
             this->UpdateState();
         }
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        this->UpdateTimeStamp();
         this->SaveResultImage(m_Stream.get());
 
         m_Stream->Synchronize();
@@ -133,6 +135,20 @@ public:
             }
             v /= static_cast<float>(m_HashBufferCUDA.checkSumCpuHandle.size());
             std::cout << "Capacity: " << v * 100.0f << "%" << std::endl;
+        }
+        if (m_EnableTree) {
+            std::cout << "SdTreeMemory(MB): " << (m_SdTree->GetSTreeMemoryFootPrint() + m_SdTree->GetDTreeMemoryFootPrint() )/ static_cast<float>(1000 * 1000) << std::endl;
+            std::cout << "STreeMemory(MB): "  << (m_SdTree->GetSTreeMemoryFootPrint()) / static_cast<float>(1000 * 1000) << std::endl;
+            std::cout << "DTreeMemory(MB): "  << (m_SdTree->GetDTreeMemoryFootPrint()) / static_cast<float>(1000 * 1000) << std::endl;
+        }
+        if (m_EnableGrid) {
+            auto curHashGridMemoryFootPrint = m_HashBufferCUDA.GetCurCheckSumGpuHandle() ? m_HashBufferCUDA.GetCurCheckSumGpuHandle()->GetSizeInBytes() : 0;
+            auto prvHashGridMemoryFootPrint = m_HashBufferCUDA.GetPrvCheckSumGpuHandle() ? m_HashBufferCUDA.GetPrvCheckSumGpuHandle()->GetSizeInBytes() : 0;
+            auto hashGridMemoryFootPrint = sizeof(Params::grid) + curHashGridMemoryFootPrint + prvHashGridMemoryFootPrint;
+            auto curMortonQTreeMemoryFootPrintBuilding = m_MortonQuadTree->GetWeightBufferBuilding() ? m_MortonQuadTree->GetWeightBufferBuilding()->GetSizeInBytes() : 0;
+            auto prvMortonQTreeMemoryFootPrintSampling = m_MortonQuadTree->GetWeightBufferSampling() ? m_MortonQuadTree->GetWeightBufferSampling()->GetSizeInBytes() : 0;
+            auto dTreeMemoryFootPrint = sizeof(Params::mortonTree) + curMortonQTreeMemoryFootPrintBuilding + prvMortonQTreeMemoryFootPrintSampling;
+            std::cout << "HTreeMemory(MB)" << (dTreeMemoryFootPrint + hashGridMemoryFootPrint) / static_cast<float>(1000 * 1000) << std::endl;
         }
     }
 
@@ -171,6 +187,9 @@ public:
     }
 
     void ResetGrids() {
+        if (!m_EnableGrid) {
+            return;
+        }
         FreeGrids();
         InitGrids();
     }
@@ -318,6 +337,7 @@ private:
         params.lights.data = reinterpret_cast<MeshLight*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_lightBuffer.gpuHandle.get()));
         params.grid = m_HashBufferCUDA.GetHandle();
         params.numCandidates = GetTraceConfig().custom.GetUInt32Or("Ris.NumCandidates",32);
+        //std::cout << params.maxDepth << std::endl;
         if (m_EnableGrid) {
             params.diffuseGridBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<float4>(m_DiffuseBufferCUDA.get());
         }

@@ -35,6 +35,7 @@
 #include <cuda/SimpleKernel.h>
 #include <RTLibExtOPX7TestConfig.h>
 #include <memory>
+#include <thread>
 #include <iostream>
 #include <filesystem>
 #include <unordered_map>
@@ -1872,7 +1873,7 @@ namespace rtlib
             if (emitCol.x + emitCol.y + emitCol.z > 0.0f)
             {
                 if (mesh) {
-                    if (mesh->GetUniqueResource()->triIndBuffer.size() > 50) {
+                    if (mesh->GetUniqueResource()->variables.GetBoolOr("useNEE",false)) {
                         return HIT_GROUP_TYPE_NEE_LIGHT;
                     }
                     else {
