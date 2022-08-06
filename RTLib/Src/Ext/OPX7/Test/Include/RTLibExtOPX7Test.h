@@ -1468,10 +1468,10 @@ namespace rtlib
                 modules[moduleName].options = moduleOptions;
             }
 
-            void Launch(RTLib::Ext::CUDA::CUDAStream* stream, RTLib::Ext::CUDA::CUDABuffer* paramsBuffer, int width, int height)
+            void Launch(RTLib::Ext::CUDA::CUDAStream* stream, RTLib::Ext::CUDA::CUDABuffer* paramsBuffer, int width, int height,int depth=1)
             {
 
-                handle->Launch(stream, RTLib::Ext::CUDA::CUDABufferView(paramsBuffer, 0, paramsBuffer->GetSizeInBytes()), shaderTable.get(), width, height, 1);
+                handle->Launch(stream, RTLib::Ext::CUDA::CUDABufferView(paramsBuffer, 0, paramsBuffer->GetSizeInBytes()), shaderTable.get(), width, height, depth);
             }
 
             void SetProgramGroupRG(RTLib::Ext::OPX7::OPX7Context* context, std::string module_name, std::string func_name)
@@ -1596,9 +1596,9 @@ namespace rtlib
                 paramsBuffer.reset();
             }
 
-            void Launch(RTLib::Ext::CUDA::CUDAStream* stream, std::string pipelineName, int width, int height)
+            void Launch(RTLib::Ext::CUDA::CUDAStream* stream, std::string pipelineName, int width, int height, int depth =1)
             {
-                pipelines[pipelineName].Launch(stream, paramsBuffer.get(), width, height);
+                pipelines[pipelineName].Launch(stream, paramsBuffer.get(), width, height,depth);
             }
         };
 
@@ -1674,7 +1674,7 @@ namespace rtlib
                 FreeEXRErrorMessage(err); // free's buffer for an error message
                 return ret;
             }
-            printf("Saved exr file. [ %s ] \n", path.c_str());
+            //printf("Saved exr file. [ %s ] \n", path.c_str());
 
             free(header.channels);
             free(header.pixel_types);
@@ -1799,9 +1799,20 @@ namespace rtlib
             {
                 return checkSumGpuHandles[curIndex].get();
             }
+            auto GetCurCheckSumGpuHandleMemoryFootPrint() const noexcept -> size_t {
+                return checkSumGpuHandles[curIndex] ? checkSumGpuHandles[curIndex]->GetSizeInBytes() : 0;
+            }
+
+            auto GetMemoryFootPrint()const noexcept -> size_t
+            {
+                return sizeof(DoubleBufferedHashGrid3) + GetCurCheckSumGpuHandleMemoryFootPrint() + GetPrvCheckSumGpuHandleMemoryFootPrint();
+            }
             auto GetPrvCheckSumGpuHandle() noexcept -> RTLib::Ext::CUDA::CUDABuffer*
             {
                 return checkSumGpuHandles[1-curIndex].get();
+            }
+            auto GetPrvCheckSumGpuHandleMemoryFootPrint() const noexcept -> size_t {
+                return checkSumGpuHandles[1 - curIndex] ? checkSumGpuHandles[1 - curIndex]->GetSizeInBytes() : 0;
             }
 
             void Alloc(uint3 bnds, unsigned int size) {
@@ -1832,6 +1843,19 @@ namespace rtlib
                     desc.size = checkSumCpuHandle.size() * sizeof(checkSumCpuHandle[0]);
                     context->CopyMemoryToBuffer(checkSumGpuHandles[0].get(), {desc});
                     context->CopyMemoryToBuffer(checkSumGpuHandles[1].get(), { desc });
+                }
+            }
+            void Clear(   RTLib::Ext::CUDA::CUDAContext* context, RTLib::Ext::CUDA::CUDAStream* stream = nullptr) {
+                auto curCheckSumGpuAddress = RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(GetCurCheckSumGpuHandle());
+                auto prvCheckSumGpuAddress = RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(GetPrvCheckSumGpuHandle());
+                if (stream) {
+                    auto cuStream = RTLib::Ext::CUDA::CUDANatives::GetCUstream(stream);
+                    cuMemsetD32Async(curCheckSumGpuAddress, checkSumCpuHandle.size(), 0, cuStream);
+                    cuMemsetD32Async(prvCheckSumGpuAddress, checkSumCpuHandle.size(), 0, cuStream);
+                }
+                else {
+                    cuMemsetD32(curCheckSumGpuAddress, checkSumCpuHandle.size(), 0);
+                    cuMemsetD32(prvCheckSumGpuAddress, checkSumCpuHandle.size(), 0);
                 }
             }
             void Update(  RTLib::Ext::CUDA::CUDAContext* context, RTLib::Ext::CUDA::CUDAStream* stream = nullptr) {

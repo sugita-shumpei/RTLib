@@ -726,13 +726,32 @@ namespace RTLib
                     auto GetNodePerElement()const noexcept -> unsigned int {
                         return  ((static_cast<unsigned int>(1) << (2 * (m_MaxTreeLevel + 1))) - 1) / 3;
                     }
+                    
+                    auto GetMemoryFootPrint()const noexcept -> size_t
+                    {
+                        return sizeof(MortonQuadTreeWrapperT<MaxLevel>)+GetWeightBufferBuildingMemoryFootPrint() + GetWeightBufferSamplingMemoryFootPrint();
+                    }
 
                     auto GetWeightBufferBuilding()      noexcept ->       RTLib::Ext::CUDA::CUDABuffer* {
                         return m_WeightBuffersCUDA[m_WeightBufferIndexBuilding].get();
                     }
+                    auto GetWeightBufferBuilding()const noexcept -> const RTLib::Ext::CUDA::CUDABuffer* {
+                        return m_WeightBuffersCUDA[m_WeightBufferIndexBuilding].get();
+                    }
+                    auto GetWeightBufferBuildingMemoryFootPrint()const noexcept -> size_t
+                    {
+                        return GetWeightBufferBuilding() ? GetWeightBufferBuilding()->GetSizeInBytes() : 0;
+                    }
 
                     auto GetWeightBufferSampling()      noexcept ->       RTLib::Ext::CUDA::CUDABuffer* {
                         return m_WeightBuffersCUDA[1-m_WeightBufferIndexBuilding].get();
+                    }
+                    auto GetWeightBufferSampling()const noexcept ->const RTLib::Ext::CUDA::CUDABuffer* {
+                        return m_WeightBuffersCUDA[1 - m_WeightBufferIndexBuilding].get();
+                    }
+                    auto GetWeightBufferSamplingMemoryFootPrint()const noexcept -> size_t
+                    {
+                        return GetWeightBufferSampling() ? GetWeightBufferSampling()->GetSizeInBytes() : 0;
                     }
 
                     RTLib::Ext::CUDA::CUDAContext*                m_Context;
@@ -784,7 +803,7 @@ namespace RTLib
                         m_Tree = nullptr;
                     }
 
-                    void BegTrace() {
+                    void BegTrace(CUDA::CUDAStream* stream = nullptr) {
                         if (!m_Tree) {
                             return;
                         }
@@ -803,7 +822,7 @@ namespace RTLib
                             m_TraceState = TraceStateRecord;
 
                             //m_Tree->Destroy();
-                            m_Tree->Allocate();
+                            m_Tree->Allocate(stream);
                         }
                         if (!m_TraceExecuting) {
                             return;

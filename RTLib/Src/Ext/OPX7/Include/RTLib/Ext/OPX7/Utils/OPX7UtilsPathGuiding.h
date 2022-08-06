@@ -1726,6 +1726,10 @@ namespace RTLib
 						std::cout << "statisticalWeight: " << minStatisticalWeight << "," << avgStatisticalWeight << "," << maxStatisticalWeight << std::endl;
 #endif
 					}
+					auto GetMemoryFootPrint()const noexcept -> size_t
+					{
+						return GetSTreeMemoryFootPrint() + GetDTreeMemoryFootPrint() + (m_GpuDTreeWrappers ? m_GpuDTreeWrappers->GetSizeInBytes() : 0);
+					}
 					auto GetSTreeMemoryFootPrint()const noexcept -> size_t
 					{
 						return sizeof(STree) + (m_GpuSTreeNodes ? m_GpuSTreeNodes->GetSizeInBytes() : 0);

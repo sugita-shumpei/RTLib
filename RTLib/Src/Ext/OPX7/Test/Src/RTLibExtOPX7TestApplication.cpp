@@ -21,7 +21,7 @@ void RTLibExtOPX7TestApplication::CursorPosCallback(RTLib::Core::Window* window,
     }
 }
 
-void RTLibExtOPX7TestApplication::LoadScene()
+void RTLibExtOPX7TestApplication::LoadScene(int argc, const char** argv)
 {
     m_SceneData = rtlib::test::LoadScene(m_ScenePath);
     if (!m_SceneData.config.enableVis) {
@@ -37,13 +37,54 @@ void RTLibExtOPX7TestApplication::LoadScene()
     if (!m_SceneData.config.custom.GetBoolOr("MortonTree.Enable", false)) {
         m_EnableGrid = false;
     }
+    if (argc > 1) {
+        for (int i = 0; i < argc-1; ++i) {
+            if (std::string(argv[i]) == "--EnableGrid") {
+                m_EnableGrid = false;
+                if ((std::string(argv[i + 1]) =="true") || (std::string(argv[i + 1]) == "True")   ||
+                    (std::string(argv[i + 1]) ==  "on") || (std::string(argv[i + 1]) ==   "On")   ||
+                    (std::string(argv[i + 1]) == "1")) {
+                    std::cout << "SUC: --EnableGrid Args is ON\n";
+                    m_EnableGrid = true;
+                }
+                else if ((std::string(argv[i + 1]) == "false") || (std::string(argv[i + 1]) == "False") ||
+                    (std::string(argv[i + 1]) == "off") || (std::string(argv[i + 1]) == "Off") ||
+                    (std::string(argv[i + 1]) == "0")) {
+                    std::cout << "SUC: --EnableGrid Args is OFF\n";
+                    m_EnableGrid = false;
+                }
+                else {
+                    std::cout << "BUG: --EnableGrid Args is Missing: Use Default(false)\n";
+                }
+            }
+            if (std::string(argv[i]) == "--EnableTree") {
+                m_EnableTree = false;
+                if ((std::string(argv[i + 1]) == "true") || (std::string(argv[i + 1]) == "True") ||
+                    (std::string(argv[i + 1]) == "on") || (std::string(argv[i + 1]) == "On") ||
+                    (std::string(argv[i + 1]) == "1")) {
+                    std::cout << "SUC: --EnableTree Args is ON\n";
+                    m_EnableTree = true;
+                }
+                else if ((std::string(argv[i + 1]) == "false") || (std::string(argv[i + 1]) == "False") ||
+                    (std::string(argv[i + 1]) == "off") || (std::string(argv[i + 1]) == "Off") ||
+                    (std::string(argv[i + 1]) == "0")) {
+                    std::cout << "SUC: --EnableTree Args is OFF\n";
+                    m_EnableTree = false;
+                }
+                else {
+                    std::cout << "BUG: --EnableTree Args is Missing: Use Default(false)\n";
+                }
+            }
+        }
+    }
+    auto neeThresholdMeshSize = m_SceneData.config.custom.GetUInt32Or("Nee.ThresholdMeshSize", 0);
     for (auto& [name, asset] : m_SceneData.objAssetManager.GetAssets())
     {
         for (auto& [uniqueName, uniqueRes] : asset.meshGroup->GetUniqueResources())
         {
             if (uniqueRes->variables.GetBoolOr("hasLight", false))
             {
-                uniqueRes->variables.SetBool("useNEE", uniqueRes->triIndBuffer.size() > 50);
+                uniqueRes->variables.SetBool("useNEE", uniqueRes->triIndBuffer.size() > neeThresholdMeshSize);
             }
         }
     }
@@ -2754,10 +2795,10 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
     m_GlfwWindow->SetCursorPosCallback(CursorPosCallback);
 }
 
- void RTLibExtOPX7TestApplication::TracePipeline(RTLib::Ext::CUDA::CUDAStream* stream, RTLib::Ext::CUDA::CUDABuffer* frameBuffer)
+ bool RTLibExtOPX7TestApplication::TracePipeline(RTLib::Ext::CUDA::CUDAStream* stream, RTLib::Ext::CUDA::CUDABuffer* frameBuffer)
 {   
     m_PipelineName = "Trace";
-    if ((m_CurTracerName == "PGDEF")||(m_CurTracerName == "PGNEE") || (m_CurTracerName == "PGRIS"))
+    if ((m_CurTracerName == "PGDEF") || (m_CurTracerName == "PGNEE") || (m_CurTracerName == "PGRIS"))
     {
         m_SdTreeController->BegTrace(stream);
         if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecord)
@@ -2773,7 +2814,7 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
     }
     if ((m_CurTracerName == "HTDEF") || (m_CurTracerName == "HTNEE") || (m_CurTracerName == "HTRIS"))
     {
-        m_MortonQuadTreeController->BegTrace();
+        m_MortonQuadTreeController->BegTrace(stream);
         if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateLocate)
         {
             m_PipelineName = "Locate";
@@ -2791,46 +2832,70 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
     }
 
     auto params = GetParams(frameBuffer);
-    
-    stream->CopyMemoryToBuffer(m_TracerMap[m_CurTracerName].paramsBuffer.get(), { { &params, 0, sizeof(params) } });
-
-    m_TracerMap[m_CurTracerName].Launch(stream, m_PipelineName, m_SceneData.config.width, m_SceneData.config.height);
-    bool shouldSync = false;
-    if ((m_CurTracerName == "DEF")    || (m_CurTracerName == "NEE") || (m_CurTracerName == "RIS")) {
+    if (stream) {
+        stream->CopyMemoryToBuffer(m_TracerMap[m_CurTracerName].paramsBuffer.get(), { { &params, 0, sizeof(params) } });
+    }
+    else {
+        m_Opx7Context->CopyMemoryToBuffer(m_TracerMap[m_CurTracerName].paramsBuffer.get(), { { &params, 0, sizeof(params) } });
+    }
+    m_TracerMap[m_CurTracerName].Launch(stream, m_PipelineName, m_SceneData.config.width, m_SceneData.config.height);bool shouldSync = false;
+    if ((m_CurTracerName == "DEF")   || (m_CurTracerName == "NEE")   || (m_CurTracerName == "RIS")) {
         if (m_EnableGrid) {
-            shouldSync = true;
+            m_HashBufferCUDA.Update(m_Opx7Context.get(),stream);
             if (stream) {
-                RTLIB_CORE_ASSERT_IF_FAILED(stream->Synchronize());
+                shouldSync = true;
             }
-            m_HashBufferCUDA.Update(m_Opx7Context.get());
         }
     }
     if ((m_CurTracerName == "PGDEF") || (m_CurTracerName == "PGNEE") || (m_CurTracerName == "PGRIS")) {
-        m_SdTreeController->EndTrace(stream);
-    }
-    if ((m_CurTracerName == "HTDEF") || (m_CurTracerName == "HTNEE") || (m_CurTracerName == "HTRIS")) {
-        m_MortonQuadTreeController->EndTrace(stream);
-        if (m_MortonQuadTreeController->m_SamplePerTmp == 0)
-        {
-            if (m_EnableGrid) {
-                m_HashBufferCUDA.Update(m_Opx7Context.get(),stream);
+        if (m_EnableTree) {
+            m_SdTreeController->EndTrace(stream);
+            if (stream) {
+                shouldSync = true;
             }
         }
     }
-    if (m_CurTracerName != "DBG") {
+    if ((m_CurTracerName == "HTDEF") || (m_CurTracerName == "HTNEE") || (m_CurTracerName == "HTRIS")) {
+        m_MortonQuadTreeController->EndTrace(stream);
+        if (m_EnableGrid) {
+            if (m_MortonQuadTreeController->m_SamplePerTmp == 0)
+            {
+                m_HashBufferCUDA.Update(m_Opx7Context.get(), stream);
+            }
+        }
+        if (stream) {
+            shouldSync = true;
+        }
+    }
+    if ( m_CurTracerName != "DBG") {
         m_SamplesForAccum += m_SceneData.config.samples;
     }
+    return shouldSync;
 }
+ void RTLibExtOPX7TestApplication::SetupPipeline()
+ {
+     auto desc = RTLib::Ext::CUDA::CUDABufferCreateDesc();
+     desc.sizeInBytes = m_FrameBufferCUDA->GetSizeInBytes();
+     auto frameBufferTmp = m_Opx7Context->CreateBuffer(desc);
+     TracePipeline(nullptr, frameBufferTmp);
+     m_SamplesForAccum = 0;
+     cuMemsetD32(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_AccumBufferCUDA.get()), m_AccumBufferCUDA->GetSizeInBytes() / sizeof(float), 0);
+     if (m_EnableGrid) {
+         m_HashBufferCUDA.Clear(m_Opx7Context.get());
+     }
+     frameBufferTmp->Destroy();
+     delete frameBufferTmp;
+ }
 
  bool RTLibExtOPX7TestApplication::FinishTrace()
 {
     if (m_EnableVis)
     {
-        return m_GlfwWindow->ShouldClose() || (m_SamplesForAccum >= m_SceneData.config.maxSamples || (m_TimesForAccum >= m_SceneData.config.maxTimes));
+        return m_GlfwWindow->ShouldClose() || (m_SamplesForAccum >= m_SceneData.config.maxSamples || (m_TimesForAccum >= m_SceneData.config.maxTimes*(1000*1000)));
     }
     else
     {
-        return (m_SamplesForAccum >= m_SceneData.config.maxSamples) || (m_TimesForAccum >= m_SceneData.config.maxTimes);
+        return (m_SamplesForAccum >= m_SceneData.config.maxSamples) || (m_TimesForAccum >= m_SceneData.config.maxTimes*(1000*1000));
     }
 }
 
@@ -2873,7 +2938,7 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
             auto mt19937 = std::mt19937(rnd());
             auto seedData = std::vector<unsigned int>(m_SceneData.config.width * m_SceneData.config.height * sizeof(unsigned int));
             std::generate(std::begin(seedData), std::end(seedData), mt19937);
-            m_Stream->CopyMemoryToBuffer(m_SeedBufferCUDA.get(), { { seedData.data(), 0, sizeof(seedData[0]) * std::size(seedData) } });
+            m_Opx7Context->CopyMemoryToBuffer(m_SeedBufferCUDA.get(), { { seedData.data(), 0, sizeof(seedData[0]) * std::size(seedData) } });
         }
     }
 }
@@ -3079,18 +3144,20 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
 
  void RTLibExtOPX7TestApplication::TraceFrame(RTLib::Ext::CUDA::CUDAStream* stream)
 {
+     if (stream) {
+         RTLIB_CORE_ASSERT_IF_FAILED(stream->Synchronize());
+     }
     if (m_EnableVis)
     {
-        m_TimesForFrame = 0;
-        auto beg = std::chrono::system_clock::now();
+        auto  beg = std::chrono::system_clock::now();
         auto frameBufferCUDA = m_FrameBufferCUGL->Map(stream);
-        this->TracePipeline(stream,  frameBufferCUDA);
+        (void)this->TracePipeline(stream,  frameBufferCUDA);
         m_FrameBufferCUGL->Unmap(stream);
         if (stream) {
             RTLIB_CORE_ASSERT_IF_FAILED(stream->Synchronize());
         }
         auto end = std::chrono::system_clock::now();
-        m_TimesForFrame = std::chrono::duration_cast<std::chrono::milliseconds>(end - beg).count();
+        m_TimesForFrame = std::chrono::duration_cast<std::chrono::nanoseconds>(end - beg).count();
         if (m_EventState.isResized)
         {
             glViewport(0, 0, m_SceneData.config.width, m_SceneData.config.height);
@@ -3099,14 +3166,12 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
     }
     else
     {
-        m_TimesForFrame = 0;
         auto beg = std::chrono::system_clock::now();
-        this->TracePipeline(stream, m_FrameBufferCUDA.get());
-        if (stream) {
+        if (this->TracePipeline(stream, m_FrameBufferCUDA.get())) {
             RTLIB_CORE_ASSERT_IF_FAILED(stream->Synchronize());
         }
         auto end = std::chrono::system_clock::now();
-        m_TimesForFrame = std::chrono::duration_cast<std::chrono::milliseconds>(end - beg).count();
+        m_TimesForFrame = std::chrono::duration_cast<std::chrono::nanoseconds>(end - beg).count();
     }
     if (m_CurTracerName != "DBG") {
         m_TimesForAccum += m_TimesForFrame;
@@ -3129,7 +3194,7 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
      configData.width = m_SceneData.config.width;
      configData.height = m_SceneData.config.height;
      configData.samples = m_SamplesForAccum;
-     configData.time = m_TimesForAccum;
+     configData.time = m_TimesForAccum/(1000*1000);
      configData.enableVis = m_EnableVis;
      configData.pngFilePath = baseSavePath.string() + "/result_" + m_CurTracerName + "_" + std::to_string(m_SamplesForAccum) + ".png";
      configData.binFilePath = baseSavePath.string() + "/result_" + m_CurTracerName + "_" + std::to_string(m_SamplesForAccum) + ".bin";

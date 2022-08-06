@@ -13,10 +13,10 @@ public:
         m_EnableTree      = enableTree;
     }
 
-    void Initialize()
+    void Initialize(int argc = 0, const char** argv = nullptr)
     {
         this->InitOPX7();
-        this->LoadScene();
+        this->LoadScene(argc,argv);
         this->InitWorld();
         this->InitLight();
         this->InitGrids();
@@ -85,26 +85,36 @@ public:
 
             m_GlfwWindow->Show();
         }
-        m_EventState      = rtlib::test::EventState();
-        m_WindowState     = rtlib::test::WindowState();
-        m_EventState.isClearFrame = true;
-        m_SamplesForAccum = 0;
-        m_TimesForAccum   = 0;
+        {
+            m_EventState              = rtlib::test::EventState();
+            m_WindowState             = rtlib::test::WindowState();
+            m_EventState.isClearFrame = true;
+            m_SamplesForAccum         = 0;
+            m_TimesForAccum           = 0;
+            this->SetupPipeline();
+        }
+        {
+            m_EventState = rtlib::test::EventState();
+            m_WindowState = rtlib::test::WindowState();
+            m_EventState.isClearFrame = true;
+            m_SamplesForAccum = 0;
+            m_TimesForAccum = 0;
 
-        if ((m_CurTracerName == "PGDEF") || 
-            (m_CurTracerName == "PGNEE") || 
-            (m_CurTracerName == "PGRIS") ) {
-            if (m_EnableTree) {
-                m_SdTreeController->Start();
+            if ((m_CurTracerName == "PGDEF") ||
+                (m_CurTracerName == "PGNEE") ||
+                (m_CurTracerName == "PGRIS")) {
+                if (m_EnableTree) {
+                    m_SdTreeController->Start();
+                }
+
             }
 
-        }
-
-        if ((m_CurTracerName == "HTDEF") ||
-            (m_CurTracerName == "HTNEE") ||
-            (m_CurTracerName == "HTRIS")) {
-            if (m_EnableGrid) {
-                m_MortonQuadTreeController->Start();
+            if ((m_CurTracerName == "HTDEF") ||
+                (m_CurTracerName == "HTNEE") ||
+                (m_CurTracerName == "HTRIS")) {
+                if (m_EnableGrid) {
+                    m_MortonQuadTreeController->Start();
+                }
             }
         }
         std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -117,10 +127,7 @@ public:
             /*DrawRect*/
             this->UpdateState();
         }
-        std::this_thread::sleep_for(std::chrono::seconds(1));
-        this->UpdateTimeStamp();
         this->SaveResultImage(m_Stream.get());
-
         m_Stream->Synchronize();
         m_Stream->Destroy();
         m_Stream.reset();
@@ -137,18 +144,16 @@ public:
             std::cout << "Capacity: " << v * 100.0f << "%" << std::endl;
         }
         if (m_EnableTree) {
-            std::cout << "SdTreeMemory(MB): " << (m_SdTree->GetSTreeMemoryFootPrint() + m_SdTree->GetDTreeMemoryFootPrint() )/ static_cast<float>(1000 * 1000) << std::endl;
-            std::cout << "STreeMemory(MB): "  << (m_SdTree->GetSTreeMemoryFootPrint()) / static_cast<float>(1000 * 1000) << std::endl;
-            std::cout << "DTreeMemory(MB): "  << (m_SdTree->GetDTreeMemoryFootPrint()) / static_cast<float>(1000 * 1000) << std::endl;
+            std::cout << "SdTreeMemory(MB): " << (m_SdTree->GetMemoryFootPrint()     ) / static_cast<float>(1000 * 1000) << std::endl;
+            std::cout << " STreeMemory(MB): "  << (m_SdTree->GetSTreeMemoryFootPrint()) / static_cast<float>(1000 * 1000) << std::endl;
+            std::cout << " DTreeMemory(MB): "  << (m_SdTree->GetDTreeMemoryFootPrint()) / static_cast<float>(1000 * 1000) << std::endl;
         }
         if (m_EnableGrid) {
-            auto curHashGridMemoryFootPrint = m_HashBufferCUDA.GetCurCheckSumGpuHandle() ? m_HashBufferCUDA.GetCurCheckSumGpuHandle()->GetSizeInBytes() : 0;
-            auto prvHashGridMemoryFootPrint = m_HashBufferCUDA.GetPrvCheckSumGpuHandle() ? m_HashBufferCUDA.GetPrvCheckSumGpuHandle()->GetSizeInBytes() : 0;
-            auto hashGridMemoryFootPrint = sizeof(Params::grid) + curHashGridMemoryFootPrint + prvHashGridMemoryFootPrint;
-            auto curMortonQTreeMemoryFootPrintBuilding = m_MortonQuadTree->GetWeightBufferBuilding() ? m_MortonQuadTree->GetWeightBufferBuilding()->GetSizeInBytes() : 0;
-            auto prvMortonQTreeMemoryFootPrintSampling = m_MortonQuadTree->GetWeightBufferSampling() ? m_MortonQuadTree->GetWeightBufferSampling()->GetSizeInBytes() : 0;
-            auto dTreeMemoryFootPrint = sizeof(Params::mortonTree) + curMortonQTreeMemoryFootPrintBuilding + prvMortonQTreeMemoryFootPrintSampling;
-            std::cout << "HTreeMemory(MB)" << (dTreeMemoryFootPrint + hashGridMemoryFootPrint) / static_cast<float>(1000 * 1000) << std::endl;
+            auto hashGridMemoryFootPrint    = m_HashBufferCUDA.GetMemoryFootPrint();
+            auto dTreeMemoryFootPrint = m_MortonQuadTree->GetMemoryFootPrint();
+            std::cout << "HTreeMemory(MB): " << (dTreeMemoryFootPrint + hashGridMemoryFootPrint) / static_cast<float>(1000 * 1000) << std::endl;
+            std::cout << "HGridMemory(MB): " << hashGridMemoryFootPrint / static_cast<float>(1000 * 1000) << std::endl;
+            std::cout << "DTreeMemory(MB): " << dTreeMemoryFootPrint / static_cast<float>(1000 * 1000) << std::endl;
         }
     }
 
@@ -230,7 +235,6 @@ public:
         }
     }
 
-
     auto GetMaxTimes()const noexcept -> float {
         return m_SceneData.config.maxTimes;
     }
@@ -239,12 +243,15 @@ public:
         m_SceneData.config.maxTimes = maxTimes;
     }
 
+    auto GetMaxDepth()const noexcept -> unsigned int { return m_SceneData.config.maxDepth; }
+    void SetMaxDepth(unsigned int maxDepth)noexcept { m_SceneData.config.maxDepth = maxDepth; }
+
     auto GetTraceConfig()const noexcept -> const rtlib::test::TraceConfigData& { return m_SceneData.config; }
     auto GetTraceConfig()      noexcept ->       rtlib::test::TraceConfigData& { return m_SceneData.config; }
 private:
     static void CursorPosCallback(RTLib::Core::Window* window, double x, double y);
 
-    void LoadScene();
+    void LoadScene(int argc = 0, const char** argv = nullptr);
     void SaveScene();
 
     void InitGLFW();
@@ -299,7 +306,8 @@ private:
 
     void InitWindowCallback();
 
-    void TracePipeline(RTLib::Ext::CUDA::CUDAStream* stream, RTLib::Ext::CUDA::CUDABuffer* frameBuffer);
+    bool TracePipeline(RTLib::Ext::CUDA::CUDAStream* stream, RTLib::Ext::CUDA::CUDABuffer* frameBuffer);
+    void SetupPipeline();
     
     bool FinishTrace();
     void UpdateTrace();
