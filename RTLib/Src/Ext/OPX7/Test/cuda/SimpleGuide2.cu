@@ -463,7 +463,7 @@ extern "C" __global__ void     __closesthit__radiance() {
             }
             auto reflDir = RTLib::Ext::CUDA::Math::normalize(RTLib::Ext::CUDA::Math::reflect(inDir, rNormal));
             if (RTLib::Ext::CUDA::Math::random_float1(0.0f, 1.0f, xor32) < fresnell || sine_o_2 > 1.0f) {
-                position += 0.01f * rNormal;
+                position += 0.0001f * rNormal;
                 direction = reflDir;
                 cosine = fabsf(cosine_i);
                 bsdfVal = specular;
@@ -472,8 +472,8 @@ extern "C" __global__ void     __closesthit__radiance() {
                 currThroughput = prevThroughput * specular;
             }
             else {
-                position -= 0.01f * rNormal;
-                float  sine_i_2 = RTLib::Ext::CUDA::Math::min(1.0f - cosine_i * cosine_i, 0.0f);
+                position -= 0.0001f * rNormal;
+                float  sine_i_2 = RTLib::Ext::CUDA::Math::max(1.0f - cosine_i * cosine_i, 0.0f);
                 float  cosine_o = sqrtf(1.0f - sine_o_2);
                 float3 refrDir = make_float3(0.0f);
                 if (sine_i_2 > 0.0f) {
@@ -484,7 +484,7 @@ extern "C" __global__ void     __closesthit__radiance() {
                     refrDir = inDir;
                 }
                 direction = refrDir;
-                cosine = RTLib::Ext::CUDA::Math::dot(refrDir, rNormal);
+                cosine = fabsf(RTLib::Ext::CUDA::Math::dot(refrDir, rNormal));
                 bsdfVal = make_float3(1.0f);
                 bsdfPdf = 0.0f;
                 /*currThroughput  = prevThroughput;*/
@@ -701,7 +701,7 @@ extern "C" __global__ void     __closesthit__radiance_sphere() {
             }
             auto reflDir = RTLib::Ext::CUDA::Math::normalize(RTLib::Ext::CUDA::Math::reflect(inDir, rNormal));
             if (RTLib::Ext::CUDA::Math::random_float1(0.0f, 1.0f, xor32) < fresnell || sine_o_2 > 1.0f) {
-                position += 0.01f * rNormal;
+                position += 0.0001f * rNormal;
                 direction = reflDir;
                 cosine = fabsf(cosine_i);
                 bsdfVal = specular;
@@ -710,8 +710,8 @@ extern "C" __global__ void     __closesthit__radiance_sphere() {
                 currThroughput = prevThroughput * specular;
             }
             else {
-                position -= 0.01f * rNormal;
-                float  sine_i_2 = RTLib::Ext::CUDA::Math::min(1.0f - cosine_i * cosine_i, 0.0f);
+                position -= 0.0001f * rNormal;
+                float  sine_i_2 = RTLib::Ext::CUDA::Math::max(1.0f - cosine_i * cosine_i, 0.0f);
                 float  cosine_o = sqrtf(1.0f - sine_o_2);
                 float3 refrDir = make_float3(0.0f);
                 if (sine_i_2 > 0.0f) {
@@ -722,7 +722,7 @@ extern "C" __global__ void     __closesthit__radiance_sphere() {
                     refrDir = inDir;
                 }
                 direction = refrDir;
-                cosine = RTLib::Ext::CUDA::Math::dot(refrDir, rNormal);
+                cosine = fabsf(RTLib::Ext::CUDA::Math::dot(refrDir, rNormal));
                 bsdfVal = make_float3(1.0f);
                 bsdfPdf = 0.0f;
                 /*currThroughput  = prevThroughput;*/
