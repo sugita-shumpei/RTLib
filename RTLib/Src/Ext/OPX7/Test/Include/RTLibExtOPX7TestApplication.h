@@ -4,19 +4,19 @@
 class RTLibExtOPX7TestApplication
 {
 public:
-    RTLibExtOPX7TestApplication(const std::string& scenePath, std::string defTracerName, bool enableVis = true, bool enableGrid = false,bool enableTree = false) noexcept
+    RTLibExtOPX7TestApplication(const std::string& scenePath, std::string defTracerName, bool enableVis = true, bool enableGrid = false, bool enableTree = false) noexcept
     {
         m_CurTracerName = defTracerName;
-        m_ScenePath       = scenePath;
-        m_EnableVis       = enableVis;
-        m_EnableGrid      = enableGrid;
-        m_EnableTree      = enableTree;
+        m_ScenePath = scenePath;
+        m_EnableVis = enableVis;
+        m_EnableGrid = enableGrid;
+        m_EnableTree = enableTree;
     }
 
     void Initialize(int argc = 0, const char** argv = nullptr)
     {
         this->InitOPX7();
-        this->LoadScene(argc,argv);
+        this->LoadScene(argc, argv);
         this->InitWorld();
         this->InitLight();
         this->InitGrids();
@@ -48,26 +48,40 @@ public:
 
     void MainLoop()
     {
-        m_Stream          = std::unique_ptr<RTLib::Ext::CUDA::CUDAStream>(m_Opx7Context->CreateStream());
+        m_Stream = std::unique_ptr<RTLib::Ext::CUDA::CUDAStream>(m_Opx7Context->CreateStream());
         if (m_EnableVis)
         {
             m_KeyBoardManager = std::make_unique<rtlib::test::KeyBoardStateManager>(m_GlfwWindow.get());
 
             for (int i = 0; i < DEBUG_FRAME_TYPE_COUNT; ++i) {
-                m_KeyBoardManager->UpdateState(GLFW_KEY_1    + i);
+                m_KeyBoardManager->UpdateState(GLFW_KEY_1 + i);
                 m_KeyBoardManager->UpdateState(GLFW_KEY_KP_1 + i);
             }
 
             m_KeyBoardManager->UpdateState(GLFW_KEY_F1);
+            std::cout << "F1: Debug" << std::endl;
             m_KeyBoardManager->UpdateState(GLFW_KEY_F2);
+            std::cout << "F2: PathTracing" << std::endl;
             m_KeyBoardManager->UpdateState(GLFW_KEY_F3);
+            std::cout << "F3: PathTracing+NEE" << std::endl;
             m_KeyBoardManager->UpdateState(GLFW_KEY_F4);
+            std::cout << "F4: PathTracing+SIR" << std::endl;
             m_KeyBoardManager->UpdateState(GLFW_KEY_F5);
             m_KeyBoardManager->UpdateState(GLFW_KEY_F6);
             m_KeyBoardManager->UpdateState(GLFW_KEY_F7);
+            if (m_EnableTree) {
+                std::cout << "F5: PathGuiding(SDTree)" << std::endl;
+                std::cout << "F6: PathGuiding(SDTree)+NEE" << std::endl;
+                std::cout << "F7: PathGuiding(SDTree)+SIR" << std::endl;
+            }
             m_KeyBoardManager->UpdateState(GLFW_KEY_F8);
             m_KeyBoardManager->UpdateState(GLFW_KEY_F9);
             m_KeyBoardManager->UpdateState(GLFW_KEY_F10);
+            if (m_EnableGrid) {
+                std::cout << "F8: PathGuiding(HashTree)" << std::endl;
+                std::cout << "F9: PathGuiding(HashTree)+NEE" << std::endl;
+                std::cout << "F10: PathGuiding(HashTree)+SIR" << std::endl;
+            }
 
 
             m_KeyBoardManager->UpdateState(GLFW_KEY_W);
@@ -86,11 +100,11 @@ public:
             m_GlfwWindow->Show();
         }
         {
-            m_EventState              = rtlib::test::EventState();
-            m_WindowState             = rtlib::test::WindowState();
+            m_EventState = rtlib::test::EventState();
+            m_WindowState = rtlib::test::WindowState();
             m_EventState.isClearFrame = true;
-            m_SamplesForAccum         = 0;
-            m_TimesForAccum           = 0;
+            m_SamplesForAccum = 0;
+            m_TimesForAccum = 0;
             this->SetupPipeline();
         }
         {
@@ -144,12 +158,12 @@ public:
             std::cout << "Capacity: " << v * 100.0f << "%" << std::endl;
         }
         if (m_EnableTree) {
-            std::cout << "SdTreeMemory(MB): " << (m_SdTree->GetMemoryFootPrint()     ) / static_cast<float>(1000 * 1000) << std::endl;
-            std::cout << " STreeMemory(MB): "  << (m_SdTree->GetSTreeMemoryFootPrint()) / static_cast<float>(1000 * 1000) << std::endl;
-            std::cout << " DTreeMemory(MB): "  << (m_SdTree->GetDTreeMemoryFootPrint()) / static_cast<float>(1000 * 1000) << std::endl;
+            std::cout << "SdTreeMemory(MB): " << (m_SdTree->GetMemoryFootPrint()) / static_cast<float>(1000 * 1000) << std::endl;
+            std::cout << " STreeMemory(MB): " << (m_SdTree->GetSTreeMemoryFootPrint()) / static_cast<float>(1000 * 1000) << std::endl;
+            std::cout << " DTreeMemory(MB): " << (m_SdTree->GetDTreeMemoryFootPrint()) / static_cast<float>(1000 * 1000) << std::endl;
         }
         if (m_EnableGrid) {
-            auto hashGridMemoryFootPrint    = m_HashBufferCUDA.GetMemoryFootPrint();
+            auto hashGridMemoryFootPrint = m_HashBufferCUDA.GetMemoryFootPrint();
             auto dTreeMemoryFootPrint = m_MortonQuadTree->GetMemoryFootPrint();
             std::cout << "HTreeMemory(MB): " << (dTreeMemoryFootPrint + hashGridMemoryFootPrint) / static_cast<float>(1000 * 1000) << std::endl;
             std::cout << "HGridMemory(MB): " << hashGridMemoryFootPrint / static_cast<float>(1000 * 1000) << std::endl;
@@ -207,11 +221,11 @@ public:
         InitSdTree();
     }
 
-    auto GetWidth ()const noexcept -> unsigned int { return m_SceneData.config.width ; }
+    auto GetWidth()const noexcept -> unsigned int { return m_SceneData.config.width; }
     auto GetHeight()const noexcept -> unsigned int { return m_SceneData.config.height; }
 
-    void SetWidth (unsigned int width  ) noexcept  { m_SceneData.config.width = width ; }
-    void SetHeight(unsigned int height ) noexcept  { m_SceneData.config.height= height; }
+    void SetWidth(unsigned int width) noexcept { m_SceneData.config.width = width; }
+    void SetHeight(unsigned int height) noexcept { m_SceneData.config.height = height; }
 
     auto GetTracerName()const noexcept -> std::string { return m_CurTracerName; }
     void SetTracerName(const std::string tracerName)noexcept { m_CurTracerName = tracerName; }
@@ -221,7 +235,7 @@ public:
     }
     void SetSamplesPerSave(unsigned int samplesPerSave)noexcept {
         m_SceneData.config.samplesPerSave = samplesPerSave;
-        
+
     }
 
     auto GetMaxSamples()const noexcept -> unsigned int {
@@ -308,7 +322,7 @@ private:
 
     bool TracePipeline(RTLib::Ext::CUDA::CUDAStream* stream, RTLib::Ext::CUDA::CUDABuffer* frameBuffer);
     void SetupPipeline();
-    
+
     bool FinishTrace();
     void UpdateTrace();
     void UpdateState();
@@ -332,7 +346,7 @@ private:
     {
         auto params = Params();
         params.accumBuffer = reinterpret_cast<float3*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_AccumBufferCUDA.get()));
-        params.seedBuffer  = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<unsigned int>(m_SeedBufferCUDA.get());
+        params.seedBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<unsigned int>(m_SeedBufferCUDA.get());
         params.frameBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<uchar4>(frameBuffer);
         params.width = m_SceneData.config.width;
         params.height = m_SceneData.config.height;
@@ -344,7 +358,7 @@ private:
         params.lights.count = m_lightBuffer.cpuHandle.size();
         params.lights.data = reinterpret_cast<MeshLight*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_lightBuffer.gpuHandle.get()));
         params.grid = m_HashBufferCUDA.GetHandle();
-        params.numCandidates = GetTraceConfig().custom.GetUInt32Or("Ris.NumCandidates",32);
+        params.numCandidates = GetTraceConfig().custom.GetUInt32Or("Ris.NumCandidates", 32);
         //std::cout << params.maxDepth << std::endl;
         if (m_EnableGrid) {
             params.diffuseGridBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<float4>(m_DiffuseBufferCUDA.get());
@@ -366,7 +380,7 @@ private:
         }
         if (m_CurTracerName == "NEE")
         {
-            params.flags      = PARAM_FLAG_NEE;
+            params.flags = PARAM_FLAG_NEE;
 
             if (m_EnableGrid) {
 
@@ -375,21 +389,21 @@ private:
             }
         }
         if (m_CurTracerName == "RIS") {
-            params.flags      = PARAM_FLAG_NEE | PARAM_FLAG_RIS;
+            params.flags = PARAM_FLAG_NEE | PARAM_FLAG_RIS;
 
             if (m_EnableGrid) {
                 params.flags |= PARAM_FLAG_USE_GRID;
                 params.mortonTree = m_MortonQuadTree->GetGpuHandle();
             }
         }
-        if ((m_CurTracerName=="PGDEF")||((m_CurTracerName=="PGNEE"))||(m_CurTracerName=="PGRIS"))
+        if ((m_CurTracerName == "PGDEF") || ((m_CurTracerName == "PGNEE")) || (m_CurTracerName == "PGRIS"))
         {
-            params.flags      = PARAM_FLAG_NONE;
+            params.flags = PARAM_FLAG_NONE;
             if (m_EnableTree) {
-                params.tree   = m_SdTreeController->GetGpuSTree();
+                params.tree = m_SdTreeController->GetGpuSTree();
                 params.flags |= PARAM_FLAG_USE_TREE;
             }
-            
+
             if (m_CurTracerName == "PGNEE")
             {
                 params.flags |= PARAM_FLAG_NEE;
@@ -414,12 +428,12 @@ private:
                 params.flags |= PARAM_FLAG_FINAL;
             }
         }
-        if ((m_CurTracerName=="HTDEF")||((m_CurTracerName=="HTNEE"))||(m_CurTracerName=="HTRIS"))
+        if ((m_CurTracerName == "HTDEF") || ((m_CurTracerName == "HTNEE")) || (m_CurTracerName == "HTRIS"))
         {
             if (m_EnableGrid) {
                 params.mortonTree = m_MortonQuadTreeController->GetGpuHandle();
-                params.grid       = m_HashBufferCUDA.GetHandle();
-                params.flags     |= PARAM_FLAG_USE_GRID;
+                params.grid = m_HashBufferCUDA.GetHandle();
+                params.flags |= PARAM_FLAG_USE_GRID;
                 params.mortonTree.level = RTLib::Ext::CUDA::Math::min(params.mortonTree.level, rtlib::test::MortonQTreeWrapper::kMaxTreeLevel);
             }
 
@@ -488,7 +502,7 @@ private:
 
     std::string m_CurTracerName = "DEF";
     std::string m_PrvTracerName = "DEF";
-    std::string m_PipelineName  = "Trace";
+    std::string m_PipelineName = "Trace";
 
     unsigned int m_DebugFrameType = DEBUG_FRAME_TYPE_NORMAL;
 
@@ -505,7 +519,7 @@ private:
 
     std::string m_TimeStampString = "";
 
-    bool  m_EnableVis  = true;
+    bool  m_EnableVis = true;
     bool  m_EnableGrid = false;
     bool  m_EnableTree = false;
 };
