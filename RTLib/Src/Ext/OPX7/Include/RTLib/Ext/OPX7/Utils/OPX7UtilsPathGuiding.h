@@ -1837,10 +1837,10 @@ namespace RTLib
 							m_SampleForPass    = std::min<uint32_t>(m_SampleForRemain, (1 << m_CurIteration) * m_SamplePerLaunch);
 							if ((m_SampleForRemain - m_SampleForPass < 2 * m_SampleForPass) ||
 								(m_SamplePerAll   >= m_RatioForBudget * static_cast<float>(m_SampleForBudget))) {
-								std::cout << "Final: this->m_SamplePerAll=" << m_SamplePerAll << std::endl;
+								//std::cout << "Final: this->m_SamplePerAll=" << m_SamplePerAll << std::endl;
 								m_SampleForPass = m_SampleForRemain;
 							}
-							std::cout << "SampleForPass: " << m_SampleForPass << "vs SampleForRemain" << m_SampleForRemain << std::endl;
+							//std::cout << "SampleForPass: " << m_SampleForPass << "vs SampleForRemain" << m_SampleForRemain << std::endl;
 							if (m_SampleForRemain > m_SampleForPass) {
 								m_STree->Download(stream);
 								m_STree->Reset(m_CurIteration, m_SampleForPass);
@@ -1859,7 +1859,7 @@ namespace RTLib
 							m_TraceState = TraceStateRecord;
 						}
 #ifndef NDEBUG
-						std::cout << "CurIteration: " << m_CurIteration << " SamplePerTmp: " << m_SamplePerTmp << std::endl;
+						///std::cout << "CurIteration: " << m_CurIteration << " SamplePerTmp: " << m_SamplePerTmp << std::endl;
 #endif
 
 					}
