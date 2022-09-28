@@ -9,6 +9,7 @@ int main(int argc, const char* argv[]) {
     auto defPath  = std::string(RTLIB_EXT_OPX7_TEST_DATA_PATH"\\..\\Result\\Scene1\\Depth=10_10sec");
     auto baseDir = std::string("");
     auto compDir = std::string("");
+    bool imgDiff = false;
     if (argc > 1) {
         for (int i = 0; i < argc-1; ++i) {
             if (std::string(argv[i]) == "--comp_dir") {
@@ -35,6 +36,19 @@ int main(int argc, const char* argv[]) {
             if (std::string(argv[i]) == "--yrange") {
                 yRange = std::stoi(std::string(argv[i + 1]));
                 isAllRange = false;
+            }
+            if (std::string(argv[i]) == "--img_diff") {
+                std::string img_diff_mode = std::string(argv[i + 1]);
+                if (((img_diff_mode == "ON") || (img_diff_mode == "On") || (img_diff_mode == "on")) ||
+                    ((img_diff_mode == "TRUE") || (img_diff_mode == "True") || (img_diff_mode == "true")))
+                {
+                    imgDiff = true;
+                }
+                if (((img_diff_mode == "OFF") || (img_diff_mode == "Off") || (img_diff_mode == "off")) ||
+                    ((img_diff_mode == "FALSE") || (img_diff_mode == "False") || (img_diff_mode == "false")))
+                {
+                    imgDiff = true;
+                }
             }
         }
         
@@ -106,18 +120,18 @@ int main(int argc, const char* argv[]) {
                         imageFile.read((char*)compImageData.data(), compImageData.size() * sizeof(compImageData[0]));
                     }
                     imageFile.close();
+                    auto mean= float(0.0f);
                     auto mae = float(0.0f);
                     if (isAllRange) {
                         for (int i = 0; i < baseImageData.size(); ++i) {
                             if (!(isnan(baseImageData[i].x) || isnan(baseImageData[i].y) || isnan(baseImageData[i].z) ||
-                                isnan(compImageData[i].x) || isnan(compImageData[i].y) || isnan(compImageData[i].z))) {
-                                float  delt = (fabsf(baseImageData[i].x - compImageData[i].x)) + (fabsf(baseImageData[i].y - compImageData[i].y)) + (fabsf(baseImageData[i].z - compImageData[i].z));
-                                if ((baseImageData[i].x + baseImageData[i].y + baseImageData[i].z) > 0.0f) {
-                                    mae += delt / (baseImageData[i].x + baseImageData[i].y + baseImageData[i].z);
-                                }
+                                  isnan(compImageData[i].x) || isnan(compImageData[i].y) || isnan(compImageData[i].z))) {
+  /*                              mae += (fabsf(baseImageData[i].x - compImageData[i].x)) + (fabsf(baseImageData[i].y - compImageData[i].y)) + (fabsf(baseImageData[i].z - compImageData[i].z));*/
+                                mae  += sqrtf((powf(baseImageData[i].x - compImageData[i].x,2.0f)) + (powf(baseImageData[i].y - compImageData[i].y,2.0f)) + (powf(baseImageData[i].z - compImageData[i].z,2.0f)));
+                                mean += sqrtf(powf(baseImageData[i].x,2.0f) + powf(baseImageData[i].y,2.0f) + powf(baseImageData[i].z,2.0f));
                             }
                         }
-                        mae /= static_cast<float>(compImageData.size());
+                        mae /= mean;
                     }
                     else {
                         for (int j = yCenter - yRange / 2; j < yCenter + yRange / 2; ++j) {
@@ -125,11 +139,30 @@ int main(int argc, const char* argv[]) {
                             for (int i = xCenter - xRange / 2; i < xCenter + xRange / 2; ++i) {
                                 auto baseColor = baseImageData[imageSizeX * j + i];
                                 auto compColor = compImageData[imageSizeX * j + i];
-                                float  delt = (fabsf(baseColor.x - compColor.x)) + (fabsf(baseColor.y - compColor.y)) + (fabsf(baseColor.z - compColor.z));
-                                mae += delt / (baseColor.x + baseColor.y + baseColor.z);
+                                float delt_x =(fabsf(baseColor.x - compColor.x));
+                                float delt_y =(fabsf(baseColor.x - compColor.y));
+                                float delt_z =(fabsf(baseColor.x - compColor.z));
+                                mae += (delt_x + delt_y + delt_z) ;
+                                mean += baseColor.x + baseColor.y + baseColor.z;
                             }
                         }
-                        mae /= static_cast<float>(xRange * yRange);
+                        mae /= mean;
+                    }
+                    if (imgDiff)
+                    {
+                        std::vector<float> errImages(baseImageData.size(),0.0f);
+                        for (int i = 0; i < baseImageData.size(); ++i) {
+                            if (!(isnan(baseImageData[i].x) || isnan(baseImageData[i].y) || isnan(baseImageData[i].z) ||
+                                isnan(compImageData[i].x) || isnan(compImageData[i].y) || isnan(compImageData[i].z))) {
+                                float  delt = (fabsf(baseImageData[i].x - compImageData[i].x)) + (fabsf(baseImageData[i].y - compImageData[i].y)) + (fabsf(baseImageData[i].z - compImageData[i].z));
+                                if ((baseImageData[i].x + baseImageData[i].y + baseImageData[i].z) > 0.0f) {
+                                    errImages[i] = delt/(baseImageData[i].x + baseImageData[i].y + baseImageData[i].z);
+                                }
+                            }
+                        }
+                        std::filesystem::path savePath = pipelineDir.path() / ("diff_" + pipeline + "_" + sampleStr + ".hdr");
+                        std::string savePathStr = savePath.string();
+                        stbi_write_hdr(savePathStr.c_str(), imageSizeX, imageSizeY,1, errImages.data());
                     }
                     if (pipeline == "DEF") {
                         defMAEs.push_back({ std::stoi(sampleStr),time,mae });

@@ -38,10 +38,10 @@ void TracerTest(int argc, const char* argv[])
         {
 
             testApp.Initialize(argc,argv);
-            auto tracerName         = testApp.GetTracerName();
+            auto tracerName        = testApp.GetTracerName();
             auto maxDepth          = testApp.GetMaxDepth();
             auto maxSamples        = testApp.GetMaxSamples();
-            auto maxTimes               = testApp.GetMaxTimes();
+            auto maxTimes          = testApp.GetMaxTimes();
             auto samplesPerSave    = testApp.GetSamplesPerSave();
             auto fraction          = testApp.GetTraceConfig().custom.GetFloat1Or("MortonTree.Fraction"         , 0.3f);
             auto iterationForBuilt = testApp.GetTraceConfig().custom.GetUInt32Or("MortonTree.IterationForBuilt", 3);

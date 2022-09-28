@@ -104,7 +104,7 @@ private:
 int main(int argc, const char* argv[]) {
 	unsigned int xRange = 128;
 	unsigned int yRange = 128;
-	std::string savePath = RTLIB_EXT_OPX7_TEST_DATA_PATH"\\..\\Result\\Scene0\\Depth=4\\DEF\\result_DEF_1000.png";
+	std::string savePath = RTLIB_EXT_OPX7_TEST_DATA_PATH"\\..\\Result\\Fix\\Scene1\\Depth=4\\DEF\\result_DEF_100000.png";
 
 	if (!glfwInit()) {
 		return -1;
@@ -113,8 +113,8 @@ int main(int argc, const char* argv[]) {
 	bool isFailedToLoadGLADLibrary = false;
 	auto context = std::unique_ptr<RTLib::Ext::GL::GLContext >();
 	GLFWwindow* window = nullptr;
-	int width = 512;
-	int height = 512;
+	int width = 1024;
+	int height = 1024;
 	do {
 		window = CreateGLFWWindow(width, height, "title");
 		if (!window) {
@@ -221,7 +221,6 @@ int main(int argc, const char* argv[]) {
 			context->SetClearBuffer(RTLib::Ext::GL::GLClearBufferFlagsColor);
 			context->SetClearColor(0.0f, 1.0f, 0.0f, 0.0f); 
 			rectRenderer->DrawTexture(tex.get());
-			
 			rectRenderer->DrawBound2D({1.0f,0.0f,0.0f}, std::array<float, 16>{
 				static_cast<float>(xRange)/width, 0.0f, 0.0f, -(cursorPos[0] - (width / 2)) / static_cast<float>(width),
 			    0.0f, static_cast<float>(yRange) / height,0.0f,-(cursorPos[1]-(height/2)) / static_cast<float>(height),

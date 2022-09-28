@@ -296,7 +296,7 @@ extern "C" __global__ void __closesthit__radiance() {
                 bsdfVal = diffuse * RTLIB_M_INV_PI + specular * phongPdf1;
                 bsdfPdf = (select_prob * cosinePdf1 + (1.0f - select_prob) * phongPdf1);
             }
-            currThroughput = prevThroughput * ((bsdfPdf > 0.0f) ? (bsdfVal * RTLib::Ext::CUDA::Math::max(cosine, 0.0f) / bsdfPdf) : make_float3(0.0f));
+            currThroughput = prevThroughput * ((bsdfPdf > 0.0f) ? (bsdfVal * fabsf(cosine) / bsdfPdf) : make_float3(0.0f));
 
             if (params.flags & PARAM_FLAG_NEE) {
                 if (hrec->userData.depth < params.maxDepth - 1) {
@@ -495,7 +495,7 @@ extern "C" __global__ void __closesthit__radiance_sphere() {
                 bsdfVal = diffuse * RTLIB_M_INV_PI + specular * phongPdf1;
                 bsdfPdf = (select_prob * cosinePdf1 + (1.0f - select_prob) * phongPdf1);
             }
-            currThroughput = prevThroughput * ((bsdfPdf > 0.0f) ? (bsdfVal * RTLib::Ext::CUDA::Math::max(cosine, 0.0f) / bsdfPdf) : make_float3(0.0f));
+            currThroughput = prevThroughput * ((bsdfPdf > 0.0f) ? (bsdfVal * fabsf(cosine) / bsdfPdf) : make_float3(0.0f));
 
             if (params.flags & PARAM_FLAG_NEE) {
                 if (hrec->userData.depth < params.maxDepth-1) {
