@@ -1,3 +1,6 @@
 [submodule "RTLib/thirdparty/tinyobjloader"]
 	path = RTLib/thirdparty/tinyobjloader
 	url = https://github.com/syoyo/tinyobjloader
+[submodule "RTLib/thirdparty/glad"]
+	path = RTLib/thirdparty/glad
+	url = https://github.com/Dav1dde/glad.git
