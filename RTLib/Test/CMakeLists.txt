@@ -1,5 +1,0 @@
-add_subdirectory(TestLib)
-add_subdirectory(TestEmbree3)
-add_subdirectory(TestVulkan)
-add_subdirectory(TestGLFW)
-add_subdirectory(TestOptiX)

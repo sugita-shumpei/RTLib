@@ -2,6 +2,7 @@
 /build
 /Data
 /Result/*
+/Result_*/
 !/Result/test.sh
 !/Result/test2.sh
 !/Result/test3.sh

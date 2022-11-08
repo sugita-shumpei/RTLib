@@ -1,5 +1,0 @@
-add_subdirectory(Common)
-add_subdirectory(GLAD)
-add_subdirectory(GLAD-ImGui)
-add_subdirectory(Vulkan)
-add_subdirectory(Vulkan-ImGui)
