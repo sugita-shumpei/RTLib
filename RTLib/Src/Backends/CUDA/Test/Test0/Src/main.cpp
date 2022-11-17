@@ -23,7 +23,6 @@ int main(int argc, const char** argv)
 	auto  stream   = current.CreateStreamUnique();
 	auto  memory1  = current.CreateLinearMemory1DUnique(1024 * 1024 * sizeof(unsigned int));
 	auto  memory2  = current.CreateLinearMemory1DUnique(1024 * 1024 * sizeof(unsigned char)*4);
-
 	{
 		auto random_seeds = std::vector<unsigned int>(1024 * 1024);
 		std::random_device rd;
@@ -60,6 +59,6 @@ int main(int argc, const char** argv)
 	{
 		current.Copy1DFromLinearMemoryToHost(resultImages.data(), memory2.get(), { 0,0,sizeof(resultImages[0]) * resultImages.size() });
 	}
-	stbi_write_png(RTLIB_BACKENDS_CUDA_TEST_TEST0_CUDA_PATH"/../result.png", 1024, 1024, 4, (const void*)resultImages.data(), 1024 * 4);
+	stbi_write_png(RTLIB_BACKENDS_CUDA_TEST_TEST0_CUDA_PATH"/../result2.png", 1024, 1024, 4, (const void*)resultImages.data(), 1024 * 4);
 	return 0;
 }
