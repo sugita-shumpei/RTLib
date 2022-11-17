@@ -1,6 +1,8 @@
 #include <RTLib/Backends/CUDA/CUDAStream.h>
 #include <RTLib/Backends/CUDA/CUDAContext.h>
 #include <RTLib/Backends/CUDA/CUDALinearMemory.h>
+#include <RTLib/Backends/CUDA/CUDAArray.h>
+#include <RTLib/Backends/CUDA/CUDAFunction.h>
 #include "CUDAInternals.h"
 struct RTLib::Backends::Cuda::Stream::Impl {
     Impl(std::shared_ptr<void> stream) noexcept :m_Stream{ stream } {}
@@ -192,4 +194,12 @@ void RTLib::Backends::Cuda::Stream::Synchronize() noexcept
     RTLIB_BACKENDS_CUDA_DEBUG_ASSERT(
         cuStreamSynchronize(stream)
     );
+}
+
+void RTLib::Backends::Cuda::Stream::LaunchKernel(const Function* function, const KernelLaunchDesc& desc)
+{
+	assert(IsValid() && (function != nullptr) );
+
+	auto params = desc.params;
+	RTLIB_BACKENDS_CUDA_DEBUG_ASSERT(cuLaunchKernel(Internals::GetCUfunction(function), desc.gridDimX, desc.gridDimY, desc.gridDimZ, desc.blockDimX, desc.blockDimY, desc.blockDimZ, desc.sharedMemBytes, Internals::GetCUstream(this), params.data(), nullptr));
 }

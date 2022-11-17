@@ -35,8 +35,8 @@ struct RTLib::Backends::Cuda::Context::Impl{
 		//RTLIB_BACKENDS_CUDA_DEBUG_ASSERT(cuCtxCreate(&context, tmpFlags,Internals::GetCUdevice(device)));
 		RTLIB_BACKENDS_CUDA_DEBUG_ASSERT(cuCtxCreate(&context, tmpFlags, Internals::GetCUdevice(device)));
 		auto pDefaultStream = std::shared_ptr<void>(nullptr);
-		streams.insert(pDefaultStream);
 		defaultStream = std::unique_ptr<Stream>(new Stream(pDefaultStream));
+		streams.insert(std::move(pDefaultStream));
 	}
 	~Impl()noexcept {
 		std::cout << "Destroy!\n";
@@ -185,6 +185,18 @@ auto RTLib::Backends::Cuda::CurrentContext::GetDefaultStream() const noexcept ->
 {
 	auto ptr = Get();
 	return ptr?ptr->GetDefaultStream():nullptr;
+}
+
+void RTLib::Backends::Cuda::CurrentContext::Synchronize() noexcept
+{
+	assert(Get());
+	RTLIB_BACKENDS_CUDA_DEBUG_ASSERT(cuCtxSynchronize());
+}
+
+void RTLib::Backends::Cuda::CurrentContext::SynchronizeDefaultStream() noexcept
+{
+	assert(Get());
+	RTLIB_BACKENDS_CUDA_DEBUG_ASSERT(cuStreamSynchronize(nullptr));
 }
 
 void RTLib::Backends::Cuda::CurrentContext::Set(Context* ctx, bool sysOp) noexcept
@@ -535,5 +547,12 @@ void RTLib::Backends::Cuda::CurrentContext::Copy2DFromLinearMemory2DToArray(cons
 	Internals::SetCudaMemcpy2DSrcLinearMemory2D(memCpy2D, srcMemory);
 	Internals::SetCudaMemcpy2DDstArray(memCpy2D, dstArray);
 	RTLIB_BACKENDS_CUDA_DEBUG_ASSERT(cuMemcpy2D(&memCpy2D));
+}
+
+void RTLib::Backends::Cuda::CurrentContext::LaunchKernel(const Function* function, const KernelLaunchDesc& desc)
+{
+	assert(Get() && (function != nullptr));
+	auto params = desc.params;
+	RTLIB_BACKENDS_CUDA_DEBUG_ASSERT(cuLaunchKernel(Internals::GetCUfunction(function),desc.gridDimX,desc.gridDimY,desc.gridDimZ,desc.blockDimX,desc.blockDimY,desc.blockDimZ,desc.sharedMemBytes,nullptr, params.data(),nullptr));
 }
 

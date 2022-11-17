@@ -31,6 +31,8 @@ namespace RTLib
 			class LinearMemory2D;
 			class Array;
 			class MipmappedArray;
+			class Module;
+			class Function;
 			namespace Internals {
 				auto GetCUarray_format(const ArrayFormat& arrayFormat)->CUarray_format;
 				auto GetCUdevice(const Device& device) noexcept -> CUdevice;
@@ -39,6 +41,7 @@ namespace RTLib
 				auto GetCUdeviceptr(const LinearMemory* memory)noexcept -> CUdeviceptr;
 				auto GetCUarray(const Array* array)noexcept -> CUarray;
 				auto GetCUmipmappedArray(const MipmappedArray* array)noexcept -> CUmipmappedArray;
+				auto GetCUfunction(const Function* function)->CUfunction;
 				auto GetCUfilter_mode(FilterMode filterMode)->CUfilter_mode;
 				auto GetCUaddress_mode(AddressMode addressMode)->CUaddress_mode;
 				auto GetCUjit_option(JitOption jitOption)->CUjit_option;

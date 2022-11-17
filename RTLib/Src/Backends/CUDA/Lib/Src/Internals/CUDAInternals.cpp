@@ -5,6 +5,8 @@
 #include <RTLib/Backends/CUDA/CUDALinearMemory.h>
 #include <RTLib/Backends/CUDA/CUDAArray.h>
 #include <RTLib/Backends/CUDA/CUDAMipmappedArray.h>
+#include <RTLib/Backends/CUDA/CUDAModule.h>
+#include <RTLib/Backends/CUDA/CUDAFunction.h>
 #include "CUDAInternals.h"
 
 auto RTLib::Backends::Cuda::Internals::GetCUarray_format(const ArrayFormat& arrayFormat)->CUarray_format
@@ -88,6 +90,10 @@ auto RTLib::Backends::Cuda::Internals::GetCUmipmappedArray(const MipmappedArray*
 {
 	if (!array) { return nullptr; }
 	return reinterpret_cast<CUmipmappedArray>(array->GetHandle());
+}
+auto RTLib::Backends::Cuda::Internals::GetCUfunction(const Function* function) -> CUfunction
+{
+	return static_cast<CUfunction>(function->GetHandle());
 }
 auto RTLib::Backends::Cuda::Internals::GetCUfilter_mode(FilterMode filterMode) -> CUfilter_mode
 {

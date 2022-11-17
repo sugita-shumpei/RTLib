@@ -8,6 +8,7 @@ namespace RTLib {
             class LinearMemory;
             class LinearMemory2D;
             class Array;
+            class Function;
             class Stream 
             {
                 friend class CurrentContext;
@@ -48,6 +49,8 @@ namespace RTLib {
                 void Copy2DFromLinearMemory2DToArray(const Array* dstArray, const LinearMemory2D* srcMemory, const Memory2DCopy& copy)const noexcept;
 
                 void Synchronize() noexcept;
+
+                void LaunchKernel(const Function* function, const KernelLaunchDesc& desc);
             private:
                 struct Impl;
                 std::unique_ptr<Impl> m_Impl;

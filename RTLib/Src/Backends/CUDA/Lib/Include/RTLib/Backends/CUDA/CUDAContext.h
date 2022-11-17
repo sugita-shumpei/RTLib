@@ -146,7 +146,12 @@ namespace RTLib
                 void Copy2DFromArrayToLinearMemory2D(const LinearMemory2D* dstMemory, const Array* srcArray, const Memory2DCopy& copy)const noexcept;
                 void Copy2DFromLinearMemory2DToArray(const Array* dstArray, const LinearMemory2D* srcMemory, const Memory2DCopy& copy)const noexcept;
 
+                void LaunchKernel(const Function* function, const KernelLaunchDesc& desc);
+
                 auto GetDefaultStream() const noexcept -> Stream *;
+
+                void Synchronize()noexcept;
+                void SynchronizeDefaultStream() noexcept;
             private:
                 void Set(Context *ctx, bool sysOp) noexcept;
                 auto Pop(bool sysOp) noexcept -> Context *;

@@ -149,6 +149,16 @@ namespace RTLib
 				eReferencedVariableCount,
 				eOptimizeUnusedDeviceVariables,
 			};
+			struct KernelLaunchDesc {
+				unsigned int gridDimX;
+				unsigned int gridDimY;
+				unsigned int gridDimZ;
+				unsigned int blockDimX;
+				unsigned int blockDimY;
+				unsigned int blockDimZ;
+				unsigned int sharedMemBytes;
+				std::vector<void*> params;
+			};
 			struct GlobalAddressDesc {
 				void* pointer;
 				size_t bytes ;

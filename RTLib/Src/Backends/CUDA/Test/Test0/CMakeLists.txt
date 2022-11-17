@@ -1,3 +1,21 @@
-add_executable(RTLib-Backends-CUDA-Test-Test0 ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp)
-target_link_libraries(RTLib-Backends-CUDA-Test-Test0 PUBLIC RTLib-Backends-CUDA-Lib CUDA::cuda_driver)
+make_directory(${CMAKE_CURRENT_BINARY_DIR}/cuda)
+set(RTLIB_BACKENDS_CUDA_TEST_TEST0_CUDA_PATH ${CMAKE_CURRENT_BINARY_DIR}/cuda)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/RTLibBackendsCudaTest0Config.h.in ${CMAKE_CURRENT_BINARY_DIR}/RTLibBackendsCudaTest0Config.h)
 
+add_executable(RTLib-Backends-CUDA-Test-Test0 
+${CMAKE_CURRENT_SOURCE_DIR}/RTLibBackendsCudaTest0Config.h.in
+${CMAKE_CURRENT_SOURCE_DIR}/Src/main.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/cuda/sampleKernel.cu)
+target_link_libraries(RTLib-Backends-CUDA-Test-Test0 RTLib-Backends-CUDA-Lib stb::stb)
+target_include_directories(RTLib-Backends-CUDA-Test-Test0 PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+set(RTLIB_BACKENDS_CUDA_TEST_TEST0_NVCC_OPTIONS ${RTLIB_BACKENDS_CUDA_NVCC_OPTIONS})
+foreach(RTLIB_BACKENDS_CUDA_TEST_TEST0_NVCC_INCLUDE_DIR ${RTLIB_BACKENDS_CUDA_NVCC_INCLUDE_DIRS})
+	set(RTLIB_BACKENDS_CUDA_TEST_TEST0_NVCC_OPTIONS ${RTLIB_BACKENDS_CUDA_TEST_TEST0_NVCC_OPTIONS} -I${RTLIB_BACKENDS_CUDA_TEST_TEST0_NVCC_INCLUDE_DIR})
+endforeach()
+set(RTLIB_BACKENDS_CUDA_TEST_TEST0_NVCC_OPTION "")
+foreach(OPTION ${RTLIB_BACKENDS_CUDA_TEST_TEST0_NVCC_OPTIONS})
+	set(RTLIB_BACKENDS_CUDA_TEST_TEST0_NVCC_OPTION "${RTLIB_BACKENDS_CUDA_TEST_TEST0_NVCC_OPTION} ${OPTION}")
+endforeach()
+add_custom_target(RTLib-Backends-CUDA-Test-Test0-Compile-Kernel
+COMMAND ${CUDAToolkit_NVCC_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/cuda/sampleKernel.cu ${RTLIB_BACKENDS_CUDA_TEST_TEST0_NVCC_OPTIONS} -ptx -o ${CMAKE_CURRENT_BINARY_DIR}/cuda/sampleKernel.ptx)
+add_dependencies(RTLib-Backends-CUDA-Test-Test0 RTLib-Backends-CUDA-Test-Test0-Compile-Kernel)
