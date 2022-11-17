@@ -1,4 +1,4 @@
-glad_add_library(glad_gl_core_46 STATIC REPRODUCIBLE  MX API gl:core=4.6)
+glad_add_library(glad_gl_core_46 STATIC REPRODUCIBLE  MX API gl:core=4.6 EXTENSIONS GL_ARB_gl_spirv)
 add_library(RTLib-Backends-OGL4-Lib STATIC 
 ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Backends/OGL4/OGL4Context.h
 ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Backends/OGL4/OGL4Buffer.h
