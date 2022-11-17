@@ -94,15 +94,6 @@ namespace RTLib {
 		Geometry   m_base;
 	};
 	struct Model {};
-	struct ObjModel {
-
-	};
-	struct FbxModel {
-
-	};
-	struct GltfModel {
-
-	};
 }
 
 int main() {
