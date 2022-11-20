@@ -1,2 +1,5 @@
 add_subdirectory(Scenes)
+add_subdirectory(Camera)
+add_subdirectory(Inputs)
+add_subdirectory(Window)
 add_subdirectory(Backends)

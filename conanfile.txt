@@ -9,6 +9,7 @@ openexr/3.1.5
 stduuid/1.2.2
 nlohmann_json/3.10.5
 fmt/9.1.0
+glm/cci.20220420
 [generators]
 CMakeDeps
 CMakeToolchain
