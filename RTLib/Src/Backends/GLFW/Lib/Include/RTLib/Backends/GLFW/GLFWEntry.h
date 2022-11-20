@@ -43,6 +43,11 @@ namespace RTLib
 				auto GetGlobalKeyboard()const noexcept -> RTLib::Inputs::Keyboard*;
 				auto GetWindowKeyboard(RTLib::Window::Window* window)const noexcept -> RTLib::Inputs::Keyboard*;
 
+				void SetFrameTime(float frameTime)noexcept;
+
+				auto GetDeltaTime()const noexcept -> float;
+				auto GetFrameTime()const noexcept -> float;
+
 				PfnGetProcAddress GetProcAddress;
 			private:
 				struct Impl;

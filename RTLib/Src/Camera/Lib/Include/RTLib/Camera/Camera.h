@@ -222,9 +222,8 @@ namespace RTLib
             return res;
         }
         auto GetPerspectiveMatrixRH(float zNear, float zFar)const noexcept -> std::array<float, 16>{
-            assert(width > static_cast<T>(0));
-            assert(height > static_cast<T>(0));
-            assert(GetFovY() > static_cast<T>(0));
+            assert(GetAspect() > static_cast<float>(0));
+            assert(GetFovY() > static_cast<float>(0));
 
             const float rad = GetFovY() * RTLIB_CAMERA_UTILS_MATH_CONSTANTS_PI / 180.0f;
             const float h = cosf(0.5f * rad) / sinf(0.5f * rad);
@@ -240,9 +239,8 @@ namespace RTLib
             return res;
         }
         auto GetPerspectiveMatrixLH(float zNear, float zFar)const noexcept -> std::array<float, 16>{
-            assert(width > static_cast<T>(0));
-            assert(height > static_cast<T>(0));
-            assert(GetFovY() > static_cast<T>(0));
+            assert(GetAspect() > static_cast<float>(0));
+            assert(GetFovY() > static_cast<float>(0));
 
             const float rad = GetFovY() * RTLIB_CAMERA_UTILS_MATH_CONSTANTS_PI / 180.0f;
             const float h = cosf(0.5f * rad) / sinf(0.5f * rad);

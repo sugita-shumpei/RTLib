@@ -199,48 +199,55 @@ int main(int argc, const char** argv)
 		gladContext46->NamedBufferSubData(ubo, 0, sizeof(uniforms), &uniforms);
     }
 
-	bool isWindow46Closed = false;
-	bool isWindow33Closed = false;
-	bool isSizeChanged    = false;
-    bool isUpdated        = false;
+	struct WindowState {
+		bool isWindowClosed = false;
+		bool isSizeChanged = false;
+		bool isUpdated     = false;
+		RTLib::CameraController* pCameraController = nullptr;
+	};
+	WindowState state = {};
+	state.pCameraController = &cameraController;
 
-	window->SetUserPointer(&isSizeChanged);
+	window->SetUserPointer(&state);
 	window->SetSizeCallback([](RTLib::Window::Window* window, int width, int height) {
 		std::cout << "[" << width << "," << height << "]\n";
-		bool* isSizeChanged = (bool*)window->GetUserPointer();
-		*isSizeChanged = true;
+		auto* pState = (WindowState*)window->GetUserPointer();
+		pState->isSizeChanged = true;
 	});
-	
+	entry.GetWindowKeyboard(window.get())->SetUserPointer(&state);
 	entry.GetWindowKeyboard(window.get())->SetCallback([](RTLib::Inputs::KeyCode code, unsigned int state, void* pUserData) {
-		if (code == RTLib::Inputs::KeyCode::eW) {
-			if (state & RTLib::Inputs::KeyStatePressed) {
-				std::cout << "Window Pressed "; 
-				if (state & RTLib::Inputs::KeyStateUpdated) {
-					std::cout << " And Updated ";
-				}
-				std::cout << std::endl;
-				
-			}
-			if (state & RTLib::Inputs::KeyStateReleased) {
-				std::cout << "Window Released" << std::endl;
-				if (state & RTLib::Inputs::KeyStateUpdated) {
-					std::cout << " And Updated ";
-				}
-				std::cout << std::endl;
-			}
+		auto* pState = (WindowState*)pUserData;
+		float deltaTime = RTLib::Backends::Glfw::Entry::Handle().GetDeltaTime();
+		if ((code == RTLib::Inputs::KeyCode::eA) && (state&RTLib::Inputs::KeyStatePressed)) {
+			pState->pCameraController->ProcessKeyboard(RTLib::CameraMovement::eLeft, deltaTime); pState->isUpdated = true;
+		}
+		if ((code == RTLib::Inputs::KeyCode::eD) && (state & RTLib::Inputs::KeyStatePressed)) {
+			pState->pCameraController->ProcessKeyboard(RTLib::CameraMovement::eRight, deltaTime); pState->isUpdated = true;
+		}
+		if ((code == RTLib::Inputs::KeyCode::eS) && (state & RTLib::Inputs::KeyStatePressed)) {
+			pState->pCameraController->ProcessKeyboard(RTLib::CameraMovement::eForward, deltaTime); pState->isUpdated = true;
+		}
+		if ((code == RTLib::Inputs::KeyCode::eW) && (state & RTLib::Inputs::KeyStatePressed)) {
+			pState->pCameraController->ProcessKeyboard(RTLib::CameraMovement::eBackward, deltaTime); pState->isUpdated = true;
+		}
+		if ((code == RTLib::Inputs::KeyCode::eUp) && (state & RTLib::Inputs::KeyStatePressed)) {
+			pState->pCameraController->ProcessKeyboard(RTLib::CameraMovement::eUp, deltaTime); pState->isUpdated = true;
+		}
+		if ((code == RTLib::Inputs::KeyCode::eDown) && (state & RTLib::Inputs::KeyStatePressed)) {
+			pState->pCameraController->ProcessKeyboard(RTLib::CameraMovement::eDown, deltaTime); pState->isUpdated = true;
 		}
 	});
 
 	window->Show();
-	float deltaTime = 0.0f;
+	entry.SetFrameTime(0.0f);
 	while (true) {
 		auto beg = std::chrono::system_clock::now();
-		if (!isWindow46Closed) {
+		if (!window->ShouldClose()) {
 			entry.SetCurrentWindow(window.get());
-			if (isUpdated||isSizeChanged) {
+			if (state.isUpdated|| state.isSizeChanged) {
 				auto camera = cameraController.GetCamera((float)window->GetSize()[0] / (float)window->GetSize()[1]);
 				{
-					auto uniforms             = Uniforms();
+					auto uniforms = Uniforms();
 					auto model = RTLib::CameraUtils::IdentityMatrix<float,4>();
 					auto view  = camera.GetLookAtMatrixRH();
 					auto proj  = camera.GetPerspectiveMatrixLH(0.1f, 10.0f);
@@ -250,7 +257,7 @@ int main(int argc, const char** argv)
 					gladContext46->NamedBufferSubData(ubo, 0, sizeof(uniforms), &uniforms);
 				}
 			}
-			if (isSizeChanged) {
+			if (state.isSizeChanged) {
 				gladContext46->Viewport(0, 0, window->GetFramebufferSize()[0], window->GetFramebufferSize()[1]);
 			}
 			gladContext46->ClearColor(1.0f, 0.0f, 0.0f, 1.0f);
@@ -261,43 +268,11 @@ int main(int argc, const char** argv)
 			gladContext46->DrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT,nullptr);
 			window->SwapBuffers();
 		}
-		isUpdated = false;
-		isSizeChanged = false;
+		state.isUpdated     = false;
+		state.isSizeChanged = false;
 		entry.PollEvents();
-
-		if (!isWindow46Closed) {
-			isWindow46Closed = window->ShouldClose();
-			if(isWindow46Closed) window->Hide();
-		}
-		if ( isWindow46Closed) {
+		if (window->ShouldClose()) {
 			break;
-		}
-		auto end = std::chrono::system_clock::now();
-		deltaTime = std::chrono::duration_cast<std::chrono::milliseconds>(end - beg).count() * 0.001f;
-
-		if (entry.GetWindowKeyboard(window.get())->GetKey(RTLib::Inputs::KeyCode::eA)    & RTLib::Inputs::KeyStatePressed) {
-			std::cout << cameraController.GetPosition()[0] << "-" << cameraController.GetPosition()[1] << "-" << cameraController.GetPosition()[2] << std::endl;
-			cameraController.ProcessKeyboard(RTLib::CameraMovement::eLeft, deltaTime); isUpdated = true;
-		}
-		if (entry.GetWindowKeyboard(window.get())->GetKey(RTLib::Inputs::KeyCode::eD)    & RTLib::Inputs::KeyStatePressed) {
-			std::cout << cameraController.GetPosition()[0] << "-" << cameraController.GetPosition()[1] << "-" << cameraController.GetPosition()[2] << std::endl;
-			cameraController.ProcessKeyboard(RTLib::CameraMovement::eRight, deltaTime); isUpdated = true;
-		}
-		if (entry.GetWindowKeyboard(window.get())->GetKey(RTLib::Inputs::KeyCode::eW)    & RTLib::Inputs::KeyStatePressed) {
-			std::cout << cameraController.GetPosition()[0] << "-" << cameraController.GetPosition()[1] << "-" << cameraController.GetPosition()[2] << std::endl;
-			cameraController.ProcessKeyboard(RTLib::CameraMovement::eForward, deltaTime); isUpdated = true;
-		}
-		if (entry.GetWindowKeyboard(window.get())->GetKey(RTLib::Inputs::KeyCode::eS)    & RTLib::Inputs::KeyStatePressed) {
-			std::cout << cameraController.GetPosition()[0] << "-" << cameraController.GetPosition()[1] << "-" << cameraController.GetPosition()[2] << std::endl;
-			cameraController.ProcessKeyboard(RTLib::CameraMovement::eBackward, deltaTime); isUpdated = true;
-		}
-		if (entry.GetWindowKeyboard(window.get())->GetKey(RTLib::Inputs::KeyCode::eUp)   & RTLib::Inputs::KeyStatePressed) {
-			std::cout << cameraController.GetPosition()[0] << "-" << cameraController.GetPosition()[1] << "-" << cameraController.GetPosition()[2] << std::endl;
-			cameraController.ProcessKeyboard(RTLib::CameraMovement::eUp, deltaTime); isUpdated = true;
-		}
-		if (entry.GetWindowKeyboard(window.get())->GetKey(RTLib::Inputs::KeyCode::eDown) & RTLib::Inputs::KeyStatePressed) {
-			std::cout << cameraController.GetPosition()[0] << "-" << cameraController.GetPosition()[1] << "-" << cameraController.GetPosition()[2] << std::endl;
-			cameraController.ProcessKeyboard(RTLib::CameraMovement::eDown, deltaTime); isUpdated = true;
 		}
 	}
 

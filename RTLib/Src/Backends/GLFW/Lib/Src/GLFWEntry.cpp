@@ -5,8 +5,10 @@
 #include "Internals/GLFWInternals.h"
 #include <memory>
 #include <cassert>
+#include <chrono>
+#include <optional>
 struct RTLib::Backends::Glfw::Entry::Impl {
-	Impl() noexcept : globalKeyboard{ new Inputs::Keyboard() }, currentWindow{ nullptr } {
+	Impl() noexcept : globalKeyboard{ new Inputs::Keyboard() }, currentWindow{ nullptr }, prvFrameTime{ 0.0f }, prvDeltaTime{ 0.0f }, isResetTime{true} {
 		int res = glfwInit();
 		assert(res == GLFW_TRUE);
 	}
@@ -14,8 +16,11 @@ struct RTLib::Backends::Glfw::Entry::Impl {
 		globalKeyboard.reset();
 		glfwTerminate();
 	}
-	Window::Window*                   currentWindow;
-	std::unique_ptr<Inputs::Keyboard> globalKeyboard;
+	Window::Window*                    currentWindow ;
+	std::unique_ptr<Inputs::Keyboard>  globalKeyboard;
+	float                              prvFrameTime  ;
+	float                              prvDeltaTime  ;
+	bool                               isResetTime;
 };
 RTLib::Backends::Glfw::Entry::Entry() noexcept:m_Impl{new Impl()}
 {
@@ -29,6 +34,14 @@ RTLib::Backends::Glfw::Entry::~Entry()noexcept
 
 void RTLib::Backends::Glfw::Entry::PollEvents() noexcept
 {
+	float frameTime = glfwGetTime();
+	if (m_Impl->isResetTime) {
+		m_Impl->isResetTime = false;
+	}
+	else {
+		m_Impl->prvDeltaTime = frameTime - m_Impl->prvFrameTime;
+	}
+	m_Impl->prvFrameTime = frameTime;
 	glfwPollEvents();
 }
 
@@ -71,4 +84,19 @@ auto RTLib::Backends::Glfw::Entry::CreateWindow(const RTLib::Window::WindowDesc&
 auto RTLib::Backends::Glfw::Entry::CreateWindowUnique(const RTLib::Window::WindowDesc& desc)const->std::unique_ptr<RTLib::Window::Window>
 {
 	return std::unique_ptr<RTLib::Window::Window>(CreateWindow(desc));
+}
+void RTLib::Backends::Glfw::Entry::SetFrameTime(float frameTime)noexcept
+{
+	m_Impl->prvFrameTime = frameTime;
+	m_Impl->prvDeltaTime = 0.0f;
+	m_Impl->isResetTime = true;
+	glfwSetTime(frameTime);
+}
+
+auto RTLib::Backends::Glfw::Entry::GetDeltaTime()const noexcept -> float
+{
+	return m_Impl->prvDeltaTime;
+}
+auto RTLib::Backends::Glfw::Entry::GetFrameTime()const noexcept -> float {
+	return m_Impl->prvFrameTime;
 }
