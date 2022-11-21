@@ -271,16 +271,14 @@ extern "C" __global__ void __closesthit__radiance() {
         if (hgData->type == HIT_GROUP_TYPE_NEE_LIGHT) {
             if ((prevHitFlags & HIT_RECORD_FLAG_PHONG_MATERIAL)) {
                 auto probD  = hrec->userData.bsdfPdf;
-                auto probD2 = probD * probD;
                 auto p0     = hgData->vertices[hgData->indices[primitiveId].x];
                 auto p1     = hgData->vertices[hgData->indices[primitiveId].y];
                 auto p2     = hgData->vertices[hgData->indices[primitiveId].z];
                 auto invPdf = RTLib::Ext::CUDA::Math::length(RTLib::Ext::CUDA::Math::cross(p1 - p0, p2 - p0))*2 / 2.0f;
                 //printf("Light=invPdf=%lf\n", invPdf);
                 auto probAbs= 1.0f / invPdf;
-                auto probA  = probAbs * (distance * distance)/ fabsf(RTLib::Ext::CUDA::Math::dot(direction, hrec->normal));
-                auto probA2 = probA * probA;
-                auto weight = probD2 / (probD2 + probA2);
+                auto probA  = probAbs * (distance * distance)/ fabsf(RTLib::Ext::CUDA::Math::dot(direction, vNormal));
+                auto weight = probD / (probD + probA);
                 emission   *= weight;
             }
         }
@@ -352,9 +350,7 @@ extern "C" __global__ void __closesthit__radiance() {
                         auto probA   = 1.0f / lRec.invPdf;
                         auto probDbs = select_prob * RTLib::Ext::CUDA::Math::max(cosineX * static_cast<float>(RTLIB_M_INV_PI), 0.0f) + (1.0f - select_prob) * getValPhongPDF(lRec.direction, reflDir, shinness);
                         auto probD   = probDbs * fabsf(cosineY) / (lRec.distance * lRec.distance);
-                        auto probA2  = probA * probA;
-                        auto probD2  = probD * probD;
-                        auto weight  = probA2 / (probA2 + probD2);
+                        auto weight  = probA / (probA + probD);
                         //printf("Phong=invPdf=%lf\n", lRec.invPdf);
                         if (!TraceOccluded(params.gasHandle, position, lRec.direction, 0.0001f, lRec.distance - 0.0001f)) {
                             auto e = lRec.emission;
@@ -561,10 +557,8 @@ extern "C" __global__ void __closesthit__radiance_sphere() {
                         auto probA = 1.0f / lRec.invPdf;
                         auto probDbs = select_prob * RTLib::Ext::CUDA::Math::max(cosineX * static_cast<float>(RTLIB_M_INV_PI), 0.0f) + (1.0f - select_prob) * getValPhongPDF(lRec.direction, reflDir, shinness);
                         auto probD = probDbs * fabsf(cosineY) / (lRec.distance * lRec.distance);
-                        auto probA2 = probA * probA;
-                        auto probD2 = probD * probD;
-                        auto weight = probA2 / (probA2 + probD2);
-
+                        auto weight = probA / (probA + probD);
+                        //printf("Phong=invPdf=%lf\n", lRec.invPdf);
                         if (!TraceOccluded(params.gasHandle, position, lRec.direction, 0.0001f, lRec.distance - 0.0001f)) {
                             auto e = lRec.emission;
                             auto b = diffuse * static_cast<float>(RTLIB_M_INV_PI) + specular * getValPhongPDF(lRec.direction, reflDir, shinness);
