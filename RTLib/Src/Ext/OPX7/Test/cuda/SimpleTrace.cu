@@ -269,7 +269,7 @@ extern "C" __global__ void __closesthit__radiance() {
 
     do{
         if (hgData->type == HIT_GROUP_TYPE_NEE_LIGHT) {
-            if (!(prevHitFlags & HIT_RECORD_FLAG_COUNT_EMITTED)) {
+            if ((prevHitFlags & HIT_RECORD_FLAG_PHONG_MATERIAL)) {
                 auto probD  = hrec->userData.bsdfPdf;
                 auto probD2 = probD * probD;
                 auto p0     = hgData->vertices[hgData->indices[primitiveId].x];
@@ -368,6 +368,7 @@ extern "C" __global__ void __closesthit__radiance() {
             else {
                 currHitFlags |= HIT_RECORD_FLAG_COUNT_EMITTED;
             }
+            currHitFlags |= HIT_RECORD_FLAG_PHONG_MATERIAL;
             break;
         }
         if (hgData->type == HIT_GROUP_TYPE_GLASS) {
@@ -576,6 +577,7 @@ extern "C" __global__ void __closesthit__radiance_sphere() {
             else {
                 currHitFlags |= HIT_RECORD_FLAG_COUNT_EMITTED;
             }
+            currHitFlags |= HIT_RECORD_FLAG_PHONG_MATERIAL;
             break;
         }
         if (hgData->type == HIT_GROUP_TYPE_GLASS) {
@@ -641,7 +643,7 @@ extern "C" __global__ void __closesthit__radiance_sphere() {
         }
     } while (0);
 
-    radiance += prevThroughput * emission * static_cast<float>(RTLib::Ext::CUDA::Math::dot(inDir, fNormal) < 0.0f) * static_cast<float>(countEmitted);
+    radiance += prevThroughput * emission * static_cast<float>(RTLib::Ext::CUDA::Math::dot(inDir, fNormal) < 0.0f);
 
     if (emission.x + emission.y + emission.z > 0.0f) {
         currHitFlags |= HIT_RECORD_FLAG_FINISH;
