@@ -48,6 +48,7 @@ namespace RTLib
                     virtual void Hide() noexcept override;
 
                     virtual void SwapBuffers() noexcept override;
+                    virtual void SetCurrent() noexcept override;
                     virtual auto GetHandle()const noexcept -> void* override;
                 private:
                     auto Internal_GetKeyboard()const noexcept -> RTLib::Inputs::Keyboard*;

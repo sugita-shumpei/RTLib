@@ -20,4 +20,4 @@ ${CMAKE_CURRENT_SOURCE_DIR}/Src/OGL4Program.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/Src/OGL4ProgramPipeline.cpp
 )
 target_include_directories(RTLib-Backends-OGL4-Lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Include)
-target_link_libraries(RTLib-Backends-OGL4-Lib PRIVATE glad_gl_core_46)
+target_link_libraries(RTLib-Backends-OGL4-Lib PRIVATE glad_gl_core_46 RTLib-Window-Lib)

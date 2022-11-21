@@ -90,6 +90,8 @@ namespace RTLib
             virtual void Hide() noexcept = 0;
 
             virtual void SwapBuffers() noexcept = 0;
+            virtual void SetCurrent() noexcept = 0;
+
             virtual auto GetHandle()const noexcept -> void* = 0;
 
             void SetPositionCallback(PositionCallback callback) noexcept{

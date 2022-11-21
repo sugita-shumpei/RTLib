@@ -348,3 +348,7 @@ auto RTLib::Backends::Glfw::Window::Window::Internal_GetKeyboard()const noexcept
 {
     return m_Impl->keyboards.get();
 }
+
+void RTLib::Backends::Glfw::Window::Window::SetCurrent() noexcept {
+    RTLib::Backends::Glfw::Entry::Handle().SetCurrentWindow(this);
+}
