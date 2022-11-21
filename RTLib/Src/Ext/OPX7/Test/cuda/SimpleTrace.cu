@@ -268,6 +268,7 @@ extern "C" __global__ void __closesthit__radiance() {
     }
 
     do{
+
         if (hgData->type == HIT_GROUP_TYPE_NEE_LIGHT) {
             if ((prevHitFlags & HIT_RECORD_FLAG_PHONG_MATERIAL)) {
                 auto probD  = hrec->userData.bsdfPdf;
@@ -277,7 +278,7 @@ extern "C" __global__ void __closesthit__radiance() {
                 auto invPdf = RTLib::Ext::CUDA::Math::length(RTLib::Ext::CUDA::Math::cross(p1 - p0, p2 - p0))*2 / 2.0f;
                 //printf("Light=invPdf=%lf\n", invPdf);
                 auto probAbs= 1.0f / invPdf;
-                auto probA  = probAbs * (distance * distance)/ fabsf(RTLib::Ext::CUDA::Math::dot(direction, vNormal));
+                auto probA  = probAbs * (distance * distance)/ fabsf(RTLib::Ext::CUDA::Math::dot(inDir, vNormal));
                 auto weight = probD / (probD + probA);
                 emission   *= weight;
             }
