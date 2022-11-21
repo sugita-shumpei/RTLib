@@ -80,7 +80,7 @@ extern "C" __global__ void     __raygen__default () {
         if (isnan(hrec.rayDirection.x)|| isnan(hrec.rayDirection.y)|| isnan(hrec.rayDirection.z)||
                 isnan(hrec.userData.throughPut.x) || isnan(hrec.userData.throughPut.y) || isnan(hrec.userData.throughPut.z)||
             isnan(hrec.userData.radiance.x) || isnan(hrec.userData.radiance.y) || isnan(hrec.userData.radiance.z)) {
-            /*printf("error\n");*/
+            //printf("error: Dir=(%lf, %lf, %lf) Thr=(%lf, %lf, %lf) Rad=(%lf, %lf, %lf)\n", hrec.rayDirection.x,hrec.rayDirection.y, hrec.rayDirection.z, hrec.userData.throughPut.x,hrec.userData.throughPut.y,hrec.userData.throughPut.z,hrec.userData.radiance.x,hrec.userData.radiance.y,hrec.userData.radiance.z);
             break;
         }
         if ((hrec.flags & HIT_RECORD_FLAG_FINISH) || (hrec.userData.depth >= (params.maxDepth - 1))) {
@@ -269,18 +269,24 @@ extern "C" __global__ void __closesthit__radiance() {
 
     do{
 
-        if (hgData->type == HIT_GROUP_TYPE_NEE_LIGHT) {
-            if ((prevHitFlags & HIT_RECORD_FLAG_PHONG_MATERIAL)) {
-                auto probD  = hrec->userData.bsdfPdf;
-                auto p0     = hgData->vertices[hgData->indices[primitiveId].x];
-                auto p1     = hgData->vertices[hgData->indices[primitiveId].y];
-                auto p2     = hgData->vertices[hgData->indices[primitiveId].z];
-                auto invPdf = RTLib::Ext::CUDA::Math::length(RTLib::Ext::CUDA::Math::cross(p1 - p0, p2 - p0))*params.lights.count*hgData->indCount / 2.0f;
-                //printf("Light=invPdf=%lf\n", invPdf);
-                auto probAbs= 1.0f / invPdf;
-                auto probA  = probAbs * (distance * distance)/ fabsf(RTLib::Ext::CUDA::Math::dot(inDir, vNormal));
-                auto weight = probD / (probD + probA);
-                emission   *= weight;
+        if (params.flags & PARAM_FLAG_NEE) {
+            if (hgData->type == HIT_GROUP_TYPE_NEE_LIGHT) {
+                if ((prevHitFlags & HIT_RECORD_FLAG_PHONG_MATERIAL)) {
+                    auto probD = hrec->userData.bsdfPdf;
+                    auto p0 = hgData->vertices[hgData->indices[primitiveId].x];
+                    auto p1 = hgData->vertices[hgData->indices[primitiveId].y];
+                    auto p2 = hgData->vertices[hgData->indices[primitiveId].z];
+                    auto invPdf = RTLib::Ext::CUDA::Math::length(RTLib::Ext::CUDA::Math::cross(p1 - p0, p2 - p0)) * params.lights.count * hgData->indCount / 2.0f;
+                    //printf("Light=invPdf=%lf\n", invPdf);
+                    auto probAbs = 1.0f / invPdf;
+                    auto probA = probAbs * (distance * distance) / fabsf(RTLib::Ext::CUDA::Math::dot(inDir, vNormal));
+                    auto weight = probD / (probD + probA);
+                    if (isnan(weight)) {
+                        printf("error3: %lf %lf\n", probD, probA);
+                    }
+                    emission *= weight;
+                    
+                }
             }
         }
         if (hgData->type == HIT_GROUP_TYPE_PHONG) {
@@ -293,16 +299,19 @@ extern "C" __global__ void __closesthit__radiance() {
             auto cosinePdf1  = RTLib::Ext::CUDA::Math::max(cosine1 * static_cast<float>(RTLIB_M_INV_PI), 0.0f);
             auto phongPdf0   = getValPhongPDF(direction0, reflDir, shinness);
             auto phongPdf1   = getValPhongPDF(direction1, reflDir, shinness);
-            auto aver_diff   = (diffuse.x + diffuse.y + diffuse.z) / 3.0f;
-            auto aver_spec   = (specular.x + specular.y + specular.z) / 3.0f;
+            //avoid zero divide
+            auto aver_diff   = 1e-10f+( diffuse.x +  diffuse.y +  diffuse.z) / 3.0f;
+            auto aver_spec   = 1e-10f+(specular.x + specular.y + specular.z) / 3.0f;
             auto select_prob = (aver_diff) / (aver_diff + aver_spec);
-
             if (RTLib::Ext::CUDA::Math::random_float1(xor32) < select_prob) {
                 auto reflCos = RTLib::Ext::CUDA::Math::dot(reflDir, direction0);
                 direction = direction0;
                 cosine = cosine0;
                 bsdfVal = diffuse * static_cast<float>(RTLIB_M_INV_PI) + specular * phongPdf0;
                 bsdfPdf = (select_prob * cosinePdf0 + (1.0f - select_prob) * phongPdf0);
+                /*if (isnan(bsdfPdf)) {
+                    printf("error4: %lf %lf %lf\n", select_prob, cosinePdf0, phongPdf0);
+                }*/
             }
             else {
                 auto reflCos = RTLib::Ext::CUDA::Math::dot(reflDir, direction1);
@@ -310,7 +319,13 @@ extern "C" __global__ void __closesthit__radiance() {
                 cosine = cosine1;
                 bsdfVal = diffuse * static_cast<float>(RTLIB_M_INV_PI) + specular * phongPdf1;
                 bsdfPdf = (select_prob * cosinePdf1 + (1.0f - select_prob) * phongPdf1);
+                //if (isnan(bsdfPdf)) {
+                //    printf("error4: %lf %lf %lf\n", select_prob, cosinePdf1, phongPdf1);
+                //}
             }
+            //if (isnan(bsdfPdf)) {
+            //    printf("error4: (%lf %lf %lf) (%lf %lf %lf)\n", diffuse.x, diffuse.y, diffuse.z, specular.x, specular.y, specular.z);
+            //}
             currThroughput = prevThroughput * ((bsdfPdf > 0.0f) ? (bsdfVal * RTLib::Ext::CUDA::Math::max(cosine, 0.0f) / bsdfPdf) : make_float3(0.0f));
 
             if (params.flags & PARAM_FLAG_NEE) {
@@ -347,6 +362,9 @@ extern "C" __global__ void __closesthit__radiance() {
                             }
                         }
                         radiance += prevThroughput * f_y * resv.w;
+                        //if (isnan(radiance.x)||isnan(radiance.y)||isnan(radiance.z)) {
+                        //    printf("error1\n");
+                        //}
                     }
                     else {
                         auto lRec = params.lights.Sample(position, xor32);
@@ -362,6 +380,9 @@ extern "C" __global__ void __closesthit__radiance() {
                             auto b = diffuse * static_cast<float>(RTLIB_M_INV_PI) + specular * getValPhongPDF(lRec.direction, reflDir, shinness);
                             auto g = RTLib::Ext::CUDA::Math::max(-cosineY, 0.0f) * fabsf(cosineX) / (lRec.distance * lRec.distance);
                             radiance += prevThroughput * b * e * g * lRec.invPdf * weight;
+                            //if (isnan(radiance.x) || isnan(radiance.y) || isnan(radiance.z)) {
+                            //    printf("error1\n");
+                            //}
                         }
                     }
                 }
@@ -436,6 +457,9 @@ extern "C" __global__ void __closesthit__radiance() {
     } while (0);
 
     radiance += prevThroughput * emission * static_cast<float>(RTLib::Ext::CUDA::Math::dot(inDir, fNormal) < 0.0f);
+    //if (isnan(radiance.x) || isnan(radiance.y) || isnan(radiance.z)) {
+    //    printf("error2: emission=(%lf %lf %lf), %d\n", emission.x,emission.y,emission.z, hgData->type==HIT_GROUP_TYPE_NEE_LIGHT);
+    //}
     if (emission.x + emission.y + emission.z > 0.0f) {
         currHitFlags |= HIT_RECORD_FLAG_FINISH;
     }
@@ -504,8 +528,9 @@ extern "C" __global__ void __closesthit__radiance_sphere() {
             auto cosinePdf1 = RTLib::Ext::CUDA::Math::max(cosine1 * static_cast<float>(RTLIB_M_INV_PI), 0.0f);
             auto phongPdf0 = getValPhongPDF(direction0, reflDir, shinness);
             auto phongPdf1 = getValPhongPDF(direction1, reflDir, shinness);
-            auto aver_diff = (diffuse.x + diffuse.y + diffuse.z) / 3.0f;
-            auto aver_spec = (specular.x + specular.y + specular.z) / 3.0f;
+            //avoid zero divide
+            auto aver_diff = 1e-10f + (diffuse.x + diffuse.y + diffuse.z) / 3.0f;
+            auto aver_spec = 1e-10f + (specular.x + specular.y + specular.z) / 3.0f;
             auto select_prob = (aver_diff) / (aver_diff + aver_spec);
 
             if (RTLib::Ext::CUDA::Math::random_float1(xor32) < select_prob) {
@@ -536,10 +561,14 @@ extern "C" __global__ void __closesthit__radiance_sphere() {
                             LightRecord lRec = params.lights.Sample(position, xor32);
                             auto  ndl = RTLib::Ext::CUDA::Math::dot(lRec.direction, fNormal);
                             auto lndl = -RTLib::Ext::CUDA::Math::dot(lRec.direction, lRec.normal);
+                            auto probA = 1.0f / lRec.invPdf;
+                            auto probDbs = select_prob * RTLib::Ext::CUDA::Math::max(ndl * static_cast<float>(RTLIB_M_INV_PI), 0.0f) + (1.0f - select_prob) * getValPhongPDF(lRec.direction, reflDir, shinness);
+                            auto probD = probDbs * fabsf(lndl) / (lRec.distance * lRec.distance);
+                            auto weight = probA / (probA + probD);
                             auto  e = lRec.emission;
                             auto  b = diffuse * static_cast<float>(RTLIB_M_INV_PI) + specular * getValPhongPDF(lRec.direction, reflDir, shinness);
                             auto  g = RTLib::Ext::CUDA::Math::max(ndl, 0.0f) * RTLib::Ext::CUDA::Math::max(lndl, 0.0f) / (lRec.distance * lRec.distance);
-                            auto  f = b * e * g;
+                            auto  f = b * e * g * weight;
                             auto  f_a = RTLib::Ext::CUDA::Math::to_average_rgb(f);
                             if (resv.Update(lRec, f_a * lRec.invPdf, RTLib::Ext::CUDA::Math::random_float1(xor32))) {
                                 f_y = f;
