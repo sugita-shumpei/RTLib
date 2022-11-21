@@ -278,8 +278,8 @@ extern "C" __global__ void __closesthit__radiance() {
             auto cosinePdf1  = RTLib::Ext::CUDA::Math::max(cosine1 * static_cast<float>(RTLIB_M_INV_PI), 0.0f);
             auto phongPdf0   = getValPhongPDF(direction0, reflDir, shinness);
             auto phongPdf1   = getValPhongPDF(direction1, reflDir, shinness);
-            auto aver_diff   = (diffuse.x + diffuse.y + diffuse.z) / 3.0f;
-            auto aver_spec   = (specular.x + specular.y + specular.z) / 3.0f;
+            auto aver_diff   = 1.0e-10f+(diffuse.x + diffuse.y + diffuse.z) / 3.0f;
+            auto aver_spec   = 1.0e-10f+(specular.x + specular.y + specular.z) / 3.0f;
             auto select_prob = (aver_diff) / (aver_diff + aver_spec);
 
             if (RTLib::Ext::CUDA::Math::random_float1(xor32) < select_prob) {
@@ -477,8 +477,8 @@ extern "C" __global__ void __closesthit__radiance_sphere() {
             auto cosinePdf1 = RTLib::Ext::CUDA::Math::max(cosine1 * static_cast<float>(RTLIB_M_INV_PI), 0.0f);
             auto phongPdf0 = getValPhongPDF(direction0, reflDir, shinness);
             auto phongPdf1 = getValPhongPDF(direction1, reflDir, shinness);
-            auto aver_diff = (diffuse.x + diffuse.y + diffuse.z) / 3.0f;
-            auto aver_spec = (specular.x + specular.y + specular.z) / 3.0f;
+            auto aver_diff = 1.0e-10f + (diffuse.x + diffuse.y + diffuse.z) / 3.0f;
+            auto aver_spec = 1.0e-10f + (specular.x + specular.y + specular.z) / 3.0f;
             auto select_prob = (aver_diff) / (aver_diff + aver_spec);
 
             if (RTLib::Ext::CUDA::Math::random_float1(xor32) < select_prob) {
