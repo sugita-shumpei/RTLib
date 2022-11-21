@@ -681,6 +681,7 @@ namespace rtlib
 
             auto BuildGeometryASs(RTLib::Ext::OPX7::OPX7Context* opx7Context, const OptixAccelBuildOptions& accelBuildOptions)const noexcept -> std::unordered_map<std::string, GeometryAccelerationStructureData>
             {
+                //Geometry Acceleration Structure Map
                 std::unordered_map<std::string, GeometryAccelerationStructureData> geometryASs = {};
                 for (auto& [geometryASName,geometryASData] : world.geometryASs)
                 {
@@ -689,16 +690,22 @@ namespace rtlib
                     auto holders = std::vector<std::unique_ptr<RTLib::Ext::OPX7::OPX7Geometry::Holder>>();
                     for (auto& geometryName : geometryASData.geometries)
                     {
+                        //If Geometry Is ObjModel
                         if (world.geometryObjModels.count(geometryName) > 0) {
+                            //Get ObjModel From ObjAssetManager
                             auto& geometryObjModel = world.geometryObjModels.at(geometryName);
                             auto& objAsset = objAssetManager.GetAsset(geometryObjModel.base);
+                            //For Each Mesh In ObjModel
                             for (auto& [meshName, meshData] : geometryObjModel.meshes)
                             {
                                 auto geometry = RTLib::Ext::OPX7::OPX7GeometryTriangle();
                                 {
+                                    //Load Mesh
                                     auto mesh = objAsset.meshGroup->LoadMesh(meshData.base);
+                                    //Update AABB
                                     aabb.Update(mesh->GetUniqueResource()->variables.GetFloat3("aabb.min"));
                                     aabb.Update(mesh->GetUniqueResource()->variables.GetFloat3("aabb.max"));
+                                    //Init Goemetry
                                     auto extSharedData = static_cast<rtlib::test::OPX7MeshSharedResourceExtData*>(mesh->GetSharedResource()->extData.get());
                                     auto extUniqueData = static_cast<rtlib::test::OPX7MeshUniqueResourceExtData*>(mesh->GetUniqueResource()->extData.get());
                                     geometry.SetVertexView({ extSharedData->GetVertexBufferView(),(unsigned int)extSharedData->GetVertexStrideInBytes(),RTLib::Ext::OPX7::OPX7VertexFormat::eFloat32x3 });
@@ -713,9 +720,11 @@ namespace rtlib
                                 holders.push_back(std::move(holder));
                             }
                         }
+                        //If Geometry Is Sphere
                         if (world.geometrySpheres.count(geometryName) > 0) {
                             auto  geometry = RTLib::Ext::OPX7::OPX7GeometrySphere();
                             {
+                                //Load Sphere Resource
                                 auto& sphereResource = sphereResources.at(geometryName);
                                 auto sphereResourceExtData = sphereResource->GetExtData<rtlib::test::OPX7SphereResourceExtData>();
                                 aabb.Update(sphereResource->variables.GetFloat3("aabb.min"));
@@ -731,6 +740,7 @@ namespace rtlib
                             holders.push_back(std::move(holder));
                         }
                     }
+                    //Build Acceleration Structure
                     auto&& [buffer, handle] = RTLib::Ext::OPX7::OPX7Natives::BuildAccelerationStructure(opx7Context, accelBuildOptions, buildInputs);
                     geometryASs[geometryASName].buffer  = std::move(buffer);
                     geometryASs[geometryASName].handle  = handle;

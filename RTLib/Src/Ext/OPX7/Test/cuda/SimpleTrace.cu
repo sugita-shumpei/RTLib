@@ -323,13 +323,17 @@ extern "C" __global__ void __closesthit__radiance() {
                         auto dist_y = float(0.0f);
                         for (int i = 0; i < params.numCandidates; ++i) {
                             LightRecord lRec = params.lights.Sample(position, xor32);
-                            auto  ndl   =  RTLib::Ext::CUDA::Math::dot(lRec.direction, fNormal    );
-                            auto lndl   = -RTLib::Ext::CUDA::Math::dot(lRec.direction, lRec.normal);
-                            auto  e    = lRec.emission;
-                            auto  b    = diffuse * static_cast<float>(RTLIB_M_INV_PI) + specular * getValPhongPDF(lRec.direction, reflDir, shinness);
-                            auto  g     = RTLib::Ext::CUDA::Math::max(ndl, 0.0f) * RTLib::Ext::CUDA::Math::max(lndl, 0.0f) / (lRec.distance * lRec.distance);
-                            auto  f    = b * e * g;
-                            auto  f_a   = RTLib::Ext::CUDA::Math::to_average_rgb(f);
+                            auto  ndl    =  RTLib::Ext::CUDA::Math::dot(lRec.direction, fNormal    );
+                            auto lndl    = -RTLib::Ext::CUDA::Math::dot(lRec.direction, lRec.normal);
+                            auto probA   = 1.0f / lRec.invPdf;
+                            auto probDbs = select_prob * RTLib::Ext::CUDA::Math::max(ndl * static_cast<float>(RTLIB_M_INV_PI), 0.0f) + (1.0f - select_prob) * getValPhongPDF(lRec.direction, reflDir, shinness);
+                            auto probD   = probDbs * fabsf(lndl) / (lRec.distance * lRec.distance);
+                            auto weight  = probA / (probA + probD);
+                            auto  e      = lRec.emission;
+                            auto  b      = diffuse * static_cast<float>(RTLIB_M_INV_PI) + specular * getValPhongPDF(lRec.direction, reflDir, shinness);
+                            auto  g      = RTLib::Ext::CUDA::Math::max(ndl, 0.0f) * RTLib::Ext::CUDA::Math::max(lndl, 0.0f) / (lRec.distance * lRec.distance);
+                            auto  f      = b * e * g * weight;
+                            auto  f_a    = RTLib::Ext::CUDA::Math::to_average_rgb(f);
                             if (resv.Update(lRec, f_a * lRec.invPdf, RTLib::Ext::CUDA::Math::random_float1(xor32))) {
                                 f_y    = f;
                                 f_a_y  = f_a;
