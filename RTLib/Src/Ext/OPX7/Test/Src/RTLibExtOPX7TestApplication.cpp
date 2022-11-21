@@ -465,6 +465,7 @@ void RTLibExtOPX7TestApplication::InitDefTracer()
                                 hitgroupData.type = rtlib::test::SpecifyMaterialType(material,mesh);
                                 hitgroupData.vertices = reinterpret_cast<float3*>(extSharedData->GetVertexBufferGpuAddress());
                                 hitgroupData.indices = reinterpret_cast<uint3*>(extUniqueData->GetTriIdxBufferGpuAddress());
+                                hitgroupData.indCount = extUniqueData->GetTriIdxCount();
                                 hitgroupData.normals = reinterpret_cast<float3*>(extSharedData->GetNormalBufferGpuAddress());
                                 hitgroupData.texCrds = reinterpret_cast<float2*>(extSharedData->GetTexCrdBufferGpuAddress());
                                 hitgroupData.diffuse = material.GetFloat3As<float3>("diffCol");
@@ -628,6 +629,7 @@ void RTLibExtOPX7TestApplication::InitNeeTracer()
                                 hitgroupData.type = rtlib::test::SpecifyMaterialType(material,mesh);
                                 hitgroupData.vertices = reinterpret_cast<float3*>(extSharedData->GetVertexBufferGpuAddress());
                                 hitgroupData.indices = reinterpret_cast<uint3*>(extUniqueData->GetTriIdxBufferGpuAddress());
+                                hitgroupData.indCount = extUniqueData->GetTriIdxCount();
                                 hitgroupData.normals = reinterpret_cast<float3*>(extSharedData->GetNormalBufferGpuAddress());
                                 hitgroupData.texCrds = reinterpret_cast<float2*>(extSharedData->GetTexCrdBufferGpuAddress());
                                 hitgroupData.diffuse = material.GetFloat3As<float3>("diffCol");
@@ -790,6 +792,7 @@ void RTLibExtOPX7TestApplication::InitRisTracer()
                                 hitgroupData.type = rtlib::test::SpecifyMaterialType(material,mesh);
                                 hitgroupData.vertices = reinterpret_cast<float3*>(extSharedData->GetVertexBufferGpuAddress());
                                 hitgroupData.indices = reinterpret_cast<uint3*>(extUniqueData->GetTriIdxBufferGpuAddress());
+                                hitgroupData.indCount = extUniqueData->GetTriIdxCount();
                                 hitgroupData.normals = reinterpret_cast<float3*>(extSharedData->GetNormalBufferGpuAddress());
                                 hitgroupData.texCrds = reinterpret_cast<float2*>(extSharedData->GetTexCrdBufferGpuAddress());
                                 hitgroupData.diffuse = material.GetFloat3As<float3>("diffCol");
@@ -947,6 +950,7 @@ void RTLibExtOPX7TestApplication::InitDbgTracer() {
                                 hitgroupData.type = rtlib::test::SpecifyMaterialType(material,mesh);
                                 hitgroupData.vertices = reinterpret_cast<float3*>(extSharedData->GetVertexBufferGpuAddress());
                                 hitgroupData.indices = reinterpret_cast<uint3*>(extUniqueData->GetTriIdxBufferGpuAddress());
+                                hitgroupData.indCount = extUniqueData->GetTriIdxCount();
                                 hitgroupData.normals = reinterpret_cast<float3*>(extSharedData->GetNormalBufferGpuAddress());
                                 hitgroupData.texCrds = reinterpret_cast<float2*>(extSharedData->GetTexCrdBufferGpuAddress());
                                 hitgroupData.diffuse = material.GetFloat3As<float3>("diffCol");
@@ -1198,6 +1202,7 @@ void RTLibExtOPX7TestApplication::InitSdTreeDefTracer()
                                     hitgroupData.type = rtlib::test::SpecifyMaterialType(material,mesh);
                                     hitgroupData.vertices = reinterpret_cast<float3*>(extSharedData->GetVertexBufferGpuAddress());
                                     hitgroupData.indices = reinterpret_cast<uint3*>(extUniqueData->GetTriIdxBufferGpuAddress());
+                                    hitgroupData.indCount = extUniqueData->GetTriIdxCount();
                                     hitgroupData.normals = reinterpret_cast<float3*>(extSharedData->GetNormalBufferGpuAddress());
                                     hitgroupData.texCrds = reinterpret_cast<float2*>(extSharedData->GetTexCrdBufferGpuAddress());
                                     hitgroupData.diffuse = material.GetFloat3As<float3>("diffCol");
@@ -1455,6 +1460,7 @@ void RTLibExtOPX7TestApplication::InitSdTreeNeeTracer()
                                     hitgroupData.type = rtlib::test::SpecifyMaterialType(material,mesh);
                                     hitgroupData.vertices = reinterpret_cast<float3*>(extSharedData->GetVertexBufferGpuAddress());
                                     hitgroupData.indices = reinterpret_cast<uint3*>(extUniqueData->GetTriIdxBufferGpuAddress());
+                                    hitgroupData.indCount = extUniqueData->GetTriIdxCount();
                                     hitgroupData.normals = reinterpret_cast<float3*>(extSharedData->GetNormalBufferGpuAddress());
                                     hitgroupData.texCrds = reinterpret_cast<float2*>(extSharedData->GetTexCrdBufferGpuAddress());
                                     hitgroupData.diffuse = material.GetFloat3As<float3>("diffCol");
@@ -1712,6 +1718,7 @@ void RTLibExtOPX7TestApplication::InitSdTreeRisTracer()
                                     hitgroupData.type = rtlib::test::SpecifyMaterialType(material,mesh);
                                     hitgroupData.vertices = reinterpret_cast<float3*>(extSharedData->GetVertexBufferGpuAddress());
                                     hitgroupData.indices = reinterpret_cast<uint3*>(extUniqueData->GetTriIdxBufferGpuAddress());
+                                    hitgroupData.indCount = extUniqueData->GetTriIdxCount();
                                     hitgroupData.normals = reinterpret_cast<float3*>(extSharedData->GetNormalBufferGpuAddress());
                                     hitgroupData.texCrds = reinterpret_cast<float2*>(extSharedData->GetTexCrdBufferGpuAddress());
                                     hitgroupData.diffuse = material.GetFloat3As<float3>("diffCol");
@@ -2008,6 +2015,7 @@ void RTLibExtOPX7TestApplication::InitHashTreeDefTracer()
                                     hitgroupData.type = rtlib::test::SpecifyMaterialType(material,mesh);
                                     hitgroupData.vertices = reinterpret_cast<float3*>(extSharedData->GetVertexBufferGpuAddress());
                                     hitgroupData.indices = reinterpret_cast<uint3*>(extUniqueData->GetTriIdxBufferGpuAddress());
+                                    hitgroupData.indCount = extUniqueData->GetTriIdxCount();
                                     hitgroupData.normals = reinterpret_cast<float3*>(extSharedData->GetNormalBufferGpuAddress());
                                     hitgroupData.texCrds = reinterpret_cast<float2*>(extSharedData->GetTexCrdBufferGpuAddress());
                                     hitgroupData.diffuse = material.GetFloat3As<float3>("diffCol");
@@ -2305,6 +2313,7 @@ void RTLibExtOPX7TestApplication::InitHashTreeNeeTracer()
                                     hitgroupData.type = rtlib::test::SpecifyMaterialType(material,mesh);
                                     hitgroupData.vertices = reinterpret_cast<float3*>(extSharedData->GetVertexBufferGpuAddress());
                                     hitgroupData.indices = reinterpret_cast<uint3*>(extUniqueData->GetTriIdxBufferGpuAddress());
+                                    hitgroupData.indCount = extUniqueData->GetTriIdxCount();
                                     hitgroupData.normals = reinterpret_cast<float3*>(extSharedData->GetNormalBufferGpuAddress());
                                     hitgroupData.texCrds = reinterpret_cast<float2*>(extSharedData->GetTexCrdBufferGpuAddress());
                                     hitgroupData.diffuse = material.GetFloat3As<float3>("diffCol");
@@ -2605,6 +2614,7 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
                                     hitgroupData.type = rtlib::test::SpecifyMaterialType(material,mesh);
                                     hitgroupData.vertices = reinterpret_cast<float3*>(extSharedData->GetVertexBufferGpuAddress());
                                     hitgroupData.indices = reinterpret_cast<uint3*>(extUniqueData->GetTriIdxBufferGpuAddress());
+                                    hitgroupData.indCount = extUniqueData->GetTriIdxCount();
                                     hitgroupData.normals = reinterpret_cast<float3*>(extSharedData->GetNormalBufferGpuAddress());
                                     hitgroupData.texCrds = reinterpret_cast<float2*>(extSharedData->GetTexCrdBufferGpuAddress());
                                     hitgroupData.diffuse = material.GetFloat3As<float3>("diffCol");

@@ -275,7 +275,7 @@ extern "C" __global__ void __closesthit__radiance() {
                 auto p0     = hgData->vertices[hgData->indices[primitiveId].x];
                 auto p1     = hgData->vertices[hgData->indices[primitiveId].y];
                 auto p2     = hgData->vertices[hgData->indices[primitiveId].z];
-                auto invPdf = RTLib::Ext::CUDA::Math::length(RTLib::Ext::CUDA::Math::cross(p1 - p0, p2 - p0))*2 / 2.0f;
+                auto invPdf = RTLib::Ext::CUDA::Math::length(RTLib::Ext::CUDA::Math::cross(p1 - p0, p2 - p0))*params.lights.count*hgData->indCount / 2.0f;
                 //printf("Light=invPdf=%lf\n", invPdf);
                 auto probAbs= 1.0f / invPdf;
                 auto probA  = probAbs * (distance * distance)/ fabsf(RTLib::Ext::CUDA::Math::dot(inDir, vNormal));

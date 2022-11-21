@@ -215,10 +215,11 @@ struct HitgroupData {
     float3              diffuse;
     float3              specular;
     float3              emission;
-    float3* vertices;
-    float3* normals;
-    float2* texCrds;
-    uint3* indices;
+    float3*             vertices;
+    float3*             normals;
+    float2*             texCrds;
+    uint3*              indices;
+    unsigned int        indCount;
     cudaTextureObject_t diffuseTex;
     cudaTextureObject_t specularTex;
     cudaTextureObject_t emissionTex;
