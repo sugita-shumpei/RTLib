@@ -36,14 +36,14 @@ static __forceinline__ __device__ float3       samplePhongPDF(const float3& refl
     RTLib::Ext::CUDA::Math::ONB onb(reflectDir);
     const auto cosTht = powf(RTLib::Ext::CUDA::Math::random_float1(0.0f, 1.0f, rng), 1.0f / (shinness + 1.0f));
     const auto sinTht = sqrtf(1.0f - cosTht * cosTht);
-    const auto phi = RTLib::Ext::CUDA::Math::random_float1(0.0f, RTLIB_M_2PI, rng);
+    const auto phi = RTLib::Ext::CUDA::Math::random_float1(0.0f, static_cast<float>(RTLIB_M_2PI), rng);
     return onb.local(make_float3(sinTht * cosf(phi), sinTht * sinf(phi), cosTht));
 }
 static __forceinline__ __device__ float        getValPhongPDF(const float3& direction, const float3& reflectDir, float shinness)
 {
 
     const auto reflCos = RTLib::Ext::CUDA::Math::max(RTLib::Ext::CUDA::Math::dot(reflectDir, direction), 0.0f);
-    return (shinness + 2.0f) * powf(reflCos, shinness) / RTLIB_M_2PI;
+    return (shinness + 2.0f) * powf(reflCos, shinness) * static_cast<float>(RTLIB_M_INV_2PI);
 }
 extern "C" __global__ void     __raygen__default() {
     const uint3 idx = optixGetLaunchIndex();
@@ -330,8 +330,8 @@ extern "C" __global__ void     __closesthit__radiance() {
             auto direction1 = samplePhongPDF(reflDir, shinness, xor32);
             auto cosine0     = RTLib::Ext::CUDA::Math::dot(direction0, fNormal);
             auto cosine1     = RTLib::Ext::CUDA::Math::dot(direction1, fNormal);
-            auto cosinePdf0  = RTLib::Ext::CUDA::Math::max(cosine0 * RTLIB_M_INV_PI, 0.0f);
-            auto cosinePdf1  = RTLib::Ext::CUDA::Math::max(cosine1 * RTLIB_M_INV_PI, 0.0f);
+            auto cosinePdf0  = RTLib::Ext::CUDA::Math::max(cosine0 * static_cast<float>(RTLIB_M_INV_PI), 0.0f);
+            auto cosinePdf1  = RTLib::Ext::CUDA::Math::max(cosine1 * static_cast<float>(RTLIB_M_INV_PI), 0.0f);
             auto phongPdf0   = getValPhongPDF(direction0, reflDir, shinness);
             auto phongPdf1   = getValPhongPDF(direction1, reflDir, shinness);
             auto aver_diff   = (diffuse.x + diffuse.y + diffuse.z) / 3.0f;
@@ -341,31 +341,31 @@ extern "C" __global__ void     __closesthit__radiance() {
             if (RTLib::Ext::CUDA::Math::random_float1(xor32) < select_prob) {
                 direction = direction0;
                 cosine = cosine0;
-                bsdfVal = diffuse * RTLIB_M_INV_PI + specular * phongPdf0;
+                bsdfVal = diffuse * static_cast<float>(RTLIB_M_INV_PI) + specular * phongPdf0;
                 bsdfPdf = (select_prob * cosinePdf0 + (1.0f - select_prob) * phongPdf0);
             }
             else {
                 direction = direction1;
                 cosine = cosine1;
-                bsdfVal = diffuse * RTLIB_M_INV_PI + specular * phongPdf1;
+                bsdfVal = diffuse * static_cast<float>(RTLIB_M_INV_PI) + specular * phongPdf1;
                 bsdfPdf = (select_prob * cosinePdf1 + (1.0f - select_prob) * phongPdf1);
             }
             if (((params.flags & PARAM_FLAG_USE_GRID) == PARAM_FLAG_USE_GRID) && ((params.flags & PARAM_FLAG_BUILD) == PARAM_FLAG_BUILD) && (prvGridIndex != UINT32_MAX)) {
                 if (RTLib::Ext::CUDA::Math::random_float1(xor32) < params.mortonTree.fraction) {
                     direction = RTLib::Ext::CUDA::Math::normalize(params.mortonTree.SampleAndPdf(prvGridIndex, dTreePdf, xor32));
-                    //if (dTreePdf != 0.25f * RTLIB_M_INV_PI)
+                    //if (dTreePdf != 0.25f * static_cast<float>(RTLIB_M_INV_PI))
                     //{
                     //    printf("1 (direction,pdf)=((%lf, %lf, %lf), %lf)\n", direction.x, direction.y, direction.z, dTreePdf);
                     //}
                     cosine = RTLib::Ext::CUDA::Math::dot(direction, fNormal);
-                    auto cosinePdf2 = RTLib::Ext::CUDA::Math::max(cosine * RTLIB_M_INV_PI, 0.0f);
+                    auto cosinePdf2 = RTLib::Ext::CUDA::Math::max(cosine * static_cast<float>(RTLIB_M_INV_PI), 0.0f);
                     auto phongPdf2 = getValPhongPDF(direction, reflDir, shinness);
-                    bsdfVal = diffuse * RTLIB_M_INV_PI + specular * phongPdf2;
+                    bsdfVal = diffuse * static_cast<float>(RTLIB_M_INV_PI) + specular * phongPdf2;
                     bsdfPdf = (select_prob * cosinePdf2 + (1.0f - select_prob) * phongPdf2);
                 }
                 else {
                     dTreePdf = RTLib::Ext::CUDA::Math::max(params.mortonTree.Pdf(prvGridIndex, direction), 0.0f);
-                    //if (dTreePdf != 0.25f * RTLIB_M_INV_PI)
+                    //if (dTreePdf != 0.25f * static_cast<float>(RTLIB_M_INV_PI))
                     //{
                     //    printf("2 (direction,pdf)=((%lf, %lf, %lf), %lf)\n", direction.x, direction.y, direction.z, dTreePdf);
                     //}
@@ -394,7 +394,7 @@ extern "C" __global__ void     __closesthit__radiance() {
                             auto  ndl = RTLib::Ext::CUDA::Math::dot(lRec.direction, fNormal);
                             auto lndl = -RTLib::Ext::CUDA::Math::dot(lRec.direction, lRec.normal);
                             auto  e = lRec.emission;
-                            auto  b = diffuse * RTLIB_M_INV_PI + specular * getValPhongPDF(lRec.direction, reflDir, shinness);
+                            auto  b = diffuse * static_cast<float>(RTLIB_M_INV_PI) + specular * getValPhongPDF(lRec.direction, reflDir, shinness);
                             auto  g = RTLib::Ext::CUDA::Math::max(ndl, 0.0f) * RTLib::Ext::CUDA::Math::max(lndl, 0.0f) / (lRec.distance * lRec.distance);
                             auto  f = b * e * g;
                             auto  f_a = RTLib::Ext::CUDA::Math::to_average_rgb(f);
@@ -416,7 +416,7 @@ extern "C" __global__ void     __closesthit__radiance() {
                         auto lRec = params.lights.Sample(position, xor32);
                         if (!TraceOccluded(params.gasHandle, position, lRec.direction, 0.0001f, lRec.distance - 0.0001f)) {
                             auto e = lRec.emission;
-                            auto b = diffuse * RTLIB_M_INV_PI + specular * getValPhongPDF(lRec.direction, reflDir, shinness);
+                            auto b = diffuse * static_cast<float>(RTLIB_M_INV_PI) + specular * getValPhongPDF(lRec.direction, reflDir, shinness);
                             auto g = RTLib::Ext::CUDA::Math::max(-RTLib::Ext::CUDA::Math::dot(lRec.direction, lRec.normal), 0.0f) * fabsf(RTLib::Ext::CUDA::Math::dot(lRec.direction, fNormal)) / (lRec.distance * lRec.distance);
                             radiance += prevThroughput * b * e * g * lRec.invPdf;
                         }
@@ -568,8 +568,8 @@ extern "C" __global__ void     __closesthit__radiance_sphere() {
             auto direction1 = samplePhongPDF(reflDir, shinness, xor32);
             auto cosine0 = RTLib::Ext::CUDA::Math::dot(direction0, fNormal);
             auto cosine1 = RTLib::Ext::CUDA::Math::dot(direction1, fNormal);
-            auto cosinePdf0 = RTLib::Ext::CUDA::Math::max(cosine0 * RTLIB_M_INV_PI, 0.0f);
-            auto cosinePdf1 = RTLib::Ext::CUDA::Math::max(cosine1 * RTLIB_M_INV_PI, 0.0f);
+            auto cosinePdf0 = RTLib::Ext::CUDA::Math::max(cosine0 * static_cast<float>(RTLIB_M_INV_PI), 0.0f);
+            auto cosinePdf1 = RTLib::Ext::CUDA::Math::max(cosine1 * static_cast<float>(RTLIB_M_INV_PI), 0.0f);
             auto phongPdf0 = getValPhongPDF(direction0, reflDir, shinness);
             auto phongPdf1 = getValPhongPDF(direction1, reflDir, shinness);
             auto aver_diff = (diffuse.x + diffuse.y + diffuse.z) / 3.0f;
@@ -579,31 +579,31 @@ extern "C" __global__ void     __closesthit__radiance_sphere() {
             if (RTLib::Ext::CUDA::Math::random_float1(xor32) < select_prob) {
                 direction = direction0;
                 cosine = cosine0;
-                bsdfVal = diffuse * RTLIB_M_INV_PI + specular * phongPdf0;
+                bsdfVal = diffuse * static_cast<float>(RTLIB_M_INV_PI) + specular * phongPdf0;
                 bsdfPdf = (select_prob * cosinePdf0 + (1.0f - select_prob) * phongPdf0);
             }
             else {
                 direction = direction1;
                 cosine = cosine1;
-                bsdfVal = diffuse * RTLIB_M_INV_PI + specular * phongPdf1;
+                bsdfVal = diffuse * static_cast<float>(RTLIB_M_INV_PI) + specular * phongPdf1;
                 bsdfPdf = (select_prob * cosinePdf1 + (1.0f - select_prob) * phongPdf1);
             }
             if (((params.flags & PARAM_FLAG_USE_GRID) == PARAM_FLAG_USE_GRID) && ((params.flags & PARAM_FLAG_BUILD) == PARAM_FLAG_BUILD) && (prvGridIndex != UINT32_MAX)) {
                 if (RTLib::Ext::CUDA::Math::random_float1(xor32) < params.mortonTree.fraction) {
                     direction = RTLib::Ext::CUDA::Math::normalize(params.mortonTree.SampleAndPdf(prvGridIndex, dTreePdf, xor32));
-                    //if (dTreePdf != 0.25f * RTLIB_M_INV_PI)
+                    //if (dTreePdf != 0.25f * static_cast<float>(RTLIB_M_INV_PI))
                     //{
                     //    printf("1 (direction,pdf)=((%lf, %lf, %lf), %lf)\n", direction.x, direction.y, direction.z, dTreePdf);
                     //}
                     cosine = RTLib::Ext::CUDA::Math::dot(direction, fNormal);
-                    auto cosinePdf2 = RTLib::Ext::CUDA::Math::max(cosine * RTLIB_M_INV_PI, 0.0f);
+                    auto cosinePdf2 = RTLib::Ext::CUDA::Math::max(cosine * static_cast<float>(RTLIB_M_INV_PI), 0.0f);
                     auto phongPdf2 = getValPhongPDF(direction, reflDir, shinness);
-                    bsdfVal = diffuse * RTLIB_M_INV_PI + specular * phongPdf2;
+                    bsdfVal = diffuse * static_cast<float>(RTLIB_M_INV_PI) + specular * phongPdf2;
                     bsdfPdf = (select_prob * cosinePdf2 + (1.0f - select_prob) * phongPdf2);
                 }
                 else {
                     dTreePdf = RTLib::Ext::CUDA::Math::max(params.mortonTree.Pdf(prvGridIndex, direction), 0.0f);
-                    //if (dTreePdf != 0.25f * RTLIB_M_INV_PI)
+                    //if (dTreePdf != 0.25f * static_cast<float>(RTLIB_M_INV_PI))
                     //{
                     //    printf("2 (direction,pdf)=((%lf, %lf, %lf), %lf)\n", direction.x, direction.y, direction.z, dTreePdf);
                     //}
@@ -632,7 +632,7 @@ extern "C" __global__ void     __closesthit__radiance_sphere() {
                             auto  ndl = RTLib::Ext::CUDA::Math::dot(lRec.direction, fNormal);
                             auto lndl = -RTLib::Ext::CUDA::Math::dot(lRec.direction, lRec.normal);
                             auto  e = lRec.emission;
-                            auto  b = diffuse * RTLIB_M_INV_PI + specular * getValPhongPDF(lRec.direction, reflDir, shinness);
+                            auto  b = diffuse * static_cast<float>(RTLIB_M_INV_PI) + specular * getValPhongPDF(lRec.direction, reflDir, shinness);
                             auto  g = RTLib::Ext::CUDA::Math::max(ndl, 0.0f) * RTLib::Ext::CUDA::Math::max(lndl, 0.0f) / (lRec.distance * lRec.distance);
                             auto  f = b * e * g;
                             auto  f_a = RTLib::Ext::CUDA::Math::to_average_rgb(f);
@@ -654,7 +654,7 @@ extern "C" __global__ void     __closesthit__radiance_sphere() {
                         auto lRec = params.lights.Sample(position, xor32);
                         if (!TraceOccluded(params.gasHandle, position, lRec.direction, 0.0001f, lRec.distance - 0.0001f)) {
                             auto e = lRec.emission;
-                            auto b = diffuse * RTLIB_M_INV_PI + specular * getValPhongPDF(lRec.direction, reflDir, shinness);
+                            auto b = diffuse * static_cast<float>(RTLIB_M_INV_PI) + specular * getValPhongPDF(lRec.direction, reflDir, shinness);
                             auto g = RTLib::Ext::CUDA::Math::max(-RTLib::Ext::CUDA::Math::dot(lRec.direction, lRec.normal), 0.0f) * fabsf(RTLib::Ext::CUDA::Math::dot(lRec.direction, fNormal)) / (lRec.distance * lRec.distance);
                             radiance += prevThroughput * b * e * g * lRec.invPdf;
                         }

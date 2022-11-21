@@ -180,7 +180,7 @@ namespace RTLib
 						const DTreeNode* cur = this;
 						float2 result = make_float2(0.0f);
 						pdf_value = 1.0f;
-						double size = 1.0f;
+						float size = 1.0f;
 						for (;;) {
 							int   idx = 0;
 							float topLeft = cur->sums[0];
@@ -230,7 +230,7 @@ namespace RTLib
 					RTLIB_INLINE RTLIB_HOST_DEVICE auto Sample(RNG& rng, const DTreeNode* nodes)const noexcept -> float2 {
 						const DTreeNode* cur = this;
 						float2 result = make_float2(0.0f);
-						double size = 1.0f;
+						float size = 1.0f;
 						for (;;) {
 							int   idx = 0;
 							float topLeft = cur->sums[0];
@@ -446,7 +446,7 @@ namespace RTLib
 					}
 					RTLIB_INLINE RTLIB_HOST_DEVICE auto  GetMean()const noexcept -> float {
 						if (statisticalWeight <= 0.0f) { return 0.0f; }
-						const float factor = 1.0f / (4.0f * RTLIB_M_PI * statisticalWeight);
+						const float factor = static_cast<float>(RTLIB_M_INV_2PI)/ (2.0f * statisticalWeight);
 						return factor * sum;
 					}
 					RTLIB_INLINE RTLIB_DEVICE      void  AddStatisticalWeightAtomic(float val)noexcept {
@@ -470,7 +470,7 @@ namespace RTLib
 					template<typename RNG>
 					RTLIB_INLINE RTLIB_HOST_DEVICE auto SampleAndPdf(RNG& rng, float& pdf_value)const noexcept -> float2 {
 						if (GetMean() <= 0.0f) {
-							pdf_value = 1.0f / (4.0f * RTLIB_M_PI);
+							pdf_value = 1.0f * static_cast<float>(RTLIB_M_INV_2PI) / 2.0f;
 							return RTLib::Ext::CUDA::Math::random_float2(rng);
 						}
 						return RTLib::Ext::CUDA::Math::clamp(nodes[0].SampleAndPdf(rng, nodes, pdf_value), make_float2(0.0f), make_float2(1.0f));
@@ -484,9 +484,9 @@ namespace RTLib
 					}
 					RTLIB_INLINE RTLIB_HOST_DEVICE auto Pdf(float2 p)const noexcept -> float {
 						if (GetMean() <= 0.0f) {
-							return 1.0f / (4.0f * RTLIB_M_PI);
+							return 1.0f * static_cast<float>(RTLIB_M_INV_2PI) / 2.0f;
 						}
-						return nodes[0].Pdf(p, nodes) / (4.0f * RTLIB_M_PI);
+						return nodes[0].Pdf(p, nodes) * static_cast<float>(RTLIB_M_INV_2PI) / 2.0f;
 					}
 					RTLIB_INLINE RTLIB_HOST_DEVICE auto GetDepth(float2 p)const noexcept -> int {
 						return nodes[0].GetDepth(p, nodes);
@@ -978,7 +978,7 @@ namespace RTLib
 					}
 					auto GetMean()const noexcept -> float {
 						if (m_StatisticalWeight * m_Area <= 0.0f) { return 0.0f; }
-						const float factor = 1.0f / (4.0f * RTLIB_M_PI * m_Area * m_StatisticalWeight);
+						const float factor = 1.0f / (4.0f * static_cast<float>(RTLIB_M_PI) * m_Area * m_StatisticalWeight);
 						return factor * m_Sum;
 					}
 					auto GetArea()const noexcept -> float {
@@ -993,10 +993,10 @@ namespace RTLib
 					}
 					auto Pdf(const float3& dir)const noexcept -> float {
 						if (GetMean() <= 0.0f) {
-							return 1.0f / (4.0f * RTLIB_M_PI);
+							return static_cast<float>(RTLIB_M_INV_2PI) / (2.0f);
 						}
 						float2 dir2 = RTLib::Ext::CUDA::Math::dir_to_canonical(dir);
-						return m_Area * m_Nodes[0].Pdf(dir2, m_Nodes.data()) / (4.0f * RTLIB_M_PI);
+						return m_Area * m_Nodes[0].Pdf(dir2, m_Nodes.data()) *static_cast<float>(RTLIB_M_INV_2PI) / (2.0f);
 					}
 					void Dump(std::fstream& jsonFile)const noexcept {
 						jsonFile << "{\n";

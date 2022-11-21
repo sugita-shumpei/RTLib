@@ -5699,7 +5699,7 @@ namespace RTLib
         {
             const float cosTheta = 2.0f * p.x - 1.0f;
             const float sinTheta = sqrtf(1.0f - cosTheta * cosTheta);
-            const float phi = RTLIB_M_2PI * p.y;
+            const float phi = static_cast<float>(RTLIB_M_2PI) * p.y;
             const float cosPhi = ::cosf(phi);
             const float sinPhi = ::sinf(phi);
             return make_float3(sinTheta * cosPhi, sinTheta * sinPhi, cosTheta);
@@ -5714,9 +5714,9 @@ namespace RTLib
             float phi = atan2f(d.y, d.x);
             while (phi < 0.0f)
             {
-                phi += RTLIB_M_2PI;
+                phi += (float)RTLIB_M_2PI;
             }
-            return make_float2((z + 1.0f) / 2.0f, phi / RTLIB_M_2PI);
+            return make_float2((z + 1.0f) / 2.0f, phi * (float)RTLIB_M_INV_2PI);
         }
         RTLIB_INLINE RTLIB_HOST_DEVICE float3 spherical_to_dir(const float2& p)
         {

@@ -49,7 +49,7 @@ set(RTLIB_EXT_OPX7_SOURCES
 add_library(RTLib-Ext-OPX7
     ${RTLIB_EXT_OPX7_SOURCES}
 )
-add_custom_command(TARGET RTLib-Ext-OPX7 PRE_BUILD
+add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/OPX7UtilsMortonBuild.ptx.h PRE_BUILD
     COMMAND ${CUDAToolkit_NVCC_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/OPX7/Utils/OPX7UtilsMortonBuild.cu -arch compute_75 -use_fast_math -lineinfo -rdc true -m64 --std c++17 -ptx -o ${CMAKE_CURRENT_BINARY_DIR}/OPX7UtilsMortonBuild.ptx
     COMMAND ${CUDAToolkit_BIN_DIR}\\bin2c --const -st --name OPX7UtilsMortonBuildPtxBinary ${CMAKE_CURRENT_BINARY_DIR}/OPX7UtilsMortonBuild.ptx > ${CMAKE_CURRENT_BINARY_DIR}/OPX7UtilsMortonBuild.ptx.h
 )

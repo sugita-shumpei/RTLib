@@ -331,7 +331,7 @@ namespace RTLib
                     const float2 rnd = random_float2(rng);
                     const float r = sqrtf(rnd.x);
                     const float z = sqrtf(1.0f - rnd.x);
-                    const float t = 2.0f * rnd.y * RTLIB_M_PI;
+                    const float t = 2.0f * rnd.y * (float)RTLIB_M_PI;
                     return make_float3(r * ::cosf(t), r * ::sinf(t), z);
                 }
                 // fastの場合、得られたbit長を最大限利用することで乱数の呼び出しを最小限にとどめる
