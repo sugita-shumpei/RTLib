@@ -3,6 +3,7 @@
 struct HitRecordUserData
 {
     float3                   radiance;
+    float3                  radiance2;
     float3                 throughPut;
     float3                    bsdfVal;
     float                     bsdfPdf;
@@ -100,6 +101,7 @@ extern "C" __global__ void     __raygen__default () {
             for (unsigned int d = 0; d < traceVertexDepth; ++d) {
                 traceVertices[d].Record(hrec.userData.radiance);
             }
+            traceVertices[traceVertexDepth].Record(hrec.userData.radiance2);
 
             color += hrec.userData.radiance;
 
@@ -276,6 +278,7 @@ extern "C" __global__ void     __miss__radiance() {
     hrec->flags |= HIT_RECORD_FLAG_FINISH;
 
     hrec->userData.radiance = hrec->userData.throughPut * make_float3(msData->bgColor.x, msData->bgColor.y, msData->bgColor.z);
+    hrec->userData.radiance2= make_float3(0.0f);
     hrec->userData.bsdfVal  = make_float3(1.0f);
     hrec->normal = make_float3(1.0f,0.0f,0.0f);
     hrec->userData.bsdfVal = make_float3(1.0f);
@@ -313,6 +316,7 @@ extern "C" __global__ void     __closesthit__radiance() {
     auto dTreePdf        = float(0.0f);
     auto woPdf           = float(0.0f);
     auto radiance       = make_float3(0.0f);
+    auto radiance2      = make_float3(0.0f);
     auto prevThroughput = hrec->userData.throughPut;
     auto currThroughput = make_float3(0.0f);
     auto prevHitFlags = hrec->flags;
@@ -330,6 +334,26 @@ extern "C" __global__ void     __closesthit__radiance() {
         //}
     }
     do{
+        if (params.flags & PARAM_FLAG_NEE) {
+            if (hgData->type == HIT_GROUP_TYPE_NEE_LIGHT) {
+                if ((prevHitFlags & HIT_RECORD_FLAG_PHONG_MATERIAL)) {
+                    auto probD = hrec->userData.woPdf;
+                    auto p0 = hgData->vertices[hgData->indices[primitiveId].x];
+                    auto p1 = hgData->vertices[hgData->indices[primitiveId].y];
+                    auto p2 = hgData->vertices[hgData->indices[primitiveId].z];
+                    auto invPdf = RTLib::Ext::CUDA::Math::length(RTLib::Ext::CUDA::Math::cross(p1 - p0, p2 - p0)) * params.lights.count * hgData->indCount / 2.0f;
+                    //printf("Light=invPdf=%lf\n", invPdf);
+                    auto probAbs = 1.0f / invPdf;
+                    auto probA = probAbs * (distance * distance) / fabsf(RTLib::Ext::CUDA::Math::dot(inDir, vNormal));
+                    auto weight = probD / (probD + probA);
+                    if (isnan(weight)) {
+                        printf("error3: %lf %lf\n", probD, probA);
+                    }
+                    emission *= weight;
+
+                }
+            }
+        }
         if (hgData->type == HIT_GROUP_TYPE_PHONG) {
             auto reflDir     = RTLib::Ext::CUDA::Math::normalize(RTLib::Ext::CUDA::Math::reflect(inDir, fNormal));
             auto direction0  = sampleCosinePDF(fNormal, xor32);
@@ -389,8 +413,9 @@ extern "C" __global__ void     __closesthit__radiance() {
                             LightRecord lRec = params.lights.Sample(position, xor32);
                             auto  ndl =  RTLib::Ext::CUDA::Math::dot(lRec.direction, fNormal    );
                             auto lndl = -RTLib::Ext::CUDA::Math::dot(lRec.direction, lRec.normal);
+                            auto phongPdf3 = getValPhongPDF(lRec.direction, reflDir, shinness);
                             auto  e   = lRec.emission;
-                            auto  b   = diffuse * static_cast<float>(RTLIB_M_INV_PI) + specular * getValPhongPDF(lRec.direction, reflDir, shinness);
+                            auto  b   = diffuse * static_cast<float>(RTLIB_M_INV_PI) + specular * phongPdf3;
                             auto  g   = RTLib::Ext::CUDA::Math::max(ndl, 0.0f) * RTLib::Ext::CUDA::Math::max(lndl, 0.0f) / (lRec.distance * lRec.distance);
                             auto  f   = b * e * g;
                             auto  f_a = RTLib::Ext::CUDA::Math::to_average_rgb(f);
@@ -406,15 +431,31 @@ extern "C" __global__ void     __closesthit__radiance() {
                                 resv.w = resv.w_sum / (f_a_y * static_cast<float>(resv.m));
                             }
                         }
-                        radiance += prevThroughput * f_y * resv.w;
+                        radiance2 += prevThroughput * f_y * resv.w;
+                        radiance  += radiance2;
                     }
                     else {
                         auto lRec = params.lights.Sample(position, xor32);
+                        auto cosineX = RTLib::Ext::CUDA::Math::dot(lRec.direction, fNormal);
+                        auto cosineY = RTLib::Ext::CUDA::Math::dot(lRec.direction, lRec.normal);
+                        auto probA   = 1.0f / lRec.invPdf;
+                        auto probDbs = select_prob * RTLib::Ext::CUDA::Math::max(cosineX * static_cast<float>(RTLIB_M_INV_PI), 0.0f) + (1.0f - select_prob) * getValPhongPDF(lRec.direction, reflDir, shinness);
+                        if (((params.flags & PARAM_FLAG_USE_TREE) == PARAM_FLAG_USE_TREE) && ((params.flags & PARAM_FLAG_BUILD) == PARAM_FLAG_BUILD)) {
+                            auto probT = RTLib::Ext::CUDA::Math::max(dTree->Pdf(lRec.direction), 0.0f);
+                            probDbs = (1.0f - params.tree.fraction) * probDbs + params.tree.fraction * probT;
+                        }
+                        auto probD   = probDbs * fabsf(cosineY) / (lRec.distance * lRec.distance);
+                        auto weight  = probA / (probA + probD);
+                        //printf("Phong=invPdf=%lf\n", lRec.invPdf);
                         if (!TraceOccluded(params.gasHandle, position, lRec.direction, 0.0001f, lRec.distance - 0.0001f)) {
                             auto e = lRec.emission;
                             auto b = diffuse * static_cast<float>(RTLIB_M_INV_PI) + specular * getValPhongPDF(lRec.direction, reflDir, shinness);
-                            auto g = RTLib::Ext::CUDA::Math::max(-RTLib::Ext::CUDA::Math::dot(lRec.direction, lRec.normal), 0.0f) * fabsf(RTLib::Ext::CUDA::Math::dot(lRec.direction, fNormal)) / (lRec.distance * lRec.distance);
-                            radiance += prevThroughput * b * e * g * lRec.invPdf;
+                            auto g = RTLib::Ext::CUDA::Math::max(-cosineY, 0.0f) * fabsf(cosineX) / (lRec.distance * lRec.distance);
+                            radiance2 += prevThroughput * b * e * g * lRec.invPdf * weight;
+                            radiance  += radiance2;
+                            //if (isnan(radiance.x) || isnan(radiance.y) || isnan(radiance.z)) {
+                            //    printf("error1\n");
+                            //}
                         }
                     }
                 }
@@ -422,6 +463,7 @@ extern "C" __global__ void     __closesthit__radiance() {
             else {
                 currHitFlags |= HIT_RECORD_FLAG_COUNT_EMITTED;
             }
+            currHitFlags |= HIT_RECORD_FLAG_PHONG_MATERIAL;
             break;
         }
         if (hgData->type == HIT_GROUP_TYPE_GLASS) {
@@ -490,7 +532,7 @@ extern "C" __global__ void     __closesthit__radiance() {
         }
     } while (0);
 
-    radiance += prevThroughput * emission * static_cast<float>(RTLib::Ext::CUDA::Math::dot(inDir, fNormal) < 0.0f) * static_cast<float>(countEmitted);
+    radiance += prevThroughput * emission * static_cast<float>(RTLib::Ext::CUDA::Math::dot(inDir, fNormal) < 0.0f);
     if (emission.x + emission.y + emission.z > 0.0f) {
         currHitFlags |= HIT_RECORD_FLAG_FINISH;
     }
@@ -502,6 +544,7 @@ extern "C" __global__ void     __closesthit__radiance() {
     hrec->cosine = cosine;
     hrec->flags  = currHitFlags;
     hrec->userData.radiance   = radiance;
+    hrec->userData.radiance2  = radiance2;
     hrec->userData.throughPut = currThroughput;
     hrec->userData.bsdfVal    = bsdfVal;
     hrec->userData.bsdfPdf    = bsdfPdf;
@@ -537,6 +580,7 @@ extern "C" __global__ void     __closesthit__radiance_sphere() {
     auto dTreePdf = float(0.0f);
     auto woPdf = float(0.0f);
     auto radiance = make_float3(0.0f);
+    auto radiance2= make_float3(0.0f);
     auto prevThroughput = hrec->userData.throughPut;
     auto currThroughput = make_float3(0.0f);
     auto prevHitFlags = hrec->flags;
@@ -630,15 +674,31 @@ extern "C" __global__ void     __closesthit__radiance_sphere() {
                                 resv.w = resv.w_sum / (f_a_y * static_cast<float>(resv.m));
                             }
                         }
-                        radiance += prevThroughput * f_y * resv.w;
+                        radiance2 += prevThroughput * f_y * resv.w;
+                        radiance  += radiance2;
                     }
                     else {
                         auto lRec = params.lights.Sample(position, xor32);
+                        auto cosineX = RTLib::Ext::CUDA::Math::dot(lRec.direction, fNormal);
+                        auto cosineY = RTLib::Ext::CUDA::Math::dot(lRec.direction, lRec.normal);
+                        auto probA = 1.0f / lRec.invPdf;
+                        auto probDbs = select_prob * RTLib::Ext::CUDA::Math::max(cosineX * static_cast<float>(RTLIB_M_INV_PI), 0.0f) + (1.0f - select_prob) * getValPhongPDF(lRec.direction, reflDir, shinness);
+                        if (((params.flags & PARAM_FLAG_USE_TREE) == PARAM_FLAG_USE_TREE) && ((params.flags & PARAM_FLAG_BUILD) == PARAM_FLAG_BUILD)) {
+                            auto probT = RTLib::Ext::CUDA::Math::max(dTree->Pdf(lRec.direction), 0.0f);
+                            probDbs = (1.0f - params.tree.fraction) * probDbs + params.tree.fraction * probT;
+                        }
+                        auto probD = probDbs * fabsf(cosineY) / (lRec.distance * lRec.distance);
+                        auto weight = probA / (probA + probD);
+                        //printf("Phong=invPdf=%lf\n", lRec.invPdf);
                         if (!TraceOccluded(params.gasHandle, position, lRec.direction, 0.0001f, lRec.distance - 0.0001f)) {
                             auto e = lRec.emission;
                             auto b = diffuse * static_cast<float>(RTLIB_M_INV_PI) + specular * getValPhongPDF(lRec.direction, reflDir, shinness);
-                            auto g = RTLib::Ext::CUDA::Math::max(-RTLib::Ext::CUDA::Math::dot(lRec.direction, lRec.normal), 0.0f) * fabsf(RTLib::Ext::CUDA::Math::dot(lRec.direction, fNormal)) / (lRec.distance * lRec.distance);
-                            radiance += prevThroughput * b * e * g * lRec.invPdf;
+                            auto g = RTLib::Ext::CUDA::Math::max(-cosineY, 0.0f) * fabsf(cosineX) / (lRec.distance * lRec.distance);
+                            radiance2 += prevThroughput * b * e * g * lRec.invPdf * weight;
+                            radiance  += radiance2;
+                            //if (isnan(radiance.x) || isnan(radiance.y) || isnan(radiance.z)) {
+                            //    printf("error1\n");
+                            //}
                         }
                     }
                 }
@@ -646,6 +706,7 @@ extern "C" __global__ void     __closesthit__radiance_sphere() {
             else {
                 currHitFlags |= HIT_RECORD_FLAG_COUNT_EMITTED;
             }
+            currHitFlags     |= HIT_RECORD_FLAG_PHONG_MATERIAL;
             break;
         }
         if (hgData->type == HIT_GROUP_TYPE_GLASS) {
@@ -714,7 +775,7 @@ extern "C" __global__ void     __closesthit__radiance_sphere() {
         }
     } while (0);
 
-    radiance += prevThroughput * emission * static_cast<float>(RTLib::Ext::CUDA::Math::dot(inDir, fNormal) < 0.0f) * static_cast<float>(countEmitted);
+    radiance += prevThroughput * emission * static_cast<float>(RTLib::Ext::CUDA::Math::dot(inDir, fNormal) < 0.0f);
     if (emission.x + emission.y + emission.z > 0.0f) {
         currHitFlags |= HIT_RECORD_FLAG_FINISH;
     }
@@ -725,7 +786,8 @@ extern "C" __global__ void     __closesthit__radiance_sphere() {
     hrec->seed = xor32.m_seed;
     hrec->cosine = cosine;
     hrec->flags = currHitFlags;
-    hrec->userData.radiance = radiance;
+    hrec->userData.radiance   = radiance;
+    hrec->userData.radiance2  = radiance2;
     hrec->userData.throughPut = currThroughput;
     hrec->userData.bsdfVal = bsdfVal;
     hrec->userData.bsdfPdf = bsdfPdf;
