@@ -42,7 +42,7 @@ static __forceinline__ __device__ float        getValPhongPDF(const float3& dire
     //TODO REAL PHONG BSDF IS (shinness+2.0f)*powf(reflCos,shinness) *  static_cast<float>(RTLIB_M_INV_2PI)
     //TODO BROKEN IF REFLCOS IS LESS THAN ZERO AND SHINNESS IS EQUAL TO ZERO
     const auto reflCos = RTLib::Ext::CUDA::Math::max(RTLib::Ext::CUDA::Math::dot(reflectDir, direction), 0.0f);
-    return (shinness + 2.0f) * powf(reflCos, shinness) * static_cast<float>(RTLIB_M_INV_2PI);
+    return (shinness + 1.0f) * powf(reflCos, shinness) * static_cast<float>(RTLIB_M_INV_2PI);
 }
 extern "C" __global__ void     __raygen__default () {
     const uint3 idx = optixGetLaunchIndex();
@@ -309,7 +309,7 @@ extern "C" __global__ void __closesthit__radiance() {
                 auto reflCos = RTLib::Ext::CUDA::Math::dot(reflDir, direction0);
                 direction = direction0;
                 cosine = cosine0;
-                bsdfVal = diffuse * static_cast<float>(RTLIB_M_INV_PI) + specular * phongPdf0;
+                bsdfVal = diffuse * static_cast<float>(RTLIB_M_INV_PI) + specular * ((shinness+2.0f)/(shinness+1.0f)) * phongPdf0;
                 bsdfPdf = (select_prob * cosinePdf0 + (1.0f - select_prob) * phongPdf0);
                 /*if (isnan(bsdfPdf)) {
                     printf("error4: %lf %lf %lf\n", select_prob, cosinePdf0, phongPdf0);
@@ -319,7 +319,7 @@ extern "C" __global__ void __closesthit__radiance() {
                 auto reflCos = RTLib::Ext::CUDA::Math::dot(reflDir, direction1);
                 direction = direction1;
                 cosine = cosine1;
-                bsdfVal = diffuse * static_cast<float>(RTLIB_M_INV_PI) + specular * phongPdf1;
+                bsdfVal = diffuse * static_cast<float>(RTLIB_M_INV_PI) + specular * ((shinness+2.0f)/(shinness+1.0f)) * phongPdf1;
                 bsdfPdf = (select_prob * cosinePdf1 + (1.0f - select_prob) * phongPdf1);
                 //if (isnan(bsdfPdf)) {
                 //    printf("error4: %lf %lf %lf\n", select_prob, cosinePdf1, phongPdf1);
@@ -347,7 +347,7 @@ extern "C" __global__ void __closesthit__radiance() {
                             auto probD   = probDbs * fabsf(lndl) / (lRec.distance * lRec.distance);
                             auto weight  = probA / (probA + probD);
                             auto  e      = lRec.emission;
-                            auto  b      = diffuse * static_cast<float>(RTLIB_M_INV_PI) + specular * getValPhongPDF(lRec.direction, reflDir, shinness);
+                            auto  b      = diffuse * static_cast<float>(RTLIB_M_INV_PI) + specular * ((shinness+2.0f)/(shinness+1.0f)) * getValPhongPDF(lRec.direction, reflDir, shinness);
                             auto  g      = RTLib::Ext::CUDA::Math::max(ndl, 0.0f) * RTLib::Ext::CUDA::Math::max(lndl, 0.0f) / (lRec.distance * lRec.distance);
                             auto  f      = b * e * g * weight;
                             auto  f_a    = RTLib::Ext::CUDA::Math::to_average_rgb(f);
@@ -379,7 +379,7 @@ extern "C" __global__ void __closesthit__radiance() {
                         //printf("Phong=invPdf=%lf\n", lRec.invPdf);
                         if (!TraceOccluded(params.gasHandle, position, lRec.direction, 0.0001f, lRec.distance - 0.0001f)) {
                             auto e = lRec.emission;
-                            auto b = diffuse * static_cast<float>(RTLIB_M_INV_PI) + specular * getValPhongPDF(lRec.direction, reflDir, shinness);
+                            auto b = diffuse * static_cast<float>(RTLIB_M_INV_PI) + specular * ((shinness+2.0f)/(shinness+1.0f)) * getValPhongPDF(lRec.direction, reflDir, shinness);
                             auto g = RTLib::Ext::CUDA::Math::max(-cosineY, 0.0f) * fabsf(cosineX) / (lRec.distance * lRec.distance);
                             radiance += prevThroughput * b * e * g * lRec.invPdf * weight;
                             //if (isnan(radiance.x) || isnan(radiance.y) || isnan(radiance.z)) {
@@ -539,14 +539,14 @@ extern "C" __global__ void __closesthit__radiance_sphere() {
                 auto reflCos = RTLib::Ext::CUDA::Math::dot(reflDir, direction0);
                 direction = direction0;
                 cosine = cosine0;
-                bsdfVal = diffuse * static_cast<float>(RTLIB_M_INV_PI) + specular * phongPdf0;
+                bsdfVal = diffuse * static_cast<float>(RTLIB_M_INV_PI) + specular * ((shinness+2.0f)/(shinness+1.0f)) * phongPdf0;
                 bsdfPdf = (select_prob * cosinePdf0 + (1.0f - select_prob) * phongPdf0);
             }
             else {
                 auto reflCos = RTLib::Ext::CUDA::Math::dot(reflDir, direction1);
                 direction = direction1;
                 cosine = cosine1;
-                bsdfVal = diffuse * static_cast<float>(RTLIB_M_INV_PI) + specular * phongPdf1;
+                bsdfVal = diffuse * static_cast<float>(RTLIB_M_INV_PI) + specular * ((shinness+2.0f)/(shinness+1.0f)) * phongPdf1;
                 bsdfPdf = (select_prob * cosinePdf1 + (1.0f - select_prob) * phongPdf1);
             }
             currThroughput = prevThroughput * ((bsdfPdf > 0.0f) ? (bsdfVal * RTLib::Ext::CUDA::Math::max(cosine, 0.0f) / bsdfPdf) : make_float3(0.0f));
@@ -568,7 +568,7 @@ extern "C" __global__ void __closesthit__radiance_sphere() {
                             auto probD = probDbs * fabsf(lndl) / (lRec.distance * lRec.distance);
                             auto weight = probA / (probA + probD);
                             auto  e = lRec.emission;
-                            auto  b = diffuse * static_cast<float>(RTLIB_M_INV_PI) + specular * getValPhongPDF(lRec.direction, reflDir, shinness);
+                            auto  b = diffuse * static_cast<float>(RTLIB_M_INV_PI) + specular * ((shinness+2.0f)/(shinness+1.0f)) * getValPhongPDF(lRec.direction, reflDir, shinness);
                             auto  g = RTLib::Ext::CUDA::Math::max(ndl, 0.0f) * RTLib::Ext::CUDA::Math::max(lndl, 0.0f) / (lRec.distance * lRec.distance);
                             auto  f = b * e * g * weight;
                             auto  f_a = RTLib::Ext::CUDA::Math::to_average_rgb(f);
@@ -597,7 +597,7 @@ extern "C" __global__ void __closesthit__radiance_sphere() {
                         //printf("Phong=invPdf=%lf\n", lRec.invPdf);
                         if (!TraceOccluded(params.gasHandle, position, lRec.direction, 0.0001f, lRec.distance - 0.0001f)) {
                             auto e = lRec.emission;
-                            auto b = diffuse * static_cast<float>(RTLIB_M_INV_PI) + specular * getValPhongPDF(lRec.direction, reflDir, shinness);
+                            auto b = diffuse * static_cast<float>(RTLIB_M_INV_PI) + specular * ((shinness+2.0f)/(shinness+1.0f)) * getValPhongPDF(lRec.direction, reflDir, shinness);
                             auto g = RTLib::Ext::CUDA::Math::max(-cosineY, 0.0f) * fabsf(cosineX) / (lRec.distance * lRec.distance);
                             radiance += prevThroughput * b * e * g * lRec.invPdf * weight;
                         }
