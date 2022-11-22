@@ -45,7 +45,7 @@ static __forceinline__ __device__ float        getValPhongPDF(const float3& dire
 {
     //TODO BROKEN IF REFLCOS IS LESS THAN ZERO AND SHINNESS IS EQUAL TO ZERO
     const auto reflCos = RTLib::Ext::CUDA::Math::max(RTLib::Ext::CUDA::Math::dot(reflectDir, direction), 0.0f);
-    return (shinness + 1.0f) * powf(reflCos, shinness) * static_cast<float>(RTLIB_M_INV_2PI);
+    return (shinness + 1.0f) * RTLib::Ext::CUDA::Math::powf(reflCos, shinness) * static_cast<float>(RTLIB_M_INV_2PI);
 }
 extern "C" __global__ void     __raygen__default () {
     const uint3 idx = optixGetLaunchIndex();

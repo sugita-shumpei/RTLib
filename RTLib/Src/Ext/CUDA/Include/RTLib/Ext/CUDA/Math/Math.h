@@ -610,6 +610,13 @@ namespace RTLib
                 {
                     return v * v * v * v * v;
                 }
+                RTLIB_INLINE RTLIB_DEVICE float powf(const float x, const float y)
+                {
+#if defined(__cplusplus) && !defined(__CUDA_ARCH__)
+                    using std::powf;
+#endif
+                    return (y!=0.0f)?::powf(x,y) : static_cast<float>(x == 0.0f);
+                }
                 // rgb<->adobe srgb
                 RTLIB_INLINE RTLIB_HOST_DEVICE float linear_to_gamma(const float v)
                 {
