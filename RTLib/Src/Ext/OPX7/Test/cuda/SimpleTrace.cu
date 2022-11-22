@@ -38,7 +38,9 @@ static __forceinline__ __device__ float3       samplePhongPDF(const float3& refl
 }
 static __forceinline__ __device__ float        getValPhongPDF(const float3& direction, const float3& reflectDir, float shinness)
 {
-
+    //TODO REAL PHONG PDF  IS (shinness+1.0f)*powf(reflCos,shinness) *  static_cast<float>(RTLIB_M_INV_2PI)
+    //TODO REAL PHONG BSDF IS (shinness+2.0f)*powf(reflCos,shinness) *  static_cast<float>(RTLIB_M_INV_2PI)
+    //TODO BROKEN IF REFLCOS IS LESS THAN ZERO AND SHINNESS IS EQUAL TO ZERO
     const auto reflCos = RTLib::Ext::CUDA::Math::max(RTLib::Ext::CUDA::Math::dot(reflectDir, direction), 0.0f);
     return (shinness + 2.0f) * powf(reflCos, shinness) * static_cast<float>(RTLIB_M_INV_2PI);
 }
