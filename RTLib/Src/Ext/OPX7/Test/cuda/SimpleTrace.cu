@@ -40,7 +40,7 @@ static __forceinline__ __device__ float        getValPhongPDF(const float3& dire
 {
 
     const auto reflCos = RTLib::Ext::CUDA::Math::max(RTLib::Ext::CUDA::Math::dot(reflectDir, direction), 0.0f);
-    return (shinness + 1.0f) * powf(reflCos, shinness) * static_cast<float>(RTLIB_M_INV_2PI);
+    return (shinness + 1.0f) * RTLib::Ext::CUDA::Math::powf(reflCos, shinness) * static_cast<float>(RTLIB_M_INV_2PI);
 }
 extern "C" __global__ void     __raygen__default () {
     const uint3 idx = optixGetLaunchIndex();
@@ -281,7 +281,6 @@ extern "C" __global__ void __closesthit__radiance() {
             auto aver_diff   = 1.0e-10f+(diffuse.x + diffuse.y + diffuse.z) / 3.0f;
             auto aver_spec   = 1.0e-10f+(specular.x + specular.y + specular.z) / 3.0f;
             auto select_prob = (aver_diff) / (aver_diff + aver_spec);
-
             if (RTLib::Ext::CUDA::Math::random_float1(xor32) < select_prob) {
                 auto reflCos = RTLib::Ext::CUDA::Math::dot(reflDir, direction0);
                 direction = direction0;
