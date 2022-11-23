@@ -28,7 +28,9 @@ void TracerTest(int argc, const char* argv[])
             if (argc > 1) {
                 for (int i = 1; i < argc - 1; ++i) {
                     if (std::string(argv[i]) == "--ScenePath") {
-                        scenePath = std::string(argv[i + 1]);
+                        auto tmpScenePath = std::filesystem::path(std::string(argv[i + 1]));
+                        scenePath = tmpScenePath.string();
+                        
                     }
                 }
             }

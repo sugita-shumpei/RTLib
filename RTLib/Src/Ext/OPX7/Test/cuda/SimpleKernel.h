@@ -215,10 +215,11 @@ struct HitgroupData {
     float3              diffuse;
     float3              specular;
     float3              emission;
-    float3* vertices;
-    float3* normals;
-    float2* texCrds;
-    uint3* indices;
+    float3*             vertices;
+    float3*             normals;
+    float2*             texCrds;
+    uint3*              indices;
+    unsigned int        indCount;
     cudaTextureObject_t diffuseTex;
     cudaTextureObject_t specularTex;
     cudaTextureObject_t emissionTex;
@@ -281,8 +282,9 @@ enum   HitRecordFlag
     HIT_RECORD_FLAG_NONE = 0,
     HIT_RECORD_FLAG_MISS = 1,
     HIT_RECORD_FLAG_DELTA_MATERIAL = 2,
-    HIT_RECORD_FLAG_COUNT_EMITTED = 4,
-    HIT_RECORD_FLAG_FINISH = 8
+    HIT_RECORD_FLAG_PHONG_MATERIAL = 4,
+    HIT_RECORD_FLAG_COUNT_EMITTED = 8,
+    HIT_RECORD_FLAG_FINISH = 16
 };
 
 template<typename UserData>
@@ -358,7 +360,7 @@ static __forceinline__ __device__ void TraceRadiance(OptixTraversableHandle tlas
 static __forceinline__ __device__ bool TraceOccluded(OptixTraversableHandle tlasHandle, float3  rayOrigin, float3  rayDirection, float rayTmin, float rayTmax)
 {
     unsigned int p0 = 0;
-    optixTrace(tlasHandle, rayOrigin, rayDirection, rayTmin, rayTmax, 0.0f, OptixVisibilityMask(255), OPTIX_RAY_FLAG_DISABLE_ANYHIT|OPTIX_RAY_FLAG_TERMINATE_ON_FIRST_HIT, RAY_TYPE_OCCLUDED, RAY_TYPE_COUNT, RAY_TYPE_OCCLUDED, p0);
+    optixTrace(tlasHandle, rayOrigin, rayDirection, rayTmin, rayTmax, 0.0f, OptixVisibilityMask(255), OPTIX_RAY_FLAG_DISABLE_ANYHIT | OPTIX_RAY_FLAG_TERMINATE_ON_FIRST_HIT, RAY_TYPE_OCCLUDED, RAY_TYPE_COUNT, RAY_TYPE_OCCLUDED, p0);
     return p0;
 }
 
