@@ -123,7 +123,7 @@ int main(int argc, const char* argv)
 		}
 		auto tex = std::unique_ptr<RTLib::Ext::CUDA::CUDATexture>(ctx.CreateTexture(texDesc));
 		auto mod = std::unique_ptr<RTLib::Ext::CUDA::CUDAModule>( ctx.LoadModuleFromFile(RTLIB_EXT_CUDA_TEST_CUDA_PATH"/simpleKernel.ptx"));
-		auto fnc = std::unique_ptr<RTLib::Ext::CUDA::CUDAFunction>(mod->LoadFunction("blurKernel"));
+		auto fnc = std::unique_ptr<RTLib::Ext::CUDA::CUDAFunction>(mod->LoadFunction("perlineKernel"));
 		{
 			int x, y, comp;
 			auto iImgData = stbi_load(RTLIB_EXT_CUDA_TEST_DATA_PATH"/Textures/sample.png", &x, &y, &comp, 4);
@@ -147,7 +147,6 @@ int main(int argc, const char* argv)
 			int width  = x;
 			int height = y;
 			fnc->Launch({ 1024,1024,1,32,32,1,0,{
-				&ipixel,
 				&opixel,
 				&x,
 				&y
