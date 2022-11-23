@@ -345,7 +345,7 @@ extern "C" __global__ void     __closesthit__radiance() {
                     //printf("Light=invPdf=%lf\n", invPdf);
                     auto probAbs = 1.0f / invPdf;
                     auto probA = probAbs * (distance * distance) / fabsf(RTLib::Ext::CUDA::Math::dot(inDir, vNormal));
-                    auto weight = probD / (probD + probA);
+                    auto weight = (probD * probD) / ((probA * probA) + (probD * probD));
                     if (isnan(weight)) {
                         printf("error3: %lf %lf\n", probD, probA);
                     }
@@ -420,7 +420,7 @@ extern "C" __global__ void     __closesthit__radiance() {
                                 probDbs = (1.0f - params.tree.fraction) * probDbs + params.tree.fraction * probT;
                             }
                             auto probD = probDbs * fabsf(lndl) / (lRec.distance * lRec.distance);
-                            auto weight = probA / (probA + probD);
+                            auto weight = (probA * probA) / ((probA * probA) + (probD * probD));
                             auto  e = lRec.emission;
                             auto  b = diffuse * static_cast<float>(RTLIB_M_INV_PI) + specular * ((shinness + 2.0f) / (shinness + 1.0f)) * getValPhongPDF(lRec.direction, reflDir, shinness);
                             auto  g = RTLib::Ext::CUDA::Math::max(ndl, 0.0f) * RTLib::Ext::CUDA::Math::max(lndl, 0.0f) / (lRec.distance * lRec.distance);
@@ -452,7 +452,7 @@ extern "C" __global__ void     __closesthit__radiance() {
                             probDbs = (1.0f - params.tree.fraction) * probDbs + params.tree.fraction * probT;
                         }
                         auto probD   = probDbs * fabsf(cosineY) / (lRec.distance * lRec.distance);
-                        auto weight  = probA / (probA + probD);
+                        auto weight  =(probA*probA) / ((probA * probA) + (probD * probD));
                         //printf("Phong=invPdf=%lf\n", lRec.invPdf);
                         if (!TraceOccluded(params.gasHandle, position, lRec.direction, 0.0001f, lRec.distance - 0.0001f)) {
                             auto e = lRec.emission;
@@ -671,7 +671,7 @@ extern "C" __global__ void     __closesthit__radiance_sphere() {
                                 probDbs = (1.0f - params.tree.fraction) * probDbs + params.tree.fraction * probT;
                             }
                             auto probD = probDbs * fabsf(lndl) / (lRec.distance * lRec.distance);
-                            auto weight = probA / (probA + probD);
+                            auto weight = (probA * probA) / ((probA * probA) + (probD * probD));
                             auto  e = lRec.emission;
                             auto  b = diffuse * static_cast<float>(RTLIB_M_INV_PI) + specular * ((shinness+2.0f)/(shinness+1.0f)) * getValPhongPDF(lRec.direction, reflDir, shinness);
                             auto  g = RTLib::Ext::CUDA::Math::max(ndl, 0.0f) * RTLib::Ext::CUDA::Math::max(lndl, 0.0f) / (lRec.distance * lRec.distance);
@@ -703,7 +703,7 @@ extern "C" __global__ void     __closesthit__radiance_sphere() {
                             probDbs = (1.0f - params.tree.fraction) * probDbs + params.tree.fraction * probT;
                         }
                         auto probD = probDbs * fabsf(cosineY) / (lRec.distance * lRec.distance);
-                        auto weight = probA / (probA + probD);
+                        auto weight = (probA * probA) / ((probA * probA) + (probD * probD));
                         //printf("Phong=invPdf=%lf\n", lRec.invPdf);
                         if (!TraceOccluded(params.gasHandle, position, lRec.direction, 0.0001f, lRec.distance - 0.0001f)) {
                             auto e = lRec.emission;
