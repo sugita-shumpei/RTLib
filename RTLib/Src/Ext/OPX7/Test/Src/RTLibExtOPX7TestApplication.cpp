@@ -171,7 +171,7 @@ void RTLibExtOPX7TestApplication::LoadScene(int argc, const char** argv)
         auto  geometryAS   = instanceData->GetDwGeometryAS();
         if (geometryAS)
         {
-            auto tmpAabb = rtlib::test::AABB(m_GeometryASMap.at(geometryAS->GetName()).aabbMin, m_GeometryASMap.at(geometryAS->GetName()).aabbMax).Transform(rtlib::test::GetInstanceTransform(m_SceneData.world, instancePath));
+            auto tmpAabb = rtlib::test::TransformAABB(RTLib::Core::AABB(m_GeometryASMap.at(geometryAS->GetName()).aabbMin, m_GeometryASMap.at(geometryAS->GetName()).aabbMax),rtlib::test::GetInstanceTransform(m_SceneData.world, instancePath));
             aabb.Update(tmpAabb.min);
             aabb.Update(tmpAabb.max);
         }
