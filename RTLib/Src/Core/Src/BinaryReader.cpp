@@ -1,5 +1,6 @@
 
 #include <RTLib/Core/BinaryReader.h>
+#include <tiny_obj_loader.h>
 #include <filesystem>
 #include <string>
 #include <unordered_map>

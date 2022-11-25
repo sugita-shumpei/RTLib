@@ -1,8 +1,11 @@
 #ifndef RTLIB_EXT_OPX7_TEST_H
 #define RTLIB_EXT_OPX7_TEST_H
 #include <RTLib/Core/Exceptions.h>
+#include <RTLib/Core/World.h>
 #include <RTLib/Core/BinaryReader.h>
-#include <RTLib/Utils/Camera.h>
+#include <RTLib/Core/AABB.h>
+#include <RTLib/Core/Camera.h>
+#include <RTLib/Core/Scene.h>
 #include <RTLib/Ext/OPX7/OPX7Context.h>
 #include <RTLib/Ext/OPX7/OPX7Module.h>
 #include <RTLib/Ext/OPX7/OPX7ProgramGroup.h>
@@ -66,61 +69,32 @@ namespace rtlib
 {
     namespace test {
         using namespace RTLib::Core;
-        using namespace RTLib::Utils;
         using namespace RTLib::Ext;
         using namespace RTLib::Ext::CUDA::Math;
         using BottomLevelAccelerationStructureData = RTLib::Ext::OPX7::OPX7Natives::AccelBuildOutput;
 
-        struct AABB {
-            std::array<float, 3>  min = std::array<float, 3>{FLT_MAX, FLT_MAX, FLT_MAX};
-            std::array<float, 3>  max = std::array<float, 3>{ -FLT_MAX, -FLT_MAX, -FLT_MAX};
-        public:
-            AABB()noexcept {}
-            AABB(const AABB& aabb)noexcept = default;
-            AABB& operator=(const AABB& aabb)noexcept = default;
-            AABB(const std::array<float, 3>& min, const std::array<float, 3>& max)noexcept :min{ min }, max{ max }{}
-            AABB(const std::vector<std::array<float, 3>>& vertices)noexcept :AABB() {
-                for (auto& vertex : vertices) {
-                    this->Update(vertex);
-                }
-            }
-            auto GetArea()const noexcept -> float {
-                std::array<float, 3> range = {
-                    max[0] - min[0],
-                    max[1] - min[1],
-                    max[2] - min[2]
-                };
-                return 2.0f * (range[0] * range[1] + range[1] * range[2] + range[2] * range[0]);
-            }
-            void Update(const  std::array<float, 3>& vertex)noexcept {
-                for (size_t i = 0; i < 3; ++i) {
-                    min[i] = std::min(min[i], vertex[i]);
-                    max[i] = std::max(max[i], vertex[i]);
-                }
-            }
-            auto Transform(const RTLib::Ext::CUDA::Math::Matrix4x4& transform)const noexcept->AABB
+        inline auto TransformAABB(const AABB& inAABB,const RTLib::Ext::CUDA::Math::Matrix4x4& transform) noexcept->AABB
+        {
+            std::vector<float3> inPositions =
             {
-                std::vector<float3> inPositions =
-                {
-                    make_float3(min[0]       ,  min[1]       ,min[2]),
-                    make_float3(max[0]         ,  min[1]       ,min[2]),
-                    make_float3(max[0]         ,  max[1]       ,min[2]),
-                    make_float3(min[0]       ,  max[1]       ,min[2]),
-                    make_float3(min[0]       ,  min[1]       ,max[2]),
-                    make_float3(max[0]         ,  min[1]       ,max[2]),
-                    make_float3(max[0]         ,  max[1]       ,max[2]),
-                    make_float3(min[0]       ,  max[1]       ,max[2])
-                };
+                make_float3(inAABB.min[0] ,  inAABB.min[1] ,inAABB.min[2]),
+                make_float3(inAABB.max[0] ,  inAABB.min[1] ,inAABB.min[2]),
+                make_float3(inAABB.max[0] ,  inAABB.max[1] ,inAABB.min[2]),
+                make_float3(inAABB.min[0] ,  inAABB.max[1] ,inAABB.min[2]),
+                make_float3(inAABB.min[0] ,  inAABB.min[1] ,inAABB.max[2]),
+                make_float3(inAABB.max[0] ,  inAABB.min[1] ,inAABB.max[2]),
+                make_float3(inAABB.max[0] ,  inAABB.max[1] ,inAABB.max[2]),
+                make_float3(inAABB.min[0] ,  inAABB.max[1] ,inAABB.max[2])
+            };
 
-                AABB aabb;
-                for (auto& inPosition : inPositions)
-                {
-                    float4 transformPos = transform * make_float4(inPosition, 1.0f);
-                    aabb.Update({ {transformPos.x / transformPos.w,transformPos.y / transformPos.w,transformPos.z / transformPos.w} });
-                }
-                return aabb;
+            AABB aabb;
+            for (auto& inPosition : inPositions)
+            {
+                float4 transformPos = transform * make_float4(inPosition, 1.0f);
+                aabb.Update({ {transformPos.x / transformPos.w,transformPos.y / transformPos.w,transformPos.z / transformPos.w} });
             }
-        };
+            return aabb;
+        }
 
         struct GeometryAccelerationStructureData
         {
@@ -177,119 +151,6 @@ namespace rtlib
             }
         };
 
-
-        struct TraceConfigData
-        {
-            std::string  imagePath;
-            unsigned int width;
-            unsigned int height;
-            unsigned int samples;
-            unsigned int samplesPerSave;
-            unsigned int maxSamples;
-            float        maxTimes;
-            unsigned int maxDepth;
-            bool         enableVis;
-            std::string  defTracer;
-            RTLib::Core::VariableMap custom;
-            std::unordered_map<std::string, RTLib::Core::VariableMap> tracers;
-        };
-
-        template<typename JsonType>
-        inline void   to_json(JsonType& j, const TraceConfigData& v) {
-            j["ImagePath"]      = v.imagePath;
-            j["Width"     ]     = v.width;
-            j["Height"    ]     = v.height;
-            j["Samples"   ]     = v.samples;
-            j["SamplesPerSave"] = v.samplesPerSave;
-            j["MaxSamples"]     = v.maxSamples;
-            j["MaxTimes"]       = v.maxTimes;
-            j["MaxDepth"]       = v.maxDepth;
-            j["EnableVis"]      = v.enableVis;
-            j["DefTracer"]      = v.defTracer;
-            if (!v.custom.IsEmpty())
-            {
-                j["Custom"] = v.custom;
-            }
-            for (auto& [name, tracer] : v.tracers)
-            {
-                if (tracer.IsEmpty()) {
-                    j["Tracers"][name] = tracer;
-                }
-            }
-        }
-        template<typename JsonType>
-        inline void from_json(const JsonType& j, TraceConfigData& v) {
-            v.imagePath      = j.at("ImagePath" ).get<std::string >();
-            v.width          = j.at("Width"     ).get<unsigned int>();
-            v.height         = j.at("Height"    ).get<unsigned int>();
-            v.samples        = j.at("Samples"   ).get<unsigned int>();
-            v.samplesPerSave = j.at("SamplesPerSave").get<unsigned int>();
-            v.maxSamples     = j.at("MaxSamples").get<unsigned int>();
-            if (j.count("EnableVis") > 0) {
-                v.enableVis = j.at("EnableVis").get<bool>();
-            }
-            else {
-                v.enableVis = false;
-            }
-            if (j.count("DefTracer") > 0) {
-                v.defTracer = j.at("DefTracer").get<std::string>();
-            }
-            else {
-                v.defTracer = "NONE";
-            }
-            if (j.count("MaxTimes") > 0) {
-                v.maxTimes = j.at("MaxTimes").get<float>();
-            }
-            else {
-                v.maxTimes = FLT_MAX;
-            }
-            v.maxDepth       = j.at("MaxDepth"  ).get<unsigned int>();
-            if (j.count( "Custom") > 0) {
-                v.custom     = j.at("Custom").get<RTLib::Core::VariableMap>();
-            }
-            if (j.count("Tracers") > 0)
-            {
-                for(const auto& elem:j.at("Tracers").items())
-                {
-                    v.tracers[elem.key()] = elem.value().get<RTLib::Core::VariableMap>();
-                }
-            }
-        }
-
-        struct ImageConfigData
-        {
-            unsigned int       width;
-            unsigned int       height;
-            unsigned int       samples;
-            unsigned long long time;
-            bool               enableVis;
-            std::string        pngFilePath;
-            std::string        exrFilePath;
-            std::string        binFilePath;
-        };
-
-        template<typename JsonType>
-        inline void   to_json(JsonType& j, const ImageConfigData& v) {
-            j["PngFilePath"] = v.pngFilePath;
-            j["ExrFilePath"] = v.exrFilePath;
-            j["BinFilePath"] = v.binFilePath;
-            j["Width" ]      = v.width ;
-            j["Height"]      = v.height;
-            j["Samples"]     = v.samples;
-            j["Time"]        = v.time;
-            j["EnableVis"]   = v.enableVis;
-        }
-        template<typename JsonType>
-        inline void from_json(const JsonType& j, ImageConfigData& v) {
-            v.pngFilePath = j.at("PngFilePath").get<std::string >();
-            v.exrFilePath = j.at("ExrFilePath").get<std::string >();
-            v.binFilePath = j.at("BinFilePath").get<std::string >();
-            v.width       = j.at("Width"      ).get<unsigned int>();
-            v.height      = j.at("Height"     ).get<unsigned int>();
-            v.samples     = j.at("Samples"    ).get<unsigned int>();
-            v.time        = j.at("Time"       ).get<unsigned long long>();
-            v.enableVis   = j.at("EnableVis"  ).get<bool>();
-        }
 
         class OPX7MeshSharedResourceExtData :public RTLib::Core::MeshSharedResourceExtData {
          public:
@@ -660,14 +521,8 @@ namespace rtlib
             }
         };
 
-        struct SceneData
+        struct SceneData: public RTLib::Core::SceneData
         {
-            std::unordered_map<std::string, SphereResourcePtr> sphereResources;
-            ObjModelAssetManager objAssetManager;
-            CameraController     cameraController;
-            WorldData            world ;
-            TraceConfigData      config;
-
             void InitExtData(RTLib::Ext::OPX7::OPX7Context* opx7Context) {
                 for (auto& [name, geometry] : world.geometryObjModels)
                 {
@@ -678,7 +533,6 @@ namespace rtlib
                     rtlib::test::InitSphereResExtData(opx7Context, sphere);
                 }
             }
-
             auto BuildGeometryASs(RTLib::Ext::OPX7::OPX7Context* opx7Context, const OptixAccelBuildOptions& accelBuildOptions)const noexcept -> std::unordered_map<std::string, GeometryAccelerationStructureData>
             {
                 //Geometry Acceleration Structure Map
@@ -821,7 +675,6 @@ namespace rtlib
                 }
                 return instanceASs;
             }
-
             auto LoadTextureMap(RTLib::Ext::CUDA::CUDAContext* cudaContext)const -> std::unordered_map<std::string, rtlib::test::TextureData> {
                 std::unordered_map<std::string, rtlib::test::TextureData> cudaTextures = {};
                 {
@@ -862,104 +715,7 @@ namespace rtlib
                 }
                 return cudaTextures;
             }
-            
-            auto GetFrameBufferSizeInBytes()const noexcept -> size_t
-            {
-                return static_cast<size_t>(config.width * config.height);
-            }
-
-            auto GetCamera()const noexcept -> Camera
-            {
-                return cameraController.GetCamera(static_cast<float>(config.width) / static_cast<float>(config.height));
-            }
         };
-
-        template<typename JsonType>
-        inline void   to_json(JsonType& j, const SceneData& v) {
-            j["CameraController"] = v.cameraController;
-            j["ObjModels"]        = v.objAssetManager;
-            j["World" ]           = v.world;
-            j["Config"]           = v.config;
-        }
-
-        template<typename JsonType>
-        inline void from_json(const JsonType& j, SceneData& v) {
-            v.cameraController = j.at("CameraController").get<RTLib::Utils::CameraController>();
-            v.objAssetManager  = j.at("ObjModels"       ).get<RTLib::Core::ObjModelAssetManager>();
-            v.world            = j.at("World"           ).get<RTLib::Core::WorldData>();
-            v.config           = j.at("Config"          ).get<TraceConfigData>();
-
-            for (auto& [geometryASName, geometryAS] : v.world.geometryASs)
-            {
-                for (auto& geometryName : geometryAS.geometries) {
-                    if (v.world.geometryObjModels.count(geometryName) > 0) {
-                        auto& geometryObjModel = v.world.geometryObjModels.at(geometryName);
-                        auto& objAsset = v.objAssetManager.GetAsset(geometryObjModel.base);
-                        if (geometryObjModel.meshes.empty()) {
-                            auto meshNames = objAsset.meshGroup->GetUniqueNames();
-                            for (auto& meshName : meshNames)
-                            {
-                                auto mesh = objAsset.meshGroup->LoadMesh(meshName);
-                                geometryObjModel.meshes[meshName].base = meshName;
-                                geometryObjModel.meshes[meshName].transform = {};
-                                geometryObjModel.meshes[meshName].materials.reserve(mesh->GetUniqueResource()->materials.size());
-                                for (auto& matIdx : mesh->GetUniqueResource()->materials) {
-                                    geometryObjModel.meshes[meshName].materials.push_back(objAsset.materials[matIdx]);
-                                }
-                            }
-                        }
-                        else {
-                            for (auto& [meshName, meshData] : geometryObjModel.meshes)
-                            {
-                                auto mesh = objAsset.meshGroup->LoadMesh(meshData.base);
-                                if (meshData.materials.empty()) {
-                                    meshData.materials.reserve(mesh->GetUniqueResource()->materials.size());
-                                    for (auto& matIdx : mesh->GetUniqueResource()->materials) {
-                                        meshData.materials.push_back(objAsset.materials[matIdx]);
-                                        if (meshData.materials.back().HasString("diffCol") ||
-                                            meshData.materials.back().GetString("diffCol") == "") {
-                                            meshData.materials.back().SetString("diffCol", "White");
-                                        }
-                                        if (meshData.materials.back().HasString("specCol") ||
-                                            meshData.materials.back().GetString("specCol") == "") {
-                                            meshData.materials.back().SetString("specCol", "White");
-                                        }
-                                        if (meshData.materials.back().HasString("emitCol") ||
-                                            meshData.materials.back().GetString("emitCol") == "") {
-                                            meshData.materials.back().SetString("emitCol", "White");
-                                        }
-                                    }
-                                }
-
-                            }
-                        }
-                    }
-                    if (v.world.geometrySpheres.count(geometryName) > 0) {
-                        auto& geometrySphere = v.world.geometrySpheres.at(geometryName);
-                        v.sphereResources[geometryName] = RTLib::Core::SphereResource::New();
-                        v.sphereResources[geometryName]->centerBuffer.push_back(geometrySphere.center);
-                        v.sphereResources[geometryName]->radiusBuffer.push_back(geometrySphere.radius);
-                        v.sphereResources[geometryName]->matIndBuffer.push_back(0);
-                        v.sphereResources[geometryName]->materials.push_back(geometrySphere.material);
-                        v.sphereResources[geometryName]->variables.SetFloat3("aabb.min",
-                            {
-                                geometrySphere.center[0] - geometrySphere.radius,
-                                geometrySphere.center[1] - geometrySphere.radius,
-                                geometrySphere.center[2] - geometrySphere.radius,
-                            }
-                        );
-                        v.sphereResources[geometryName]->variables.SetFloat3("aabb.max",
-                            {
-                                geometrySphere.center[0] + geometrySphere.radius,
-                                geometrySphere.center[1] + geometrySphere.radius,
-                                geometrySphere.center[2] + geometrySphere.radius,
-                            }
-                        );
-                    }
-                }
-            }
-
-        }
 
         template<typename T>
         struct UploadBuffer
@@ -1042,7 +798,7 @@ namespace rtlib
         }
 
         inline auto GetDefaultSceneJson()->nlohmann::json {
-            auto cameraController = RTLib::Utils::CameraController({ 0.0f, 1.0f, 5.0f });
+            auto cameraController = RTLib::Core::CameraController({ 0.0f, 1.0f, 5.0f });
             cameraController.SetMovementSpeed(10.0f);
             return {
                 {"ObjModels",
@@ -1193,7 +949,7 @@ namespace rtlib
         inline auto UpdateCameraMovement(
             const KeyBoardStateManager* keyBoardManager,
             const MouseButtonStateManager* mouseButtonManager,
-            RTLib::Utils::CameraController& cameraController,
+            RTLib::Core::CameraController& cameraController,
             float delTime,
             float delCurPosX, 
             float delCurPosY){
@@ -1206,32 +962,32 @@ namespace rtlib
             const bool pressKeyDown     = (keyBoardManager->GetState(GLFW_KEY_DOWN)->isPressed);
             if (pressKeyLeft    )
             {
-                cameraController.ProcessKeyboard(RTLib::Utils::CameraMovement::eLeft, delTime);
+                cameraController.ProcessKeyboard(RTLib::Core::CameraMovement::eLeft, delTime);
                 isMovedCamera = true;
             }
             if (pressKeyRight   )
             {
-                cameraController.ProcessKeyboard(RTLib::Utils::CameraMovement::eRight, delTime);
+                cameraController.ProcessKeyboard(RTLib::Core::CameraMovement::eRight, delTime);
                 isMovedCamera = true;
             }
             if (pressKeyForward )
             {
-                cameraController.ProcessKeyboard(RTLib::Utils::CameraMovement::eForward, delTime);
+                cameraController.ProcessKeyboard(RTLib::Core::CameraMovement::eForward, delTime);
                 isMovedCamera = true;
             }
             if (pressKeyBackward)
             {
-                cameraController.ProcessKeyboard(RTLib::Utils::CameraMovement::eBackward,  delTime);
+                cameraController.ProcessKeyboard(RTLib::Core::CameraMovement::eBackward,  delTime);
                 isMovedCamera = true;
             }
             if (pressKeyUp      )
             {
-                cameraController.ProcessKeyboard(RTLib::Utils::CameraMovement::eUp,  delTime);
+                cameraController.ProcessKeyboard(RTLib::Core::CameraMovement::eUp,  delTime);
                 isMovedCamera = true;
             }
             if (pressKeyDown    )
             {
-                cameraController.ProcessKeyboard(RTLib::Utils::CameraMovement::eDown,  delTime);
+                cameraController.ProcessKeyboard(RTLib::Core::CameraMovement::eDown,  delTime);
                 isMovedCamera = true;
             }
             if (mouseButtonManager->GetState(GLFW_MOUSE_BUTTON_LEFT)->isPressed)
