@@ -10,3 +10,7 @@ endif()
 if (OptiX_FOUND AND CUDAToolkit_FOUND)
     add_subdirectory(OPX7)
 endif()
+
+if (embree_FOUND)
+    add_subdirectory(Embree)
+endif()
