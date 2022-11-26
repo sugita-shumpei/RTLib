@@ -48,6 +48,9 @@ set(RTLIB_CORE_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Core/Camera.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Src/Camera.cpp
     
+    ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Core/ShaderTableLayout.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Src/ShaderTableLayout.cpp
+
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Core/Math.h
     
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Core/AABB.h
