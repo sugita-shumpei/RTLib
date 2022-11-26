@@ -756,7 +756,7 @@ namespace rtlib
             }
             return nullptr;
         }
-        
+        /*
         inline auto LoadShaderSource(const char* filename)->std::vector<GLchar>
         {
             auto shaderSource = std::vector<GLchar>();
@@ -785,7 +785,7 @@ namespace rtlib
                 sourceFile.close();
             }
             return shaderBinary;
-        }
+        }*/
 
         inline auto GetDefaultSceneJson()->nlohmann::json {
             auto cameraController = RTLib::Core::CameraController({ 0.0f, 1.0f, 5.0f });
