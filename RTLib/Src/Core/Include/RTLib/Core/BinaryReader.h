@@ -233,8 +233,21 @@ namespace RTLib {
 
         }
         
-        
-        
+        template<typename IntegerType>
+        inline auto LoadBinary(const char* filename) -> std::vector<IntegerType>
+        {
+            auto sourceBinary = std::vector<IntegerType>();
+            auto sourceFile = std::ifstream(filename, std::ios::binary);
+            if (sourceFile.is_open()) {
+                sourceFile.seekg(0, std::ios::end);
+                auto size = static_cast<size_t>(sourceFile.tellg());
+                sourceBinary.resize(size / sizeof(sourceBinary[0]));
+                sourceFile.seekg(0, std::ios::beg);
+                sourceFile.read((char*)sourceBinary.data(), size);
+                sourceFile.close();
+            }
+            return sourceBinary;
+        }
 
     }
 }
