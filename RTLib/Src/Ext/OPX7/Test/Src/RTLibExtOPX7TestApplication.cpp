@@ -377,9 +377,9 @@ void RTLibExtOPX7TestApplication::LoadScene(int argc, const char** argv)
 
 void RTLibExtOPX7TestApplication::InitPtxString()
 {
-    m_PtxStringMap["SimpleTrace.ptx"]  = rtlib::test::LoadShaderSource(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/SimpleTrace.optixir");
-    m_PtxStringMap["SimpleGuide.ptx"]  = rtlib::test::LoadShaderSource(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/SimpleGuide.optixir");
-    m_PtxStringMap["SimpleGuide2.ptx"] = rtlib::test::LoadShaderSource(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/SimpleGuide2.optixir");
+    m_PtxStringMap["SimpleTrace.ptx"]  = rtlib::test::LoadBinary<char>(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/SimpleTrace.optixir");
+    m_PtxStringMap["SimpleGuide.ptx"]  = rtlib::test::LoadBinary<char>(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/SimpleGuide.optixir");
+    m_PtxStringMap["SimpleGuide2.ptx"] = rtlib::test::LoadBinary<char>(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/SimpleGuide2.optixir");
 }
 
 void RTLibExtOPX7TestApplication::InitDefTracer()
