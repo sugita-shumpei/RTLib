@@ -320,7 +320,7 @@ namespace RTLib
 	}
 }
 
-int main()
+int RenderTrace()
 {
     auto device = Internal_MakeEmbreeDevice(nullptr);
     auto scene  = RTLib::Ext::Embree::LoadScene(RTLIB_EXT_EMBREE_TEST_TEST0_JSON_PATH"/scene4.json");
@@ -385,11 +385,11 @@ int main()
                                     
                                     auto  vNormal = RTLib::Core::Normalize(std::array<float, 3>{rayHit.hit.Ng_x, rayHit.hit.Ng_y, rayHit.hit.Ng_z});/*RTLib::Core::Normalize(RTLib::Core::Cross(RTLib::Core::Sub(vertex1, vertex0), RTLib::Core::Sub(vertex2, vertex0)));*/
                                     
-                                    const auto  cosine = vNormal[0] * rayHit.ray.dir_x + vNormal[1] * rayHit.ray.dir_y + vNormal[2] * rayHit.ray.dir_z;
-                                    const auto& diffCol = objModel.materials[matIndex].GetFloat3Or("diffCol", { 0.0f,0.0f,0.0f });
-                                    const auto& specCol = objModel.materials[matIndex].GetFloat3Or("specCol", { 0.0f,0.0f,0.0f });
-                                    const auto& emitCol = objModel.materials[matIndex].GetFloat3Or("emitCol", { 0.0f,0.0f,0.0f });
-                                    const auto  illum = objModel.materials[matIndex].GetUInt32Or("illum", 0);
+                                    const auto  cosine   = vNormal[0] * rayHit.ray.dir_x + vNormal[1] * rayHit.ray.dir_y + vNormal[2] * rayHit.ray.dir_z;
+                                    const auto& diffCol  = objModel.materials[matIndex].GetFloat3Or("diffCol", { 0.0f,0.0f,0.0f });
+                                    const auto& specCol  = objModel.materials[matIndex].GetFloat3Or("specCol", { 0.0f,0.0f,0.0f });
+                                    const auto& emitCol  = objModel.materials[matIndex].GetFloat3Or("emitCol", { 0.0f,0.0f,0.0f });
+                                    const auto  illum    = objModel.materials[matIndex].GetUInt32Or("illum", 0);
                                     const auto  shinness = objModel.materials[matIndex].GetFloat1Or("shinness", 1.0f);
                                     const auto  refrIndx = objModel.materials[matIndex].GetFloat1Or("refrIndx", 1.0f);
                                     
@@ -402,36 +402,78 @@ int main()
                                     }
 
                                     if (illum != 7) {
-                                        atten[0] *= (diffCol[0] * std::max(-cosine, 0.0f) * (4.0f * (float)RTLIB_CORE_MATH_CONSTANTS_PI) / (float)RTLIB_CORE_MATH_CONSTANTS_PI);
-                                        atten[1] *= (diffCol[1] * std::max(-cosine, 0.0f) * (4.0f * (float)RTLIB_CORE_MATH_CONSTANTS_PI) / (float)RTLIB_CORE_MATH_CONSTANTS_PI);
-                                        atten[2] *= (diffCol[2] * std::max(-cosine, 0.0f) * (4.0f * (float)RTLIB_CORE_MATH_CONSTANTS_PI) / (float)RTLIB_CORE_MATH_CONSTANTS_PI);
+                                        //RANDOM_IN_UNIT_SPHERE
+                                        //atten[0] *= (diffCol[0] * std::max(-cosine, 0.0f) * (4.0f * (float)RTLIB_CORE_MATH_CONSTANTS_PI) / (float)RTLIB_CORE_MATH_CONSTANTS_PI);
+                                        //atten[1] *= (diffCol[1] * std::max(-cosine, 0.0f) * (4.0f * (float)RTLIB_CORE_MATH_CONSTANTS_PI) / (float)RTLIB_CORE_MATH_CONSTANTS_PI);
+                                        //atten[2] *= (diffCol[2] * std::max(-cosine, 0.0f) * (4.0f * (float)RTLIB_CORE_MATH_CONSTANTS_PI) / (float)RTLIB_CORE_MATH_CONSTANTS_PI);
+                                        //
+                                        //auto rand0 = std::uniform_real_distribution<float>(0.0f, 2.0f)(mt);
+                                        //auto rand1 = std::uniform_real_distribution<float>(0.0f, 2.0f)(mt);
+                                        //const float r = rand0 - 1.0f;
+                                        //const float z = sqrtf(1.0f - r * r);
+                                        //const float t = rand1 * RTLIB_CORE_MATH_CONSTANTS_PI;
 
-                                        auto rand0 = std::uniform_real_distribution<float>(0.0f, 2.0f)(mt);
-                                        auto rand1 = std::uniform_real_distribution<float>(0.0f, 2.0f)(mt);
-                                        const float r = rand0 - 1.0f;
-                                        const float z = sqrtf(1.0f - r * r);
-                                        const float t = rand1 * RTLIB_CORE_MATH_CONSTANTS_PI;
+                                        atten[0] *= (diffCol[0] * static_cast<float>( cosine< 0.0f));
+                                        atten[1] *= (diffCol[1] * static_cast<float>( cosine< 0.0f));
+                                        atten[2] *= (diffCol[2] * static_cast<float>( cosine< 0.0f));
+
+                                        auto rand0 = std::uniform_real_distribution<float>(0.0f, 1.0f)(mt);
+                                        auto rand1 = std::uniform_real_distribution<float>(0.0f, 1.0f)(mt);
+
+                                        const float r = sqrtf(rand0);
+                                        const float z = sqrtf(1.0f - rand0);
+                                        const float t = 2.0f * rand1 * (float)RTLIB_CORE_MATH_CONSTANTS_PI;
+                                        //{r* ::cosf(t), r* ::sinf(t), z};
+                                        auto norm = vNormal;
+                                        auto binm = std::array<float, 3>{};
+                                        if (fabsf(vNormal[0]) > fabsf(vNormal[2])) {
+                                            binm[0] = -norm[1];
+                                            binm[1] =  norm[0];
+                                            binm[2] =     0.0f;
+                                        }
+                                        else {
+                                            binm[0] =0.0f;
+                                            binm[1] =-norm[2];
+                                            binm[2] = norm[1];
+                                        }
+                                        binm = RTLib::Core::Normalize(binm);
+                                        auto tagt = RTLib::Core::Normalize(RTLib::Core::Cross(norm, binm));
 
                                         rayHit.ray.org_x += (rayHit.ray.dir_x * rayHit.ray.tfar + 0.01f * vNormal[0]);
                                         rayHit.ray.org_y += (rayHit.ray.dir_y * rayHit.ray.tfar + 0.01f * vNormal[1]);
                                         rayHit.ray.org_z += (rayHit.ray.dir_z * rayHit.ray.tfar + 0.01f * vNormal[2]);
 
-                                        rayHit.ray.dir_x = z * ::cosf(t);
-                                        rayHit.ray.dir_y = z * ::sinf(t);
-                                        rayHit.ray.dir_z = r;
+                                        auto dir = RTLib::Core::Normalize(std::array<float, 3>{
+
+                                            z* ::cosf(t)* tagt[0] + z * ::sinf(t) * binm[0] + r * norm[0],
+                                            z* ::cosf(t)* tagt[1] + z * ::sinf(t) * binm[1] + r * norm[1],
+                                            z* ::cosf(t)* tagt[2] + z * ::sinf(t) * binm[2] + r * norm[2]
+                                        });
+                                        rayHit.ray.dir_x = dir[0];
+                                        rayHit.ray.dir_y = dir[1];
+                                        rayHit.ray.dir_z = dir[2];
                                     }
                                     else {
                                         if (!sharedRes->normalBuffer.empty()) {
-                                            auto fNormal = std::array<float, 3>();
-                                            rtcInterpolate0(uniqueRes->GetExtData<RTLib::Ext::Embree::Embree3MeshUniqueResourceExtData>()->geometry.get(), rayHit.hit.primID, rayHit.hit.u, rayHit.hit.v, RTC_BUFFER_TYPE_NORMAL, 0, fNormal.data(), 3);
-                                            if ((fNormal[0] != 0.0f) || (fNormal[1] != 0.0f) || (fNormal[2] != 0.0f)) {
-                                                vNormal = RTLib::Core::Normalize(fNormal);
-                                            }
+                                            auto fNormal0 = sharedRes->normalBuffer[uniqueRes->triIndBuffer[rayHit.hit.primID][0]];
+                                            auto fNormal1 = sharedRes->normalBuffer[uniqueRes->triIndBuffer[rayHit.hit.primID][1]];
+                                            auto fNormal2 = sharedRes->normalBuffer[uniqueRes->triIndBuffer[rayHit.hit.primID][2]];
+                                            
+                                            auto dfNormal10 = RTLib::Core::Sub(fNormal1, fNormal0);
+                                            auto dfNormal20 = RTLib::Core::Sub(fNormal2, fNormal0);
 
+                                            vNormal = RTLib::Core::Normalize(
+                                                std::array<float, 3>{
+                                                    fNormal0[0] + rayHit.hit.u * dfNormal10[0] + rayHit.hit.v * dfNormal20[0],
+                                                    fNormal0[1] + rayHit.hit.u * dfNormal10[1] + rayHit.hit.v * dfNormal20[1],
+                                                    fNormal0[2] + rayHit.hit.u * dfNormal10[2] + rayHit.hit.v * dfNormal20[2],
+                                                }
+                                            );
+                                            
                                         }
                                         std::array<float, 3> rNormal = {};
-                                        float  rRefIdx = 0.0f;
-                                        float cosine_i = cosine;
+                                        float rRefIdx = 0.0f;
+                                        float cosine_i = vNormal[0] * rayHit.ray.dir_x + vNormal[1] * rayHit.ray.dir_y + vNormal[2] * rayHit.ray.dir_z;
                                         if (cosine_i < 0.0f) {
                                             rNormal = vNormal;
                                             rRefIdx = 1.0f / refrIndx;
@@ -453,12 +495,12 @@ int main()
                                             float  f0 = ((1 - rRefIdx) / (1 + rRefIdx)) * ((1 - rRefIdx) / (1 + rRefIdx));
                                             fresnell = f0 + (1.0f - f0) * (1.0f - cosine_i) * (1.0f - cosine_i) * (1.0f - cosine_i) * (1.0f - cosine_i) * (1.0f - cosine_i);
                                         }
-
-                                        auto reflDir = std::array<float, 3>{
-                                            rayHit.ray.dir_x + 2.0f * cosine_i * rNormal[0],
-                                                rayHit.ray.dir_y + 2.0f * cosine_i * rNormal[1],
-                                                rayHit.ray.dir_z + 2.0f * cosine_i * rNormal[2]
-                                        };
+                                        float r_cosine_i = rNormal[0] * rayHit.ray.dir_x + rNormal[1] * rayHit.ray.dir_y + rNormal[2] * rayHit.ray.dir_z;
+                                        auto reflDir = RTLib::Core::Normalize(std::array<float, 3>{
+                                            rayHit.ray.dir_x - 2.0f * r_cosine_i * rNormal[0],
+                                            rayHit.ray.dir_y - 2.0f * r_cosine_i * rNormal[1],
+                                            rayHit.ray.dir_z - 2.0f * r_cosine_i * rNormal[2]
+                                        });
 
                                         if (std::uniform_real_distribution<float>(0.0f, 1.0f)(mt) < fresnell || sine_o_2 > 1.0f) {
                                             rayHit.ray.org_x += (rayHit.ray.dir_x * rayHit.ray.tfar + 0.01f * rNormal[0]);
@@ -476,16 +518,20 @@ int main()
                                             rayHit.ray.org_x += (rayHit.ray.dir_x * rayHit.ray.tfar - 0.01f * rNormal[0]);
                                             rayHit.ray.org_y += (rayHit.ray.dir_y * rayHit.ray.tfar - 0.01f * rNormal[1]);
                                             rayHit.ray.org_z += (rayHit.ray.dir_z * rayHit.ray.tfar - 0.01f * rNormal[2]);
+
                                             float  sine_i_2 = std::max(1.0f - cosine_i * cosine_i, 0.0f);
                                             float  cosine_o = sqrtf(1.0f - sine_o_2);
                                             if (sine_i_2 > 0.0f) {
                                                 auto refrDir = std::array<float, 3>{};
-                                                std::array<float, 3> k = std::array<float, 3>{rayHit.ray.dir_x + cosine_i * rNormal[0], rayHit.ray.dir_y + cosine_i * rNormal[1], rayHit.ray.dir_z + cosine_i * rNormal[2]};
+                                                std::array<float, 3> k = std::array<float, 3>{
+                                                    rayHit.ray.dir_x + cosine_i * rNormal[0], 
+                                                    rayHit.ray.dir_y + cosine_i * rNormal[1], 
+                                                    rayHit.ray.dir_z + cosine_i * rNormal[2]};
                                                 auto tmp = sqrtf(sine_o_2) / sqrtf(sine_i_2);
                                                 refrDir = RTLib::Core::Normalize(std::array<float, 3>{
                                                     tmp* k[0] - cosine_o * rNormal[0],
-                                                        tmp* k[1] - cosine_o * rNormal[1],
-                                                        tmp* k[2] - cosine_o * rNormal[2]
+                                                    tmp* k[1] - cosine_o * rNormal[1],
+                                                    tmp* k[2] - cosine_o * rNormal[2]
                                                 });
 
                                                 rayHit.ray.dir_x = refrDir[0];
@@ -530,4 +576,129 @@ int main()
         thread.join();
     }
     stbi_write_png(RTLIB_EXT_EMBREE_TEST_TEST0_JSON_PATH"/Result.png", scene.config.width, scene.config.height, 4,images.data(), 4 * scene.config.width);
+}
+
+int RenderDebug()
+{
+    auto device = Internal_MakeEmbreeDevice(nullptr);
+    auto scene = RTLib::Ext::Embree::LoadScene(RTLIB_EXT_EMBREE_TEST_TEST0_JSON_PATH"/scene4.json");
+    scene.InitExtData(device.get());
+    auto gasHandleMap = scene.BuildGeometryASs(device.get());
+    auto& root = gasHandleMap.at("CornellBox-Water");
+    std::random_device rd;
+    std::vector<unsigned char> images(scene.config.width * scene.config.height * 4, 255);
+    std::vector<std::thread> ths;
+    size_t numThreads = std::thread::hardware_concurrency();
+    for (int t = 0; t < numThreads; ++t) {
+
+        ths.emplace_back([&scene, &root, &images, t, numThreads](size_t seed) {
+            auto camera = scene.cameraController.GetCamera((float)scene.config.width / (float)scene.config.height);
+            auto [u, v, w] = camera.GetUVW();
+            RTCRayHit rayHit;
+            std::mt19937_64 mt(seed);
+            for (int j = t; j < scene.config.height; j += numThreads) {
+                for (int i = 0; i < scene.config.width; ++i) {
+
+                    auto radiance = std::array<float, 3>{0.0f, 0.0f, 0.0f};
+                    for (int s = 0; s < scene.config.maxSamples; ++s) {
+                        rayHit.ray.org_x = camera.GetEye()[0];
+                        rayHit.ray.org_y = camera.GetEye()[1];
+                        rayHit.ray.org_z = camera.GetEye()[2];
+
+                        const auto d = std::array<float, 2>{
+                            2.0f * static_cast<float>(i + std::uniform_real_distribution<float>(0.0f, 1.0f)(mt)) / static_cast<float>(scene.config.width) - 1.0f,
+                                2.0f * static_cast<float>(j + std::uniform_real_distribution<float>(0.0f, 1.0f)(mt)) / static_cast<float>(scene.config.height) - 1.0f};
+                        auto dir = RTLib::Core::Normalize(
+                            RTLib::Core::Add(
+                                RTLib::Core::Sub(
+                                    RTLib::Core::Mul({ -d[0],-d[0],-d[0] }, u),
+                                    RTLib::Core::Mul({ d[1], d[1], d[1] }, v)
+                                ),
+                                w)
+                        );
+
+
+                        rayHit.ray.dir_x = dir[0];
+                        rayHit.ray.dir_y = dir[1];
+                        rayHit.ray.dir_z = dir[2];
+                        rayHit.ray.tnear = 1e-10f;
+                        rayHit.ray.tfar = FLT_MAX;
+                        rayHit.hit.geomID = RTC_INVALID_GEOMETRY_ID;
+
+                        auto color = std::array<float, 3>{0.0f, 0.0f, 0.0f};
+                        auto atten = std::array<float, 3>{1.0f, 1.0f, 1.0f};
+                        {
+
+                            RTCIntersectContext ctx;
+                            rtcInitIntersectContext(&ctx);
+                            rtcIntersect1(root.handle.get(), &ctx, &rayHit);
+                            if (rayHit.hit.geomID != RTC_INVALID_GEOMETRY_ID) {
+                                auto& geoInfo = root.geometries.at(rayHit.hit.geomID);
+                                if (geoInfo.type == RTLib::Ext::Embree::GeometryAccelerationStructureData::GeometryTypeTriangleArray) {
+                                    const auto& geometry = scene.world.geometryObjModels.at(geoInfo.name);
+                                    const auto& objModel = scene.objAssetManager.GetAsset(geometry.base);
+                                    const auto& sharedRes = objModel.meshGroup->GetSharedResource();
+                                    const auto& uniqueRes = objModel.meshGroup->GetUniqueResource(geoInfo.subname);
+                                    const auto& matIndex = uniqueRes->materials[uniqueRes->matIndBuffer[rayHit.hit.primID]];
+
+                                    auto  vNormal = RTLib::Core::Normalize(std::array<float, 3>{rayHit.hit.Ng_x, rayHit.hit.Ng_y, rayHit.hit.Ng_z});/*RTLib::Core::Normalize(RTLib::Core::Cross(RTLib::Core::Sub(vertex1, vertex0), RTLib::Core::Sub(vertex2, vertex0)));*/
+                                    
+                                    const auto  cosine = vNormal[0] * rayHit.ray.dir_x + vNormal[1] * rayHit.ray.dir_y + vNormal[2] * rayHit.ray.dir_z;
+                                    const auto& diffCol = objModel.materials[matIndex].GetFloat3Or("diffCol", { 0.0f,0.0f,0.0f });
+                                    const auto& specCol = objModel.materials[matIndex].GetFloat3Or("specCol", { 0.0f,0.0f,0.0f });
+                                    const auto& emitCol = objModel.materials[matIndex].GetFloat3Or("emitCol", { 0.0f,0.0f,0.0f });
+                                    const auto  illum = objModel.materials[matIndex].GetUInt32Or("illum", 0);
+                                    const auto  shinness = objModel.materials[matIndex].GetFloat1Or("shinness", 1.0f);
+                                    const auto  refrIndx = objModel.materials[matIndex].GetFloat1Or("refrIndx", 1.0f);
+                                    if (illum == 7) {
+                                        auto fNormal0 = sharedRes->normalBuffer[uniqueRes->triIndBuffer[rayHit.hit.primID][0]];
+                                        auto fNormal1 = sharedRes->normalBuffer[uniqueRes->triIndBuffer[rayHit.hit.primID][1]];
+                                        auto fNormal2 = sharedRes->normalBuffer[uniqueRes->triIndBuffer[rayHit.hit.primID][2]];
+
+                                        auto dfNormal10 = RTLib::Core::Sub(fNormal1, fNormal0);
+                                        auto dfNormal20 = RTLib::Core::Sub(fNormal2, fNormal0);
+
+                                        vNormal = RTLib::Core::Normalize(
+                                            std::array<float, 3>{
+                                            fNormal0[0] + rayHit.hit.u * dfNormal10[0] + rayHit.hit.v * dfNormal20[0],
+                                                fNormal0[1] + rayHit.hit.u * dfNormal10[1] + rayHit.hit.v * dfNormal20[1],
+                                                fNormal0[2] + rayHit.hit.u * dfNormal10[2] + rayHit.hit.v * dfNormal20[2],
+                                        }
+                                        );
+
+                                    }
+                                    color[0] = (vNormal[0] + 1.0f) / 2.0f;
+                                    color[1] = (vNormal[1] + 1.0f) / 2.0f;
+                                    color[2] = (vNormal[2] + 1.0f) / 2.0f;
+                                }
+                                if (geoInfo.type == RTLib::Ext::Embree::GeometryAccelerationStructureData::GeometryTypeSphereArray) {
+                                    auto& geometry = scene.world.geometrySphereLists.at(geoInfo.name);
+                                    break;
+                                }
+                            }
+                            else {
+                                break;
+                            }
+                        }
+                        radiance[0] += color[0];
+                        radiance[1] += color[1];
+                        radiance[2] += color[2];
+                    }
+                    radiance[0] /= (float)scene.config.maxSamples;
+                    radiance[1] /= (float)scene.config.maxSamples;
+                    radiance[2] /= (float)scene.config.maxSamples;
+                    images[4 * (j * scene.config.width + i) + 0] = 255 * radiance[0];
+                    images[4 * (j * scene.config.width + i) + 1] = 255 * radiance[1];
+                    images[4 * (j * scene.config.width + i) + 2] = 255 * radiance[2];
+                }
+            }
+            }, rd());
+    }
+    for (auto& thread : ths) {
+        thread.join();
+    }
+    stbi_write_png(RTLIB_EXT_EMBREE_TEST_TEST0_JSON_PATH"/Result2.png", scene.config.width, scene.config.height, 4, images.data(), 4 * scene.config.width);
+}
+int main() {
+    RenderTrace();
 }
