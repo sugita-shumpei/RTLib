@@ -104,7 +104,7 @@ configure_file(
 )
 target_include_directories(RTLib-Ext-OPX7-Test-Lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Test/Include ${CMAKE_CURRENT_BINARY_DIR}/Test/cuda PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/Test )
 
-target_link_libraries(RTLib-Ext-OPX7-Test-Lib PUBLIC RTLib-Ext-OPX7 tinyexr::tinyexr stb::stb)
+target_link_libraries(RTLib-Ext-OPX7-Test-Lib PUBLIC RTLib-Ext-OPX7)
 
 add_custom_target(RTLib-Ext-OPX7-Test-Lib-Build-Kernel)
 add_custom_command(TARGET RTLib-Ext-OPX7-Test-Lib-Build-Kernel PRE_BUILD
