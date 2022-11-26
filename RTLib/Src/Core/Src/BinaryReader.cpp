@@ -1,6 +1,7 @@
-
+#define STB_IMAGE_IMPLEMENTATION
 #include <RTLib/Core/BinaryReader.h>
 #include <tiny_obj_loader.h>
+#include <stb_image.h>
 #include <filesystem>
 #include <string>
 #include <unordered_map>
@@ -762,4 +763,20 @@ void RTLib::Core::ObjModelAssetManager::SaveAssetCache(const std::string& keyNam
     cacheJsonFile << cacheJsonData;
     cacheJsonFile.close();
     return;
+}
+
+auto RTLib::Core::LoadDefImage(const char* filename, int& width, int& height, int& channels, int reqChannels) -> std::vector<unsigned char>
+{
+    auto pixelData = stbi_load(filename, &width, &height, &channels, reqChannels);
+    if (!pixelData) { return std::vector<unsigned char>(); }
+    auto imgData = std::vector<unsigned char>(width * height * reqChannels, 255);
+    {
+        for (size_t i = 0; i < height; ++i) {
+            auto srcData = pixelData + 4 * width * (height - 1 - i);
+            auto dstData = imgData.data() + 4 * width * i;
+            std::memcpy(dstData, srcData, 4 * width);
+        }
+    }
+    stbi_image_free(pixelData);
+    return imgData;
 }

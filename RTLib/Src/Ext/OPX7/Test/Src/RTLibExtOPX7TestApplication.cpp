@@ -1,8 +1,4 @@
-#define STB_IMAGE_IMPLEMENTATION
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#define TINYEXR_IMPLEMENTATION
 #include <RTLibExtOPX7TestApplication.h>
-
 void RTLibExtOPX7TestApplication::CursorPosCallback(RTLib::Core::Window* window, double x, double y)
 {
     auto pWindowState = reinterpret_cast<rtlib::test::WindowState*>(window->GetUserPointer());
@@ -3232,7 +3228,7 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
              hdr_image_data[3 * (pixelSize - 1 - i) + 1] = download_data[3 * i + 1] / static_cast<float>(m_SamplesForAccum);
              hdr_image_data[3 * (pixelSize - 1 - i) + 2] = download_data[3 * i + 2] / static_cast<float>(m_SamplesForAccum);
          }
-         rtlib::test::SaveExrImage(configData.exrFilePath.c_str(), m_SceneData.config.width, m_SceneData.config.height, hdr_image_data);
+         RTLib::Core::SaveExrImage(configData.exrFilePath.c_str(), m_SceneData.config.width, m_SceneData.config.height, hdr_image_data);
          std::ofstream imageBinFile(configData.binFilePath, std::ios::binary | std::ios::ate);
          imageBinFile.write((char*)hdr_image_data.data(), hdr_image_data.size() * sizeof(hdr_image_data[0]));
          imageBinFile.close();
@@ -3246,6 +3242,6 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
              png_image_data[4 * i + 2] = 255.99f * std::min(RTLib::Ext::CUDA::Math::linear_to_gamma(download_data[3 * (pixelSize - 1 - i) + 2] / static_cast<float>(m_SamplesForAccum)), 1.0f);
              png_image_data[4 * i + 3] = 255;
          }
-         rtlib::test::SavePngImage(configData.pngFilePath.c_str(), m_SceneData.config.width, m_SceneData.config.height, png_image_data);
+         RTLib::Core::SavePngImage(configData.pngFilePath.c_str(), m_SceneData.config.width, m_SceneData.config.height, png_image_data);
      }
  }
