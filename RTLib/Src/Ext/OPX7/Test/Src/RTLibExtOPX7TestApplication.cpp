@@ -2609,11 +2609,11 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
                                     auto material = meshData.materials[i / desc.recordStride];
                                     hitgroupData.type = rtlib::test::SpecifyMaterialType(material,mesh);
                                     hitgroupData.vertices = reinterpret_cast<float3*>(extSharedData->GetVertexBufferGpuAddress());
-                                    hitgroupData.indices = reinterpret_cast<uint3*>(extUniqueData->GetTriIdxBufferGpuAddress());
+                                    hitgroupData.indices  = reinterpret_cast<uint3*>(extUniqueData->GetTriIdxBufferGpuAddress());
                                     hitgroupData.indCount = extUniqueData->GetTriIdxCount();
-                                    hitgroupData.normals = reinterpret_cast<float3*>(extSharedData->GetNormalBufferGpuAddress());
-                                    hitgroupData.texCrds = reinterpret_cast<float2*>(extSharedData->GetTexCrdBufferGpuAddress());
-                                    hitgroupData.diffuse = material.GetFloat3As<float3>("diffCol");
+                                    hitgroupData.normals  = reinterpret_cast<float3*>(extSharedData->GetNormalBufferGpuAddress());
+                                    hitgroupData.texCrds  = reinterpret_cast<float2*>(extSharedData->GetTexCrdBufferGpuAddress());
+                                    hitgroupData.diffuse  = material.GetFloat3As<float3>("diffCol");
                                     hitgroupData.emission = material.GetFloat3As<float3>("emitCol");
                                     hitgroupData.specular = material.GetFloat3As<float3>("specCol");
                                     hitgroupData.shinness = material.GetFloat1("shinness");
