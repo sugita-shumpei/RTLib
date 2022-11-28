@@ -14,8 +14,8 @@ auto RTLib::Ext::OPX7::OPX7GeometryTriangle::GetOptixBuildInputWithHolder() cons
 	holder->flags = m_GeometryFlags;
 
 	OptixBuildInput buildInput;
-	buildInput.type = OPTIX_BUILD_INPUT_TYPE_TRIANGLES;
-
+	buildInput.type = OPTIX_BUILD_INPUT_TYPE_TRIANGLES;	
+	buildInput.triangleArray = {};
 	buildInput.triangleArray.vertexBuffers = &holder->vertexBufferGpuAddress;
 	buildInput.triangleArray.vertexStrideInBytes = GetVertexView().stride;
 	buildInput.triangleArray.numVertices = GetVertexView().GetNumVertices();
@@ -124,7 +124,7 @@ auto RTLib::Ext::OPX7::OPX7GeometrySphere  ::GetOptixBuildInputWithHolder() cons
 
 	OptixBuildInput buildInput;
 	buildInput.type = OPTIX_BUILD_INPUT_TYPE_SPHERES;
-
+	buildInput.sphereArray = {};
 	buildInput.sphereArray.vertexBuffers = &holder->vertexBufferGpuAddress;
 	buildInput.sphereArray.vertexStrideInBytes = GetVertexView().stride;
 	buildInput.sphereArray.numVertices = GetVertexView().GetNumVertices();

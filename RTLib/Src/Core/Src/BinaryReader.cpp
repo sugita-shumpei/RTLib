@@ -765,16 +765,32 @@ void RTLib::Core::ObjModelAssetManager::SaveAssetCache(const std::string& keyNam
     return;
 }
 
-auto RTLib::Core::LoadDefImage(const char* filename, int& width, int& height, int& channels, int reqChannels) -> std::vector<unsigned char>
+auto RTLib::Core::LoadDefImage(std::string filename, int& width, int& height, int& channels, int reqChannels) -> std::vector<unsigned char>
 {
-    auto pixelData = stbi_load(filename, &width, &height, &channels, reqChannels);
+    auto pixelData = stbi_load(filename.c_str(), &width, &height, &channels, reqChannels);
     if (!pixelData) { return std::vector<unsigned char>(); }
-    auto imgData = std::vector<unsigned char>(width * height * reqChannels, 255);
+    auto imgData = std::vector<unsigned char>(width * height * channels, 255);
     {
         for (size_t i = 0; i < height; ++i) {
-            auto srcData = pixelData + 4 * width * (height - 1 - i);
-            auto dstData = imgData.data() + 4 * width * i;
-            std::memcpy(dstData, srcData, 4 * width);
+            auto srcData = pixelData + channels * width * (height - 1 - i);
+            auto dstData = imgData.data() + channels * width * i;
+            std::memcpy(dstData, srcData, channels * width);
+        }
+    }
+    stbi_image_free(pixelData);
+    return imgData;
+}
+
+auto RTLib::Core::LoadHdrImage(std::string filename, int& width, int& height, int& channels, int reqChannels) -> std::vector<float>
+{
+    auto pixelData = stbi_loadf(filename.c_str(), &width, &height, &channels, reqChannels);
+    if (!pixelData) { return std::vector<float>(); }
+    auto imgData = std::vector<float>(width * height * channels, 1.0f);
+    {
+        for (size_t i = 0; i < height; ++i) {
+            auto srcData = pixelData + channels * width * (height - 1 - i);
+            auto dstData = imgData.data() + channels * width * i;
+            std::memcpy(dstData, srcData, channels * width*sizeof(float));
         }
     }
     stbi_image_free(pixelData);

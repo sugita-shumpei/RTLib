@@ -511,7 +511,7 @@ private:
 
     std::array<float, 3> m_WorldAabbMin = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
     std::array<float, 3> m_WorldAabbMax = { FLT_MAX, FLT_MAX, FLT_MAX };
-
+    float3 m_BgColor = make_float3(0.0f);
     int   m_SamplesForAccum = 0;
 
     unsigned long long m_TimesForAccum = 0;

@@ -249,7 +249,8 @@ namespace RTLib {
             return sourceBinary;
         }
 
-        auto LoadDefImage(const char* filename, int& width, int& height, int& channels, int reqChannels)->std::vector<unsigned char>;
+        auto LoadDefImage(std::string filename, int& width, int& height, int& channels, int reqChannels)->std::vector<unsigned char>;
+        auto LoadHdrImage(std::string filename, int& width, int& height, int& channels, int reqChannels)->std::vector<float>;
     }
 }
 #endif
