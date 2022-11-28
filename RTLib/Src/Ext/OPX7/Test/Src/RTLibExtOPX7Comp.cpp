@@ -82,15 +82,15 @@ int main(int argc, const char* argv[]) {
         }
         imageFile.close();
     }
-    auto defMAEs   = std::vector<std::tuple<unsigned int, float, float>>();
-    auto neeMAEs   = std::vector<std::tuple<unsigned int, float, float>>();
-    auto risMAEs   = std::vector<std::tuple<unsigned int, float, float>>();
-    auto pgdefMAEs = std::vector<std::tuple<unsigned int, float, float>>();
-    auto pgneeMAEs = std::vector<std::tuple<unsigned int, float, float>>();
-    auto pgrisMAEs = std::vector<std::tuple<unsigned int, float, float>>();
-    auto htdefMAEs = std::vector<std::tuple<unsigned int, float, float>>();
-    auto htneeMAEs = std::vector<std::tuple<unsigned int, float, float>>();
-    auto htrisMAEs = std::vector<std::tuple<unsigned int, float, float>>();
+    auto defMAEs   = std::vector<std::tuple<unsigned int, float, float, float>>();
+    auto neeMAEs   = std::vector<std::tuple<unsigned int, float, float, float>>();
+    auto risMAEs   = std::vector<std::tuple<unsigned int, float, float, float>>();
+    auto pgdefMAEs = std::vector<std::tuple<unsigned int, float, float, float>>();
+    auto pgneeMAEs = std::vector<std::tuple<unsigned int, float, float, float>>();
+    auto pgrisMAEs = std::vector<std::tuple<unsigned int, float, float, float>>();
+    auto htdefMAEs = std::vector<std::tuple<unsigned int, float, float, float>>();
+    auto htneeMAEs = std::vector<std::tuple<unsigned int, float, float, float>>();
+    auto htrisMAEs = std::vector<std::tuple<unsigned int, float, float, float>>();
     for (std::filesystem::directory_entry pipelineDir : std::filesystem::directory_iterator(filePath)) {\
         if (pipelineDir.is_directory()) {
             for (std::filesystem::directory_entry imageDir : std::filesystem::directory_iterator(pipelineDir.path())) {
@@ -120,33 +120,39 @@ int main(int argc, const char* argv[]) {
                         imageFile.read((char*)compImageData.data(), compImageData.size() * sizeof(compImageData[0]));
                     }
                     imageFile.close();
-                    auto mean= float(0.0f);
-                    auto mae = float(0.0f);
+                    auto mean = float(0.0f);
+                    auto rmae  = float(0.0f);
+                    auto smape = float(0.0f);
                     if (isAllRange) {
                         for (int i = 0; i < baseImageData.size(); ++i) {
                             if (!(isnan(baseImageData[i].x) || isnan(baseImageData[i].y) || isnan(baseImageData[i].z) ||
                                   isnan(compImageData[i].x) || isnan(compImageData[i].y) || isnan(compImageData[i].z))) {
-  /*                              mae += (fabsf(baseImageData[i].x - compImageData[i].x)) + (fabsf(baseImageData[i].y - compImageData[i].y)) + (fabsf(baseImageData[i].z - compImageData[i].z));*/
-                                mae  += sqrtf((powf(baseImageData[i].x - compImageData[i].x,2.0f)) + (powf(baseImageData[i].y - compImageData[i].y,2.0f)) + (powf(baseImageData[i].z - compImageData[i].z,2.0f)));
-                                mean += sqrtf(powf(baseImageData[i].x,2.0f) + powf(baseImageData[i].y,2.0f) + powf(baseImageData[i].z,2.0f));
+                                /*                              mae += (fabsf(baseImageData[i].x - compImageData[i].x)) + (fabsf(baseImageData[i].y - compImageData[i].y)) + (fabsf(baseImageData[i].z - compImageData[i].z));*/
+                                if (sqrtf(powf(baseImageData[i].x, 2.0f) + powf(baseImageData[i].y, 2.0f) + powf(baseImageData[i].z, 2.0f)) > 0.0f) {
+                                    smape+= sqrtf((powf(baseImageData[i].x - compImageData[i].x, 2.0f)) + (powf(baseImageData[i].y - compImageData[i].y, 2.0f)) + (powf(baseImageData[i].z - compImageData[i].z, 2.0f))) / sqrtf(powf(baseImageData[i].x, 2.0f) + powf(baseImageData[i].y, 2.0f) + powf(baseImageData[i].z, 2.0f));
+                                    rmae += sqrtf((powf(baseImageData[i].x - compImageData[i].x, 2.0f)) + (powf(baseImageData[i].y - compImageData[i].y, 2.0f)) + (powf(baseImageData[i].z - compImageData[i].z, 2.0f)));
+                                    mean +=(sqrtf( powf(baseImageData[i].x, 2.0f) + powf(baseImageData[i].y, 2.0f) + powf(baseImageData[i].z, 2.0f))+ sqrtf(powf(compImageData[i].x, 2.0f) + powf(compImageData[i].y, 2.0f) + powf(compImageData[i].z, 2.0f)))*0.5f;
+                                }
                             }
                         }
-                        mae /= mean;
+                        smape /= static_cast<float>(baseImageData.size());
+                        rmae /= mean;
                     }
                     else {
                         for (int j = yCenter - yRange / 2; j < yCenter + yRange / 2; ++j) {
-
                             for (int i = xCenter - xRange / 2; i < xCenter + xRange / 2; ++i) {
                                 auto baseColor = baseImageData[imageSizeX * j + i];
                                 auto compColor = compImageData[imageSizeX * j + i];
-                                float delt_x =(fabsf(baseColor.x - compColor.x));
-                                float delt_y =(fabsf(baseColor.x - compColor.y));
-                                float delt_z =(fabsf(baseColor.x - compColor.z));
-                                mae += (delt_x + delt_y + delt_z) ;
-                                mean += baseColor.x + baseColor.y + baseColor.z;
+                                if (!(isnan(baseColor.x) || isnan(baseColor.y) || isnan(baseColor.z) ||
+                                    isnan(compColor.x) || isnan(compColor.y) || isnan(compColor.z))) {
+                                    smape+= sqrtf((powf(baseColor.x - compColor.x, 2.0f)) + (powf(baseColor.y - compColor.y, 2.0f)) + (powf(baseColor.z - compColor.z, 2.0f))) / sqrtf(powf(baseColor.x, 2.0f) + powf(baseColor.y, 2.0f) + powf(baseColor.z, 2.0f));
+                                    rmae += sqrtf((powf(baseColor.x - compColor.x, 2.0f)) + (powf(baseColor.y - compColor.y, 2.0f)) + (powf(baseColor.z - compColor.z, 2.0f)));
+                                    mean += (sqrtf(powf(baseColor.x, 2.0f) + powf(baseColor.y, 2.0f) + powf(baseColor.z, 2.0f))+ sqrtf(powf(compColor.x, 2.0f) + powf(compColor.y, 2.0f) + powf(compColor.z, 2.0f)))/2.0f;
+                                }
                             }
                         }
-                        mae /= mean;
+                        smape /= static_cast<float>(baseImageData.size());
+                        rmae  /= mean;
                     }
                     if (imgDiff)
                     {
@@ -165,31 +171,31 @@ int main(int argc, const char* argv[]) {
                         stbi_write_hdr(savePathStr.c_str(), imageSizeX, imageSizeY,1, errImages.data());
                     }
                     if (pipeline == "DEF") {
-                        defMAEs.push_back({ std::stoi(sampleStr),time,mae });
+                        defMAEs.push_back({ std::stoi(sampleStr),time,rmae ,smape });
                     }
                     if (pipeline == "NEE") {
-                        neeMAEs.push_back({ std::stoi(sampleStr),time,mae });
+                        neeMAEs.push_back({ std::stoi(sampleStr),time,rmae ,smape });
                     }
                     if (pipeline == "RIS") {
-                        risMAEs.push_back({ std::stoi(sampleStr),time,mae });
+                        risMAEs.push_back({ std::stoi(sampleStr),time,rmae ,smape });
                     }
                     if (pipeline == "PGDEF") {
-                        pgdefMAEs.push_back({ std::stoi(sampleStr),time,mae });
+                        pgdefMAEs.push_back({ std::stoi(sampleStr),time,rmae ,smape });
                     }
                     if (pipeline == "PGNEE") {
-                        pgneeMAEs.push_back({ std::stoi(sampleStr),time,mae });
+                        pgneeMAEs.push_back({ std::stoi(sampleStr),time,rmae ,smape });
                     }
                     if (pipeline == "PGRIS") {
-                        pgrisMAEs.push_back({ std::stoi(sampleStr),time,mae });
+                        pgrisMAEs.push_back({ std::stoi(sampleStr),time,rmae,smape });
                     }
                     if (pipeline == "HTDEF") {
-                        htdefMAEs.push_back({ std::stoi(sampleStr),time,mae });
+                        htdefMAEs.push_back({ std::stoi(sampleStr),time,rmae,smape });
                     }
                     if (pipeline == "HTNEE") {
-                        htneeMAEs.push_back({ std::stoi(sampleStr),time,mae });
+                        htneeMAEs.push_back({ std::stoi(sampleStr),time,rmae,smape });
                     }
                     if (pipeline == "HTRIS") {
-                        htrisMAEs.push_back({ std::stoi(sampleStr),time,mae });
+                        htrisMAEs.push_back({ std::stoi(sampleStr),time,rmae,smape });
                     }
                 }
 
@@ -223,32 +229,32 @@ int main(int argc, const char* argv[]) {
     std::sort(std::begin(htrisMAEs), std::end(htrisMAEs), [](const auto& a, const auto& b) {
         return std::get<0>(a) < std::get<0>(b);
         });
-    std::cout << "Type, Sample, Time, MAE" << std::endl;
-    for (auto& [sample, time,value] : defMAEs) {
-        std::cout << "DEF," << sample << "," << time << ", " << value << std::endl;
+    std::cout << "Type, Sample, Time, MAE, MAPE" << std::endl;
+    for (auto& [sample, time,mae, mape] : defMAEs) {
+        std::cout << "DEF," << sample << "," << time << ", " << mae << ", " << mape << std::endl;
     }
-    for (auto& [sample, time, value] : neeMAEs) {
-        std::cout << "NEE," << sample << "," << time << ", " << value << std::endl;
+    for (auto& [sample, time, mae, mape]: neeMAEs) {
+        std::cout << "NEE," << sample << "," << time << ", " << mae << ", " << mape << std::endl;
     }
-    for (auto& [sample, time, value] : risMAEs) {
-        std::cout << "RIS," << sample << "," << time << ", " << value << std::endl;
+    for (auto& [sample, time, mae, mape] : risMAEs) {
+        std::cout << "RIS," << sample << "," << time << ", " << mae << ", " << mape << std::endl;
     }
-    for (auto& [sample, time, value] : pgdefMAEs) {
-        std::cout << "PGDEF," << sample << "," << time << ", " << value << std::endl;
+    for (auto& [sample, time, mae, mape] : pgdefMAEs) {
+        std::cout << "PGDEF," << sample << "," << time << ", " << mae << ", " << mape << std::endl;
     }
-    for (auto& [sample, time, value] : pgneeMAEs) {
-        std::cout << "PGNEE," << sample << "," << time << ", " << value << std::endl;
+    for (auto& [sample, time, mae, mape] : pgneeMAEs) {
+        std::cout << "PGNEE," << sample << "," << time << ", " << mae << ", " << mape << std::endl;
     }
-    for (auto& [sample, time, value] : pgrisMAEs) {
-        std::cout << "PGRIS," << sample << "," << time << ", " << value << std::endl;
+    for (auto& [sample, time, mae, mape] : pgrisMAEs) {
+        std::cout << "PGRIS," << sample << "," << time << ", " << mae << ", " << mape << std::endl;
     }
-    for (auto& [sample, time, value] : htdefMAEs) {
-        std::cout << "HTDEF," << sample << "," << time << ", " << value << std::endl;
+    for (auto& [sample, time, mae, mape] : htdefMAEs) {
+        std::cout << "HTDEF," << sample << "," << time << ", " << mae << ", " << mape << std::endl;
     }
-    for (auto& [sample, time, value] : htneeMAEs) {
-        std::cout << "HTNEE," << sample << "," << time << ", " << value << std::endl;
+    for (auto& [sample, time, mae, mape] : htneeMAEs) {
+        std::cout << "HTNEE," << sample << "," << time << ", " << mae << ", " << mape << std::endl;
     }
-    for (auto& [sample, time, value] : htrisMAEs) {
-        std::cout << "HTRIS," << sample << "," << time << ", " << value << std::endl;
+    for (auto& [sample, time, mae, mape] : htrisMAEs) {
+        std::cout << "HTRIS," << sample << "," << time << ", " << mae << ", " << mape << std::endl;
     }
 }
