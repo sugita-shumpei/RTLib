@@ -9,6 +9,24 @@ bool RTLib::Core::SavePngImage(std::string path, int width, int height, const st
     return stbi_write_png(path.c_str(), width, height, 4, pixels.data(), width * 4);
 }
 
+bool RTLib::Core::SaveBmpImage(std::string path, int width, int height, const std::vector<unsigned char>& pixels)
+{
+    if (width * height * 4 != pixels.size()) { return false; }
+    return stbi_write_bmp(path.c_str(), width, height, 4, pixels.data());
+}
+
+bool RTLib::Core::SaveTgaImage(std::string path, int width, int height, const std::vector<unsigned char>& pixels)
+{
+    if (width * height * 4 != pixels.size()) { return false; }
+    return stbi_write_tga(path.c_str(), width, height, 4, pixels.data());
+}
+
+bool RTLib::Core::SaveJpgImage(std::string path, int width, int height, int quality, const std::vector<unsigned char>& pixels)
+{
+    if (width * height * 4 != pixels.size()) { return false; }
+    return stbi_write_jpg(path.c_str(), width, height, 4, pixels.data(), quality);
+}
+
 bool RTLib::Core::SaveExrImage(std::string path, int width, int height, const std::vector<float>& pixels)
 {
     EXRHeader header;
@@ -67,4 +85,9 @@ bool RTLib::Core::SaveExrImage(std::string path, int width, int height, const st
     free(header.pixel_types);
     free(header.requested_pixel_types);
     return true;
+}
+
+bool RTLib::Core::SaveHdrImage(std::string path, int width, int height, const std::vector<float>& pixels)
+{
+    return stbi_write_hdr(path.c_str(),width,height,4,pixels.data());
 }

@@ -33,8 +33,29 @@ void RTLibExtOPX7TestApplication::LoadScene(int argc, const char** argv)
     if (!m_SceneData.config.custom.GetBoolOr("MortonTree.Enable", false)) {
         m_EnableGrid = false;
     }
+    auto tmpBgColor = m_SceneData.config.custom.GetFloat3Or("MissData.BgColor", { 0.0f ,0.0f ,0.0f });
+    m_BgColor = {tmpBgColor[0], tmpBgColor[1], tmpBgColor[2]};
+    std::cout << "OK_HERE" << std::endl;
     if (argc > 1) {
         for (int i = 0; i < argc-1; ++i) {
+            //if (std::string(argv[i]) == "--EnableVis") {
+            //    m_EnableVis = false;
+            //    if ((std::string(argv[i + 1]) == "true") || (std::string(argv[i + 1]) == "True") ||
+            //        (std::string(argv[i + 1]) == "on") || (std::string(argv[i + 1]) == "On") ||
+            //        (std::string(argv[i + 1]) == "1")) {
+            //        std::cout << "SUC: --EnableVis Args is ON\n";
+            //        m_EnableVis = true;
+            //    }
+            //    else if ((std::string(argv[i + 1]) == "false") || (std::string(argv[i + 1]) == "False") ||
+            //        (std::string(argv[i + 1]) == "off") || (std::string(argv[i + 1]) == "Off") ||
+            //        (std::string(argv[i + 1]) == "0")) {
+            //        std::cout << "SUC: --EnableVis Args is OFF\n";
+            //        m_EnableVis = false;
+            //    }
+            //    else {
+            //        std::cout << "BUG: --EnableVis Args is Missing: Use Default(false)\n";
+            //    }
+            //}
             if (std::string(argv[i]) == "--EnableGrid") {
                 m_EnableGrid = false;
                 if ((std::string(argv[i + 1]) =="true") || (std::string(argv[i + 1]) == "True")   ||
@@ -429,7 +450,7 @@ void RTLibExtOPX7TestApplication::InitDefTracer()
     };
 
     m_TracerMap["DEF"].pipelines["Trace"].SetHostRayGenRecordTypeData(   rtlib::test::GetRaygenData(m_SceneData.GetCamera()));
-    m_TracerMap["DEF"].pipelines["Trace"].SetHostMissRecordTypeData(RAY_TYPE_RADIANCE, "SimpleKernel.Radiance", MissData{});
+    m_TracerMap["DEF"].pipelines["Trace"].SetHostMissRecordTypeData(RAY_TYPE_RADIANCE, "SimpleKernel.Radiance", MissData{make_float4(m_BgColor,1.0f)});
     m_TracerMap["DEF"].pipelines["Trace"].SetHostMissRecordTypeData(RAY_TYPE_OCCLUDED, "SimpleKernel.Occluded", MissData{});
     m_TracerMap["DEF"].pipelines["Trace"].SetHostExceptionRecordTypeData(unsigned int());
 
@@ -593,7 +614,7 @@ void RTLibExtOPX7TestApplication::InitNeeTracer()
         "SimpleKernel.Occluded" 
     };
     m_TracerMap["NEE"].pipelines["Trace"].SetHostRayGenRecordTypeData(rtlib::test::GetRaygenData(m_SceneData.GetCamera()));
-    m_TracerMap["NEE"].pipelines["Trace"].SetHostMissRecordTypeData(RAY_TYPE_RADIANCE, "SimpleKernel.Radiance", MissData{});
+    m_TracerMap["NEE"].pipelines["Trace"].SetHostMissRecordTypeData(RAY_TYPE_RADIANCE, "SimpleKernel.Radiance", MissData{ make_float4(m_BgColor,1.0f) });
     m_TracerMap["NEE"].pipelines["Trace"].SetHostMissRecordTypeData(RAY_TYPE_OCCLUDED, "SimpleKernel.Occluded", MissData{});
     m_TracerMap["NEE"].pipelines["Trace"].SetHostExceptionRecordTypeData( unsigned int());
 
@@ -756,7 +777,7 @@ void RTLibExtOPX7TestApplication::InitRisTracer()
         "SimpleKernel.Radiance",
         "SimpleKernel.Occluded" };
     m_TracerMap["RIS"].pipelines["Trace"].SetHostRayGenRecordTypeData(rtlib::test::GetRaygenData(m_SceneData.GetCamera()));
-    m_TracerMap["RIS"].pipelines["Trace"].SetHostMissRecordTypeData(RAY_TYPE_RADIANCE, "SimpleKernel.Radiance", MissData{});
+    m_TracerMap["RIS"].pipelines["Trace"].SetHostMissRecordTypeData(RAY_TYPE_RADIANCE, "SimpleKernel.Radiance", MissData{ make_float4(m_BgColor,1.0f) });
     m_TracerMap["RIS"].pipelines["Trace"].SetHostMissRecordTypeData(RAY_TYPE_OCCLUDED, "SimpleKernel.Occluded", MissData{});
     m_TracerMap["RIS"].pipelines["Trace"].SetHostExceptionRecordTypeData(unsigned int());
 
@@ -913,7 +934,7 @@ void RTLibExtOPX7TestApplication::InitDbgTracer() {
         "SimpleKernel.Debug" };
 
     m_TracerMap["DBG"].pipelines["Trace"].SetHostRayGenRecordTypeData(rtlib::test::GetRaygenData(m_SceneData.GetCamera()));
-    m_TracerMap["DBG"].pipelines["Trace"].SetHostMissRecordTypeData(RAY_TYPE_RADIANCE, "SimpleKernel.Debug", MissData{});
+    m_TracerMap["DBG"].pipelines["Trace"].SetHostMissRecordTypeData(RAY_TYPE_RADIANCE, "SimpleKernel.Debug", MissData{ make_float4(m_BgColor,1.0f) });
     m_TracerMap["DBG"].pipelines["Trace"].SetHostMissRecordTypeData(RAY_TYPE_OCCLUDED, "SimpleKernel.Debug", MissData{});
     m_TracerMap["DBG"].pipelines["Trace"].SetHostExceptionRecordTypeData(unsigned int());
     for (auto& instanceName : m_ShaderTableLayout->GetInstanceNames())
@@ -1166,7 +1187,7 @@ void RTLibExtOPX7TestApplication::InitSdTreeDefTracer()
     };
     for (auto& stName : stNames) {
         m_TracerMap["PGDEF"].pipelines[stName].SetHostRayGenRecordTypeData(rtlib::test::GetRaygenData(m_SceneData.GetCamera()));
-        m_TracerMap["PGDEF"].pipelines[stName].SetHostMissRecordTypeData(RAY_TYPE_RADIANCE, "SimpleKernel.Radiance", MissData{});
+        m_TracerMap["PGDEF"].pipelines[stName].SetHostMissRecordTypeData(RAY_TYPE_RADIANCE, "SimpleKernel.Radiance", MissData{ make_float4(m_BgColor,1.0f) });
         m_TracerMap["PGDEF"].pipelines[stName].SetHostMissRecordTypeData(RAY_TYPE_OCCLUDED, "SimpleKernel.Occluded", MissData{});
         m_TracerMap["PGDEF"].pipelines[stName].SetHostExceptionRecordTypeData(unsigned int());
 
@@ -1424,7 +1445,7 @@ void RTLibExtOPX7TestApplication::InitSdTreeNeeTracer()
     };
     for (auto& stName : stNames) {
         m_TracerMap["PGNEE"].pipelines[stName].SetHostRayGenRecordTypeData(rtlib::test::GetRaygenData(m_SceneData.GetCamera()));
-        m_TracerMap["PGNEE"].pipelines[stName].SetHostMissRecordTypeData(RAY_TYPE_RADIANCE, "SimpleKernel.Radiance", MissData{});
+        m_TracerMap["PGNEE"].pipelines[stName].SetHostMissRecordTypeData(RAY_TYPE_RADIANCE, "SimpleKernel.Radiance", MissData{ make_float4(m_BgColor,1.0f) });
         m_TracerMap["PGNEE"].pipelines[stName].SetHostMissRecordTypeData(RAY_TYPE_OCCLUDED, "SimpleKernel.Occluded", MissData{});
         m_TracerMap["PGNEE"].pipelines[stName].SetHostExceptionRecordTypeData(unsigned int());
 
@@ -1682,7 +1703,7 @@ void RTLibExtOPX7TestApplication::InitSdTreeRisTracer()
     };
     for (auto& stName : stNames) {
         m_TracerMap["PGRIS"].pipelines[stName].SetHostRayGenRecordTypeData(rtlib::test::GetRaygenData(m_SceneData.GetCamera()));
-        m_TracerMap["PGRIS"].pipelines[stName].SetHostMissRecordTypeData(RAY_TYPE_RADIANCE, "SimpleKernel.Radiance", MissData{});
+        m_TracerMap["PGRIS"].pipelines[stName].SetHostMissRecordTypeData(RAY_TYPE_RADIANCE, "SimpleKernel.Radiance", MissData{ make_float4(m_BgColor,1.0f) });
         m_TracerMap["PGRIS"].pipelines[stName].SetHostMissRecordTypeData(RAY_TYPE_OCCLUDED, "SimpleKernel.Occluded", MissData{});
         m_TracerMap["PGRIS"].pipelines[stName].SetHostExceptionRecordTypeData(unsigned int());
 
@@ -1979,7 +2000,7 @@ void RTLibExtOPX7TestApplication::InitHashTreeDefTracer()
     };
     for (auto& stName : stNames) {
         m_TracerMap["HTDEF"].pipelines[stName].SetHostRayGenRecordTypeData(rtlib::test::GetRaygenData(m_SceneData.GetCamera()));
-        m_TracerMap["HTDEF"].pipelines[stName].SetHostMissRecordTypeData(RAY_TYPE_RADIANCE, "SimpleKernel.Radiance", MissData{});
+        m_TracerMap["HTDEF"].pipelines[stName].SetHostMissRecordTypeData(RAY_TYPE_RADIANCE, "SimpleKernel.Radiance", MissData{ make_float4(m_BgColor,1.0f) });
         m_TracerMap["HTDEF"].pipelines[stName].SetHostMissRecordTypeData(RAY_TYPE_OCCLUDED, "SimpleKernel.Occluded", MissData{});
         m_TracerMap["HTDEF"].pipelines[stName].SetHostExceptionRecordTypeData(unsigned int());
 
@@ -2277,7 +2298,7 @@ void RTLibExtOPX7TestApplication::InitHashTreeNeeTracer()
     };
     for (auto& stName : stNames) {
         m_TracerMap["HTNEE"].pipelines[stName].SetHostRayGenRecordTypeData(rtlib::test::GetRaygenData(m_SceneData.GetCamera()));
-        m_TracerMap["HTNEE"].pipelines[stName].SetHostMissRecordTypeData(RAY_TYPE_RADIANCE, "SimpleKernel.Radiance", MissData{});
+        m_TracerMap["HTNEE"].pipelines[stName].SetHostMissRecordTypeData(RAY_TYPE_RADIANCE, "SimpleKernel.Radiance", MissData{ make_float4(m_BgColor,1.0f) });
         m_TracerMap["HTNEE"].pipelines[stName].SetHostMissRecordTypeData(RAY_TYPE_OCCLUDED, "SimpleKernel.Occluded", MissData{});
         m_TracerMap["HTNEE"].pipelines[stName].SetHostExceptionRecordTypeData(unsigned int());
 
@@ -2578,7 +2599,7 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
     };
     for (auto& stName : stNames) {
         m_TracerMap["HTRIS"].pipelines[stName].SetHostRayGenRecordTypeData(rtlib::test::GetRaygenData(m_SceneData.GetCamera()));
-        m_TracerMap["HTRIS"].pipelines[stName].SetHostMissRecordTypeData(RAY_TYPE_RADIANCE, "SimpleKernel.Radiance", MissData{});
+        m_TracerMap["HTRIS"].pipelines[stName].SetHostMissRecordTypeData(RAY_TYPE_RADIANCE, "SimpleKernel.Radiance", MissData{ make_float4(m_BgColor,1.0f) });
         m_TracerMap["HTRIS"].pipelines[stName].SetHostMissRecordTypeData(RAY_TYPE_OCCLUDED, "SimpleKernel.Occluded", MissData{});
         m_TracerMap["HTRIS"].pipelines[stName].SetHostExceptionRecordTypeData(unsigned int());
 
@@ -2609,11 +2630,11 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
                                     auto material = meshData.materials[i / desc.recordStride];
                                     hitgroupData.type = rtlib::test::SpecifyMaterialType(material,mesh);
                                     hitgroupData.vertices = reinterpret_cast<float3*>(extSharedData->GetVertexBufferGpuAddress());
-                                    hitgroupData.indices = reinterpret_cast<uint3*>(extUniqueData->GetTriIdxBufferGpuAddress());
+                                    hitgroupData.indices  = reinterpret_cast<uint3*>(extUniqueData->GetTriIdxBufferGpuAddress());
                                     hitgroupData.indCount = extUniqueData->GetTriIdxCount();
-                                    hitgroupData.normals = reinterpret_cast<float3*>(extSharedData->GetNormalBufferGpuAddress());
-                                    hitgroupData.texCrds = reinterpret_cast<float2*>(extSharedData->GetTexCrdBufferGpuAddress());
-                                    hitgroupData.diffuse = material.GetFloat3As<float3>("diffCol");
+                                    hitgroupData.normals  = reinterpret_cast<float3*>(extSharedData->GetNormalBufferGpuAddress());
+                                    hitgroupData.texCrds  = reinterpret_cast<float2*>(extSharedData->GetTexCrdBufferGpuAddress());
+                                    hitgroupData.diffuse  = material.GetFloat3As<float3>("diffCol");
                                     hitgroupData.emission = material.GetFloat3As<float3>("emitCol");
                                     hitgroupData.specular = material.GetFloat3As<float3>("specCol");
                                     hitgroupData.shinness = material.GetFloat1("shinness");
