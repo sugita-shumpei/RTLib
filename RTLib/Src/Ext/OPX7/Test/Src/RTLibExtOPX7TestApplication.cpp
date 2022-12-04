@@ -263,7 +263,7 @@ void RTLibExtOPX7TestApplication::LoadScene(int argc, const char** argv)
                         auto objAsset = m_SceneData.objAssetManager.GetAsset(geometry.base);
                         for (auto& [meshName, meshData] : geometry.meshes)
                         {
-                            auto mesh = objAsset.meshGroup->LoadMesh(meshName);
+                            auto mesh = objAsset.meshGroup->LoadMesh(meshData.base);
                             auto desc = m_ShaderTableLayout->GetDesc(instancePath + "/" + meshName);
                             auto extSharedData = static_cast<rtlib::test::OPX7MeshSharedResourceExtData*>(mesh->GetSharedResource()->extData.get());
                             auto extUniqueData = static_cast<rtlib::test::OPX7MeshUniqueResourceExtData*>(mesh->GetUniqueResource()->extData.get());

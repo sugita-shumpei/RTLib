@@ -2,6 +2,7 @@
 #define RTLIB_CORE_WORLD_H
 #include <RTLib/Core/VariableMap.h>
 #include <string>
+#include <iostream>
 #include <array>
 namespace RTLib
 {
@@ -48,10 +49,10 @@ namespace RTLib
             j["Type"] = "ObjModel";
             j["Base"] = v.base;
             if (!v.meshes.empty() && v.useMeshes) {
-                auto meshJsons = std::vector<JsonType>();
+                auto meshJsons = std::unordered_map<std::string,JsonType>();
                 meshJsons.reserve(v.meshes.size());
-                for (auto& mesh : v.meshes) {
-                    meshJsons.push_back(nlohmann::json(mesh));
+                for (auto& [name, mesh] : v.meshes) {
+                    meshJsons.insert({ name,nlohmann::json(mesh) });
                 }
                 j["Meshes"] = meshJsons;
             }
