@@ -479,25 +479,24 @@ extern "C" __global__ void __closesthit__radiance_sphere() {
             auto aver_diff = 1.0e-10f + (diffuse.x + diffuse.y + diffuse.z) / 3.0f;
             auto aver_spec = 1.0e-10f + (specular.x + specular.y + specular.z) / 3.0f;
             auto select_prob = (aver_diff) / (aver_diff + aver_spec);
-
             if (RTLib::Ext::CUDA::Math::random_float1(xor32) < select_prob) {
                 auto reflCos = RTLib::Ext::CUDA::Math::dot(reflDir, direction0);
                 direction = direction0;
                 cosine = cosine0;
-                bsdfVal = diffuse * static_cast<float>(RTLIB_M_INV_PI) + specular * ((shinness+2.0f)/(shinness+1.0f)) * phongPdf0;
+                bsdfVal = diffuse * static_cast<float>(RTLIB_M_INV_PI) + specular * ((shinness + 2.0f) / (shinness + 1.0f)) * phongPdf0;
                 bsdfPdf = (select_prob * cosinePdf0 + (1.0f - select_prob) * phongPdf0);
             }
             else {
                 auto reflCos = RTLib::Ext::CUDA::Math::dot(reflDir, direction1);
                 direction = direction1;
                 cosine = cosine1;
-                bsdfVal = diffuse * static_cast<float>(RTLIB_M_INV_PI) + specular * ((shinness+2.0f)/(shinness+1.0f)) * phongPdf1;
+                bsdfVal = diffuse * static_cast<float>(RTLIB_M_INV_PI) + specular * ((shinness + 2.0f) / (shinness + 1.0f)) * phongPdf1;
                 bsdfPdf = (select_prob * cosinePdf1 + (1.0f - select_prob) * phongPdf1);
             }
             currThroughput = prevThroughput * ((bsdfPdf > 0.0f) ? (bsdfVal * RTLib::Ext::CUDA::Math::max(cosine, 0.0f) / bsdfPdf) : make_float3(0.0f));
 
             if (params.flags & PARAM_FLAG_NEE) {
-                if (hrec->userData.depth < params.maxDepth-1) {
+                if (hrec->userData.depth < params.maxDepth - 1) {
                     if (params.flags & PARAM_FLAG_RIS) {
                         Reservoir<LightRecord> resv = {};
                         auto f_y = make_float3(0.0f);
@@ -509,7 +508,7 @@ extern "C" __global__ void __closesthit__radiance_sphere() {
                             auto  ndl = RTLib::Ext::CUDA::Math::dot(lRec.direction, fNormal);
                             auto lndl = -RTLib::Ext::CUDA::Math::dot(lRec.direction, lRec.normal);
                             auto  e = lRec.emission;
-                            auto  b = diffuse * static_cast<float>(RTLIB_M_INV_PI) + specular * ((shinness+2.0f)/(shinness+1.0f)) * getValPhongPDF(lRec.direction, reflDir, shinness);
+                            auto  b = diffuse * static_cast<float>(RTLIB_M_INV_PI) + specular * ((shinness + 2.0f) / (shinness + 1.0f)) * getValPhongPDF(lRec.direction, reflDir, shinness);
                             auto  g = RTLib::Ext::CUDA::Math::max(ndl, 0.0f) * RTLib::Ext::CUDA::Math::max(lndl, 0.0f) / (lRec.distance * lRec.distance);
                             auto  f = b * e * g;
                             auto  f_a = RTLib::Ext::CUDA::Math::to_average_rgb(f);
@@ -531,7 +530,7 @@ extern "C" __global__ void __closesthit__radiance_sphere() {
                         auto lRec = params.lights.Sample(position, xor32);
                         if (!TraceOccluded(params.gasHandle, position, lRec.direction, 0.0001f, lRec.distance - 0.0001f)) {
                             auto e = lRec.emission;
-                            auto b = diffuse * static_cast<float>(RTLIB_M_INV_PI) + specular * ((shinness+2.0f)/(shinness+1.0f)) * getValPhongPDF(lRec.direction, reflDir, shinness);
+                            auto b = diffuse * static_cast<float>(RTLIB_M_INV_PI) + specular * ((shinness + 2.0f) / (shinness + 1.0f)) * getValPhongPDF(lRec.direction, reflDir, shinness);
                             auto g = RTLib::Ext::CUDA::Math::max(-RTLib::Ext::CUDA::Math::dot(lRec.direction, lRec.normal), 0.0f) * fabsf(RTLib::Ext::CUDA::Math::dot(lRec.direction, fNormal)) / (lRec.distance * lRec.distance);
                             radiance += prevThroughput * b * e * g * lRec.invPdf;
                         }

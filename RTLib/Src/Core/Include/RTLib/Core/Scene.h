@@ -180,17 +180,17 @@ namespace RTLib
                                     meshData.materials.reserve(mesh->GetUniqueResource()->materials.size());
                                     for (auto& matIdx : mesh->GetUniqueResource()->materials) {
                                         meshData.materials.push_back(objAsset.materials[matIdx]);
-                                        if (meshData.materials.back().HasString("diffCol") ||
-                                            meshData.materials.back().GetString("diffCol") == "") {
-                                            meshData.materials.back().SetString("diffCol", "White");
+                                        if (!meshData.materials.back().HasString("diffTex") ||
+                                            meshData.materials.back().GetString("diffTex") == "") {
+                                            meshData.materials.back().SetString("diffTex", "White");
                                         }
-                                        if (meshData.materials.back().HasString("specCol") ||
-                                            meshData.materials.back().GetString("specCol") == "") {
-                                            meshData.materials.back().SetString("specCol", "White");
+                                        if (!meshData.materials.back().HasString("specTex") ||
+                                            meshData.materials.back().GetString("specTex") == "") {
+                                            meshData.materials.back().SetString("specTex", "White");
                                         }
-                                        if (meshData.materials.back().HasString("emitCol") ||
-                                            meshData.materials.back().GetString("emitCol") == "") {
-                                            meshData.materials.back().SetString("emitCol", "White");
+                                        if (!meshData.materials.back().HasString("emitTex") ||
+                                            meshData.materials.back().GetString("emitTex") == "") {
+                                            meshData.materials.back().SetString("emitTex", "White");
                                         }
                                     }
                                 }
