@@ -225,7 +225,7 @@ struct HitgroupData {
     cudaTextureObject_t emissionTex;
 #ifdef __CUDACC__
     RTLIB_INLINE RTLIB_DEVICE auto GetSphereNormal(float3 position, unsigned int primIdx)const noexcept -> float3 {
-        return RTLib::Ext::CUDA::Math::normalize(optixTransformPointFromObjectToWorldSpace(vertices[primIdx]) - position);
+        return RTLib::Ext::CUDA::Math::normalize(position-optixTransformPointFromObjectToWorldSpace(vertices[primIdx]));
     }
     RTLIB_INLINE RTLIB_DEVICE auto GetTriangleFNormal(float2 barycentrics, unsigned int primIdx)const noexcept -> float3
     {

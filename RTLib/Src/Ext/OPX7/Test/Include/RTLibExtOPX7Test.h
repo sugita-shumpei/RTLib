@@ -697,6 +697,7 @@ namespace rtlib
                     }
                     for (auto& texturePath : texturePathSet)
                     {
+                        if ((texturePath == "White") || (texturePath == "Black")) { continue; }
                         cudaTextures[texturePath].LoadFromPath(cudaContext, texturePath);
                     }
                     cudaTextures["White"] = rtlib::test::TextureData::White(cudaContext);
