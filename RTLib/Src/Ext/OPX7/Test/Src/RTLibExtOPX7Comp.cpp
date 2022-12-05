@@ -1,4 +1,5 @@
 #include <RTLibExtOPX7Test.h>
+#include <RTLib/Core/BinaryWriter.h>
 int main(int argc, const char* argv[]) {
     bool isAllRange = true;
     auto xCenter = unsigned int(262);
@@ -168,7 +169,7 @@ int main(int argc, const char* argv[]) {
                         }
                         std::filesystem::path savePath = pipelineDir.path() / ("diff_" + pipeline + "_" + sampleStr + ".hdr");
                         std::string savePathStr = savePath.string();
-                        stbi_write_hdr(savePathStr.c_str(), imageSizeX, imageSizeY,1, errImages.data());
+                        RTLib::Core::SaveHdrImage(savePathStr.c_str(), imageSizeX, imageSizeY,errImages);
                     }
                     if (pipeline == "DEF") {
                         defMAEs.push_back({ std::stoi(sampleStr),time,rmae ,smape });
