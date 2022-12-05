@@ -967,6 +967,10 @@ namespace RTLib
                     {
                         return m_CurIteration;
                     }
+                    auto GetSamplePerTmp()const noexcept -> unsigned int
+                    {
+                        return m_CurIteration;
+                    }
                 private:
                     RTMortonQuadTreeWrapperT<MaxLevel>* m_Tree   = nullptr;
                     std::unique_ptr<CUDA::CUDAModule>   m_Module = nullptr;
@@ -985,7 +989,6 @@ namespace RTLib
                     unsigned int    m_SampleForPass = 0;
                     TraceState      m_TraceState = TraceStateRecord;
                     unsigned int    m_CurIteration = 0;
-                public:
                     unsigned int    m_SamplePerTmp = 0;
                 };
 #endif

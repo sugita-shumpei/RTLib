@@ -516,6 +516,7 @@ private:
 
     unsigned long long m_TimesForAccum = 0;
     unsigned long long m_TimesForFrame = 0;
+    std::vector<unsigned long long> m_TimesForIterations = {};
 
     std::string m_TimeStampString = "";
 
