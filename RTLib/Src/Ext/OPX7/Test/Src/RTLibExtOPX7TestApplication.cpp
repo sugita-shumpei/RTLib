@@ -2885,7 +2885,7 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
     if ((m_CurTracerName == "HTDEF") || (m_CurTracerName == "HTNEE") || (m_CurTracerName == "HTRIS")) {
         m_MortonQuadTreeController->EndTrace(stream);
         if (m_EnableGrid) {
-            if (m_MortonQuadTreeController->m_SamplePerTmp == 0)
+            if (m_MortonQuadTreeController->GetSamplePerTmp() == 0)
             {
                 m_HashBufferCUDA.Update(m_Opx7Context.get(), stream);
             }
@@ -2906,6 +2906,7 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
      auto frameBufferTmp = m_Opx7Context->CreateBuffer(desc);
      TracePipeline(nullptr, frameBufferTmp);
      m_SamplesForAccum = 0;
+     m_TimesForIterations = std::vector<unsigned long long>{ 0 };
      cuMemsetD32(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_AccumBufferCUDA.get()), m_AccumBufferCUDA->GetSizeInBytes() / sizeof(float), 0);
      if (m_EnableGrid) {
          m_HashBufferCUDA.Clear(m_Opx7Context.get());
@@ -3206,6 +3207,20 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
         {
             SaveResultImage(stream);
         }
+        if ((m_CurTracerName == "HTDEF") ||
+            (m_CurTracerName == "HTRIS")) {
+            m_TimesForIterations.back() += m_TimesForFrame;
+            if (m_MortonQuadTreeController->GetIteration() != m_TimesForIterations.size()) {
+                m_TimesForIterations.push_back(0);
+            }
+        }
+        if ((m_CurTracerName == "PGDEF") ||
+            (m_CurTracerName == "PGRIS")) {
+            m_TimesForIterations.back() += m_TimesForFrame;
+            if (m_SdTreeController->GetIteration() != m_TimesForIterations.size()) {
+                m_TimesForIterations.push_back(0);
+            }
+        }
     }
 }
 
@@ -3226,6 +3241,17 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
      configData.pngFilePath = baseSavePath.string() + "/result_" + m_CurTracerName + "_" + std::to_string(m_SamplesForAccum) + ".png";
      configData.binFilePath = baseSavePath.string() + "/result_" + m_CurTracerName + "_" + std::to_string(m_SamplesForAccum) + ".bin";
      configData.exrFilePath = baseSavePath.string() + "/result_" + m_CurTracerName + "_" + std::to_string(m_SamplesForAccum) + ".exr";
+     if ((m_CurTracerName == "PGDEF") ||
+         (m_CurTracerName == "PGRIS") ||
+         (m_CurTracerName == "HTDEF") ||
+         (m_CurTracerName == "HTRIS")) {
+         configData.custom.SetUInt32("NumIterations", m_TimesForIterations.size());
+         unsigned int i = 0;
+         for (auto& time : m_TimesForIterations) {
+             configData.custom.SetFloat1("TimesForItrerations[" + std::to_string(i) + "]", time/(1000.0f*1000));
+             ++i;
+         }
+     }
      {
          std::ofstream configFile(baseSavePath.string() + "/config_" + m_CurTracerName + "_" + std::to_string(m_SamplesForAccum) + ".json");
          configFile << nlohmann::json(configData);

@@ -23,7 +23,7 @@ void SampleTest()
 void TracerTest(int argc, const char* argv[])
 {
     {
-        auto scenePath = std::string(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/../scene5.json");
+        auto scenePath = std::string(RTLIB_EXT_OPX7_TEST_CUDA_PATH "/../scene.json");
         {
             if (argc > 1) {
                 for (int i = 1; i < argc - 1; ++i) {
