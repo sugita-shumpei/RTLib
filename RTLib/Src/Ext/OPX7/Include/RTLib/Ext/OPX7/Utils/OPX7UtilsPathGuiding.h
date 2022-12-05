@@ -1894,6 +1894,14 @@ namespace RTLib
 					auto GetState()const noexcept -> TraceState {
 						return m_TraceState;
 					}
+
+					auto GetSamplePerTmp()->unsigned long long {
+						return m_SamplePerTmp;
+					}
+
+					auto GetIteration()->unsigned long long {
+						return m_CurIteration;
+					}
 				private:
 					RTSTreeWrapper* m_STree             = nullptr;
 					unsigned int    m_SampleForBudget   = 0;

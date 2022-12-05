@@ -95,6 +95,7 @@ namespace RTLib
             std::string        pngFilePath;
             std::string        exrFilePath;
             std::string        binFilePath;
+            RTLib::Core::VariableMap custom;
         };
 
         template<typename JsonType>
@@ -107,6 +108,9 @@ namespace RTLib
             j["Samples"] = v.samples;
             j["Time"] = v.time;
             j["EnableVis"] = v.enableVis;
+            if (!v.custom.IsEmpty()) {
+                j["Custom"] = v.custom;
+            }
         }
         template<typename JsonType>
         inline void from_json(const JsonType& j, ImageConfigData& v) {
@@ -118,6 +122,9 @@ namespace RTLib
             v.samples = j.at("Samples").get<unsigned int>();
             v.time = j.at("Time").get<unsigned long long>();
             v.enableVis = j.at("EnableVis").get<bool>();
+            if (j.count("Custom") > 0) {
+                v.custom = j.at("Custom").get<RTLib::Core::VariableMap>();
+            }
         }
 
         struct SceneData
