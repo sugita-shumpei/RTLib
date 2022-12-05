@@ -89,5 +89,5 @@ bool RTLib::Core::SaveExrImage(std::string path, int width, int height, const st
 
 bool RTLib::Core::SaveHdrImage(std::string path, int width, int height, const std::vector<float>& pixels)
 {
-    return stbi_write_hdr(path.c_str(),width,height,4,pixels.data());
+    return stbi_write_hdr(path.c_str(),width,height, pixels.size()/(width*height), pixels.data());
 }
