@@ -976,7 +976,7 @@ namespace RTLib
                     }
                     auto GetSamplePerTmp()const noexcept -> unsigned int
                     {
-                        return m_CurIteration;
+                        return m_SamplePerTmp;
                     }
                 private:
                     RTMortonQuadTreeWrapperT<MaxLevel>* m_Tree   = nullptr;
