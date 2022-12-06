@@ -962,7 +962,14 @@ namespace RTLib
                     //    launchDesc.stream = stream;
                     //    return m_ClearKernel->Launch(launchDesc);
                     //}
-
+                    auto GetRatioForBudget()const noexcept -> float
+                    {
+                        return m_RatioForBudget;
+                    }
+                    void SetRatioForBudget(float ratioForBudget)noexcept
+                    {
+                        m_RatioForBudget = ratioForBudget;
+                    }
                     auto GetIteration()const noexcept -> unsigned int
                     {
                         return m_CurIteration;

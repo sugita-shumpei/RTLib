@@ -1894,7 +1894,14 @@ namespace RTLib
 					auto GetState()const noexcept -> TraceState {
 						return m_TraceState;
 					}
-
+					auto GetRatioForBudget()const noexcept -> float
+					{
+						return m_RatioForBudget;
+					}
+					void SetRatioForBudget(float ratioForBudget)noexcept
+					{
+						m_RatioForBudget = ratioForBudget;
+					}
 					auto GetSamplePerTmp()->unsigned long long {
 						return m_SamplePerTmp;
 					}

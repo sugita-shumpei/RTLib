@@ -3209,8 +3209,21 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
         }
         if ((m_CurTracerName == "HTDEF") ||
             (m_CurTracerName == "HTRIS")) {
-            m_TimesForIterations.back() += m_TimesForFrame;
+            m_TimesForIterations.back()     += m_TimesForFrame;
             if (m_MortonQuadTreeController->GetIteration() != m_TimesForIterations.size()) {
+                float curRatioForBudget = m_MortonQuadTreeController->GetRatioForBudget();
+                float curRatioForTimes  = m_TimesForAccum / (m_SceneData.config.maxTimes * 1000.0f * 1000.0f);
+                if(curRatioForTimes > m_SceneData.config.custom.GetFloat1As<float>("MortonTree.Fraction"))
+                {
+                    float newRatioForBudget = (m_SamplesForAccum + 1) / static_cast<float>(m_SceneData.config.maxSamples);
+                    if (curRatioForBudget > newRatioForBudget) {
+                        std::cout << "Should Update: newRatioForBudget=" << newRatioForBudget << std::endl;
+                        m_MortonQuadTreeController->SetRatioForBudget(std::min(curRatioForBudget, newRatioForBudget));
+                    }
+                }
+                else {
+                    std::cout << "Should not Update\n";
+                }
                 m_TimesForIterations.push_back(0);
             }
         }
@@ -3218,6 +3231,19 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
             (m_CurTracerName == "PGRIS")) {
             m_TimesForIterations.back() += m_TimesForFrame;
             if (m_SdTreeController->GetIteration() != m_TimesForIterations.size()) {
+                float curRatioForBudget = m_SdTreeController->GetRatioForBudget();
+                float curRatioForTimes  = m_TimesForAccum / (m_SceneData.config.maxTimes  * 1000.0f * 1000.0f);
+                if (curRatioForTimes > m_SceneData.config.custom.GetFloat1As<float>("SdTree.Fraction"))
+                {
+                    float newRatioForBudget = (m_SamplesForAccum + 1) / static_cast<float>(m_SceneData.config.maxSamples);
+                    if (curRatioForBudget > newRatioForBudget) {
+                        std::cout << "Should Update: newRatioForBudget=" << newRatioForBudget << std::endl;
+                        m_SdTreeController->SetRatioForBudget(std::min(curRatioForBudget, newRatioForBudget));
+                    }
+                }
+                else {
+                    std::cout << "Should not Update\n";
+                }
                 m_TimesForIterations.push_back(0);
             }
         }
