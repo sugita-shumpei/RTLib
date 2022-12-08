@@ -9,575 +9,924 @@
 #include <variant>
 #include <unordered_set>
 #include <stack>
-namespace RTLib
-{
-	namespace Core
+
+class  FbxBinary {};
+enum  class FbxBinaryAttributeTypeCode :uint8_t {
+	eBool = 'C',
+	eInt16 = 'Y',
+	eInt32 = 'I',
+	eInt64 = 'L',
+	eFloat32 = 'F',
+	eFloat64 = 'D',
+	eArrayBool = 'b',
+	eArrayInt32 = 'i',
+	eArrayInt64 = 'l',
+	eArrayFloat32 = 'f',
+	eArrayFloat64 = 'd',
+	eBin = 'R',
+	eStr = 'S',
+};
+enum class FbxBinaryAttributeArrayEncoding :uint32_t {
+	eDefault = 0,
+	eZlib    = 1
+};
+using       FbxBinaryAttributeValueHeader = std::monostate;
+struct      FbxBinaryAttributeArrayHeader {
+	std::uint32_t                   numElements;
+	FbxBinaryAttributeArrayEncoding encoding;
+	std::uint32_t                   sizeInBytes;
+};
+static_assert(sizeof(FbxBinaryAttributeArrayHeader) == 12);
+struct      FbxBinaryAttributeSpecialHeader {
+	std::uint32_t sizeInBytes;
+
+};
+static_assert(sizeof(FbxBinaryAttributeSpecialHeader) == 4);
+template<typename T>
+struct FbxBinaryAttributeArrayValue {
+	std::vector<T>    raw;
+	std::vector<char> cmp;
+};
+struct FbxBinaryAttributeBinaryValue {
+	std::vector<char> bin;
+};
+struct FbxBinaryAttributeStringValue {
+	std::string       str;
+};
+struct FbxBinaryAttribute {
+	struct Data {
+		FbxBinaryAttributeTypeCode                                     type   = FbxBinaryAttributeTypeCode::eBool;
+		std::variant<FbxBinaryAttributeValueHeader, FbxBinaryAttributeArrayHeader, FbxBinaryAttributeSpecialHeader> header = FbxBinaryAttributeValueHeader();
+		std::variant<
+			char, 
+			int16_t, 
+			int32_t, 
+			int64_t, 
+			float, 
+			double,
+			FbxBinaryAttributeArrayValue<char>,
+			FbxBinaryAttributeArrayValue<int32_t>,
+			FbxBinaryAttributeArrayValue<int64_t>,
+			FbxBinaryAttributeArrayValue<float>,
+			FbxBinaryAttributeArrayValue<double>,
+			FbxBinaryAttributeBinaryValue,
+			FbxBinaryAttributeStringValue
+		> value = char('T');
+	} data;
+	struct Info {
+		size_t sizeInBytes  = 0;
+		bool   isCompressed = false;
+	};
+	auto GetBool()const -> char {
+		return std::get<char>(data.value);
+	}
+	auto GetInt16()const -> int16_t {
+		return std::get<int16_t>(data.value);
+	}
+	auto GetInt32()const -> int32_t {
+		return std::get<int32_t>(data.value);
+	}
+	auto GetInt64()const -> int64_t {
+		return std::get<int64_t>(data.value);
+	}
+	auto GetFloat32()const -> float {
+		return std::get<float>(data.value);
+	}
+	auto GetFloat64()const -> double {
+		return std::get<double>(data.value);
+	}
+	auto GetArrayBool()const  -> const FbxBinaryAttributeArrayValue<char>   & { return std::get< FbxBinaryAttributeArrayValue<char>>(data.value); }
+	auto GetArrayInt32()const -> const FbxBinaryAttributeArrayValue<int32_t>& { return std::get< FbxBinaryAttributeArrayValue<int32_t>>(data.value); }
+	auto GetArrayInt64()const -> const FbxBinaryAttributeArrayValue<int64_t>& { return std::get< FbxBinaryAttributeArrayValue<int64_t>>(data.value); }
+	auto GetArrayFloat32()const -> const FbxBinaryAttributeArrayValue<float>& { return std::get< FbxBinaryAttributeArrayValue<float>>(data.value); }
+	auto GetArrayFloat64()const -> const FbxBinaryAttributeArrayValue<double>& { return std::get< FbxBinaryAttributeArrayValue<double>>(data.value); }
+	auto GetBinary()const -> const FbxBinaryAttributeBinaryValue& { return std::get<FbxBinaryAttributeBinaryValue>(data.value); }
+	auto GetString()const -> const FbxBinaryAttributeStringValue& { return std::get<FbxBinaryAttributeStringValue>(data.value); }
+
+	static constexpr bool IsValidType(uint8_t v) noexcept {
+		if (v == static_cast<uint8_t>(FbxBinaryAttributeTypeCode::eBool)) { return true; }
+		if (v == static_cast<uint8_t>(FbxBinaryAttributeTypeCode::eInt16)) { return true; }
+		if (v == static_cast<uint8_t>(FbxBinaryAttributeTypeCode::eInt32)) { return true; }
+		if (v == static_cast<uint8_t>(FbxBinaryAttributeTypeCode::eInt64)) { return true; }
+		if (v == static_cast<uint8_t>(FbxBinaryAttributeTypeCode::eFloat32)) { return true; }
+		if (v == static_cast<uint8_t>(FbxBinaryAttributeTypeCode::eFloat64)) { return true; }
+		if (v == static_cast<uint8_t>(FbxBinaryAttributeTypeCode::eArrayBool)) { return true; }
+		if (v == static_cast<uint8_t>(FbxBinaryAttributeTypeCode::eArrayInt32)) { return true; }
+		if (v == static_cast<uint8_t>(FbxBinaryAttributeTypeCode::eArrayInt64)) { return true; }
+		if (v == static_cast<uint8_t>(FbxBinaryAttributeTypeCode::eArrayFloat32)) { return true; }
+		if (v == static_cast<uint8_t>(FbxBinaryAttributeTypeCode::eArrayFloat64)) { return true; }
+		if (v == static_cast<uint8_t>(FbxBinaryAttributeTypeCode::eBin)) { return true; }
+		if (v == static_cast<uint8_t>(FbxBinaryAttributeTypeCode::eStr)) { return true; }
+		return false;
+	}
+	static bool ReadTypeCodeFromData(const char* pSrcData, size_t& pos, FbxBinaryAttributeTypeCode& typeCode, bool isAdvancedAfterRead = true)noexcept
 	{
-		namespace experimental
-		{
-			struct FbxBinaryAttributeView
-			{
-				enum class TypeCode : unsigned char
-				{
-					eBool = 'C',
-					eInt16 = 'Y',
-					eInt32 = 'I',
-					eInt64 = 'L',
-					eFloat32 = 'F',
-					eFloat64 = 'D',
-					eArrayBool = 'b',
-					eArrayInt32 = 'i',
-					eArrayInt64 = 'l',
-					eArrayFloat32 = 'f',
-					eArrayFloat64 = 'd',
-					eBinary = 'R',
-					eString = 'S',
-				};
-				enum class TypeArrayEncoding
-				{
-					eDefault = 0,
-					eZlib = 1,
-				};
+		uint8_t tv = 0;
+		std::memcpy((char*) &tv, pSrcData, sizeof(tv));
+		if (isAdvancedAfterRead) {
+			pos += sizeof(tv);
+		}
+		if (!IsValidType(tv)) {
+			return false;
+		}
+		typeCode = static_cast<FbxBinaryAttributeTypeCode>(tv);
+		return true;
+	}
+	static bool ReadTypeCodeFromStream(std::istream& stream, FbxBinaryAttributeTypeCode& typeCode, bool isAdvancedAfterRead = true)noexcept
+	{
+		auto begPos = static_cast<size_t>(stream.tellg());
+		uint8_t tv = 0;
+		stream.read((char*)&tv, sizeof(tv));
+		if (!isAdvancedAfterRead) {
+			stream.seekg(begPos, std::ios::beg);
+		}
+		if (!IsValidType(tv)) {
+			return false;
+		}
+		typeCode = static_cast<FbxBinaryAttributeTypeCode>(tv);
+		return true;
+	}
+	template<typename T>
+	static bool ReadValueFromData(const char* pSrcData, size_t& pos, T& singleValue, bool isAdvancedAfterRead = true) noexcept {
 
-				struct TypeArrayData
-				{
-					uint32_t count;
-					TypeArrayEncoding encoding;
-					uint32_t sizeInBytes;
-				};
-				static_assert(sizeof(TypeArrayData) == 12);
-				struct TypeSpecialData
-				{
-					uint32_t sizeInBytes;
-				};
-				static_assert(sizeof(TypeSpecialData) == 4);
-				static constexpr bool IsValueTypeCode(TypeCode code)
-				{
-					switch (code)
-					{
-					case RTLib::Core::experimental::FbxBinaryAttributeView::TypeCode::eBool:
-					case RTLib::Core::experimental::FbxBinaryAttributeView::TypeCode::eInt16:
-					case RTLib::Core::experimental::FbxBinaryAttributeView::TypeCode::eInt32:
-					case RTLib::Core::experimental::FbxBinaryAttributeView::TypeCode::eInt64:
-					case RTLib::Core::experimental::FbxBinaryAttributeView::TypeCode::eFloat32:
-					case RTLib::Core::experimental::FbxBinaryAttributeView::TypeCode::eFloat64:
-						return true;
-					default:
-						return false;
-					}
-				}
-				static constexpr bool IsSpecialTypeCode(TypeCode code)
-				{
-					switch (code)
-					{
-					case RTLib::Core::experimental::FbxBinaryAttributeView::TypeCode::eBinary:
-					case RTLib::Core::experimental::FbxBinaryAttributeView::TypeCode::eString:
-						return true;
-					default:
-						return false;
-					}
-				}
-				static constexpr bool IsArrayTypeCode(TypeCode code)
-				{
-					switch (code)
-					{
-					case RTLib::Core::experimental::FbxBinaryAttributeView::TypeCode::eArrayBool:
-					case RTLib::Core::experimental::FbxBinaryAttributeView::TypeCode::eArrayInt32:
-					case RTLib::Core::experimental::FbxBinaryAttributeView::TypeCode::eArrayInt64:
-					case RTLib::Core::experimental::FbxBinaryAttributeView::TypeCode::eArrayFloat32:
-					case RTLib::Core::experimental::FbxBinaryAttributeView::TypeCode::eArrayFloat64:
-						return true;
-					default:
-						return false;
-					}
-				}
-				static auto ReadFromFile(std::ifstream &fbxFile) noexcept -> FbxBinaryAttributeView
-				{
-					FbxBinaryAttributeView attrib;
-					attrib.begPosInBytes = static_cast<size_t>(fbxFile.tellg());
-					fbxFile.read((char *)&attrib.type, sizeof(attrib.type));
-					if (IsArrayTypeCode(attrib.type))
-					{
-						TypeArrayData arrayData;
-						fbxFile.read((char *)&arrayData, sizeof(arrayData));
-						attrib.sizeInBytes = sizeof(attrib.type) + sizeof(arrayData) + arrayData.sizeInBytes;
-						attrib.data = arrayData;
-					}
-					else if (IsSpecialTypeCode(attrib.type))
-					{
-						TypeSpecialData specialData;
-						fbxFile.read((char *)&specialData, sizeof(specialData));
-						attrib.sizeInBytes = sizeof(attrib.type) + sizeof(specialData) + specialData.sizeInBytes;
-						attrib.data = specialData;
-					}
-					else {
-						if (attrib.type == RTLib::Core::experimental::FbxBinaryAttributeView::TypeCode::eBool)
-						{
-							char v;
-							fbxFile.read((char*)&v, sizeof(v));
-							attrib.data = v;
-							attrib.sizeInBytes = sizeof(attrib.type) + sizeof(uint8_t);
-						}
-						if (attrib.type == RTLib::Core::experimental::FbxBinaryAttributeView::TypeCode::eInt16)
-						{
-							int16_t v;
-							fbxFile.read((char*)&v, sizeof(v));
-							attrib.data = v;
-							attrib.sizeInBytes = sizeof(attrib.type) + sizeof(int16_t);
-						}
-						if (attrib.type == RTLib::Core::experimental::FbxBinaryAttributeView::TypeCode::eInt32)
-						{
-							int32_t v;
-							fbxFile.read((char*)&v, sizeof(v));
-							attrib.data = v;
-							attrib.sizeInBytes = sizeof(attrib.type) + sizeof(int32_t);
-						}
-						if (attrib.type == RTLib::Core::experimental::FbxBinaryAttributeView::TypeCode::eInt64)
-						{
-							int64_t v;
-							fbxFile.read((char*)&v, sizeof(v));
-							attrib.data = v;
-							attrib.sizeInBytes = sizeof(attrib.type) + sizeof(int64_t);
-						}
-						if (attrib.type == RTLib::Core::experimental::FbxBinaryAttributeView::TypeCode::eFloat32)
-						{
-							float v;
-							fbxFile.read((char*)&v, sizeof(v));
-							attrib.data = v;
-							attrib.sizeInBytes = sizeof(attrib.type) + sizeof(float);
-						}
-						if (attrib.type == RTLib::Core::experimental::FbxBinaryAttributeView::TypeCode::eFloat64)
-						{
-							double v;
-							fbxFile.read((char*)&v, sizeof(v));
-							attrib.data = v;
-							attrib.sizeInBytes = sizeof(attrib.type) + sizeof(double);
-						}
-					}
-					fbxFile.seekg(attrib.begPosInBytes + attrib.sizeInBytes, std::ios::beg);
-					return attrib;
-				}
-				TypeCode type = TypeCode::eBool;
-				std::variant<std::monostate, char, int16_t, int32_t, int64_t, float, double, TypeArrayData, TypeSpecialData>
-					data = std::monostate();
-				std::uint32_t begPosInBytes = 0;
-				std::uint32_t sizeInBytes = 0;
-			};
-			struct FbxBinaryNodeView
-			{
-				enum class HeaderType
-				{
-					eV1 = 0,
-					eV2
-				};
-				struct HeaderDataV1
-				{
-					uint32_t endPosInBytes = 0;
-					uint32_t numAttributes = 0;
-					uint32_t sumAttributesAsBytes = 0;
-					uint8_t lenNodeName = 0;
-					static auto ReadFromFile(std::ifstream &fbxFile) noexcept -> HeaderDataV1
-					{
-						HeaderDataV1 data;
-						fbxFile.read((char *)&data.endPosInBytes, sizeof(data.endPosInBytes));
-						fbxFile.read((char *)&data.numAttributes, sizeof(data.numAttributes));
-						fbxFile.read((char *)&data.sumAttributesAsBytes, sizeof(data.sumAttributesAsBytes));
-						fbxFile.read((char *)&data.lenNodeName, sizeof(data.lenNodeName));
-						return data;
-					}
-					static inline constexpr auto GetFileSizeInBytes() noexcept -> size_t
-					{
-						return sizeof(uint32_t) * 3 + 1;
-					}
-				};
-				struct HeaderDataV2
-				{
-					uint64_t endPosInBytes = 0;
-					uint64_t numAttributes = 0;
-					uint64_t sumAttributesAsBytes = 0;
-					uint8_t lenNodeName = 0;
-					static auto ReadFromFile(std::ifstream &fbxFile) noexcept -> HeaderDataV2
-					{
-						HeaderDataV2 data;
-						fbxFile.read((char *)&data.endPosInBytes, sizeof(data.endPosInBytes));
-						fbxFile.read((char *)&data.numAttributes, sizeof(data.numAttributes));
-						fbxFile.read((char *)&data.sumAttributesAsBytes, sizeof(data.sumAttributesAsBytes));
-						fbxFile.read((char *)&data.lenNodeName, sizeof(data.lenNodeName));
-						return data;
-					}
-					static inline constexpr auto GetFileSizeInBytes() noexcept -> size_t
-					{
-						return sizeof(uint64_t) * 3 + 1;
-					}
-				};
-				struct HeaderData
-				{
-					HeaderData() noexcept : type{HeaderType::eV1}, data() {}
-					~HeaderData() noexcept {}
-					HeaderType type;
-					union HeaderDataBase
-					{
-						HeaderDataBase() : v1{} {}
-						~HeaderDataBase() {}
-						HeaderDataV1 v1;
-						HeaderDataV2 v2;
-					} data;
+	}
+	template<typename T>
+	static bool ReadValueFromFromStream(std::istream& stream, T& singleValue, bool isAdvancedAfterRead = true) noexcept {
 
-					static auto ReadFromFile(std::ifstream &fbxFile, HeaderType type = HeaderType::eV1) noexcept -> HeaderData
-					{
-						HeaderData header;
-						header.type = type;
-						if (type == HeaderType::eV1)
-						{
-							header.data.v1 = HeaderDataV1::ReadFromFile(fbxFile);
-						}
-						else
-						{
-							header.data.v2 = HeaderDataV2::ReadFromFile(fbxFile);
-						}
-						return header;
-					}
-					auto GetEndPosInBytes() const noexcept -> uint32_t
-					{
-						if (type == HeaderType::eV1)
-						{
-							return data.v1.endPosInBytes;
-						}
-						else
-						{
-							return data.v2.endPosInBytes;
-						}
-					}
-					auto GetNumAttributes() const noexcept -> uint32_t
-					{
-						if (type == HeaderType::eV1)
-						{
-							return data.v1.numAttributes;
-						}
-						else
-						{
-							return data.v2.numAttributes;
-						}
-					}
-					auto GetSumAttributesAsBytes() const noexcept -> uint32_t
-					{
-						if (type == HeaderType::eV1)
-						{
-							return data.v1.sumAttributesAsBytes;
-						}
-						else
-						{
-							return data.v2.sumAttributesAsBytes;
-						}
-					}
-					auto GetLenNodeName() const noexcept -> uint8_t
-					{
-						if (type == HeaderType::eV1)
-						{
-							return data.v1.lenNodeName;
-						}
-						else
-						{
-							return data.v2.lenNodeName;
-						}
-					}
-					auto GetEndNodeMarkerSize() const noexcept -> uint32_t
-					{
-						if (type == HeaderType::eV1)
-						{
-							return 13;
-						}
-						else
-						{
-							return 25;
-						}
-					}
-					auto GetFileSizeInBytes() const noexcept -> size_t
-					{
-						if (type == HeaderType::eV1)
-						{
-							return HeaderDataV1::GetFileSizeInBytes();
-						}
-						else
-						{
-							return HeaderDataV2::GetFileSizeInBytes();
-						}
-					}
-				};
+	}
+	static bool ReadSpecialHeaderFromData(const char* pSrcData, size_t& pos, FbxBinaryAttributeSpecialHeader& header, bool isAdvancedAfterRead = true) noexcept
+	{
 
-				static void ReadFromFile(std::ifstream &fbxFile, FbxBinaryNodeView &nodeData, HeaderType type = HeaderType::eV1, bool isLoadAttributes = false) noexcept
-				{
-					auto begPos = static_cast<size_t>(fbxFile.tellg());
-					nodeData.begPosInBytes = begPos;
-					nodeData.header = HeaderData::ReadFromFile(fbxFile, type);
-					nodeData.name.resize(nodeData.header.GetLenNodeName());
-					fbxFile.read((char *)nodeData.name.c_str(), nodeData.name.size());
-					// std::cout << "node \"" << nodeData.name << "\" Read Begin: " << begPos << "\n";
-					auto endPos = nodeData.header.GetEndPosInBytes();
-					nodeData.sizeInBytes = endPos - begPos;
-					auto endNodeMarkerSize = nodeData.header.GetEndNodeMarkerSize();
-					auto begChildNode = begPos + nodeData.header.GetFileSizeInBytes() + nodeData.header.GetLenNodeName() + nodeData.header.GetSumAttributesAsBytes();
-					assert(endPos > 0);
-					if (isLoadAttributes)
-					{
-						auto numAttrib = nodeData.header.GetNumAttributes();
-						if (numAttrib > 0)
-						{
-							for (int i = 0; i < numAttrib; ++i)
-							{
-								nodeData.attributes.emplace_back(FbxBinaryAttributeView::ReadFromFile(fbxFile));
-							}
-							auto finPos = static_cast<size_t>(fbxFile.tellg());
-							assert(finPos == begChildNode);
-						}
-					}
-					fbxFile.seekg(begChildNode, std::ios::beg);
-					constexpr std::array<char, 25> compEndMarker = {};
-					if (begChildNode == endPos)
-					{
-						// std::cout << "node \"" << nodeData.name << "\" has No Child Nodes And Has No End Marker\n";
-					}
-					else if (begChildNode + endNodeMarkerSize == endPos)
-					{
-						fbxFile.read(nodeData.endMarker.data(), endNodeMarkerSize);
-						constexpr std::array<char, 25> compEndMarker = {};
-						assert(compEndMarker == nodeData.endMarker);
-						// std::cout << "node \"" << nodeData.name << "\" has No Child Nodes And Has End Marker\n";
-					}
-					else
-					{
-						size_t finPos = 0;
-						do
-						{
-							// std::cout << "RUN LOOP" << std::endl;
-							FbxBinaryNodeView childNode;
-							FbxBinaryNodeView::ReadFromFile(fbxFile, childNode, type, isLoadAttributes);
-							nodeData.children.emplace_back(std::move(childNode));
-							finPos = fbxFile.tellg();
-						} while ((finPos < endPos) && (finPos + endNodeMarkerSize != endPos));
-						if (finPos + endNodeMarkerSize == endPos)
-						{
-							fbxFile.read(nodeData.endMarker.data(), endNodeMarkerSize);
-							assert(compEndMarker == nodeData.endMarker);
-							// std::cout << "node \"" << nodeData.name << "\" has Some Child Nodes And Has End Marker\n";
-						}
-						else if (finPos == endPos)
-						{
-							// std::cout << "node \"" << nodeData.name << "\" has Some Child Nodes And Has No End Marker\n";
-						}
-						else
-						{
-							assert(false);
-						}
-					}
-				}
+	}
+	static bool ReadSpecialHeaderFromStream(std::istream& stream, FbxBinaryAttributeSpecialHeader& header, bool isAdvancedAfterRead = true) noexcept
+	{
 
-				HeaderData header = {};
-				std::string name = "";
-				std::vector<FbxBinaryAttributeView> attributes = {};
-				std::vector<FbxBinaryNodeView> children = {};
-				std::array<char, 25> endMarker = {};
-				std::uint32_t begPosInBytes = 0;
-				std::uint32_t sizeInBytes = 0;
-			};
-			struct FbxBinary
-			{
-				static inline constexpr std::array<char, 23> validMagick = {
-					"Kaydara FBX Binary\x20\x20\x00\x1a"};
-				static inline constexpr std::array<uint8_t, 16> validFooter4 = {
-					0xf8, 0x5a, 0x8c, 0x6a, 0xde, 0xf5, 0xd9, 0x7e, 0xec, 0xe9, 0x0c, 0xe3, 0x75, 0x8f, 0x29, 0x0b};
-				auto GetNodeHeaderType() const noexcept -> FbxBinaryNodeView::HeaderType
-				{
-					if (version1 / 100 >= 75)
-					{
-						return FbxBinaryNodeView::HeaderType::eV2;
-					}
-					else
-					{
-						return FbxBinaryNodeView::HeaderType::eV1;
-					}
+	}
+	static bool ReadFromData(const char* pSrcData, size_t& pos, FbxBinaryAttribute& attribute, bool isAdvancedAfterRead = true)noexcept
+	{
+		auto begPos = pos;
+		if (!ReadTypeCodeFromData(pSrcData, pos, attribute.data.type)) {
+			if (!isAdvancedAfterRead) {
+				pos = begPos;
+			}
+			return false;
+		}
+		if (attribute.data.type == FbxBinaryAttributeTypeCode::eBool) {
+			attribute.data.header = FbxBinaryAttributeValueHeader();
+			char res = 'T';
+			bool isLoaded = !ReadValueFromData(pSrcData, pos, res);
+			attribute.data.value = res;
+			if (!isLoaded) {
+				if (!isAdvancedAfterRead) {
+					pos = begPos;
 				}
-				auto GetEndNodeMarkerSize() const noexcept -> uint32_t
-				{
-					if (version1 / 100 >= 75)
-					{
-						return 25;
-					}
-					else
-					{
-						return 13;
-					}
+			}
+			return isLoaded;
+		}
+		if (attribute.data.type == FbxBinaryAttributeTypeCode::eInt16) {
+			attribute.data.header = FbxBinaryAttributeValueHeader();
+			int16_t res = 0;
+			bool isLoaded = !ReadValueFromData(pSrcData, pos, res);
+			attribute.data.value = res;
+			if (!isLoaded) {
+				if (!isAdvancedAfterRead) {
+					pos = begPos;
 				}
-				static bool Load(const char *filename, FbxBinary &binaryData, bool isLoadAttributes = false) noexcept
-				{
-					std::ifstream file(filename, std::ios::binary);
-					if (file.is_open())
-					{
-						file.seekg(0, std::ios::end);
-						size_t fbxFileSize = static_cast<size_t>(file.tellg());
-						file.seekg(0, std::ios::beg);
-						file.read((char *)binaryData.magick.data(), sizeof(binaryData.magick));
-						assert(validMagick == binaryData.magick);
-						file.read((char *)&binaryData.version1, sizeof(binaryData.version1));
-						file.seekg(-144, std::ios::end);
-						assert(static_cast<size_t>(file.tellg()) % 16 == 0);
-						file.read((char *)&binaryData.footer2, sizeof(binaryData.footer2));
-						assert(binaryData.footer2 == 0);
-						file.read((char *)&binaryData.version2, sizeof(binaryData.version2));
-						assert(binaryData.version2 == binaryData.version1);
-						auto compFooter3 = std::array<char, 120>();
-						file.read((char *)binaryData.footer3.data(), sizeof(binaryData.footer3));
-						assert(binaryData.footer3 == compFooter3);
-						file.read((char *)binaryData.footer4.data(), sizeof(binaryData.footer4));
-						assert(binaryData.footer4 == validFooter4);
-						file.seekg(sizeof(binaryData.magick) + sizeof(binaryData.version1), std::ios::beg);
-						bool isReachToEnd = false;
-						constexpr std::array<char, 25> compEndMarker = {};
-						do
-						{
-							FbxBinaryNodeView nodeData;
-							FbxBinaryNodeView::ReadFromFile(file, nodeData, binaryData.GetNodeHeaderType(), isLoadAttributes);
-							binaryData.topLevelNodeViews.emplace_back(std::move(nodeData));
-							auto curPos = static_cast<size_t>(file.tellg());
-							file.read((char *)binaryData.endMarker.data(), binaryData.GetEndNodeMarkerSize());
-							if (binaryData.endMarker == compEndMarker)
-							{
-								isReachToEnd = true;
-							}
-							else
-							{
-								file.seekg(curPos, std::ios::beg);
-							}
+			}
+			return isLoaded;
+		}
+		if (attribute.data.type == FbxBinaryAttributeTypeCode::eInt32) {
+			attribute.data.header = FbxBinaryAttributeValueHeader();
+			int32_t res = 0;
+			bool isLoaded = !ReadValueFromData(pSrcData, pos, res);
+			attribute.data.value = res;
+			if (!isLoaded) {
+				if (!isAdvancedAfterRead) {
+					pos = begPos;
+				}
+			}
+			return isLoaded;
+		}
+		if (attribute.data.type == FbxBinaryAttributeTypeCode::eInt64) {
+			attribute.data.header = FbxBinaryAttributeValueHeader();
+			int64_t res = 0;
+			bool isLoaded = !ReadValueFromData(pSrcData, pos, res);
+			attribute.data.value = res;
+			if (!isLoaded) {
+				if (!isAdvancedAfterRead) {
+					pos = begPos;
+				}
+			}
+			return isLoaded;
+		}
+		if (attribute.data.type == FbxBinaryAttributeTypeCode::eFloat32) {
+			attribute.data.header = FbxBinaryAttributeValueHeader();
+			float res = 0;
+			bool isLoaded = !ReadValueFromData(pSrcData, pos, res);
+			attribute.data.value = res;
+			if (!isLoaded) {
+				if (!isAdvancedAfterRead) {
+					pos = begPos;
+				}
+			}
+			return isLoaded;
+		}
+		if (attribute.data.type == FbxBinaryAttributeTypeCode::eFloat64) {
+			attribute.data.header = FbxBinaryAttributeValueHeader();
+			double res = 0;
+			bool isLoaded = !ReadValueFromData(pSrcData, pos, res);
+			attribute.data.value = res;
+			if (!isLoaded) {
+				if (!isAdvancedAfterRead) {
+					pos = begPos;
+				}
+			}
+			return isLoaded;
+		}
+		if (attribute.data.type == FbxBinaryAttributeTypeCode::eBin) {
 
-						} while (!isReachToEnd);
-						file.read((char *)binaryData.footer1.data(), sizeof(binaryData.footer1));
-						for (auto &v : binaryData.footer1)
-						{
-							std::cout << std::hex << (int)v << " ";
-						}
-						std::cout << std::endl;
-						auto paddingBeg = static_cast<size_t>(file.tellg());
-						auto paddingEnd = fbxFileSize - 144;
-						std::cout << "padding size: " << std::dec << paddingEnd - paddingBeg << std::endl;
-						binaryData.padding.resize(paddingEnd - paddingBeg);
-						file.read((char *)binaryData.padding.data(), binaryData.padding.size());
-						binaryData.rawData = std::unique_ptr<char[]>(new char[fbxFileSize]);
-						file.seekg(0L, std::ios::beg);
-						file.read((char *)binaryData.rawData.get(), fbxFileSize);
-						binaryData.rawDataSizeInBytes = fbxFileSize;
-						file.close();
-						return true;
-					}
-					return false;
-				}
-				size_t rawDataSizeInBytes = 0;
-				std::unique_ptr<char[]> rawData = {};
-				std::array<char, 23> magick = {};
-				uint32_t version1 = 0;
-				std::vector<FbxBinaryNodeView> topLevelNodeViews = {};
-				std::array<char, 25> endMarker = {};
-				std::array<uint8_t, 16> footer1 = {};
-				std::vector<char> padding = {};
-				uint32_t footer2 = 0;
-				uint32_t version2 = 0;
-				std::array<char, 120> footer3 = {};
-				std::array<uint8_t, 16> footer4 = {};
-			};
-			
-			struct FbxProperties
-			{
+		}
+		return true;
+	}
 
-			};
-			struct FbxGeometry {
-				int64_t       id;
-				std::string   name;
-				std::string   usage;
-				FbxProperties properties70;
-			};
+};
+struct FbxBinaryAttributeArray {
+	struct Data {
+		std::vector<FbxBinaryAttribute> values;
+	} data;
+};
+struct FbxBinaryNode;
+struct FbxBinaryNodeArray {
+	struct Data {
+		std::vector<FbxBinaryNode> values = {};
+		std::array<uint8_t, 25>    endMarker = {};
+	} data = {};
+	static bool ReadFromData(const char* pSrcData, size_t& pos, FbxBinaryNodeArray& nodeArray, uint32_t fbxVersion, bool isAdvancedAfterRead = true)noexcept;
+	static bool ReadFromStream(std::istream& stream, FbxBinaryNodeArray& nodeArray, uint32_t fbxVersion, bool isAdvancedAfterRead = true)noexcept;
+};
+struct FbxBinaryNodeHeader {
+	struct DataV1 {
+		std::uint32_t endPos;
+		std::uint32_t numAttributes;
+		std::uint32_t sumAttributesInBytes;
+		std::uint8_t  lenNodeName;
+	};
+	struct DataV2 {
+		std::uint64_t endPos;
+		std::uint64_t numAttributes;
+		std::uint64_t sumAttributesInBytes;
+		std::uint8_t  lenNodeName;
+	};
+	std::variant<DataV1, DataV2> data = DataV1();
+};
+
+struct FbxBinaryNode {
+	FbxBinaryNodeHeader        header     = {};
+	std::string                name       = "";
+	FbxBinaryAttributeArray    attributes = {};
+	FbxBinaryNodeArray         nodes      = {};
+
+	static bool ReadHeaderFromData(const char* pSrcData, size_t& pos, FbxBinaryNodeHeader& header, uint32_t fbxVersion, bool isAdvancedAfterRead = true)noexcept
+	{
+		if ((fbxVersion / 100) >= 75) {
+			size_t tmpPos = pos;
+			FbxBinaryNodeHeader::DataV2 data = {};
+			std::memcpy((char*)&data.endPos              , pSrcData + tmpPos, sizeof(data.endPos)       );
+			tmpPos += sizeof(data.endPos);
+			std::memcpy((char*)&data.numAttributes       , pSrcData + tmpPos, sizeof(data.numAttributes));
+			tmpPos += sizeof(data.numAttributes);
+			std::memcpy((char*)&data.sumAttributesInBytes, pSrcData + tmpPos, sizeof(data.endPos)       );
+			tmpPos += sizeof(data.sumAttributesInBytes);
+			std::memcpy((char*)&data.lenNodeName         , pSrcData + tmpPos, sizeof(data.lenNodeName  ));
+			tmpPos += sizeof(data.lenNodeName);
+			if (isAdvancedAfterRead) {
+				pos = tmpPos;
+			}
+			header.data = data;
+			if (data.endPos      < 27) { return false; }
+			if (data.lenNodeName == 0) { return false; }
+			return true;
+		}
+		else {
+			size_t tmpPos = pos;
+			FbxBinaryNodeHeader::DataV1 data = {};
+			std::memcpy((char*)&data.endPos, pSrcData + tmpPos, sizeof(data.endPos));
+			tmpPos += sizeof(data.endPos);
+			std::memcpy((char*)&data.numAttributes, pSrcData + tmpPos, sizeof(data.numAttributes));
+			tmpPos += sizeof(data.numAttributes);
+			std::memcpy((char*)&data.sumAttributesInBytes, pSrcData + tmpPos, sizeof(data.endPos));
+			tmpPos += sizeof(data.sumAttributesInBytes);
+			std::memcpy((char*)&data.lenNodeName, pSrcData + tmpPos, sizeof(data.lenNodeName));
+			tmpPos += sizeof(data.lenNodeName);
+			if (isAdvancedAfterRead) {
+				pos = tmpPos;
+			}
+			header.data = data;
+			if (data.endPos < 27) { return false; }
+			if (data.lenNodeName == 0) { return false; }
+			return true;
 		}
 	}
+	static bool ReadHeaderFromStream(std::istream& stream, FbxBinaryNodeHeader& header, uint32_t fbxVersion, bool isAdvancedAfterRead = true)noexcept {
+		if ((fbxVersion / 100) >= 75) {
+			size_t begPos = static_cast<size_t>(stream.tellg());
+			FbxBinaryNodeHeader::DataV2 data = {};
+			stream.read((char*)&data.endPos              , sizeof(data.endPos)       );
+			stream.read((char*)&data.numAttributes       , sizeof(data.numAttributes));
+			stream.read((char*)&data.sumAttributesInBytes, sizeof(data.sumAttributesInBytes));;
+			stream.read((char*)&data.lenNodeName         , sizeof(data.lenNodeName));
+			if (!isAdvancedAfterRead) {
+				stream.seekg(begPos, std::ios::beg);
+			}
+			header.data = data;
+			if (data.endPos < 27) { return false; }
+			if (data.lenNodeName == 0) { return false; }
+			return true;
+		}
+		else {
+			size_t begPos = static_cast<size_t>(stream.tellg());
+			FbxBinaryNodeHeader::DataV1 data = {};
+			stream.read((char*)&data.endPos, sizeof(data.endPos));
+			stream.read((char*)&data.numAttributes, sizeof(data.numAttributes));
+			stream.read((char*)&data.sumAttributesInBytes, sizeof(data.sumAttributesInBytes));;
+			stream.read((char*)&data.lenNodeName, sizeof(data.lenNodeName));
+			if (!isAdvancedAfterRead) {
+				stream.seekg(begPos, std::ios::beg);
+			}
+			header.data = data;
+			if (data.endPos < 27) { return false; }
+			if (data.lenNodeName == 0) { return false; }
+			return true;
+		}
+	}
+	
+	static bool ReadStringFromData(const char* pSrcData, size_t& pos, std::string& name, bool isAdvancedAfterRead = true)noexcept
+	{
+		if (name.empty()) { return false; }
+		size_t lenNodeName = name.size();
+		std::memcpy(name.data(), pSrcData + pos, lenNodeName);
+		name.resize(lenNodeName);
+		if (isAdvancedAfterRead)
+		{
+			pos += lenNodeName;
+		}
+		return true;
+	}
+	static bool ReadStringFromStream(std::istream& stream, std::string& name, bool isAdvancedAfterRead = true)noexcept
+	{
+		if (name.empty()) { return false; }
+		size_t lenNodeName = name.size();
+		auto begPos = static_cast<size_t>(stream.tellg());
+		stream.read((char*)name.data(), lenNodeName);
+		name.resize(lenNodeName);
+		if (!isAdvancedAfterRead)
+		{
+			stream.seekg(begPos, std::ios::beg);
+		}
+		return true;
+	}
+	
+	static bool ReadFromData(const char* pSrcData, size_t& pos, FbxBinaryNode& nodeData, uint32_t fbxVersion, bool isAdvancedAfterRead = true)noexcept {
+		auto begPos = pos;
+		if (!ReadHeaderFromData(pSrcData, pos, nodeData.header, fbxVersion)) { 
+			if (!isAdvancedAfterRead) {
+				pos = begPos;
+			}
+			return false; 
+		}
+
+		size_t sumAttributesInBytes = 0;
+		size_t endPos = 0;
+		if (std::get_if<0>(&nodeData.header.data)) {
+			nodeData.name.resize(std::get<0>(nodeData.header.data).lenNodeName);
+			sumAttributesInBytes = std::get<0>(nodeData.header.data).sumAttributesInBytes;
+			endPos = std::get<0>(nodeData.header.data).endPos;
+		}
+		else {
+			nodeData.name.resize(std::get<1>(nodeData.header.data).lenNodeName);
+			sumAttributesInBytes = std::get<1>(nodeData.header.data).sumAttributesInBytes;
+			endPos = std::get<0>(nodeData.header.data).endPos;
+		}
+		if (!ReadStringFromData(pSrcData, pos, nodeData.name)) { 
+			if (!isAdvancedAfterRead) {
+				pos = begPos;
+			}
+			return false; 
+		}
+		pos += sumAttributesInBytes;
+		if (pos != endPos) {
+			if (!FbxBinaryNodeArray::ReadFromData(pSrcData, pos, nodeData.nodes, fbxVersion)) {
+				if (!isAdvancedAfterRead) {
+					pos = begPos;
+				}
+				else {
+					pos = endPos;
+				}
+				return false;
+			}
+		}
+		if (!isAdvancedAfterRead) {
+			pos = begPos;
+		}
+		else {
+			pos = endPos;
+		}
+		return true;
+	}
+	static bool ReadFromStream(std::istream& stream, FbxBinaryNode& nodeData, uint32_t fbxVersion, bool isAdvancedAfterRead = true)noexcept
+	{
+		auto begPos = static_cast<size_t>(stream.tellg());
+		if (!ReadHeaderFromStream(stream, nodeData.header, fbxVersion)) { 
+			if (!isAdvancedAfterRead) {
+				stream.seekg(begPos, std::ios::beg);
+			}
+			return false; 
+		}
+		size_t sumAttributesInBytes = 0;
+		size_t endPos = 0;
+		if (std::get_if<0>(&nodeData.header.data)) {
+			nodeData.name.resize(std::get<0>(nodeData.header.data).lenNodeName);
+			sumAttributesInBytes = std::get<0>(nodeData.header.data).sumAttributesInBytes;
+			endPos = std::get<0>(nodeData.header.data).endPos;
+		}
+		else {
+			nodeData.name.resize(std::get<1>(nodeData.header.data).lenNodeName);
+			sumAttributesInBytes = std::get<1>(nodeData.header.data).sumAttributesInBytes;
+			endPos = std::get<0>(nodeData.header.data).endPos;
+		}
+		if (!ReadStringFromStream(stream, nodeData.name)) { 
+			if (!isAdvancedAfterRead) {
+				stream.seekg(begPos, std::ios::beg);
+			}
+			return false; 
+		}
+		stream.seekg(static_cast<size_t>(stream.tellg()) + sumAttributesInBytes, std::ios::beg);
+		if (static_cast<size_t>(stream.tellg())!=endPos) {
+			if (!FbxBinaryNodeArray::ReadFromStream(stream, nodeData.nodes, fbxVersion)) {
+				if (!isAdvancedAfterRead) {
+					stream.seekg(begPos, std::ios::beg);
+				}
+				else {
+					stream.seekg(endPos, std::ios::beg);
+				}
+				return false;
+			}
+		}
+		
+		if (!isAdvancedAfterRead) {
+			stream.seekg(begPos, std::ios::beg);
+		}
+		else {
+			stream.seekg(endPos, std::ios::beg);
+		}
+		return true;
+	}
+
+};
+
+bool FbxBinaryNodeArray::ReadFromData(const char* pSrcData, size_t& pos, FbxBinaryNodeArray& nodeArray, uint32_t fbxVersion, bool isAdvancedAfterRead)noexcept
+{
+	nodeArray.data.values.clear();
+	std::vector<size_t> posOffsets = {};
+	size_t begPos = pos;
+	size_t tmpPos = begPos;
+	bool isEndMarkerValid = false;
+	do {
+		if ((fbxVersion / 100) >= 75) {
+			std::memcpy((char*)&nodeArray.data.endMarker, pSrcData + tmpPos, 25);
+			if (nodeArray.data.endMarker == std::array<uint8_t, 25>{}) {
+				isEndMarkerValid = true;
+				tmpPos += 25;
+			}
+			else {
+				posOffsets.push_back(tmpPos);
+				uint64_t endPos = 0;
+				std::memcpy((char*)&endPos, pSrcData + tmpPos, sizeof(endPos));
+				tmpPos = endPos;
+			}
+		}
+		else {
+			std::memcpy((char*)&nodeArray.data.endMarker, pSrcData + tmpPos, 13);
+			if (nodeArray.data.endMarker == std::array<uint8_t, 25>{}) {
+				isEndMarkerValid = true;
+				tmpPos += 13;
+			}
+			else {
+				posOffsets.push_back(tmpPos);
+				uint32_t endPos = 0;
+				std::memcpy((char*)&endPos, pSrcData + tmpPos, sizeof(endPos));
+				tmpPos = endPos;
+			}
+		}
+	} while (!isEndMarkerValid);
+	nodeArray.data.values.reserve(posOffsets.size());
+	bool isLoadNode = true;
+	for (auto& posOffset : posOffsets)
+	{
+		auto tmpPosOffset = posOffset;
+		FbxBinaryNode node;
+		if (!FbxBinaryNode::ReadFromData(pSrcData, tmpPosOffset, node, false)) {
+			std::cerr << "Failed To Load Binary Node!\n";
+			isLoadNode = false;
+		}
+		else {
+			nodeArray.data.values.emplace_back(std::move(node));
+		}
+	}
+	if (!isAdvancedAfterRead) { 
+		pos = begPos;
+	}
+	else {
+		pos = tmpPos;
+	}
+	if (!isLoadNode) { return false; }
+	return isEndMarkerValid;
 }
+bool FbxBinaryNodeArray::ReadFromStream(std::istream& stream, FbxBinaryNodeArray& nodeArray, uint32_t fbxVersion, bool isAdvancedAfterRead)noexcept
+{
+	nodeArray.data.values.clear();
+	std::vector<size_t> posOffsets = {};
+	size_t begPos = stream.tellg();
+	size_t tmpPos = begPos;
+	bool isEndMarkerValid = false;
+	do {
+		if ((fbxVersion / 100) >= 75) {
+			stream.read((char*)&nodeArray.data.endMarker, 25);
+			if (nodeArray.data.endMarker == std::array<uint8_t, 25>{}) {
+				isEndMarkerValid = true;
+				tmpPos += 25;
+			}
+			else {
+				posOffsets.push_back(tmpPos);
+				uint64_t endPos = 0;
+				stream.seekg(tmpPos, std::ios::beg);
+				stream.read((char*)&endPos, sizeof(endPos));
+				stream.seekg(endPos, std::ios::beg);
+				tmpPos = endPos;
+			}
+		}
+		else {
+			stream.read((char*)&nodeArray.data.endMarker, 13);
+			if (nodeArray.data.endMarker == std::array<uint8_t, 25>{}) {
+				isEndMarkerValid = true;
+				tmpPos += 13;
+			}
+			else {
+				posOffsets.push_back(tmpPos);
+				uint32_t endPos = 0;
+				stream.seekg(tmpPos, std::ios::beg);
+				stream.read((char*)&endPos, sizeof(endPos));
+				stream.seekg(endPos, std::ios::beg);
+				tmpPos = endPos;
+			}
+		}
+	} while (!isEndMarkerValid);;
+	nodeArray.data.values.reserve(posOffsets.size());
+	bool isLoadNode = true;
+	for (auto& posOffset : posOffsets)
+	{
+		auto tmpPosOffset = posOffset;
+		FbxBinaryNode node;
+		stream.seekg(tmpPosOffset, std::ios::beg);
+		if (!FbxBinaryNode::ReadFromStream(stream, node, false)) {
+			std::cerr << "Failed To Load Binary Node!\n";
+			isLoadNode = false;
+		}
+		else {
+			nodeArray.data.values.emplace_back(std::move(node));
+		}
+	}
+	if (!isAdvancedAfterRead) {
+		stream.seekg(begPos, std::ios::beg);
+	}
+	else {
+		stream.seekg(tmpPos, std::ios::beg);
+	}
+	if (!isLoadNode) { return false; }
+	return isEndMarkerValid;
+}
+
+struct FbxBinaryData {
+	std::array<uint8_t, 23> magick;
+	std::uint32_t           fbxVersion1;
+	//Beg+27
+	FbxBinaryNodeArray      topLevelNodes;
+	std::array<uint8_t, 16> footer1;
+	std::vector<char>       padding;
+	//Beg-144
+	std::array<uint8_t, 4>  footer2;
+	std::uint32_t           fbxVersion2;
+	std::array<uint8_t,120> footer3;
+	std::array<uint8_t,16>  footer4;
+
+	static bool ReadMagickFromData(const char* pSrcData, size_t& pos, std::array<uint8_t, 23>& magick, bool isAdvancedAfterRead = true) noexcept
+	{
+		std::memcpy((char*)&magick, pSrcData+ pos, sizeof(magick));
+		if (magick == kMagick) {
+			if (isAdvancedAfterRead) {
+				pos += sizeof(magick);
+			}
+			return true;
+		}
+		else {
+			return false;
+		}
+	}
+	static bool ReadMagickFromStream(std::istream& stream, std::array<uint8_t, 23>& magick, bool isAdvancedAfterRead = true) noexcept
+	{
+		stream.read((char*)&magick, sizeof(magick));
+		if (magick == kMagick) {
+			if (!isAdvancedAfterRead) {
+				size_t curPos = static_cast<size_t>(stream.tellg());
+				stream.seekg(curPos - sizeof(magick), std::ios::beg);
+			}
+			return true;
+		}
+		else {
+			return false;
+		}
+	}
+
+	static bool ReadFbxVersionFromData(const char* pSrcData, size_t& pos, uint32_t& fbxVersion, bool isAdvancedAfterRead = true) noexcept
+	{
+		std::memcpy((char*)&fbxVersion, pSrcData + pos, sizeof(fbxVersion));
+		if ((fbxVersion/100==73)||
+			(fbxVersion/100==74)||
+			(fbxVersion/100==75)) {
+			if (isAdvancedAfterRead) {
+				pos += sizeof(fbxVersion);
+			}
+			return true;
+		}
+		else {
+			return false;
+		}
+	}
+	static bool ReadFbxVersionFromStream(std::istream& stream, uint32_t& fbxVersion, bool isAdvancedAfterRead = true) noexcept
+	{
+		stream.read((char*)&fbxVersion, sizeof(fbxVersion));
+		if ((fbxVersion / 100 == 73) ||
+			(fbxVersion / 100 == 74) ||
+			(fbxVersion / 100 == 75)) {
+			if (!isAdvancedAfterRead) {
+				size_t curPos = static_cast<size_t>(stream.tellg());
+				stream.seekg(curPos - sizeof(fbxVersion), std::ios::beg);
+			}
+			return true;
+		}
+		else {
+			return false;
+		}
+	}
+
+	static bool ReadFooter1FromData(const char* pSrcData, size_t& pos, std::array<uint8_t, 16>& footer1, bool isAdvancedAfterRead = true)
+	{
+		std::memcpy((char*)&footer1, pSrcData + pos, sizeof(footer1));
+		if (isAdvancedAfterRead) {
+			pos += sizeof(footer1);
+		}
+		if (((footer1[ 0] & 0xf0) != kFooter1[ 0]) ||
+			((footer1[ 1] & 0xf0) != kFooter1[ 1]) ||
+			((footer1[ 2] & 0xf0) != kFooter1[ 2]) ||
+			((footer1[ 3] & 0xf0) != kFooter1[ 3]) ||
+			((footer1[ 4] & 0xf0) != kFooter1[ 4]) ||
+			((footer1[ 5] & 0xf0) != kFooter1[ 5]) ||
+			((footer1[ 6] & 0xf0) != kFooter1[ 6]) ||
+			((footer1[ 7] & 0xf0) != kFooter1[ 7]) ||
+			((footer1[ 8] & 0xf0) != kFooter1[ 8]) ||
+			((footer1[ 9] & 0xf0) != kFooter1[ 9]) ||
+			((footer1[10] & 0xf0) != kFooter1[10]) ||
+			((footer1[11] & 0xf0) != kFooter1[11]) ||
+			((footer1[12] & 0xf0) != kFooter1[12]) ||
+			((footer1[13] & 0xf0) != kFooter1[13]) ||
+			((footer1[14] & 0xf0) != kFooter1[14]) ||
+			((footer1[15] & 0xf0) != kFooter1[15])) {
+			return false;
+		}
+		else {
+			return true;
+		}
+	}
+	static bool ReadFooter1FromStream(std::istream& stream, std::array<uint8_t, 16>& footer1, bool isAdvancedAfterRead = true)
+	{
+		stream.read((char*)&footer1, sizeof(footer1));
+		if (!isAdvancedAfterRead) {
+			size_t curPos = static_cast<size_t>(stream.tellg());
+			stream.seekg(curPos - sizeof(footer1), std::ios::beg);
+		}
+		if (((footer1[ 0] & 0xf0) != kFooter1[ 0]) ||
+			((footer1[ 1] & 0xf0) != kFooter1[ 1]) ||
+			((footer1[ 2] & 0xf0) != kFooter1[ 2]) ||
+			((footer1[ 3] & 0xf0) != kFooter1[ 3]) ||
+			((footer1[ 4] & 0xf0) != kFooter1[ 4]) ||
+			((footer1[ 5] & 0xf0) != kFooter1[ 5]) ||
+			((footer1[ 6] & 0xf0) != kFooter1[ 6]) ||
+			((footer1[ 7] & 0xf0) != kFooter1[ 7]) ||
+			((footer1[ 8] & 0xf0) != kFooter1[ 8]) ||
+			((footer1[ 9] & 0xf0) != kFooter1[ 9]) ||
+			((footer1[10] & 0xf0) != kFooter1[10]) ||
+			((footer1[11] & 0xf0) != kFooter1[11]) ||
+			((footer1[12] & 0xf0) != kFooter1[12]) ||
+			((footer1[13] & 0xf0) != kFooter1[13]) ||
+			((footer1[14] & 0xf0) != kFooter1[14]) ||
+			((footer1[15] & 0xf0) != kFooter1[15])) {
+			return false;
+		}
+		else {
+			return true;
+		}
+	}
+
+	static bool ReadFooter2FromData(const char* pSrcData, size_t& pos, std::array<uint8_t, 4>& footer2, bool isAdvancedAfterRead = true)
+	{
+		std::memcpy((char*)&footer2, pSrcData + pos, sizeof(footer2));
+		if (footer2 == kFooter2) {
+			if ( isAdvancedAfterRead) {
+				pos += sizeof(footer2);
+			}
+			return true;
+		}
+		else {
+			return false;
+		}
+	}
+	static bool ReadFooter2FromStream(std::istream& stream, std::array<uint8_t, 4>& footer2, bool isAdvancedAfterRead = true)
+	{
+		stream.read((char*)&footer2, sizeof(footer2));
+		if (footer2== kFooter2) {
+			if (!isAdvancedAfterRead) {
+				size_t curPos = static_cast<size_t>(stream.tellg());
+				stream.seekg(curPos - sizeof(footer2), std::ios::beg);
+			}
+			return true;
+		}
+		else {
+			return false;
+		}
+	}
+
+	static bool ReadFooter3FromData(const char* pSrcData, size_t& pos, std::array<uint8_t, 120>& footer3, bool isAdvancedAfterRead = true)
+	{
+		std::memcpy((char*)&footer3, pSrcData + pos, sizeof(footer3));
+		if (footer3 == kFooter3) {
+			if (isAdvancedAfterRead) {
+				pos += sizeof(footer3);
+			}
+			return true;
+		}
+		else {
+			return false;
+		}
+	}
+	static bool ReadFooter3FromStream(std::istream& stream, std::array<uint8_t, 120>& footer3, bool isAdvancedAfterRead = true)
+	{
+		stream.read((char*)&footer3, sizeof(footer3));
+		if (footer3 == kFooter3) {
+			if (!isAdvancedAfterRead) {
+				size_t curPos = static_cast<size_t>(stream.tellg());
+				stream.seekg(curPos - sizeof(footer3), std::ios::beg);
+			}
+			return true;
+		}
+		else {
+			return false;
+		}
+	}
+
+	static bool ReadFooter4FromData(const char* pSrcData, size_t& pos, std::array<uint8_t, 16>& footer4, bool isAdvancedAfterRead = true)
+	{
+		std::memcpy((char*)&footer4, pSrcData + pos, sizeof(footer4));
+		if (footer4 == kFooter4){
+			if (isAdvancedAfterRead) {
+				pos += sizeof(footer4);
+			}
+			return true;
+		}
+		else {
+			return false;
+		}
+	}
+	static bool ReadFooter4FromStream(std::istream& stream, std::array<uint8_t, 16>& footer4, bool isAdvancedAfterRead = true)
+	{
+		stream.read((char*)&footer4, sizeof(footer4));
+		if (footer4 == kFooter4){
+			if (!isAdvancedAfterRead) {
+				size_t curPos = static_cast<size_t>(stream.tellg());
+				stream.seekg(curPos - sizeof(footer4), std::ios::beg);
+			}
+			return true;
+		}
+		else {
+			return false;
+		}
+	}
+
+	static bool ReadPaddingFromData(const char* pSrcData, size_t& pos, std::vector<char>& padding, bool isAdvancedAfterRead = true)noexcept
+	{
+		std::memcpy((char*)padding.data(), pSrcData + pos, padding.size());
+		bool isZeroPaddings = false;
+		for (auto& pad : padding) {
+			if (pad != 0) {
+				isZeroPaddings = true;
+			}
+		}
+		if (isAdvancedAfterRead) {
+			pos += padding.size();
+		}
+		return !isZeroPaddings;
+	}
+	static bool ReadPaddingFromStream(std::istream& stream, std::vector<char>& padding, bool isAdvancedAfterRead = true)noexcept
+	{
+		auto begPos = static_cast<size_t>(stream.tellg());
+		stream.read((char*)padding.data(), padding.size());
+		bool isZeroPaddings = false;
+		for (auto& pad : padding) {
+			if (pad != 0) {
+				isZeroPaddings = true;
+			}
+		}
+		if (!isAdvancedAfterRead) {
+			stream.seekg(begPos, std::ios::beg);
+		}
+		return !isZeroPaddings;
+	}
+
+	static bool ReadFromData(const char* pSrcData, size_t srcDataSizeInBytes, FbxBinaryData& data)noexcept
+	{
+		size_t pos = 0;
+		if (!ReadMagickFromData(pSrcData,pos, data.magick)) { return false; }
+		if (!ReadFbxVersionFromData(pSrcData, pos, data.fbxVersion1)) { return false; }
+		pos = srcDataSizeInBytes - 144;
+		if (!ReadFooter2FromData(pSrcData, pos, data.footer2)) { return false; }
+		if (!ReadFbxVersionFromData(pSrcData, pos, data.fbxVersion2)) { return false; }
+		if (data.fbxVersion1 != data.fbxVersion2) { return false; }
+		if (!ReadFooter3FromData(pSrcData, pos, data.footer3)) { return false; }
+		if (!ReadFooter4FromData(pSrcData, pos, data.footer4)) { return false; }
+		pos = 27;
+		if (!FbxBinaryNodeArray::ReadFromData(pSrcData, pos, data.topLevelNodes, data.fbxVersion1)){return false;}
+		if (!ReadFooter1FromData(pSrcData, pos, data.footer1)) { return false; }
+		size_t paddingSize = srcDataSizeInBytes - 144- pos;
+		data.padding.resize(paddingSize);
+		if (!ReadPaddingFromData(pSrcData, pos, data.padding)) { return false; }
+		return true;
+	}
+	static bool ReadFromStream(std::istream& stream, FbxBinaryData& data)noexcept
+	{
+		if (stream.fail()) { return false; }
+		stream.seekg(0L, std::ios::end);
+		size_t sizeInBytes = static_cast<size_t>(stream.tellg());
+		stream.seekg(0L, std::ios::beg);
+		if (!ReadMagickFromStream(stream, data.magick)) { return false; }
+		if (!ReadFbxVersionFromStream(stream, data.fbxVersion1)) { return false; }
+		stream.seekg(-144L, std::ios::end);
+		if (!ReadFooter2FromStream(stream, data.footer2)) { return false; }
+		if (!ReadFbxVersionFromStream(stream, data.fbxVersion2)) { return false; }
+		if (data.fbxVersion1 != data.fbxVersion2) { return false; }
+		if (!ReadFooter3FromStream(stream, data.footer3)) { return false; }
+		if (!ReadFooter4FromStream(stream, data.footer4)) { return false; }
+		stream.seekg(27, std::ios::beg);
+		if (!FbxBinaryNodeArray::ReadFromStream(stream, data.topLevelNodes, data.fbxVersion1)) { return false; }
+		if (!ReadFooter1FromStream(stream, data.footer1)) { return false; }
+		size_t paddingSize = sizeInBytes - 144 - static_cast<size_t>(stream.tellg());
+		data.padding.resize(paddingSize);
+		if (!ReadPaddingFromStream(stream, data.padding)) { return false; }
+		return true;
+	}
+private:
+	static inline constexpr std::array<uint8_t, 23> kMagick =
+	{ 0x4b,0x61,0x79,0x64,0x61,0x72,0x61,0x20,0x46,0x42,0x58,0x20,0x42,0x69,0x6e,0x61,0x72,0x79,0x20,0x20,0x00,0x1a,0x00 };
+	static inline constexpr std::array<uint8_t, 16> kFooter1 =
+	{ 0xf0,0xb0,0xa0,0x00,0xd0,0xc0,0xd0,0x60,0xb0,0x70,0xf0,0x80,0x10,0xf0,0x20,0x70 };
+	static inline constexpr std::array<uint8_t,  4> kFooter2 =
+	{ };
+	static inline constexpr std::array<uint8_t,120> kFooter3 =
+	{ };
+	static inline constexpr std::array<uint8_t, 16> kFooter4 = 
+	{ 0xf8,0x5a,0x8c,0x6a,0xde,0xf5,0xd9,0x7e,0xec,0xe9,0x0c,0xe3,0x75,0x8f,0x29,0x0b };
+};
 int main()
 {
-	RTLib::Core::experimental::FbxBinary binary;
-	RTLib::Core::experimental::FbxBinary::Load(RTLIB_CORE_TEST_CONFIG_DATA_PATH "/Models/ZeroDay/MEASURE_ONE/MEASURE_ONE.fbx", binary, true);
-	std::unordered_map<std::string, const RTLib::Core::experimental::FbxBinaryNodeView *> binaryNodeSet = {};
-	std::stack<std::pair<std::string, const RTLib::Core::experimental::FbxBinaryNodeView *>> tmpStack;
-	for (auto &v : binary.topLevelNodeViews)
 	{
-		tmpStack.push({"Root", &v});
-	}
-	while (!tmpStack.empty())
-	{
-		auto [name, pView] = tmpStack.top();
-		tmpStack.pop();
-		binaryNodeSet.insert({name + "/" + pView->name, pView});
-		if (!pView->children.empty())
-		{
-			for (auto &c : pView->children)
-			{
-				tmpStack.push({name + "/" + pView->name, &c});
-			}
+		FbxBinaryData fbxBinaryData;
+		std::ifstream file(RTLIB_CORE_TEST_CONFIG_DATA_PATH"\\Models\\SampleBox\\SampleBox.fbx", std::ios::binary);
+		file.seekg(0L, std::ios::end);
+		auto fileSize = static_cast<size_t>(file.tellg());
+		file.seekg(0L, std::ios::beg);
+		std::unique_ptr<char[]> data(new char[fileSize]);
+		file.read(data.get(), fileSize);
+		if (!FbxBinaryData::ReadFromData(data.get(),fileSize, fbxBinaryData)) {
+			
+			std::cerr << "Failed To Load Fbx File!\n";
 		}
+		file.close();
 	}
-	auto ShowNodeAttributes = [](const RTLib::Core::experimental::FbxBinaryNodeView* view, std::string ext = "", const char* pRawData = nullptr)
 	{
-		size_t i = 0;
-		for (auto& attr : view->attributes) {
-
-			if (attr.type == RTLib::Core::experimental::FbxBinaryAttributeView::TypeCode::eBool)
-			{
-				std::cout << ext<< view->name << ".attributes[" << i << "]: Bool  = " << std::get<char>(attr.data) << " ;\n";
-			}
-			if (attr.type == RTLib::Core::experimental::FbxBinaryAttributeView::TypeCode::eInt16)
-			{
-				std::cout << ext<< view->name << ".attributes[" << i << "]: Int16 = " << std::get<int16_t>(attr.data) << " ;\n";
-			}
-			if (attr.type == RTLib::Core::experimental::FbxBinaryAttributeView::TypeCode::eInt32)
-			{
-				std::cout << ext<< view->name << ".attributes[" << i << "]: Int32 = " << std::get<int32_t>(attr.data) << " ;\n";
-			}
-			if (attr.type == RTLib::Core::experimental::FbxBinaryAttributeView::TypeCode::eInt64)
-			{
-				std::cout << ext<< view->name << ".attributes[" << i << "]: Int64 = " << std::get<int64_t>(attr.data) << " ;\n";
-			}
-			if (attr.type == RTLib::Core::experimental::FbxBinaryAttributeView::TypeCode::eFloat32)
-			{
-				std::cout << ext << view->name << ".attributes[" << i << "]: Float32 = " << std::get<float>(attr.data) << " ;\n";
-			}
-			if (attr.type == RTLib::Core::experimental::FbxBinaryAttributeView::TypeCode::eFloat64)
-			{
-				std::cout << ext << view->name << ".attributes[" << i << "]: Float64 = " << std::get<double>(attr.data) << " ;\n";
-			}
-			if (pRawData) {
-				if (attr.type == RTLib::Core::experimental::FbxBinaryAttributeView::TypeCode::eString)
-				{
-					auto specData = std::get<RTLib::Core::experimental::FbxBinaryAttributeView::TypeSpecialData>(attr.data);
-					auto v = std::string(specData.sizeInBytes, '\0');
-					std::memcpy((void*)v.c_str(), pRawData + attr.begPosInBytes + 1 + sizeof(specData), specData.sizeInBytes);
-					std::cout << ext << view->name << ".attributes[" << i << "]: String = \"" << v << "\" ;\n";
-				}
-			}
-			++i;
+		FbxBinaryData fbxBinaryData;
+		std::ifstream file(RTLIB_CORE_TEST_CONFIG_DATA_PATH"\\Models\\SampleBox\\SampleBox.fbx", std::ios::binary);
+		if (!FbxBinaryData::ReadFromStream(file,fbxBinaryData)) {
+			std::cerr << "Failed To Load Fbx File!\n";
 		}
-	};
-	{
-
-		auto view = binaryNodeSet.at("Root/Objects"); 
-		ShowNodeAttributes(view, "", binary.rawData.get());
-		for (const auto& cview : view->children) {
-			ShowNodeAttributes(&cview, view->name+".", binary.rawData.get());
-			//for (const auto& ccview : cview.children) {
-			//	ShowNodeAttributes(&ccview, view->name + "."+ cview.name + ".", binary.rawData.get());
-			//	//for (const auto& cccview : ccview.children) {
-			//	//	ShowNodeAttributes(&cccview, view->name + "." + cview.name + "." + ccview.name + ".", binary.rawData.get());
-			//	//	for (const auto& ccccview : ccview.children) {
-			//	//		ShowNodeAttributes(&ccccview, view->name + "." + cview.name + "." + ccview.name + "." + cccview.name + ".", binary.rawData.get());
-			//	//	}
-			//	//}
-			//}
-		}
+		file.close();
 	}
-
 	return 0;
 }
