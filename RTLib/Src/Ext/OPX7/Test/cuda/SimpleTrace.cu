@@ -300,7 +300,7 @@ extern "C" __global__ void __closesthit__radiance() {
             if (params.flags & PARAM_FLAG_NEE) {
                 if (hrec->userData.depth < params.maxDepth - 1) {
                     if (params.flags & PARAM_FLAG_RIS) {
-                        Reservoir<LightRecord> resv = {};
+                        RTLib::Ext::OPX7::Utils::Reservoir<LightRecord> resv = {};
                         auto f_y    = make_float3(0.0f);
                         auto f_a_y  = 0.0f;
                         auto lDir_y = make_float3(0.0f);
@@ -498,7 +498,7 @@ extern "C" __global__ void __closesthit__radiance_sphere() {
             if (params.flags & PARAM_FLAG_NEE) {
                 if (hrec->userData.depth < params.maxDepth - 1) {
                     if (params.flags & PARAM_FLAG_RIS) {
-                        Reservoir<LightRecord> resv = {};
+                        RTLib::Ext::OPX7::Utils::Reservoir<LightRecord> resv = {};
                         auto f_y = make_float3(0.0f);
                         auto f_a_y = 0.0f;
                         auto lDir_y = make_float3(0.0f);

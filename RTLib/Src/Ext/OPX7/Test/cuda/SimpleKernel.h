@@ -11,6 +11,7 @@
 #include <RTLib/Ext/OPX7/Utils/OPX7UtilsPathGuiding.h>
 #include <RTLib/Ext/OPX7/Utils/OPX7UtilsMorton.h>
 #include <RTLib/Ext/OPX7/Utils/OPX7UtilsGrid.h>
+#include <RTLib/Ext/OPX7/Utils/OPX7UtilsReSTIR.h>
 #include <PathGuidingConfig.h>
 #include <MortonTreeConfig.h>
 //#define TEST_SKIP_TEXTURE_SAMPLE
@@ -121,26 +122,6 @@ struct MeshLightList
 #endif
 };
 /**/
-template<typename T>
-struct Reservoir
-{
-    float        w = 0.0f;
-    float        w_sum = 0.0f;
-    unsigned int m = 0;
-    T            y = {};
-    RTLIB_INLINE RTLIB_HOST_DEVICE bool Update(T x_i, float w_i, float rnd01)
-    {
-        w = 0.0f;
-        w_sum += w_i;
-        ++m;
-        if ((w_i / w_sum) >= rnd01)
-        {
-            y = x_i;
-            return true;
-        }
-        return false;
-    }
-};
 struct ReservoirState
 {
     float targetDensity;

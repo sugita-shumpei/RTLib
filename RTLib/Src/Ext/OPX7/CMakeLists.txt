@@ -44,6 +44,8 @@ set(RTLIB_EXT_OPX7_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/OPX7/Utils/OPX7UtilsMortonBuild.cu
 
     ${CMAKE_CURRENT_BINARY_DIR}/OPX7UtilsMortonBuild.ptx.h
+    
+    ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/OPX7/Utils/OPX7UtilsReSTIR.h
 )
 
 add_library(RTLib-Ext-OPX7
