@@ -2248,9 +2248,9 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
     if ((m_CurTracerName == "HTDEF") || (m_CurTracerName == "HTNEE") || (m_CurTracerName == "HTRIS"))
     {
         m_MortonQuadTreeController->BegTrace(stream);
+        cuMemsetD32Async(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_DebugGridBufferCUDA.get()), 0, m_DebugGridBufferCUDA->GetSizeInBytes() / sizeof(unsigned int), RTLib::Ext::CUDA::CUDANatives::GetCUstream(stream));
         if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateLocate)
         {
-            cuMemsetD32Async(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_DebugGridBufferCUDA.get()), 0, m_DebugGridBufferCUDA->GetSizeInBytes() / sizeof(unsigned int), RTLib::Ext::CUDA::CUDANatives::GetCUstream(stream));
             m_PipelineName = "Locate";
         }
         if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecord)
@@ -2624,14 +2624,26 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
                 bufferMemoryCopy.size = m_DebugGridBufferCUDA->GetSizeInBytes();
                 bufferMemoryCopy.dstData = array_of_accum.data();
                 m_Opx7Context->CopyBufferToMemory(m_DebugGridBufferCUDA.get(), { bufferMemoryCopy });
-                std::cout << "Save Accum File " << std::endl;
-                auto baseSavePath = std::filesystem::path(m_SceneData.config.imagePath).make_preferred() / m_TimeStampString;
-                std::ofstream file(baseSavePath.string() + "\\result_accum_" + std::to_string(m_SamplesForAccum) + ".bin", std::ios::binary);
-                file.write((char*)array_of_accum.data(), array_of_accum.size() * sizeof(unsigned int));
-                file.close();
-
                 float y = (float)std::accumulate(std::begin(array_of_accum), std::end(array_of_accum),0)/ (float)array_of_accum.size();
-                std::cout << "Average: " << y << std::endl;
+                float h025 = (float)std::count_if(std::begin(array_of_accum), std::end(array_of_accum), [y](unsigned int x) { return (x <  0.025 * y); }) / (float)array_of_accum.size();
+                float h255 = (float)std::count_if(std::begin(array_of_accum), std::end(array_of_accum), [y](unsigned int x) { return (x >= 0.025 * y) && (x < 0.05 * y); }) / (float)array_of_accum.size();
+                float h51 = (float)std::count_if(std::begin(array_of_accum), std::end(array_of_accum), [y](unsigned int x) { return (x >= 0.05 * y) && (x < 0.1 * y); }) / (float)array_of_accum.size();
+                float h12 = (float)std::count_if(std::begin(array_of_accum), std::end(array_of_accum), [y](unsigned int x) { return (x >= 0.1 * y) && (x < 0.2 * y); }) / (float)array_of_accum.size();
+                float h24 = (float)std::count_if(std::begin(array_of_accum), std::end(array_of_accum), [y](unsigned int x) { return (x >= 0.2 * y) && (x < 0.4 * y); }) / (float)array_of_accum.size();
+                float h46 = (float)std::count_if(std::begin(array_of_accum), std::end(array_of_accum), [y](unsigned int x) { return (x >= 0.4 * y) && (x < 0.6 * y); }) / (float)array_of_accum.size();
+                float h68 = (float)std::count_if(std::begin(array_of_accum), std::end(array_of_accum), [y](unsigned int x) { return (x >= 0.6 * y) && (x < 0.8 * y); }) / (float)array_of_accum.size();
+                float h810= (float)std::count_if(std::begin(array_of_accum), std::end(array_of_accum), [y](unsigned int x) { return (x >= 0.8 * y) && (x < y); }) / (float)array_of_accum.size();
+                float h10 = (float)std::count_if(std::begin(array_of_accum), std::end(array_of_accum), [y](unsigned int x) { return (x >=  y); }) / (float)array_of_accum.size();
+                std::cout << "Average: "         << y    << std::endl;
+                std::cout << "Count[000~2.5%]: " << h025 << std::endl;
+                std::cout << "Count[2.5~005%]: " << h255 << std::endl;
+                std::cout << "Count[005~010%]: " << h51  << std::endl;
+                std::cout << "Count[010~020%]: " << h12  << std::endl;
+                std::cout << "Count[020~040%]: " << h24  << std::endl;
+                std::cout << "Count[040~060%]: " << h46  << std::endl;
+                std::cout << "Count[060~080%]: " << h68  << std::endl;
+                std::cout << "Count[080~100%]: " << h810 << std::endl;
+                std::cout << "Count[100%~   ]: " << h10  << std::endl;
             }
             m_TimesForIterations.back() += m_TimesForFrame;
             if (m_MortonQuadTreeController->GetIteration() != m_TimesForIterations.size()) {
