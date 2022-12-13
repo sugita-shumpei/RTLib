@@ -71,7 +71,7 @@ namespace rtlib
         using namespace RTLib::Ext::CUDA::Math;
         using BottomLevelAccelerationStructureData = RTLib::Ext::OPX7::OPX7Natives::AccelBuildOutput;
 
-        inline auto TransformAABB(const AABB& inAABB,const RTLib::Ext::CUDA::Math::Matrix4x4& transform) noexcept->AABB
+        inline auto TransformAABB(const AABB& inAABB, const RTLib::Ext::CUDA::Math::Matrix4x4& transform) noexcept->AABB
         {
             std::vector<float3> inPositions =
             {
@@ -101,7 +101,7 @@ namespace rtlib
             std::array<float, 3>              aabbMin;
             std::array<float, 3>              aabbMax;
         };
-        struct InstanceAccelerationStructureData 
+        struct InstanceAccelerationStructureData
         {
             std::unique_ptr<CUDA::CUDABuffer> buffer;
             OptixTraversableHandle            handle;
@@ -116,13 +116,13 @@ namespace rtlib
                         instanceBuffer = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(context->CreateBuffer(
                             RTLib::Ext::CUDA::CUDABufferCreateDesc{
                                 RTLib::Ext::CUDA::CUDAMemoryFlags::eDefault,
-                                sizeof(instanceArray[0])* instanceArray.size(),
+                                sizeof(instanceArray[0]) * instanceArray.size(),
                                 instanceArray.data()
                             })
-                        );
+                            );
                     }
                     else {
-                        RTLIB_CORE_ASSERT_IF_FAILED(context->CopyMemoryToBuffer(instanceBuffer.get(), { {instanceArray.data(),(size_t)0, instanceArray.size()*sizeof(instanceArray[0])}}));
+                        RTLIB_CORE_ASSERT_IF_FAILED(context->CopyMemoryToBuffer(instanceBuffer.get(), { {instanceArray.data(),(size_t)0, instanceArray.size() * sizeof(instanceArray[0])} }));
                     }
                 }
                 else {
@@ -132,7 +132,7 @@ namespace rtlib
                             sizeof(instanceArray[0]) * instanceArray.size(),
                             instanceArray.data()
                         })
-                    );
+                        );
                 }
 
                 auto buildInputs = std::vector<OptixBuildInput>(1);
@@ -143,7 +143,7 @@ namespace rtlib
                 }
 
                 auto [tmpBuffer, tmpHandle] = RTLib::Ext::OPX7::OPX7Natives::BuildAccelerationStructure(context, options, buildInputs);
-                
+
                 buffer = std::move(tmpBuffer);
                 handle = tmpHandle;
             }
@@ -151,7 +151,7 @@ namespace rtlib
 
 
         class OPX7MeshSharedResourceExtData :public RTLib::Core::MeshSharedResourceExtData {
-         public:
+        public:
             static auto New(MeshSharedResource* pMeshSharedResource, OPX7::OPX7Context* context)noexcept->OPX7MeshSharedResourceExtData* {
                 auto extData = new OPX7MeshSharedResourceExtData(pMeshSharedResource);
                 auto parent = extData->GetParent();
@@ -295,7 +295,7 @@ namespace rtlib
             }
         }
 
-        class OPX7SphereResourceExtData:public SphereResourceExtData {
+        class OPX7SphereResourceExtData :public SphereResourceExtData {
         public:
             static auto New(SphereResource* pSphereResource, OPX7::OPX7Context* context)noexcept->OPX7SphereResourceExtData* {
                 auto extData = new OPX7SphereResourceExtData(pSphereResource);
@@ -304,10 +304,10 @@ namespace rtlib
                     { RTLib::Ext::CUDA::CUDAMemoryFlags::eDefault, sizeof(float) * 3 * std::size(parent->centerBuffer), std::data(parent->centerBuffer) }
                 ));
                 extData->m_RadiusBuffer = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(context->CreateBuffer(
-                    { RTLib::Ext::CUDA::CUDAMemoryFlags::eDefault, sizeof(float)     * std::size(parent->radiusBuffer), std::data(parent->radiusBuffer) }
+                    { RTLib::Ext::CUDA::CUDAMemoryFlags::eDefault, sizeof(float) * std::size(parent->radiusBuffer), std::data(parent->radiusBuffer) }
                 ));
                 extData->m_MatIdxBuffer = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(context->CreateBuffer(
-                    { RTLib::Ext::CUDA::CUDAMemoryFlags::eDefault, sizeof(uint32_t)  * std::size(parent->matIndBuffer), std::data(parent->matIndBuffer) }
+                    { RTLib::Ext::CUDA::CUDAMemoryFlags::eDefault, sizeof(uint32_t) * std::size(parent->matIndBuffer), std::data(parent->matIndBuffer) }
                 ));
 
                 return extData;
@@ -510,7 +510,7 @@ namespace rtlib
             }
         };
 
-        struct SceneData: public RTLib::Core::SceneData
+        struct SceneData : public RTLib::Core::SceneData
         {
             void InitExtData(RTLib::Ext::OPX7::OPX7Context* opx7Context) {
                 for (auto& [name, geometry] : world.geometryObjModels)
@@ -525,7 +525,7 @@ namespace rtlib
             auto BuildGeometryASs(RTLib::Ext::OPX7::OPX7Context* opx7Context, const OptixAccelBuildOptions& accelBuildOptions)const noexcept -> std::unordered_map<std::string, GeometryAccelerationStructureData>
             {
                 std::unordered_map<std::string, GeometryAccelerationStructureData> geometryASs = {};
-                for (auto& [geometryASName,geometryASData] : world.geometryASs)
+                for (auto& [geometryASName, geometryASData] : world.geometryASs)
                 {
                     AABB aabb;
                     auto buildInputs = std::vector<OptixBuildInput>();
@@ -575,8 +575,8 @@ namespace rtlib
                         }
                     }
                     auto&& [buffer, handle] = RTLib::Ext::OPX7::OPX7Natives::BuildAccelerationStructure(opx7Context, accelBuildOptions, buildInputs);
-                    geometryASs[geometryASName].buffer  = std::move(buffer);
-                    geometryASs[geometryASName].handle  = handle;
+                    geometryASs[geometryASName].buffer = std::move(buffer);
+                    geometryASs[geometryASName].handle = handle;
                     geometryASs[geometryASName].aabbMin = aabb.min;
                     geometryASs[geometryASName].aabbMax = aabb.max;
 
@@ -584,7 +584,7 @@ namespace rtlib
 
                 return geometryASs;
             }
-            auto BuildInstanceASs(RTLib::Ext::OPX7::OPX7Context* opx7Context, const OptixAccelBuildOptions& accelBuildOptions,const RTLib::Ext::OPX7::OPX7ShaderTableLayout* shaderTableLayout, std::unordered_map<std::string, GeometryAccelerationStructureData>& geometryASs)const ->std::unordered_map<std::string, InstanceAccelerationStructureData>
+            auto BuildInstanceASs(RTLib::Ext::OPX7::OPX7Context* opx7Context, const OptixAccelBuildOptions& accelBuildOptions, const RTLib::Ext::OPX7::OPX7ShaderTableLayout* shaderTableLayout, std::unordered_map<std::string, GeometryAccelerationStructureData>& geometryASs)const ->std::unordered_map<std::string, InstanceAccelerationStructureData>
             {
                 auto instanceASs = std::unordered_map<std::string, rtlib::test::InstanceAccelerationStructureData>();
 
@@ -724,14 +724,14 @@ namespace rtlib
             }
         };
 
-        inline auto CreateGLFWWindow(RTLib::Ext::GLFW::GLFWContext* glfwContext,int width, int height, const char* title)->RTLib::Ext::GLFW::GL::GLFWOpenGLWindow* {
-            auto desc          = RTLib::Ext::GLFW::GL::GLFWOpenGLWindowCreateDesc();
-            desc.width         = width;
-            desc.height        = height;
-            desc.title         = title;
+        inline auto CreateGLFWWindow(RTLib::Ext::GLFW::GLFWContext* glfwContext, int width, int height, const char* title)->RTLib::Ext::GLFW::GL::GLFWOpenGLWindow* {
+            auto desc = RTLib::Ext::GLFW::GL::GLFWOpenGLWindowCreateDesc();
+            desc.width = width;
+            desc.height = height;
+            desc.title = title;
             desc.isCoreProfile = true;
-            desc.isVisible     = false;
-            desc.isResizable   = false;
+            desc.isVisible = false;
+            desc.isResizable = false;
             std::vector<std::pair<int, int>> glVersions = {
                 {4,6},{4,5},{4,4},{4,3},{4,2},{4,1},{4,0},
                 {3,3},{3,2},{3,1},{3,0},
@@ -817,12 +817,12 @@ namespace rtlib
                 }}
             };
         }
-        
+
         inline void RenderFrameGL(
-            RTLib::Ext::GL::GLContext*      context,
+            RTLib::Ext::GL::GLContext* context,
             RTLib::Ext::GL::GLRectRenderer* rectRenderer,
-            RTLib::Ext::GL::GLBuffer *      frameBuffer,
-            RTLib::Ext::GL::GLTexture*      frameTexture
+            RTLib::Ext::GL::GLBuffer* frameBuffer,
+            RTLib::Ext::GL::GLTexture* frameTexture
         ) {
             auto extent = frameTexture->GetImage()->GetExtent();
             context->SetClearBuffer(RTLib::Ext::GL::GLClearBufferFlagsColor);
@@ -848,7 +848,7 @@ namespace rtlib
         class KeyBoardStateManager
         {
         public:
-            KeyBoardStateManager(RTLib::Ext::GLFW::GLFWWindow* window) :m_Window{ window }, m_States{}{}
+            KeyBoardStateManager(RTLib::Ext::GLFW::GLFWWindow* window) :m_Window{ window }, m_States{} {}
             void Update() noexcept {
                 for (auto& [keyCode, keyState] : m_States)
                 {
@@ -888,7 +888,7 @@ namespace rtlib
         class MouseButtonStateManager
         {
         public:
-            MouseButtonStateManager(RTLib::Ext::GLFW::GLFWWindow* window) :m_Window{ window }, m_States{}{}
+            MouseButtonStateManager(RTLib::Ext::GLFW::GLFWWindow* window) :m_Window{ window }, m_States{} {}
             void Update() noexcept {
                 for (auto& [keyCode, keyState] : m_States)
                 {
@@ -931,43 +931,43 @@ namespace rtlib
             const MouseButtonStateManager* mouseButtonManager,
             RTLib::Core::CameraController& cameraController,
             float delTime,
-            float delCurPosX, 
-            float delCurPosY){
+            float delCurPosX,
+            float delCurPosY) {
             bool isMovedCamera = false;
-            const bool pressKeyLeft     = (keyBoardManager->GetState(GLFW_KEY_A)->isPressed) || (keyBoardManager->GetState( GLFW_KEY_LEFT)->isPressed);
-            const bool pressKeyRight    = (keyBoardManager->GetState(GLFW_KEY_D)->isPressed) || (keyBoardManager->GetState(GLFW_KEY_RIGHT)->isPressed);
-            const bool pressKeyForward  = (keyBoardManager->GetState(GLFW_KEY_W)->isPressed);
+            const bool pressKeyLeft = (keyBoardManager->GetState(GLFW_KEY_A)->isPressed) || (keyBoardManager->GetState(GLFW_KEY_LEFT)->isPressed);
+            const bool pressKeyRight = (keyBoardManager->GetState(GLFW_KEY_D)->isPressed) || (keyBoardManager->GetState(GLFW_KEY_RIGHT)->isPressed);
+            const bool pressKeyForward = (keyBoardManager->GetState(GLFW_KEY_W)->isPressed);
             const bool pressKeyBackward = (keyBoardManager->GetState(GLFW_KEY_S)->isPressed);
-            const bool pressKeyUp       = (keyBoardManager->GetState(GLFW_KEY_UP)->isPressed);
-            const bool pressKeyDown     = (keyBoardManager->GetState(GLFW_KEY_DOWN)->isPressed);
-            if (pressKeyLeft    )
+            const bool pressKeyUp = (keyBoardManager->GetState(GLFW_KEY_UP)->isPressed);
+            const bool pressKeyDown = (keyBoardManager->GetState(GLFW_KEY_DOWN)->isPressed);
+            if (pressKeyLeft)
             {
                 cameraController.ProcessKeyboard(RTLib::Core::CameraMovement::eLeft, delTime);
                 isMovedCamera = true;
             }
-            if (pressKeyRight   )
+            if (pressKeyRight)
             {
                 cameraController.ProcessKeyboard(RTLib::Core::CameraMovement::eRight, delTime);
                 isMovedCamera = true;
             }
-            if (pressKeyForward )
+            if (pressKeyForward)
             {
                 cameraController.ProcessKeyboard(RTLib::Core::CameraMovement::eForward, delTime);
                 isMovedCamera = true;
             }
             if (pressKeyBackward)
             {
-                cameraController.ProcessKeyboard(RTLib::Core::CameraMovement::eBackward,  delTime);
+                cameraController.ProcessKeyboard(RTLib::Core::CameraMovement::eBackward, delTime);
                 isMovedCamera = true;
             }
-            if (pressKeyUp      )
+            if (pressKeyUp)
             {
-                cameraController.ProcessKeyboard(RTLib::Core::CameraMovement::eUp,  delTime);
+                cameraController.ProcessKeyboard(RTLib::Core::CameraMovement::eUp, delTime);
                 isMovedCamera = true;
             }
-            if (pressKeyDown    )
+            if (pressKeyDown)
             {
-                cameraController.ProcessKeyboard(RTLib::Core::CameraMovement::eDown,  delTime);
+                cameraController.ProcessKeyboard(RTLib::Core::CameraMovement::eDown, delTime);
                 isMovedCamera = true;
             }
             if (mouseButtonManager->GetState(GLFW_MOUSE_BUTTON_LEFT)->isPressed)
@@ -984,9 +984,9 @@ namespace rtlib
             RayGenData rgData;
             rgData.eye = camera.GetEyeAs<float3>();
             auto [u, v, w] = camera.GetUVW();
-            rgData.u = make_float3(u[0],u[1],u[2]);
-            rgData.v = make_float3(v[0],v[1],v[2]);
-            rgData.w = make_float3(w[0],w[1],w[2]);
+            rgData.u = make_float3(u[0], u[1], u[2]);
+            rgData.v = make_float3(v[0], v[1], v[2]);
+            rgData.w = make_float3(w[0], w[1], w[2]);
             return rgData;
         }
 
@@ -1009,7 +1009,7 @@ namespace rtlib
                     }
                 }
             }
-            auto instanceASs = std::unordered_map<std::string,std::unique_ptr<RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstanceAS>>();
+            auto instanceASs = std::unordered_map<std::string, std::unique_ptr<RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstanceAS>>();
             {
                 auto  dependentInstanceASs = std::unordered_map<std::string, std::pair<std::string, size_t>>();
                 auto instanceNamesWithLevels = std::vector<std::vector<std::string>>();
@@ -1049,7 +1049,7 @@ namespace rtlib
                                     instanceASs[instanceASName]->SetInstance(RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstance(instanceName, blasLayouts.at(instanceElement.base).get()));
                                 }
                                 else {
-                                    instanceASs[instanceASName]->SetInstance(RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstance(instanceName, instanceASs.at(instanceASName+"/"+instanceName).get()));
+                                    instanceASs[instanceASName]->SetInstance(RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstance(instanceName, instanceASs.at(instanceASName + "/" + instanceName).get()));
                                 }
                             }
                         }
@@ -1160,7 +1160,7 @@ namespace rtlib
                     module.handle->Destroy();
                     module = {};
                 }
-                modules.clear(); 
+                modules.clear();
                 shaderTable->Destroy();
                 shaderTable = nullptr;
             }
@@ -1214,7 +1214,7 @@ namespace rtlib
                 modules[moduleName].options = moduleOptions;
             }
 
-            void Launch(RTLib::Ext::CUDA::CUDAStream* stream, RTLib::Ext::CUDA::CUDABuffer* paramsBuffer, int width, int height,int depth=1)
+            void Launch(RTLib::Ext::CUDA::CUDAStream* stream, RTLib::Ext::CUDA::CUDABuffer* paramsBuffer, int width, int height, int depth = 1)
             {
 
                 handle->Launch(stream, RTLib::Ext::CUDA::CUDABufferView(paramsBuffer, 0, paramsBuffer->GetSizeInBytes()), shaderTable.get(), width, height, depth);
@@ -1273,7 +1273,7 @@ namespace rtlib
             }
 
             template<typename T>
-            void SetHostRayGenRecordTypeData( T data)
+            void SetHostRayGenRecordTypeData(T data)
             {
                 shaderTable->SetHostRaygenRecordTypeData(programGroupRG->GetRecord<T>(data));
             }
@@ -1342,9 +1342,9 @@ namespace rtlib
                 paramsBuffer.reset();
             }
 
-            void Launch(RTLib::Ext::CUDA::CUDAStream* stream, std::string pipelineName, int width, int height, int depth =1)
+            void Launch(RTLib::Ext::CUDA::CUDAStream* stream, std::string pipelineName, int width, int height, int depth = 1)
             {
-                pipelines[pipelineName].Launch(stream, paramsBuffer.get(), width, height,depth);
+                pipelines[pipelineName].Launch(stream, paramsBuffer.get(), width, height, depth);
             }
         };
 
@@ -1361,7 +1361,7 @@ namespace rtlib
             float delTime = 0.0f;
             float2 curCurPos = {};
             float2 delCurPos = {};
-            
+
         };
 
         template<typename T>
@@ -1399,7 +1399,7 @@ namespace rtlib
                     context->CopyMemoryToBuffer(gpuHandle.get(), { desc });
                 }
             }
-            auto GetHandle()const noexcept -> RTLib::Ext::OPX7::Utils::RegularGrid3 
+            auto GetHandle()const noexcept -> RTLib::Ext::OPX7::Utils::RegularGrid3
             {
                 RegularGrid3 grid3;
                 grid3.aabbOffset = aabbMin;
@@ -1435,7 +1435,7 @@ namespace rtlib
                 if (!dataGpuHandle) {
                     auto desc = RTLib::Ext::CUDA::CUDABufferCreateDesc();
                     desc.flags = RTLib::Ext::CUDA::CUDAMemoryFlags::eDefault;
-                    
+
                     desc.pData = dataCpuHandle.data();
                     desc.sizeInBytes = dataCpuHandle.size() * sizeof(dataCpuHandle[0]);
                     dataGpuHandle = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(context->CreateBuffer(desc));
@@ -1462,9 +1462,9 @@ namespace rtlib
                 HashGrid3 grid3;
                 grid3.aabbOffset = aabbMin;
                 grid3.aabbSize = aabbMax - aabbMin;
-                grid3.bounds   = bounds;
-                grid3.size     = dataCpuHandle.size();
-                grid3.checkSums= reinterpret_cast<unsigned int*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(checkSumGpuHandle.get()));
+                grid3.bounds = bounds;
+                grid3.size = dataCpuHandle.size();
+                grid3.checkSums = reinterpret_cast<unsigned int*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(checkSumGpuHandle.get()));
                 return grid3;
             }
         };
@@ -1492,25 +1492,25 @@ namespace rtlib
             }
             auto GetPrvCheckSumGpuHandle() noexcept -> RTLib::Ext::CUDA::CUDABuffer*
             {
-                return checkSumGpuHandles[1-curIndex].get();
+                return checkSumGpuHandles[1 - curIndex].get();
             }
             auto GetPrvCheckSumGpuHandleMemoryFootPrint() const noexcept -> size_t {
                 return checkSumGpuHandles[1 - curIndex] ? checkSumGpuHandles[1 - curIndex]->GetSizeInBytes() : 0;
             }
 
             void Alloc(uint3 bnds, unsigned int size) {
-                bounds   = bnds;
+                bounds = bnds;
                 checkSumCpuHandle.resize(size);
                 curIndex = 0;
             }
             void Download(RTLib::Ext::CUDA::CUDAContext* context) {
                 auto desc = RTLib::Ext::CUDA::CUDABufferMemoryCopy();
                 desc.srcOffset = 0;
-                desc.dstData   = checkSumCpuHandle.data();
-                desc.size      = checkSumCpuHandle.size() * sizeof(checkSumCpuHandle[0]);
-                context->CopyBufferToMemory(GetCurCheckSumGpuHandle(), {desc});
+                desc.dstData = checkSumCpuHandle.data();
+                desc.size = checkSumCpuHandle.size() * sizeof(checkSumCpuHandle[0]);
+                context->CopyBufferToMemory(GetCurCheckSumGpuHandle(), { desc });
             }
-            void Upload(  RTLib::Ext::CUDA::CUDAContext* context) {
+            void Upload(RTLib::Ext::CUDA::CUDAContext* context) {
                 if (!checkSumGpuHandles[0]) {
                     auto desc = RTLib::Ext::CUDA::CUDABufferCreateDesc();
                     desc.flags = RTLib::Ext::CUDA::CUDAMemoryFlags::eDefault;
@@ -1524,11 +1524,11 @@ namespace rtlib
                     desc.dstOffset = 0;
                     desc.srcData = checkSumCpuHandle.data();
                     desc.size = checkSumCpuHandle.size() * sizeof(checkSumCpuHandle[0]);
-                    context->CopyMemoryToBuffer(checkSumGpuHandles[0].get(), {desc});
+                    context->CopyMemoryToBuffer(checkSumGpuHandles[0].get(), { desc });
                     context->CopyMemoryToBuffer(checkSumGpuHandles[1].get(), { desc });
                 }
             }
-            void Clear(   RTLib::Ext::CUDA::CUDAContext* context, RTLib::Ext::CUDA::CUDAStream* stream = nullptr) {
+            void Clear(RTLib::Ext::CUDA::CUDAContext* context, RTLib::Ext::CUDA::CUDAStream* stream = nullptr) {
                 auto curCheckSumGpuAddress = RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(GetCurCheckSumGpuHandle());
                 auto prvCheckSumGpuAddress = RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(GetPrvCheckSumGpuHandle());
                 if (stream) {
@@ -1541,10 +1541,10 @@ namespace rtlib
                     cuMemsetD32(prvCheckSumGpuAddress, checkSumCpuHandle.size(), 0);
                 }
             }
-            void Update(  RTLib::Ext::CUDA::CUDAContext* context, RTLib::Ext::CUDA::CUDAStream* stream = nullptr) {
-            #ifndef NDEBUG
+            void Update(RTLib::Ext::CUDA::CUDAContext* context, RTLib::Ext::CUDA::CUDAStream* stream = nullptr) {
+#ifndef NDEBUG
                 std::cout << "Update Double Buffered Hash Grid\n";
-            #endif
+#endif
                 auto curCheckSumGpuAddress = RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(GetCurCheckSumGpuHandle());
                 auto prvCheckSumGpuAddress = RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(GetPrvCheckSumGpuHandle());
                 if (!stream) {
@@ -1554,7 +1554,7 @@ namespace rtlib
                     auto cuStream = RTLib::Ext::CUDA::CUDANatives::GetCUstream(stream);
                     cuMemcpyDtoDAsync(prvCheckSumGpuAddress, curCheckSumGpuAddress, checkSumCpuHandle.size() * sizeof(checkSumCpuHandle[0]), cuStream);
                 }
-                curIndex = (1 + curIndex)%2;
+                curIndex = (1 + curIndex) % 2;
             }
             auto GetHandle() noexcept -> rtlib::test::DoubleBufferedHashGrid3
             {
@@ -1576,11 +1576,11 @@ namespace rtlib
             auto tranCol = material.GetFloat3As<float3>("tranCol");
             auto refrIndx = material.GetFloat1("refrIndx");
             auto shinness = material.GetFloat1("shinness");
-            auto illum    = material.GetUInt32("illum");
+            auto illum = material.GetUInt32("illum");
             if (emitCol.x + emitCol.y + emitCol.z > 0.0f)
             {
                 if (mesh) {
-                    if (mesh->GetUniqueResource()->variables.GetBoolOr("useNEE",false)) {
+                    if (mesh->GetUniqueResource()->variables.GetBoolOr("useNEE", false)) {
                         return HIT_GROUP_TYPE_NEE_LIGHT;
                     }
                     else {
@@ -1598,6 +1598,94 @@ namespace rtlib
             else {
                 return HIT_GROUP_TYPE_PHONG;
             }
+        }
+        inline auto GetHitgroupFromObjMesh(const RTLib::Core::VariableMap& material, const RTLib::Core::MeshPtr& mesh, const std::unordered_map<std::string, rtlib::test::TextureData>& textureMap)
+        {
+            auto extSharedData = static_cast<rtlib::test::OPX7MeshSharedResourceExtData*>(mesh->GetSharedResource()->extData.get());
+            auto extUniqueData = static_cast<rtlib::test::OPX7MeshUniqueResourceExtData*>(mesh->GetUniqueResource()->extData.get());
+            HitgroupData hitgroupData = {};
+            hitgroupData.type = rtlib::test::SpecifyMaterialType(material, mesh);
+            hitgroupData.vertices = reinterpret_cast<float3*>(extSharedData->GetVertexBufferGpuAddress());
+            hitgroupData.indices = reinterpret_cast<uint3*>(extUniqueData->GetTriIdxBufferGpuAddress());
+            hitgroupData.indCount = extUniqueData->GetTriIdxCount();
+            hitgroupData.normals = reinterpret_cast<float3*>(extSharedData->GetNormalBufferGpuAddress());
+            hitgroupData.texCrds = reinterpret_cast<float2*>(extSharedData->GetTexCrdBufferGpuAddress());
+            hitgroupData.diffuse = material.GetFloat3As<float3>("diffCol");
+            hitgroupData.emission = material.GetFloat3As<float3>("emitCol");
+            hitgroupData.specular = material.GetFloat3As<float3>("specCol");
+            hitgroupData.shinness = material.GetFloat1("shinness");
+            hitgroupData.refIndex = material.GetFloat1("refrIndx");
+            auto diffTexStr = material.GetString("diffTex");
+            if (diffTexStr == "")
+            {
+                diffTexStr = "White";
+            }
+            auto specTexStr = material.GetString("specTex");
+            if (specTexStr == "")
+            {
+                specTexStr = "White";
+            }
+            auto emitTexStr = material.GetString("emitTex");
+            if (emitTexStr == "")
+            {
+                emitTexStr = "White";
+            }
+            hitgroupData.diffuseTex = textureMap.at(diffTexStr).GetCUtexObject();
+            hitgroupData.specularTex = textureMap.at(emitTexStr).GetCUtexObject();
+            hitgroupData.emissionTex = textureMap.at(specTexStr).GetCUtexObject();
+            return hitgroupData;
+        }
+        inline auto GetHitgroupFromSphere(const RTLib::Core::VariableMap& material, const RTLib::Core::SphereResourcePtr& sphereRes, const  std::unordered_map<std::string, rtlib::test::TextureData >& textureMap)
+        {
+            HitgroupData hitgroupData = {};
+            hitgroupData.type = rtlib::test::SpecifyMaterialType(material);
+            hitgroupData.vertices = reinterpret_cast<float3*>(sphereRes->GetExtData<rtlib::test::OPX7SphereResourceExtData>()->GetCenterBufferGpuAddress());
+            hitgroupData.diffuse = material.GetFloat3As<float3>("diffCol");
+            hitgroupData.emission = material.GetFloat3As<float3>("emitCol");
+            hitgroupData.specular = material.GetFloat3As<float3>("specCol");
+            hitgroupData.shinness = material.GetFloat1("shinness");
+            hitgroupData.refIndex = material.GetFloat1("refrIndx");
+            auto diffTexStr = material.GetString("diffTex");
+            if (diffTexStr == "")
+            {
+                diffTexStr = "White";
+            }
+            auto specTexStr = material.GetString("specTex");
+            if (specTexStr == "")
+            {
+                specTexStr = "White";
+            }
+            auto emitTexStr = material.GetString("emitTex");
+            if (emitTexStr == "")
+            {
+                emitTexStr = "White";
+            }
+            hitgroupData.diffuseTex = textureMap.at(diffTexStr).GetCUtexObject();
+            hitgroupData.specularTex = textureMap.at(emitTexStr).GetCUtexObject();
+            hitgroupData.emissionTex = textureMap.at(specTexStr).GetCUtexObject();
+            return hitgroupData;
+        }
+        struct InstanceGeometryDesc {
+            std::string instanceName;
+            std::string geometryName;
+        };
+        inline auto EnumerateGeometriesFromGASInstances(const RTLib::Core::ShaderTableLayout* shaderTableLayout, const WorldData& world) noexcept -> std::vector<InstanceGeometryDesc>
+        {
+            auto instanceGeometryDescs = std::vector< InstanceGeometryDesc>();
+            for (auto& instanceName : shaderTableLayout->GetInstanceNames())
+            {
+                auto& instanceDesc = shaderTableLayout->GetDesc(instanceName);
+                auto* instanceData = reinterpret_cast<const RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstance*>(instanceDesc.pData);
+                auto geometryAS = instanceData->GetDwGeometryAS();
+                if (geometryAS)
+                {
+                    for (auto& geometryName : world.geometryASs.at(geometryAS->GetName()).geometries)
+                    {
+                        instanceGeometryDescs.push_back({ instanceName,geometryName });
+                    }
+                }
+            }
+            return instanceGeometryDescs;
         }
     }
 }
