@@ -3,7 +3,6 @@
 struct HitRecordUserData
 {
     float3                   radiance;
-    float3                  radiance2;
     float3                 throughPut;
     float3                    bsdfVal;
     float                     bsdfPdf;
@@ -101,7 +100,6 @@ extern "C" __global__ void     __raygen__default() {
             for (unsigned int d = 0; d < traceVertexDepth; ++d) {
                 traceVertices[d].Record(hrec.userData.radiance);
             }
-            traceVertices[traceVertexDepth].Record(hrec.userData.radiance2);
 
             color += hrec.userData.radiance;
 
@@ -278,7 +276,6 @@ extern "C" __global__ void     __miss__radiance() {
     hrec->flags |= HIT_RECORD_FLAG_MISS;
 
     hrec->userData.radiance     = hrec->userData.throughPut * make_float3(msData->bgColor.x, msData->bgColor.y, msData->bgColor.z);
-    hrec->userData.radiance2    = make_float3(0.0f);
     hrec->userData.bsdfVal      = make_float3(1.0f);
     hrec->normal                = make_float3(1.0f, 0.0f, 0.0f);
     hrec->userData.bsdfVal      = make_float3(1.0f);
@@ -315,7 +312,6 @@ extern "C" __global__ void     __closesthit__radiance() {
     auto dTreePdf = float(0.0f);
     auto woPdf = float(0.0f);
     auto radiance = make_float3(0.0f);
-    auto radiance2      = make_float3(0.0f);
     auto prevThroughput = hrec->userData.throughPut;
     auto currThroughput = make_float3(0.0f);
     auto prevHitFlags = hrec->flags;
@@ -323,26 +319,6 @@ extern "C" __global__ void     __closesthit__radiance() {
     const auto countEmitted = ((prevHitFlags & HIT_RECORD_FLAG_COUNT_EMITTED) == HIT_RECORD_FLAG_COUNT_EMITTED) || (hgData->type == HIT_GROUP_TYPE_DEF_LIGHT);
     auto curGridIndex = UINT32_MAX;
     do {
-        if (params.flags & PARAM_FLAG_NEE) {
-            if (hgData->type == HIT_GROUP_TYPE_NEE_LIGHT) {
-                if ((prevHitFlags & HIT_RECORD_FLAG_PHONG_MATERIAL)) {
-                    auto probD = hrec->userData.woPdf;
-                    auto p0 = hgData->vertices[hgData->indices[primitiveId].x];
-                    auto p1 = hgData->vertices[hgData->indices[primitiveId].y];
-                    auto p2 = hgData->vertices[hgData->indices[primitiveId].z];
-                    auto invPdf = RTLib::Ext::CUDA::Math::length(RTLib::Ext::CUDA::Math::cross(p1 - p0, p2 - p0)) * params.lights.count * hgData->indCount / 2.0f;
-                    //printf("Light=invPdf=%lf\n", invPdf);
-                    auto probAbs = 1.0f / invPdf;
-                    auto probA = probAbs * (distance * distance) / fabsf(RTLib::Ext::CUDA::Math::dot(inDir, vNormal));
-                    auto weight = probD / (probD + probA);
-                    if (isnan(weight)) {
-                        printf("error3: %lf %lf\n", probD, probA);
-                    }
-                    emission *= weight;
-
-                }
-            }
-        }
         if (hgData->type == HIT_GROUP_TYPE_PHONG) {
             auto info = RTLib::Ext::OPX7::Utils::HashGridFindInfo();
             auto prvGridIndex = UINT32_MAX;
@@ -379,6 +355,10 @@ extern "C" __global__ void     __closesthit__radiance() {
             if (((params.flags & PARAM_FLAG_USE_GRID) == PARAM_FLAG_USE_GRID) && ((params.flags & PARAM_FLAG_BUILD) == PARAM_FLAG_BUILD) && (prvGridIndex != UINT32_MAX)) {
                 if (RTLib::Ext::CUDA::Math::random_float1(xor32) < params.mortonTree.fraction) {
                     direction = RTLib::Ext::CUDA::Math::normalize(params.mortonTree.SampleAndPdf(prvGridIndex, dTreePdf, xor32));
+                    //if (dTreePdf != 0.25f * static_cast<float>(RTLIB_M_INV_PI))
+                    //{
+                    //    printf("1 (direction,pdf)=((%lf, %lf, %lf), %lf)\n", direction.x, direction.y, direction.z, dTreePdf);
+                    //}
                     cosine = RTLib::Ext::CUDA::Math::dot(direction, fNormal);
                     auto cosinePdf2 = RTLib::Ext::CUDA::Math::max(cosine * static_cast<float>(RTLIB_M_INV_PI), 0.0f);
                     auto phongPdf2 = getValPhongPDF(direction, reflDir, shinness);
@@ -415,18 +395,10 @@ extern "C" __global__ void     __closesthit__radiance() {
                             LightRecord lRec = params.lights.Sample(position, xor32);
                             auto  ndl = RTLib::Ext::CUDA::Math::dot(lRec.direction, fNormal);
                             auto lndl = -RTLib::Ext::CUDA::Math::dot(lRec.direction, lRec.normal);
-                            auto probA = 1.0f / lRec.invPdf;
-                            auto probDbs = select_prob * RTLib::Ext::CUDA::Math::max(ndl * static_cast<float>(RTLIB_M_INV_PI), 0.0f) + (1.0f - select_prob) * getValPhongPDF(lRec.direction, reflDir, shinness);
-                            if (((params.flags & PARAM_FLAG_USE_TREE) == PARAM_FLAG_USE_TREE) && ((params.flags & PARAM_FLAG_BUILD) == PARAM_FLAG_BUILD) && (prvGridIndex != UINT32_MAX)) {
-                                auto probT = RTLib::Ext::CUDA::Math::max(params.mortonTree.Pdf(prvGridIndex, lRec.direction), 0.0f);
-                                probDbs = (1.0f - params.tree.fraction) * probDbs + params.tree.fraction * probT;
-                            }
-                            auto probD = probDbs * fabsf(lndl) / (lRec.distance * lRec.distance);
-                            auto weight = probA / (probA + probD);
                             auto  e = lRec.emission;
                             auto  b = diffuse * static_cast<float>(RTLIB_M_INV_PI) + specular * ((shinness+2.0f)/(shinness+1.0f)) * getValPhongPDF(lRec.direction, reflDir, shinness);
                             auto  g = RTLib::Ext::CUDA::Math::max(ndl, 0.0f) * RTLib::Ext::CUDA::Math::max(lndl, 0.0f) / (lRec.distance * lRec.distance);
-                            auto  f = b * e * g * weight;
+                            auto  f = b * e * g;
                             auto  f_a = RTLib::Ext::CUDA::Math::to_average_rgb(f);
                             if (resv.Update(lRec, f_a * lRec.invPdf, RTLib::Ext::CUDA::Math::random_float1(xor32))) {
                                 f_y = f;
@@ -440,31 +412,15 @@ extern "C" __global__ void     __closesthit__radiance() {
                                 resv.w = resv.w_sum / (f_a_y * static_cast<float>(resv.m));
                             }
                         }
-                        radiance2 += prevThroughput * f_y * resv.w;
-                        radiance  += radiance2;
+                        radiance += prevThroughput * f_y * resv.w;
                     }
                     else {
                         auto lRec = params.lights.Sample(position, xor32);
-                        auto cosineX = RTLib::Ext::CUDA::Math::dot(lRec.direction, fNormal);
-                        auto cosineY = RTLib::Ext::CUDA::Math::dot(lRec.direction, lRec.normal);
-                        auto probA   = 1.0f / lRec.invPdf;
-                        auto probDbs = select_prob * RTLib::Ext::CUDA::Math::max(cosineX * static_cast<float>(RTLIB_M_INV_PI), 0.0f) + (1.0f - select_prob) * getValPhongPDF(lRec.direction, reflDir, shinness);
-                        if (((params.flags & PARAM_FLAG_USE_TREE) == PARAM_FLAG_USE_TREE) && ((params.flags & PARAM_FLAG_BUILD) == PARAM_FLAG_BUILD && (prvGridIndex != UINT32_MAX))) {
-                            auto probT = RTLib::Ext::CUDA::Math::max(params.mortonTree.Pdf(prvGridIndex, lRec.direction), 0.0f);
-                            probDbs = (1.0f - params.tree.fraction) * probDbs + params.tree.fraction * probT;
-                        }
-                        auto probD   = probDbs * fabsf(cosineY) / (lRec.distance * lRec.distance);
-                        auto weight  = probA / (probA + probD);
-                        //printf("Phong=invPdf=%lf\n", lRec.invPdf);
                         if (!TraceOccluded(params.gasHandle, position, lRec.direction, 0.0001f, lRec.distance - 0.0001f)) {
                             auto e = lRec.emission;
                             auto b = diffuse * static_cast<float>(RTLIB_M_INV_PI) + specular * ((shinness+2.0f)/(shinness+1.0f)) * getValPhongPDF(lRec.direction, reflDir, shinness);
-                            auto g = RTLib::Ext::CUDA::Math::max(-cosineY, 0.0f) * fabsf(cosineX) / (lRec.distance * lRec.distance);
-                            radiance2 += prevThroughput * b * e * g * lRec.invPdf * weight;
-                            radiance  += radiance2;
-                            //if (isnan(radiance.x) || isnan(radiance.y) || isnan(radiance.z)) {
-                            //    printf("error1\n");
-                            //}
+                            auto g = RTLib::Ext::CUDA::Math::max(-RTLib::Ext::CUDA::Math::dot(lRec.direction, lRec.normal), 0.0f) * fabsf(RTLib::Ext::CUDA::Math::dot(lRec.direction, fNormal)) / (lRec.distance * lRec.distance);
+                            radiance += prevThroughput * b * e * g * lRec.invPdf;
                         }
                     }
                 }
@@ -472,7 +428,7 @@ extern "C" __global__ void     __closesthit__radiance() {
             else {
                 currHitFlags |= HIT_RECORD_FLAG_COUNT_EMITTED;
             }
-            currHitFlags |= HIT_RECORD_FLAG_PHONG_MATERIAL;
+
             if (((params.flags & PARAM_FLAG_USE_GRID) == PARAM_FLAG_USE_GRID) && ((params.flags & PARAM_FLAG_LOCATE) == PARAM_FLAG_LOCATE) && (prvGridIndex==UINT32_MAX))
             {
                 curGridIndex = params.grid.FindFromCur(info);
@@ -548,7 +504,7 @@ extern "C" __global__ void     __closesthit__radiance() {
         }
     } while (0);
 
-    radiance += prevThroughput * emission * static_cast<float>(RTLib::Ext::CUDA::Math::dot(inDir, fNormal) < 0.0f);
+    radiance += prevThroughput * emission * static_cast<float>(RTLib::Ext::CUDA::Math::dot(inDir, fNormal) < 0.0f) * static_cast<float>(countEmitted);
     if (emission.x + emission.y + emission.z > 0.0f) {
         currHitFlags |= HIT_RECORD_FLAG_FINISH;
     }
@@ -560,7 +516,6 @@ extern "C" __global__ void     __closesthit__radiance() {
     hrec->cosine = cosine;
     hrec->flags = currHitFlags;
     hrec->userData.radiance = radiance;
-    hrec->userData.radiance2  = radiance2;
     hrec->userData.throughPut = currThroughput;
     hrec->userData.bsdfVal = bsdfVal;
     hrec->userData.bsdfPdf = bsdfPdf;
@@ -595,7 +550,6 @@ extern "C" __global__ void     __closesthit__radiance_sphere() {
     auto dTreePdf = float(0.0f);
     auto woPdf = float(0.0f);
     auto radiance = make_float3(0.0f);
-    auto radiance2= make_float3(0.0f);
     auto prevThroughput = hrec->userData.throughPut;
     auto currThroughput = make_float3(0.0f);
     auto prevHitFlags = hrec->flags;
@@ -679,18 +633,10 @@ extern "C" __global__ void     __closesthit__radiance_sphere() {
                             LightRecord lRec = params.lights.Sample(position, xor32);
                             auto  ndl = RTLib::Ext::CUDA::Math::dot(lRec.direction, fNormal);
                             auto lndl = -RTLib::Ext::CUDA::Math::dot(lRec.direction, lRec.normal);
-                            auto probA = 1.0f / lRec.invPdf;
-                            auto probDbs = select_prob * RTLib::Ext::CUDA::Math::max(ndl * static_cast<float>(RTLIB_M_INV_PI), 0.0f) + (1.0f - select_prob) * getValPhongPDF(lRec.direction, reflDir, shinness);
-                            if (((params.flags & PARAM_FLAG_USE_TREE) == PARAM_FLAG_USE_TREE) && ((params.flags & PARAM_FLAG_BUILD) == PARAM_FLAG_BUILD) && (prvGridIndex != UINT32_MAX)) {
-                                auto probT = RTLib::Ext::CUDA::Math::max(params.mortonTree.Pdf(prvGridIndex,lRec.direction), 0.0f);
-                                probDbs = (1.0f - params.tree.fraction) * probDbs + params.tree.fraction * probT;
-                            }
-                            auto probD = probDbs * fabsf(lndl) / (lRec.distance * lRec.distance);
-                            auto weight = probA / (probA + probD);
                             auto  e = lRec.emission;
                             auto  b = diffuse * static_cast<float>(RTLIB_M_INV_PI) + specular * ((shinness+2.0f)/(shinness+1.0f)) * getValPhongPDF(lRec.direction, reflDir, shinness);
                             auto  g = RTLib::Ext::CUDA::Math::max(ndl, 0.0f) * RTLib::Ext::CUDA::Math::max(lndl, 0.0f) / (lRec.distance * lRec.distance);
-                            auto  f = b * e * g * weight;
+                            auto  f = b * e * g;
                             auto  f_a = RTLib::Ext::CUDA::Math::to_average_rgb(f);
                             if (resv.Update(lRec, f_a * lRec.invPdf, RTLib::Ext::CUDA::Math::random_float1(xor32))) {
                                 f_y = f;
@@ -704,31 +650,15 @@ extern "C" __global__ void     __closesthit__radiance_sphere() {
                                 resv.w = resv.w_sum / (f_a_y * static_cast<float>(resv.m));
                             }
                         }
-                        radiance2 += prevThroughput * f_y * resv.w;
-                        radiance  += radiance2;
+                        radiance += prevThroughput * f_y * resv.w;
                     }
                     else {
                         auto lRec = params.lights.Sample(position, xor32);
-                        auto cosineX = RTLib::Ext::CUDA::Math::dot(lRec.direction, fNormal);
-                        auto cosineY = RTLib::Ext::CUDA::Math::dot(lRec.direction, lRec.normal);
-                        auto probA = 1.0f / lRec.invPdf;
-                        auto probDbs = select_prob * RTLib::Ext::CUDA::Math::max(cosineX * static_cast<float>(RTLIB_M_INV_PI), 0.0f) + (1.0f - select_prob) * getValPhongPDF(lRec.direction, reflDir, shinness);
-                        if (((params.flags & PARAM_FLAG_USE_TREE) == PARAM_FLAG_USE_TREE) && ((params.flags & PARAM_FLAG_BUILD) == PARAM_FLAG_BUILD) && (prvGridIndex != UINT32_MAX)) {
-                            auto probT = RTLib::Ext::CUDA::Math::max(params.mortonTree.Pdf(prvGridIndex, lRec.direction), 0.0f);
-                            probDbs = (1.0f - params.tree.fraction) * probDbs + params.tree.fraction * probT;
-                        }
-                        auto probD = probDbs * fabsf(cosineY) / (lRec.distance * lRec.distance);
-                        auto weight = probA / (probA + probD);
-                        //printf("Phong=invPdf=%lf\n", lRec.invPdf);
                         if (!TraceOccluded(params.gasHandle, position, lRec.direction, 0.0001f, lRec.distance - 0.0001f)) {
                             auto e = lRec.emission;
                             auto b = diffuse * static_cast<float>(RTLIB_M_INV_PI) + specular * ((shinness+2.0f)/(shinness+1.0f)) * getValPhongPDF(lRec.direction, reflDir, shinness);
-                            auto g = RTLib::Ext::CUDA::Math::max(-cosineY, 0.0f) * fabsf(cosineX) / (lRec.distance * lRec.distance);
-                            radiance2 += prevThroughput * b * e * g * lRec.invPdf * weight;
-                            radiance  += radiance2;
-                            //if (isnan(radiance.x) || isnan(radiance.y) || isnan(radiance.z)) {
-                            //    printf("error1\n");
-                            //}
+                            auto g = RTLib::Ext::CUDA::Math::max(-RTLib::Ext::CUDA::Math::dot(lRec.direction, lRec.normal), 0.0f) * fabsf(RTLib::Ext::CUDA::Math::dot(lRec.direction, fNormal)) / (lRec.distance * lRec.distance);
+                            radiance += prevThroughput * b * e * g * lRec.invPdf;
                         }
                     }
                 }
@@ -736,7 +666,7 @@ extern "C" __global__ void     __closesthit__radiance_sphere() {
             else {
                 currHitFlags |= HIT_RECORD_FLAG_COUNT_EMITTED;
             }
-            currHitFlags     |= HIT_RECORD_FLAG_PHONG_MATERIAL;
+
             if (((params.flags & PARAM_FLAG_USE_GRID) == PARAM_FLAG_USE_GRID) && ((params.flags & PARAM_FLAG_LOCATE) == PARAM_FLAG_LOCATE) && (prvGridIndex == UINT32_MAX))
             {
                 curGridIndex = params.grid.FindFromCur(info);
@@ -812,7 +742,7 @@ extern "C" __global__ void     __closesthit__radiance_sphere() {
         }
     } while (0);
 
-    radiance += prevThroughput * emission * static_cast<float>(RTLib::Ext::CUDA::Math::dot(inDir, fNormal) < 0.0f);
+    radiance += prevThroughput * emission * static_cast<float>(RTLib::Ext::CUDA::Math::dot(inDir, fNormal) < 0.0f) * static_cast<float>(countEmitted);
     if (emission.x + emission.y + emission.z > 0.0f) {
         currHitFlags |= HIT_RECORD_FLAG_FINISH;
     }
@@ -824,7 +754,6 @@ extern "C" __global__ void     __closesthit__radiance_sphere() {
     hrec->cosine = cosine;
     hrec->flags = currHitFlags;
     hrec->userData.radiance = radiance;
-    hrec->userData.radiance2  = radiance2;
     hrec->userData.throughPut = currThroughput;
     hrec->userData.bsdfVal = bsdfVal;
     hrec->userData.bsdfPdf = bsdfPdf;
