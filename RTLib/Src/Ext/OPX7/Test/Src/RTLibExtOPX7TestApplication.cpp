@@ -350,6 +350,7 @@ void RTLibExtOPX7TestApplication::LoadScene(int argc, const char** argv)
             m_MortonQuadTree.get(), (uint32_t)m_SceneData.config.maxSamples, iterationForBuilt,0, ratioForBudget, m_SceneData.config.samples
         );
     }
+    m_DebugGridBufferCUDA = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(m_Opx7Context->CreateBuffer({ RTLib::Ext::CUDA::CUDAMemoryFlags::eDefault, hashGridCellSize * sizeof(unsigned int), nullptr }));
 }
 
  void RTLibExtOPX7TestApplication::FreeGrids()
@@ -364,6 +365,7 @@ void RTLibExtOPX7TestApplication::LoadScene(int argc, const char** argv)
         m_MortonQuadTreeController->Destroy();
         m_MortonQuadTreeController.reset();
     }
+    m_DebugGridBufferCUDA->Destroy();
 }
 
  void RTLibExtOPX7TestApplication::InitSdTree()
@@ -2248,6 +2250,7 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
         m_MortonQuadTreeController->BegTrace(stream);
         if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateLocate)
         {
+            cuMemsetD32Async(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_DebugGridBufferCUDA.get()), 0, m_DebugGridBufferCUDA->GetSizeInBytes() / sizeof(unsigned int), RTLib::Ext::CUDA::CUDANatives::GetCUstream(stream));
             m_PipelineName = "Locate";
         }
         if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecord)
@@ -2613,6 +2616,23 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
         }
         if ((m_CurTracerName == "HTDEF") ||
             (m_CurTracerName == "HTRIS")) {
+            if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateLocate)
+            {
+                auto array_of_accum = std::vector<uint32_t>(m_DebugGridBufferCUDA->GetSizeInBytes() / sizeof(unsigned int));
+                auto bufferMemoryCopy = RTLib::Ext::CUDA::CUDABufferMemoryCopy();
+                bufferMemoryCopy.srcOffset = 0;
+                bufferMemoryCopy.size = m_DebugGridBufferCUDA->GetSizeInBytes();
+                bufferMemoryCopy.dstData = array_of_accum.data();
+                m_Opx7Context->CopyBufferToMemory(m_DebugGridBufferCUDA.get(), { bufferMemoryCopy });
+                std::cout << "Save Accum File " << std::endl;
+                auto baseSavePath = std::filesystem::path(m_SceneData.config.imagePath).make_preferred() / m_TimeStampString;
+                std::ofstream file(baseSavePath.string() + "\\result_accum_" + std::to_string(m_SamplesForAccum) + ".bin", std::ios::binary);
+                file.write((char*)array_of_accum.data(), array_of_accum.size() * sizeof(unsigned int));
+                file.close();
+
+                float y = (float)std::accumulate(std::begin(array_of_accum), std::end(array_of_accum),0)/ (float)array_of_accum.size();
+                std::cout << "Average: " << y << std::endl;
+            }
             m_TimesForIterations.back() += m_TimesForFrame;
             if (m_MortonQuadTreeController->GetIteration() != m_TimesForIterations.size()) {
                 m_TimesForIterations.push_back(0);

@@ -155,6 +155,7 @@ struct Params {
     float3* accumBuffer;
     uchar4* frameBuffer;
     float4* diffuseGridBuffer;
+    unsigned int* debugGridBuffer;
     rtlib::test::MortonQTreeWrapper mortonTree;
     unsigned int                         width;
     unsigned int                        height;

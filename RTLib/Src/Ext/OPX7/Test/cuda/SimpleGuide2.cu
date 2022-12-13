@@ -118,6 +118,14 @@ extern "C" __global__ void     __raygen__default() {
             for (unsigned int d = 0; d < traceVertexDepth; ++d) {
                 traceVertices[d].Commit(params.mortonTree, 1.0f);
             }
+            if ((params.flags & PARAM_FLAG_LOCATE)) {
+                for (unsigned int d = 0; d < traceVertexDepth; ++d) {
+                    if (traceVertices[d].gridIdx != UINT32_MAX)
+                    {
+                        (void)atomicAdd(&params.debugGridBuffer[traceVertices[d].gridIdx], 1);
+                    }
+                }
+            }
         }
     }
     else {

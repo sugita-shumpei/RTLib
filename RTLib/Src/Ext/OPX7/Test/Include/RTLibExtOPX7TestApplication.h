@@ -436,7 +436,7 @@ private:
                 params.flags |= PARAM_FLAG_USE_GRID;
                 params.mortonTree.level = RTLib::Ext::CUDA::Math::min(params.mortonTree.level, rtlib::test::MortonQTreeWrapper::kMaxTreeLevel);
             }
-
+            
             if (m_CurTracerName == "HTNEE")
             {
                 params.flags |= PARAM_FLAG_NEE;
@@ -449,6 +449,7 @@ private:
 
             if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateLocate)
             {
+                params.debugGridBuffer = reinterpret_cast<unsigned int*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_DebugGridBufferCUDA.get()));
                 params.flags |= PARAM_FLAG_LOCATE;
             }
             if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecord)
@@ -487,6 +488,7 @@ private:
     std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>   m_AccumBufferCUDA;
     std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>   m_FrameBufferCUDA;
     std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>   m_SeedBufferCUDA;
+    std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>   m_DebugGridBufferCUDA;
     rtlib::test::DoubleBufferedHashGrid3Buffer      m_HashBufferCUDA;
     std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>   m_DiffuseBufferCUDA;
     std::unique_ptr<rtlib::test::RTSTreeWrapper>    m_SdTree;

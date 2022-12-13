@@ -768,6 +768,7 @@ void RTLib::Core::ObjModelAssetManager::SaveAssetCache(const std::string& keyNam
 auto RTLib::Core::LoadDefImage(std::string filename, int& width, int& height, int& channels, int reqChannels) -> std::vector<unsigned char>
 {
     auto pixelData = stbi_load(filename.c_str(), &width, &height, &channels, reqChannels);
+    std::cout << filename.c_str() << ": Width=" << width << ": Height = " << height << std::endl;
     //assert(reqChannels == channels);
     if (!pixelData) { return std::vector<unsigned char>(); }
     auto imgData = std::vector<unsigned char>(width * height * reqChannels, 255);
