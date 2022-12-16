@@ -1615,6 +1615,7 @@ namespace rtlib
             hitgroupData.specular = material.GetFloat3As<float3>("specCol");
             hitgroupData.shinness = material.GetFloat1("shinness");
             hitgroupData.refIndex = material.GetFloat1("refrIndx");
+            hitgroupData.isFlip = 2.0f * (!material.GetBoolOr("isFlip", false)) - 1.0f;
             auto diffTexStr = material.GetString("diffTex");
             if (diffTexStr == "")
             {
@@ -1645,6 +1646,7 @@ namespace rtlib
             hitgroupData.specular = material.GetFloat3As<float3>("specCol");
             hitgroupData.shinness = material.GetFloat1("shinness");
             hitgroupData.refIndex = material.GetFloat1("refrIndx");
+            hitgroupData.isFlip   = 2.0f * (!material.GetBoolOr("isFlip", false)) - 1.0f;
             auto diffTexStr = material.GetString("diffTex");
             if (diffTexStr == "")
             {
