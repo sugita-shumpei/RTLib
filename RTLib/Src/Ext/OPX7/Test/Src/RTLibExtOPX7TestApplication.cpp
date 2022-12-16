@@ -456,105 +456,39 @@ void RTLibExtOPX7TestApplication::InitDefTracer()
     m_TracerMap["DEF"].pipelines["Trace"].SetHostMissRecordTypeData(RAY_TYPE_OCCLUDED, "SimpleKernel.Occluded", MissData{});
     m_TracerMap["DEF"].pipelines["Trace"].SetHostExceptionRecordTypeData(unsigned int());
 
-    for (auto& instanceName : m_ShaderTableLayout->GetInstanceNames())
+    auto instanceAndGeometryNames = rtlib::test::EnumerateGeometriesFromGASInstances(m_ShaderTableLayout.get(), m_SceneData.world);
+    for (auto& [instanceName, geometryName] : instanceAndGeometryNames)
     {
-        auto& instanceDesc = m_ShaderTableLayout->GetDesc(instanceName);
-        auto* instanceData = reinterpret_cast<const RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstance*>(instanceDesc.pData);
-        auto geometryAS = instanceData->GetDwGeometryAS();
-        if (geometryAS)
+        if (m_SceneData.world.geometryObjModels.count(geometryName) > 0)
         {
-            for (auto& geometryName : m_SceneData.world.geometryASs[geometryAS->GetName()].geometries)
+            auto& geometry = m_SceneData.world.geometryObjModels[geometryName];
+            auto objAsset = m_SceneData.objAssetManager.GetAsset(geometry.base);
+            for (auto& [meshName, meshData] : geometry.meshes)
             {
-                if (m_SceneData.world.geometryObjModels.count(geometryName)>0)
+                auto mesh = objAsset.meshGroup->LoadMesh(meshData.base);
+                auto desc = m_ShaderTableLayout->GetDesc(instanceName + "/" + meshName);
+                for (auto i = 0; i < desc.recordCount; ++i)
                 {
-                    auto& geometry = m_SceneData.world.geometryObjModels[geometryName];
-                    auto objAsset = m_SceneData.objAssetManager.GetAsset(geometry.base);
-                    for (auto& [meshName, meshData] : geometry.meshes)
+                    auto hitgroupData = HitgroupData();
+                    if ((i % desc.recordStride) == RAY_TYPE_RADIANCE)
                     {
-                        auto mesh = objAsset.meshGroup->LoadMesh(meshData.base);
-                        auto desc = m_ShaderTableLayout->GetDesc(instanceName + "/" + meshName);
-                        auto extSharedData = static_cast<rtlib::test::OPX7MeshSharedResourceExtData*>(mesh->GetSharedResource()->extData.get());
-                        auto extUniqueData = static_cast<rtlib::test::OPX7MeshUniqueResourceExtData*>(mesh->GetUniqueResource()->extData.get());
-                        for (auto i = 0; i < desc.recordCount; ++i)
-                        {
-                            auto hitgroupData = HitgroupData();
-                            if ((i % desc.recordStride) == RAY_TYPE_RADIANCE)
-                            {
-                                auto material = meshData.materials[i / desc.recordStride];
-                                hitgroupData.type = rtlib::test::SpecifyMaterialType(material,mesh);
-                                hitgroupData.vertices = reinterpret_cast<float3*>(extSharedData->GetVertexBufferGpuAddress());
-                                hitgroupData.indices = reinterpret_cast<uint3*>(extUniqueData->GetTriIdxBufferGpuAddress());
-                                hitgroupData.indCount = extUniqueData->GetTriIdxCount();
-                                hitgroupData.normals = reinterpret_cast<float3*>(extSharedData->GetNormalBufferGpuAddress());
-                                hitgroupData.texCrds = reinterpret_cast<float2*>(extSharedData->GetTexCrdBufferGpuAddress());
-                                hitgroupData.diffuse = material.GetFloat3As<float3>("diffCol");
-                                hitgroupData.emission = material.GetFloat3As<float3>("emitCol");
-                                hitgroupData.specular = material.GetFloat3As<float3>("specCol");
-                                hitgroupData.shinness = material.GetFloat1("shinness");
-                                hitgroupData.refIndex = material.GetFloat1("refrIndx");
-                                auto diffTexStr = material.GetString("diffTex");
-                                if (diffTexStr == "")
-                                {
-                                    diffTexStr = "White";
-                                }
-                                auto specTexStr = material.GetString("specTex");
-                                if (specTexStr == "")
-                                {
-                                    specTexStr = "White";
-                                }
-                                auto emitTexStr = material.GetString("emitTex");
-                                if (emitTexStr == "")
-                                {
-                                    emitTexStr = "White";
-                                }
-                                hitgroupData.diffuseTex = m_TextureMap.at(diffTexStr).GetCUtexObject();
-                                hitgroupData.specularTex = m_TextureMap.at(emitTexStr).GetCUtexObject();
-                                hitgroupData.emissionTex = m_TextureMap.at(specTexStr).GetCUtexObject();
-
-                            }
-                            m_TracerMap["DEF"].pipelines["Trace"].SetHostHitgroupRecordTypeData(desc.recordOffset + i, programGroupHGNames[i % desc.recordStride]+".Triangle", hitgroupData);
-                        }
+                        hitgroupData = rtlib::test::GetHitgroupFromObjMesh(meshData.materials[i / desc.recordStride], mesh, m_TextureMap);
                     }
+                    m_TracerMap["DEF"].pipelines["Trace"].SetHostHitgroupRecordTypeData(desc.recordOffset + i, programGroupHGNames[i % desc.recordStride] + ".Triangle", hitgroupData);
                 }
-                if (m_SceneData.world.geometrySpheres.count(geometryName) > 0) {
-                    auto& sphereRes = m_SceneData.sphereResources.at(geometryName);
-                    auto  desc      = m_ShaderTableLayout->GetDesc(instanceName + "/" + geometryName);
-                    for (auto i = 0; i < desc.recordCount; ++i)
-                    {
-                        auto hitgroupData = HitgroupData();
-                        if ((i % desc.recordStride) == RAY_TYPE_RADIANCE)
-                        {
-                            auto material         = sphereRes->materials[i / desc.recordStride];
-                            hitgroupData.type     = rtlib::test::SpecifyMaterialType(material);
-                            hitgroupData.vertices = reinterpret_cast<float3*>(sphereRes->GetExtData<rtlib::test::OPX7SphereResourceExtData>()->GetCenterBufferGpuAddress());
-                            hitgroupData.diffuse  = material.GetFloat3As<float3>("diffCol");
-                            hitgroupData.emission = material.GetFloat3As<float3>("emitCol");
-                            hitgroupData.specular = material.GetFloat3As<float3>("specCol");
-                            hitgroupData.shinness = material.GetFloat1("shinness");
-                            hitgroupData.refIndex = material.GetFloat1("refrIndx");
-                            auto diffTexStr       = material.GetString("diffTex");
-                            if (diffTexStr == "")
-                            {
-                                diffTexStr = "White";
-                            }
-                            auto specTexStr       = material.GetString("specTex");
-                            if (specTexStr == "")
-                            {
-                                specTexStr = "White";
-                            }
-                            auto emitTexStr       = material.GetString("emitTex");
-                            if (emitTexStr == "")
-                            {
-                                emitTexStr = "White";
-                            }
-                            hitgroupData.diffuseTex  = m_TextureMap.at(diffTexStr).GetCUtexObject();
-                            hitgroupData.specularTex = m_TextureMap.at(emitTexStr).GetCUtexObject();
-                            hitgroupData.emissionTex = m_TextureMap.at(specTexStr).GetCUtexObject();
-
-                        }
-                        m_TracerMap["DEF"].pipelines["Trace"].SetHostHitgroupRecordTypeData(desc.recordOffset + i, programGroupHGNames[i % desc.recordStride] + ".Sphere", hitgroupData);
-                    }
+            }
+        }
+        if (m_SceneData.world.geometrySpheres.count(geometryName) > 0) {
+            auto& sphereRes = m_SceneData.sphereResources.at(geometryName);
+            auto  desc = m_ShaderTableLayout->GetDesc(instanceName + "/" + geometryName);
+            for (auto i = 0; i < desc.recordCount; ++i)
+            {
+                auto hitgroupData = HitgroupData();
+                if ((i % desc.recordStride) == RAY_TYPE_RADIANCE)
+                {
+                    hitgroupData = rtlib::test::GetHitgroupFromSphere(sphereRes->materials[i / desc.recordStride], sphereRes, m_TextureMap);
                 }
+                m_TracerMap["DEF"].pipelines["Trace"].SetHostHitgroupRecordTypeData(desc.recordOffset + i, programGroupHGNames[i % desc.recordStride] + ".Sphere", hitgroupData);
             }
         }
     }
