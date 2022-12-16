@@ -202,19 +202,20 @@ struct HitgroupData {
     float2*             texCrds;
     uint3*              indices;
     unsigned int        indCount;
+    float               isFlip;
     cudaTextureObject_t diffuseTex;
     cudaTextureObject_t specularTex;
     cudaTextureObject_t emissionTex;
 #ifdef __CUDACC__
     RTLIB_INLINE RTLIB_DEVICE auto GetSphereNormal(float3 position, unsigned int primIdx)const noexcept -> float3 {
-        return RTLib::Ext::CUDA::Math::normalize(position-optixTransformPointFromObjectToWorldSpace(vertices[primIdx]));
+        return isFlip * RTLib::Ext::CUDA::Math::normalize(position-optixTransformPointFromObjectToWorldSpace(vertices[primIdx]));
     }
     RTLIB_INLINE RTLIB_DEVICE auto GetTriangleFNormal(float2 barycentrics, unsigned int primIdx)const noexcept -> float3
     {
         auto p0 = vertices[indices[primIdx].x];
         auto p1 = vertices[indices[primIdx].y];
         auto p2 = vertices[indices[primIdx].z];
-        return RTLib::Ext::CUDA::Math::normalize(optixTransformNormalFromObjectToWorldSpace(RTLib::Ext::CUDA::Math::cross(p1 - p0, p2 - p0)));
+        return isFlip * RTLib::Ext::CUDA::Math::normalize(optixTransformNormalFromObjectToWorldSpace(RTLib::Ext::CUDA::Math::cross(p1 - p0, p2 - p0)));
     }
     RTLIB_INLINE RTLIB_DEVICE auto GetTriangleVNormal(float2 barycentrics, unsigned int primIdx)const noexcept -> float3
     {
@@ -223,7 +224,7 @@ struct HitgroupData {
             auto vn1 = normals[indices[primIdx].y];
             auto vn2 = normals[indices[primIdx].z];
             auto vn = (1.0f - barycentrics.x - barycentrics.y) * vn0 + barycentrics.x * vn1 + barycentrics.y * vn2;
-            return RTLib::Ext::CUDA::Math::normalize(optixTransformNormalFromObjectToWorldSpace(vn));
+            return isFlip * RTLib::Ext::CUDA::Math::normalize(optixTransformNormalFromObjectToWorldSpace(vn));
         }
         else {
             return GetTriangleFNormal(barycentrics, primIdx);
