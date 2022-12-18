@@ -247,49 +247,41 @@ void RTLibExtOPX7TestApplication::LoadScene(int argc, const char** argv)
  void RTLibExtOPX7TestApplication::InitLight()
 {
     m_lightBuffer = rtlib::test::UploadBuffer<MeshLight>();
-
+    auto instanceGeometries = rtlib::test::EnumerateGeometriesFromGASInstances(m_ShaderTableLayout.get(), m_SceneData.world);
     {
-        for (auto& instancePath : m_ShaderTableLayout->GetInstanceNames())
+
+        for (auto& [instanceName, geometryName] : instanceGeometries)
         {
-            auto& instanceDesc = m_ShaderTableLayout->GetDesc(instancePath);
-            auto* instanceData = reinterpret_cast<const RTLib::Ext::OPX7::OPX7ShaderTableLayoutInstance*>(instanceDesc.pData);
-            auto geometryAS = instanceData->GetDwGeometryAS();
-            if (geometryAS)
-            {
-                for (auto& geometryName : m_SceneData.world.geometryASs[geometryAS->GetName()].geometries)
+            if (m_SceneData.world.geometryObjModels.count(geometryName) > 0) {
+                auto& geometry = m_SceneData.world.geometryObjModels[geometryName];
+                auto objAsset = m_SceneData.objAssetManager.GetAsset(geometry.base);
+                for (auto& [meshName, meshData] : geometry.meshes)
                 {
-                    if (m_SceneData.world.geometryObjModels.count(geometryName) > 0) {
-                        auto& geometry = m_SceneData.world.geometryObjModels[geometryName];
-                        auto objAsset = m_SceneData.objAssetManager.GetAsset(geometry.base);
-                        for (auto& [meshName, meshData] : geometry.meshes)
+                    auto mesh = objAsset.meshGroup->LoadMesh(meshData.base);
+                    auto desc = m_ShaderTableLayout->GetDesc(instanceName + "/" + meshName);
+                    auto extSharedData = static_cast<rtlib::test::OPX7MeshSharedResourceExtData*>(mesh->GetSharedResource()->extData.get());
+                    auto extUniqueData = static_cast<rtlib::test::OPX7MeshUniqueResourceExtData*>(mesh->GetUniqueResource()->extData.get());
+                    auto meshLight = MeshLight();
+                    bool hasLight  = mesh->GetUniqueResource()->variables.GetBoolOr("hasLight", false);
+                    bool useNEE    = mesh->GetUniqueResource()->variables.GetBoolOr("useNEE", false);
+                    if (hasLight && useNEE)
+                    {
+                        auto meshLight = MeshLight();
+                        meshLight.vertices = reinterpret_cast<float3*>(extSharedData->GetVertexBufferGpuAddress());
+                        meshLight.normals = reinterpret_cast<float3*>(extSharedData->GetNormalBufferGpuAddress());
+                        meshLight.texCrds = reinterpret_cast<float2*>(extSharedData->GetTexCrdBufferGpuAddress());
+                        meshLight.indices = reinterpret_cast<uint3*>(extUniqueData->GetTriIdxBufferGpuAddress());
+                        meshLight.indCount = mesh->GetUniqueResource()->triIndBuffer.size();
+                        meshLight.emission = meshData.materials.front().GetFloat3As<float3>("emitCol");
+                        auto emitTexStr = meshData.materials.front().GetString("emitTex");
+                        if (emitTexStr == "")
                         {
-                            auto mesh = objAsset.meshGroup->LoadMesh(meshData.base);
-                            auto desc = m_ShaderTableLayout->GetDesc(instancePath + "/" + meshName);
-                            auto extSharedData = static_cast<rtlib::test::OPX7MeshSharedResourceExtData*>(mesh->GetSharedResource()->extData.get());
-                            auto extUniqueData = static_cast<rtlib::test::OPX7MeshUniqueResourceExtData*>(mesh->GetUniqueResource()->extData.get());
-                            auto meshLight = MeshLight();
-                            bool hasLight = mesh->GetUniqueResource()->variables.GetBoolOr("hasLight", false);
-                            bool useNEE   = mesh->GetUniqueResource()->variables.GetBoolOr("useNEE"  , false);
-                            if (hasLight && useNEE)
-                            {
-                                auto meshLight     = MeshLight();
-                                meshLight.vertices = reinterpret_cast<float3*>(extSharedData->GetVertexBufferGpuAddress());
-                                meshLight.normals  = reinterpret_cast<float3*>(extSharedData->GetNormalBufferGpuAddress());
-                                meshLight.texCrds  = reinterpret_cast<float2*>(extSharedData->GetTexCrdBufferGpuAddress());
-                                meshLight.indices  = reinterpret_cast<uint3*>(extUniqueData->GetTriIdxBufferGpuAddress());
-                                meshLight.indCount = mesh->GetUniqueResource()->triIndBuffer.size();
-                                meshLight.emission = meshData.materials.front().GetFloat3As<float3>("emitCol");
-                                auto emitTexStr    = meshData.materials.front().GetString("emitTex");
-                                if (emitTexStr == "")
-                                {
-                                    emitTexStr = "White";
-                                    ;
-                                }
-                                meshLight.emissionTex = m_TextureMap.at(emitTexStr).GetCUtexObject();
-                                meshLight.transform = rtlib::test::GetInstanceTransform(m_SceneData.world, instancePath);
-                                m_lightBuffer.cpuHandle.push_back(meshLight);
-                            }
+                            emitTexStr = "White";
                         }
+                        meshLight.emissionTex = m_TextureMap.at(emitTexStr).GetCUtexObject();
+                        meshLight.transform = rtlib::test::GetInstanceTransform(m_SceneData.world, instanceName);
+                        m_lightBuffer.cpuHandle.push_back(meshLight);
+                        meshLight.transform.Show();
                     }
                 }
             }
