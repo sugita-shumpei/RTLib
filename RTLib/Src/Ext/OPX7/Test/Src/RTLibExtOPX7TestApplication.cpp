@@ -2223,9 +2223,12 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
     if ((m_CurTracerName == "HTDEF") || (m_CurTracerName == "HTNEE") || (m_CurTracerName == "HTRIS")) {
         m_MortonQuadTreeController->EndTrace(stream);
         if (m_EnableGrid) {
-            if (m_MortonQuadTreeController->GetSamplePerTmp() == 0)
+            if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateLocate)
             {
-                m_HashBufferCUDA.Update(m_Opx7Context.get(), stream);
+                if (m_MortonQuadTreeController->GetSamplePerTmp() == 0)
+                {
+                    m_HashBufferCUDA.Update(m_Opx7Context.get(),stream);
+                }
             }
         }
         if (stream) {
