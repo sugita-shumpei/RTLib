@@ -23,7 +23,7 @@ void RTLibExtOPX7TestApplication::LoadScene(int argc, const char** argv)
     if (!m_SceneData.config.enableVis) {
         m_EnableVis = false;
     }
-    if (m_SceneData.config.defTracer != "NONE")
+    if ( m_SceneData.config.defTracer != "NONE")
     {
         m_CurTracerName = m_SceneData.config.defTracer;
     }
@@ -38,24 +38,24 @@ void RTLibExtOPX7TestApplication::LoadScene(int argc, const char** argv)
     std::cout << "OK_HERE" << std::endl;
     if (argc > 1) {
         for (int i = 0; i < argc-1; ++i) {
-            //if (std::string(argv[i]) == "--EnableVis") {
-            //    m_EnableVis = false;
-            //    if ((std::string(argv[i + 1]) == "true") || (std::string(argv[i + 1]) == "True") ||
-            //        (std::string(argv[i + 1]) == "on") || (std::string(argv[i + 1]) == "On") ||
-            //        (std::string(argv[i + 1]) == "1")) {
-            //        std::cout << "SUC: --EnableVis Args is ON\n";
-            //        m_EnableVis = true;
-            //    }
-            //    else if ((std::string(argv[i + 1]) == "false") || (std::string(argv[i + 1]) == "False") ||
-            //        (std::string(argv[i + 1]) == "off") || (std::string(argv[i + 1]) == "Off") ||
-            //        (std::string(argv[i + 1]) == "0")) {
-            //        std::cout << "SUC: --EnableVis Args is OFF\n";
-            //        m_EnableVis = false;
-            //    }
-            //    else {
-            //        std::cout << "BUG: --EnableVis Args is Missing: Use Default(false)\n";
-            //    }
-            //}
+            if (std::string(argv[i]) == "--EnableVis" ) {
+                m_EnableVis = false;
+                if ((std::string(argv[i + 1]) == "true") || (std::string(argv[i + 1]) == "True") ||
+                    (std::string(argv[i + 1]) == "on") || (std::string(argv[i + 1]) == "On") ||
+                    (std::string(argv[i + 1]) == "1")) {
+                    std::cout << "SUC: --EnableVis Args is ON\n";
+                    m_EnableVis = true;
+                }
+                else if ((std::string(argv[i + 1]) == "false") || (std::string(argv[i + 1]) == "False") ||
+                    (std::string(argv[i + 1]) == "off") || (std::string(argv[i + 1]) == "Off") ||
+                    (std::string(argv[i + 1]) == "0")) {
+                    std::cout << "SUC: --EnableVis Args is OFF\n";
+                    m_EnableVis = false;
+                }
+                else {
+                    std::cout << "BUG: --EnableVis Args is Missing: Use Default(false)\n";
+                }
+            }
             if (std::string(argv[i]) == "--EnableGrid") {
                 m_EnableGrid = false;
                 if ((std::string(argv[i + 1]) =="true") || (std::string(argv[i + 1]) == "True")   ||
@@ -95,7 +95,7 @@ void RTLibExtOPX7TestApplication::LoadScene(int argc, const char** argv)
         }
     }
     auto neeThresholdMeshSize = m_SceneData.config.custom.GetUInt32Or("Nee.ThresholdMeshSize", 0);
-    for (auto& [name, asset] : m_SceneData.objAssetManager.GetAssets())
+    for (auto& [name, asset] :  m_SceneData.objAssetManager.GetAssets())
     {
         for (auto& [uniqueName, uniqueRes] : asset.meshGroup->GetUniqueResources())
         {
@@ -179,7 +179,7 @@ void RTLibExtOPX7TestApplication::LoadScene(int argc, const char** argv)
     m_SceneData.InitExtData(m_Opx7Context.get());
     m_GeometryASMap = m_SceneData.BuildGeometryASs(m_Opx7Context.get(), accelBuildOptions);
     m_InstanceASMap = m_SceneData.BuildInstanceASs(m_Opx7Context.get(), accelBuildOptions, m_ShaderTableLayout.get(), m_GeometryASMap);
-    m_TextureMap    = m_SceneData.LoadTextureMap(m_Opx7Context.get());
+    m_TextureMap    = m_SceneData.LoadTextureMap(  m_Opx7Context.get());
     auto aabb = rtlib::test::AABB();
     for (auto& instancePath : m_ShaderTableLayout->GetInstanceNames())
     {
@@ -2353,6 +2353,7 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
             {
                 std::cout << "State Change" << std::endl;
                 m_CurTracerName = "DBG";
+                m_PipelineName  = "Trace";
                 m_EventState.isMovedCamera = true;
                 m_EventState.isClearFrame = true;
             }

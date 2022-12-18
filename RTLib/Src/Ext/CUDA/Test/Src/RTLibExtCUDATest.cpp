@@ -9,6 +9,9 @@
 #include <RTLib/Ext/CUDA/CUDAFunction.h>
 #include <RTLib/Ext/CUDA/CUDAStream.h>
 #include <RTLib/Ext/CUDA/CUDANatives.h>
+#include <RTLib/Ext/CUDA/Math/Matrix.h>
+#include <glm/glm.hpp>
+#include <glm/gtx/string_cast.hpp>
 #include <RTLibExtCUDATestConfig.h>
 #include <RTLibExtCUDATest.h>
 #include <memory>
@@ -157,6 +160,26 @@ int main(int argc, const char* argv)
 
 			ibff->Destroy();
 			obff->Destroy();
+		}
+		{
+			auto m1 = RTLib::Ext::CUDA::Math::Matrix4x4(
+				make_float4(1.0f, 0.0f, 0.0f,-1.0f),
+				make_float4(0.0f, 1.0f, 0.0f, 2.0f),
+				make_float4(1.0f, 0.0f, 1.0f, 3.0f),
+				make_float4(1.0f, 0.0f, 0.0f, 1.0f)
+			);
+			m1.Show();
+			m1.Inverse().Show();
+			auto m2 = glm::transpose(glm::mat4(
+				1.0f,0.0f,0.0f,-1.0f,
+				
+				0.0f,1.0f,0.0f,2.0f,
+
+				1.0f,0.0f,1.0f,3.0f,
+				
+				1.0f,0.0f,0.0f,1.0f
+			));
+			std::cout << glm::to_string(glm::inverse(m2)) << std::endl;
 		}
 		fnc->Destory();
 		mod->Destory();

@@ -201,13 +201,25 @@ extern "C" __global__ void     __raygen__debug   () {
     }
     if (params.debugFrameType == DEBUG_FRAME_TYPE_GRID_VALUE)
     {
+        //params.frameBuffer[params.width * idx.y + idx.x] = make_uchar4(
+        //    RTLib::Ext::CUDA::Math::min(static_cast<int>(RTLib::Ext::CUDA::Math::linear_to_gamma(hrec.userData.gridValue.x) * 255.99f), 255),
+        //    RTLib::Ext::CUDA::Math::min(static_cast<int>(RTLib::Ext::CUDA::Math::linear_to_gamma(hrec.userData.gridValue.y) * 255.99f), 255),
+        //    RTLib::Ext::CUDA::Math::min(static_cast<int>(RTLib::Ext::CUDA::Math::linear_to_gamma(hrec.userData.gridValue.z) * 255.99f), 255),
+        //    255
+        //);
+        if (hrec.userData.gridIndex != UINT32_MAX) {
 
-        params.frameBuffer[params.width * idx.y + idx.x] = make_uchar4(
-            RTLib::Ext::CUDA::Math::min(static_cast<int>(RTLib::Ext::CUDA::Math::linear_to_gamma(hrec.userData.gridValue.x) * 255.99f), 255),
-            RTLib::Ext::CUDA::Math::min(static_cast<int>(RTLib::Ext::CUDA::Math::linear_to_gamma(hrec.userData.gridValue.y) * 255.99f), 255),
-            RTLib::Ext::CUDA::Math::min(static_cast<int>(RTLib::Ext::CUDA::Math::linear_to_gamma(hrec.userData.gridValue.z) * 255.99f), 255),
-            255
-        );
+            params.frameBuffer[params.width * idx.y + idx.x] = make_uchar4(
+                RTLib::Ext::CUDA::Math::min(static_cast<int>(RTLib::Ext::CUDA::Math::linear_to_gamma(hrec.userData.diffuse.x) * 255.99f), 255),
+                RTLib::Ext::CUDA::Math::min(static_cast<int>(RTLib::Ext::CUDA::Math::linear_to_gamma(hrec.userData.diffuse.y) * 255.99f), 255),
+                RTLib::Ext::CUDA::Math::min(static_cast<int>(RTLib::Ext::CUDA::Math::linear_to_gamma(hrec.userData.diffuse.z) * 255.99f), 255),
+                255
+            );
+        }
+        else {
+            
+        params.frameBuffer[params.width * idx.y + idx.x] = make_uchar4(0,0,0,255);
+        }
     }
     params.seedBuffer[params.width * idx.y + idx.x] = hrec.seed;
 }

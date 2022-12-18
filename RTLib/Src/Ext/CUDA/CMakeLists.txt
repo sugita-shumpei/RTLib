@@ -56,7 +56,7 @@ add_executable(RTLib-Ext-CUDA-Test
     ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/simpleKernel.cu
 )
 target_include_directories(RTLib-Ext-CUDA-Test PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Test/Include PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/Test)
-target_link_libraries(RTLib-Ext-CUDA-Test PUBLIC RTLib-Ext-CUDA stb::stb)
+target_link_libraries(RTLib-Ext-CUDA-Test PUBLIC RTLib-Ext-CUDA stb::stb glm::glm)
 
 add_custom_command(TARGET RTLib-Ext-CUDA-Test POST_BUILD 
 COMMAND ${CUDAToolkit_NVCC_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/Test/cuda/simpleKernel.cu -arch compute_75 -use_fast_math -lineinfo -rdc true -m64 --std c++17 -ptx -I${CMAKE_CURRENT_SOURCE_DIR}/Include/ -o  ${CMAKE_CURRENT_BINARY_DIR}/Test/cuda/simpleKernel.ptx
