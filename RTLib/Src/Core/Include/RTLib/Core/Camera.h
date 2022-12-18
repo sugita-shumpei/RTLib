@@ -1,6 +1,5 @@
 #ifndef RTLIB_CORE_CAMERA_H
 #define RTLIB_CORE_CAMERA_H
-#include <RTLib/Core/Math.h>
 #include <nlohmann/json.hpp>
 #include <array>
 #include <cmath>
@@ -55,19 +54,8 @@ namespace RTLib
                 m_Aspect{ aspect }
             {}
             //Direction
-            inline std::array<float, 3> GetDirection() const noexcept
-            {
-                auto lens = RTLib::Core::Sub(m_LookAt, m_Eye);
-                auto len = RTLib::Core::Len(lens);
-                return RTLib::Core::Div(lens, std::array<float, 3>{len, len, len});
-            }
-            inline void SetDirection(const std::array<float, 3>& direction) noexcept
-            {
-                auto lens = RTLib::Core::Sub(m_LookAt, m_Eye);
-                auto d_len = RTLib::Core::Len(direction);
-                auto l_len = RTLib::Core::Len(lens);
-                m_Eye = RTLib::Core::Sub(m_Eye, RTLib::Core::Mul(direction, std::array<float, 3>{l_len / d_len, l_len / d_len, l_len / d_len}));
-            }
+            std::array<float, 3> GetDirection() const noexcept;
+            void SetDirection(const std::array<float, 3>& direction) noexcept;
             //Get And Set
             RTLIB_CORE_CAMERA_MACRO_GETTER_AND_SETTER(Camera, Eye, m_Eye);
             RTLIB_CORE_CAMERA_MACRO_GETTER_AND_SETTER(Camera, LookAt, m_LookAt);
@@ -75,21 +63,7 @@ namespace RTLib
             RTLIB_CORE_CAMERA_MACRO_GETTER_AND_SETTER(Camera, FovY, m_FovY);
             RTLIB_CORE_CAMERA_MACRO_GETTER_AND_SETTER(Camera, Aspect, m_Aspect);
             //getUVW
-            void GetUVW(std::array<float, 3>& u, std::array<float, 3>& v, std::array<float, 3>& w) const noexcept {
-                w = Sub(m_LookAt, m_Eye);
-                //front
-                //u = rtlib::normalize(rtlib::cross(w,m_Vup));
-                u = Normalize(Cross(m_Vup, w));
-                v = Normalize(Cross(w, u));
-                auto vlen = Len(w) * std::tanf(RTLIB_CORE_MATH_CONSTANTS_PI * m_FovY / 360.0f);
-                auto ulen = vlen * m_Aspect;
-                u[0] *= ulen;
-                u[1] *= ulen;
-                u[2] *= ulen;
-                v[0] *= vlen;
-                v[1] *= vlen;
-                v[2] *= vlen;
-            }
+            void GetUVW(std::array<float, 3>& u, std::array<float, 3>& v, std::array<float, 3>& w) const noexcept;
             std::tuple<std::array<float, 3>, std::array<float, 3>, std::array<float, 3>> GetUVW() const noexcept {
                 std::tuple<std::array<float, 3>, std::array<float, 3>, std::array<float, 3>> uvw;
                 this->GetUVW(std::get<0>(uvw), std::get<1>(uvw), std::get<2>(uvw));
@@ -142,17 +116,8 @@ namespace RTLib
             {
                 UpdateCameraVectors();
             }
-            void SetCamera(const Camera& camera) noexcept
-            {
-                m_Position = camera.GetEye();
-                m_Front = Sub(camera.GetLookAt(), m_Position);
-                m_Up = camera.GetVup();
-                m_Right = Normalize(Cross(m_Up, m_Front));
-            }
-            auto GetCamera(float fovY, float aspect) const noexcept -> Camera
-            {
-                return Camera(m_Position, Add(m_Position, m_Front), m_Up, fovY, aspect);
-            }
+            void SetCamera(const Camera& camera) noexcept;
+            auto GetCamera(float fovY, float aspect) const noexcept -> Camera;
             auto GetCamera(float aspect)const noexcept->Camera {
                 return GetCamera(m_Zoom, aspect);
             }
@@ -237,18 +202,7 @@ namespace RTLib
             RTLIB_CORE_CAMERA_MACRO_GETTER_AND_SETTER(CameraController, Zoom, m_Zoom);
         private:
             // Calculates the front vector from the Camera's (updated) Euler Angles
-            void UpdateCameraVectors() noexcept
-            {
-                // Calculate the new Front vector
-                std::array<float, 3> front = {};
-                float yaw = RTLIB_CORE_MATH_CONSTANTS_PI * (m_Yaw) / 180.0f;
-                float pitch = RTLIB_CORE_MATH_CONSTANTS_PI * (m_Pitch) / 180.0f;
-                front[0] = cos(yaw) * cos(pitch);
-                front[1] = sin(pitch);
-                front[2] = sin(yaw) * cos(pitch);
-                m_Front = Normalize(front);
-                m_Right = Normalize(Cross(m_Up, m_Front));
-            }
+            void UpdateCameraVectors() noexcept;
         };
 
         void to_json(nlohmann::json& json, const CameraController& cameraController);

@@ -65,7 +65,7 @@ set(RTLIB_CORE_SOURCES
 add_library(RTLib-Core ${RTLIB_CORE_SOURCES}
 )
 target_include_directories(RTLib-Core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Include)
-target_link_libraries(RTLib-Core PUBLIC Imath::Imath nlohmann_json::nlohmann_json PRIVATE tinyobjloader stb::stb tinyexr::tinyexr )
+target_link_libraries(RTLib-Core PUBLIC Imath::Imath nlohmann_json::nlohmann_json PRIVATE tinyobjloader stb::stb tinyexr::tinyexr glm::glm)
 set_target_properties(RTLib-Core PROPERTIES FOLDER RTLib/RTLib/Core)
 set(RTLIB_CORE_TEST_CONFIG_DATA_PATH "${RTLIB_TEST_DATA_PATH}")
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Test/RTLibCoreTestConfig.h.in ${CMAKE_CURRENT_BINARY_DIR}/Test/RTLibCoreTestConfig.h)

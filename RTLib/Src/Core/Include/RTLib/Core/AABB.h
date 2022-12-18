@@ -32,6 +32,21 @@ namespace RTLib
                     max[i] = std::max(max[i], vertex[i]);
                 }
             }
+            //Matrix: Column Major Order
+            //           Row Major Representaion
+            //make_float4(tmpInstanceData.transform[0], tmpInstanceData.transform[4], tmpInstanceData.transform[8], 0.0f),
+            //make_float4(tmpInstanceData.transform[1], tmpInstanceData.transform[5], tmpInstanceData.transform[9], 0.0f),
+            //make_float4(tmpInstanceData.transform[2], tmpInstanceData.transform[6], tmpInstanceData.transform[10], 0.0f),
+            //make_float4(tmpInstanceData.transform[3], tmpInstanceData.transform[7], tmpInstanceData.transform[11], 1.0f)
+            // 
+            //  X0 X1 X2 X3 X
+            //  Y0 Y1 Y2 Y3 Y
+            //  Z0 Z1 Z2 Z3 Z
+            //  00 00 00 01 W
+            void Transform(const std::array<float, 16>& mat4x4) noexcept
+            {
+                
+            }
         };
 	}
 }

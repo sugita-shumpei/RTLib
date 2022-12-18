@@ -1087,11 +1087,12 @@ namespace rtlib
                     auto tmpInstanceName = std::string(tmpInstancePath.data() + len + 1, tmpInstancePath.data() + tmpInstancePath.size());
                     if (worldData.instances.count(tmpInstanceName) > 0) {
                         auto& tmpInstanceData = worldData.instances.at(tmpInstanceName);
+                        // 
                         auto  tmpTransform = RTLib::Ext::CUDA::Math::Matrix4x4(
-                            make_float4(tmpInstanceData.transform[0], tmpInstanceData.transform[4], tmpInstanceData.transform[8], 0.0f),
-                            make_float4(tmpInstanceData.transform[1], tmpInstanceData.transform[5], tmpInstanceData.transform[9], 0.0f),
-                            make_float4(tmpInstanceData.transform[2], tmpInstanceData.transform[6], tmpInstanceData.transform[10], 0.0f),
-                            make_float4(tmpInstanceData.transform[3], tmpInstanceData.transform[7], tmpInstanceData.transform[11], 1.0f)
+                            make_float4(tmpInstanceData.transform[0], tmpInstanceData.transform[ 1], tmpInstanceData.transform[ 2], 0.0f),
+                            make_float4(tmpInstanceData.transform[3], tmpInstanceData.transform[ 4], tmpInstanceData.transform[ 5], 0.0f),
+                            make_float4(tmpInstanceData.transform[6], tmpInstanceData.transform[ 7], tmpInstanceData.transform[ 8], 0.0f),
+                            make_float4(tmpInstanceData.transform[9], tmpInstanceData.transform[10], tmpInstanceData.transform[11], 1.0f)
                         );
                         transform *= tmpTransform;
                     }
