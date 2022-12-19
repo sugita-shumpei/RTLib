@@ -2237,7 +2237,7 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
      TracePipeline(nullptr, frameBufferTmp);
      m_SamplesForAccum = 0;
      m_TimesForIterations = std::vector<unsigned long long>{ 0 };
-     cuMemsetD32(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_AccumBufferCUDA.get()), m_AccumBufferCUDA->GetSizeInBytes() / sizeof(float), 0);
+     cuMemsetD32(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_AccumBufferCUDA.get()), 0, m_AccumBufferCUDA->GetSizeInBytes() / sizeof(float));
      if (m_EnableGrid) {
          m_HashBufferCUDA.Clear(m_Opx7Context.get());
      }
