@@ -320,7 +320,6 @@ private:
 
     void InitWindowCallback();
 
-    bool TracePipeline(RTLib::Ext::CUDA::CUDAStream* stream, RTLib::Ext::CUDA::CUDABuffer* frameBuffer);
     void SetupPipeline();
 
     bool FinishTrace();
@@ -377,7 +376,6 @@ private:
 
     std::string m_CurTracerName = "DEF";
     std::string m_PrvTracerName = "DEF";
-    std::string m_PipelineName = "Trace";
 
     unsigned int m_DebugFrameType = DEBUG_FRAME_TYPE_NORMAL;
 

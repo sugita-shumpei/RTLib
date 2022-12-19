@@ -401,15 +401,16 @@ void RTLibExtOPX7TestApplication::InitPtxString()
 
 void RTLibExtOPX7TestApplication::InitDefTracer()
 {
-    m_TracerMap["DEF"].pipelines["Trace"].compileOptions.usesMotionBlur = false;
-    m_TracerMap["DEF"].pipelines["Trace"].compileOptions.traversableGraphFlags = 0;
-    m_TracerMap["DEF"].pipelines["Trace"].compileOptions.numAttributeValues = 3;
-    m_TracerMap["DEF"].pipelines["Trace"].compileOptions.numPayloadValues = 8;
-    m_TracerMap["DEF"].pipelines["Trace"].compileOptions.launchParamsVariableNames = "params";
-    m_TracerMap["DEF"].pipelines["Trace"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle| RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
-    m_TracerMap["DEF"].pipelines["Trace"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
-    m_TracerMap["DEF"].pipelines["Trace"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-    m_TracerMap["DEF"].pipelines["Trace"].linkOptions.maxTraceDepth = 1;
+    auto tracer = rtlib::test::TracerData();
+    tracer.pipelines["Trace"].compileOptions.usesMotionBlur = false;
+    tracer.pipelines["Trace"].compileOptions.traversableGraphFlags = 0;
+    tracer.pipelines["Trace"].compileOptions.numAttributeValues = 3;
+    tracer.pipelines["Trace"].compileOptions.numPayloadValues = 8;
+    tracer.pipelines["Trace"].compileOptions.launchParamsVariableNames = "params";
+    tracer.pipelines["Trace"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle| RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
+    tracer.pipelines["Trace"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
+    tracer.pipelines["Trace"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
+    tracer.pipelines["Trace"].linkOptions.maxTraceDepth = 1;
     {
         auto moduleOptions = RTLib::Ext::OPX7::OPX7ModuleCompileOptions{};
         unsigned int flags = PARAM_FLAG_NONE;
@@ -429,30 +430,30 @@ void RTLibExtOPX7TestApplication::InitDefTracer()
         moduleOptions.boundValueEntries.front().pipelineParamOffsetInBytes = offsetof(Params, flags);
         moduleOptions.boundValueEntries.front().boundValuePtr = &flags;
         moduleOptions.boundValueEntries.front().sizeInBytes   = sizeof(flags);
-        m_TracerMap["DEF"].pipelines["Trace"].LoadModule(m_Opx7Context.get(), "SimpleKernel.DEF", moduleOptions, m_PtxStringMap.at("SimpleTrace.ptx"));
-        m_TracerMap["DEF"].pipelines["Trace"].LoadBuiltInISTriangleModule(m_Opx7Context.get(), "BuiltIn.Triangle.DEF", moduleOptions);
-        m_TracerMap["DEF"].pipelines["Trace"].LoadBuiltInISSphereModule(m_Opx7Context.get(),   "BuiltIn.Sphere.DEF", moduleOptions);
+        tracer.pipelines["Trace"].LoadModule(m_Opx7Context.get(), "SimpleKernel.DEF", moduleOptions, m_PtxStringMap.at("SimpleTrace.ptx"));
+        tracer.pipelines["Trace"].LoadBuiltInISTriangleModule(m_Opx7Context.get(), "BuiltIn.Triangle.DEF", moduleOptions);
+        tracer.pipelines["Trace"].LoadBuiltInISSphereModule(m_Opx7Context.get(),   "BuiltIn.Sphere.DEF", moduleOptions);
     }
-    m_TracerMap["DEF"].pipelines["Trace"].SetProgramGroupRG(m_Opx7Context.get(), "SimpleKernel.DEF", "__raygen__default");
-    m_TracerMap["DEF"].pipelines["Trace"].SetProgramGroupEP(m_Opx7Context.get(), "SimpleKernel.DEF", "__exception__ep");
-    m_TracerMap["DEF"].pipelines["Trace"].SetProgramGroupMS(m_Opx7Context.get(), "SimpleKernel.Radiance", "SimpleKernel.DEF", "__miss__radiance");
-    m_TracerMap["DEF"].pipelines["Trace"].SetProgramGroupMS(m_Opx7Context.get(), "SimpleKernel.Occluded", "SimpleKernel.DEF", "__miss__occluded");
-    m_TracerMap["DEF"].pipelines["Trace"].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Radiance.Triangle", "SimpleKernel.DEF", "__closesthit__radiance", "", "", "BuiltIn.Triangle.DEF", "");
-    m_TracerMap["DEF"].pipelines["Trace"].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Occluded.Triangle", "SimpleKernel.DEF", "__closesthit__occluded", "", "", "BuiltIn.Triangle.DEF", "");
-    m_TracerMap["DEF"].pipelines["Trace"].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Radiance.Sphere"  , "SimpleKernel.DEF", "__closesthit__radiance_sphere", "", "", "BuiltIn.Sphere.DEF", "");
-    m_TracerMap["DEF"].pipelines["Trace"].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Occluded.Sphere"  , "SimpleKernel.DEF", "__closesthit__occluded", "", "", "BuiltIn.Sphere.DEF", "");
-    m_TracerMap["DEF"].pipelines["Trace"].InitPipeline(m_Opx7Context.get());
-    m_TracerMap["DEF"].pipelines["Trace"].shaderTable = this->NewShaderTable();
+    tracer.pipelines["Trace"].SetProgramGroupRG(m_Opx7Context.get(), "SimpleKernel.DEF", "__raygen__default");
+    tracer.pipelines["Trace"].SetProgramGroupEP(m_Opx7Context.get(), "SimpleKernel.DEF", "__exception__ep");
+    tracer.pipelines["Trace"].SetProgramGroupMS(m_Opx7Context.get(), "SimpleKernel.Radiance", "SimpleKernel.DEF", "__miss__radiance");
+    tracer.pipelines["Trace"].SetProgramGroupMS(m_Opx7Context.get(), "SimpleKernel.Occluded", "SimpleKernel.DEF", "__miss__occluded");
+    tracer.pipelines["Trace"].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Radiance.Triangle", "SimpleKernel.DEF", "__closesthit__radiance", "", "", "BuiltIn.Triangle.DEF", "");
+    tracer.pipelines["Trace"].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Occluded.Triangle", "SimpleKernel.DEF", "__closesthit__occluded", "", "", "BuiltIn.Triangle.DEF", "");
+    tracer.pipelines["Trace"].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Radiance.Sphere"  , "SimpleKernel.DEF", "__closesthit__radiance_sphere", "", "", "BuiltIn.Sphere.DEF", "");
+    tracer.pipelines["Trace"].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Occluded.Sphere"  , "SimpleKernel.DEF", "__closesthit__occluded", "", "", "BuiltIn.Sphere.DEF", "");
+    tracer.pipelines["Trace"].InitPipeline(m_Opx7Context.get());
+    tracer.pipelines["Trace"].shaderTable = this->NewShaderTable();
 
     auto programGroupHGNames = std::vector<std::string>{
         "SimpleKernel.Radiance",
         "SimpleKernel.Occluded" 
     };
 
-    m_TracerMap["DEF"].pipelines["Trace"].SetHostRayGenRecordTypeData(   rtlib::test::GetRaygenData(m_SceneData.GetCamera()));
-    m_TracerMap["DEF"].pipelines["Trace"].SetHostMissRecordTypeData(RAY_TYPE_RADIANCE, "SimpleKernel.Radiance", MissData{make_float4(m_BgColor,1.0f)});
-    m_TracerMap["DEF"].pipelines["Trace"].SetHostMissRecordTypeData(RAY_TYPE_OCCLUDED, "SimpleKernel.Occluded", MissData{});
-    m_TracerMap["DEF"].pipelines["Trace"].SetHostExceptionRecordTypeData(unsigned int());
+    tracer.pipelines["Trace"].SetHostRayGenRecordTypeData(   rtlib::test::GetRaygenData(m_SceneData.GetCamera()));
+    tracer.pipelines["Trace"].SetHostMissRecordTypeData(RAY_TYPE_RADIANCE, "SimpleKernel.Radiance", MissData{make_float4(m_BgColor,1.0f)});
+    tracer.pipelines["Trace"].SetHostMissRecordTypeData(RAY_TYPE_OCCLUDED, "SimpleKernel.Occluded", MissData{});
+    tracer.pipelines["Trace"].SetHostExceptionRecordTypeData(unsigned int());
 
     auto instanceAndGeometryNames = rtlib::test::EnumerateGeometriesFromGASInstances(m_ShaderTableLayout.get(), m_SceneData.world);
     for (auto& [instanceName, geometryName] : instanceAndGeometryNames)
@@ -472,7 +473,7 @@ void RTLibExtOPX7TestApplication::InitDefTracer()
                     {
                         hitgroupData = rtlib::test::GetHitgroupFromObjMesh(meshData.materials[i / desc.recordStride], mesh, m_TextureMap);
                     }
-                    m_TracerMap["DEF"].pipelines["Trace"].SetHostHitgroupRecordTypeData(desc.recordOffset + i, programGroupHGNames[i % desc.recordStride] + ".Triangle", hitgroupData);
+                    tracer.pipelines["Trace"].SetHostHitgroupRecordTypeData(desc.recordOffset + i, programGroupHGNames[i % desc.recordStride] + ".Triangle", hitgroupData);
                 }
             }
         }
@@ -486,23 +487,23 @@ void RTLibExtOPX7TestApplication::InitDefTracer()
                 {
                     hitgroupData = rtlib::test::GetHitgroupFromSphere(sphereRes->materials[i / desc.recordStride], sphereRes, m_TextureMap);
                 }
-                m_TracerMap["DEF"].pipelines["Trace"].SetHostHitgroupRecordTypeData(desc.recordOffset + i, programGroupHGNames[i % desc.recordStride] + ".Sphere", hitgroupData);
+                tracer.pipelines["Trace"].SetHostHitgroupRecordTypeData(desc.recordOffset + i, programGroupHGNames[i % desc.recordStride] + ".Sphere", hitgroupData);
             }
         }
     }
-    m_TracerMap["DEF"].pipelines["Trace"].shaderTable->Upload();
-    m_TracerMap["DEF"].pipelines["Trace"].SetPipelineStackSize(m_ShaderTableLayout->GetMaxTraversableDepth());
+    tracer.pipelines["Trace"].shaderTable->Upload();
+    tracer.pipelines["Trace"].SetPipelineStackSize(m_ShaderTableLayout->GetMaxTraversableDepth());
     auto params = Params();
     {
         params.flags = PARAM_FLAG_NONE;
     }
-    m_TracerMap["DEF"].InitParams(m_Opx7Context.get(),params);
-    m_TracerMap["DEF"].beginTrace = std::function<void(RTLib::Ext::CUDA::CUDAStream*)>(
+    tracer.InitParams(m_Opx7Context.get(),params);
+    tracer.beginTrace = std::function<std::string(RTLib::Ext::CUDA::CUDAStream*)>(
         [this](RTLib::Ext::CUDA::CUDAStream* stream){
-            return;
+            return "Trace";
         }
     );
-    m_TracerMap["DEF"].getParams  = std::function<Params(RTLib::Ext::CUDA::CUDABuffer*)>(
+    tracer.getParams  = std::function<Params(RTLib::Ext::CUDA::CUDABuffer*)>(
         [this](RTLib::Ext::CUDA::CUDABuffer* frameBuffer) {
             auto params = Params();
             params.accumBuffer = reinterpret_cast<float3*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_AccumBufferCUDA.get()));
@@ -534,7 +535,7 @@ void RTLibExtOPX7TestApplication::InitDefTracer()
             return params;
         }
     );
-    m_TracerMap["DEF"].endTrace = std::function<bool(RTLib::Ext::CUDA::CUDAStream*)>(
+    tracer.endTrace = std::function<bool(RTLib::Ext::CUDA::CUDAStream*)>(
         [this](RTLib::Ext::CUDA::CUDAStream* stream)->bool {
             bool shouldSync = false;
             {
@@ -551,19 +552,21 @@ void RTLibExtOPX7TestApplication::InitDefTracer()
             return shouldSync;
         }
     );
+    m_TracerMap["DEF"] = std::move(tracer);
 }
 
 void RTLibExtOPX7TestApplication::InitNeeTracer()
 {
-    m_TracerMap["NEE"].pipelines["Trace"].compileOptions.usesMotionBlur = false;
-    m_TracerMap["NEE"].pipelines["Trace"].compileOptions.traversableGraphFlags = 0;
-    m_TracerMap["NEE"].pipelines["Trace"].compileOptions.numAttributeValues = 3;
-    m_TracerMap["NEE"].pipelines["Trace"].compileOptions.numPayloadValues = 8;
-    m_TracerMap["NEE"].pipelines["Trace"].compileOptions.launchParamsVariableNames = "params";
-    m_TracerMap["NEE"].pipelines["Trace"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
-    m_TracerMap["NEE"].pipelines["Trace"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
-    m_TracerMap["NEE"].pipelines["Trace"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-    m_TracerMap["NEE"].pipelines["Trace"].linkOptions.maxTraceDepth = 2;
+    auto tracer = rtlib::test::TracerData();
+    tracer.pipelines["Trace"].compileOptions.usesMotionBlur = false;
+    tracer.pipelines["Trace"].compileOptions.traversableGraphFlags = 0;
+    tracer.pipelines["Trace"].compileOptions.numAttributeValues = 3;
+    tracer.pipelines["Trace"].compileOptions.numPayloadValues = 8;
+    tracer.pipelines["Trace"].compileOptions.launchParamsVariableNames = "params";
+    tracer.pipelines["Trace"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
+    tracer.pipelines["Trace"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
+    tracer.pipelines["Trace"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
+    tracer.pipelines["Trace"].linkOptions.maxTraceDepth = 2;
     {
         auto moduleOptions = RTLib::Ext::OPX7::OPX7ModuleCompileOptions{};
         unsigned int flags = PARAM_FLAG_NEE;
@@ -583,28 +586,28 @@ void RTLibExtOPX7TestApplication::InitNeeTracer()
         moduleOptions.boundValueEntries.front().pipelineParamOffsetInBytes = offsetof(Params, flags);
         moduleOptions.boundValueEntries.front().boundValuePtr = &flags;
         moduleOptions.boundValueEntries.front().sizeInBytes = sizeof(flags);
-        m_TracerMap["NEE"].pipelines["Trace"].LoadModule(m_Opx7Context.get(), "SimpleKernel.NEE", moduleOptions, m_PtxStringMap.at("SimpleTrace.ptx"));
-        m_TracerMap["NEE"].pipelines["Trace"].LoadBuiltInISTriangleModule(m_Opx7Context.get(), "BuiltIn.Triangle.NEE", moduleOptions);
-        m_TracerMap["NEE"].pipelines["Trace"].LoadBuiltInISSphereModule(m_Opx7Context.get(), "BuiltIn.Sphere.NEE", moduleOptions);
+        tracer.pipelines["Trace"].LoadModule(m_Opx7Context.get(), "SimpleKernel.NEE", moduleOptions, m_PtxStringMap.at("SimpleTrace.ptx"));
+        tracer.pipelines["Trace"].LoadBuiltInISTriangleModule(m_Opx7Context.get(), "BuiltIn.Triangle.NEE", moduleOptions);
+        tracer.pipelines["Trace"].LoadBuiltInISSphereModule(m_Opx7Context.get(), "BuiltIn.Sphere.NEE", moduleOptions);
     }
-    m_TracerMap["NEE"].pipelines["Trace"].SetProgramGroupRG(m_Opx7Context.get(), "SimpleKernel.NEE", "__raygen__default");
-    m_TracerMap["NEE"].pipelines["Trace"].SetProgramGroupEP(m_Opx7Context.get(), "SimpleKernel.NEE", "__exception__ep");
-    m_TracerMap["NEE"].pipelines["Trace"].SetProgramGroupMS(m_Opx7Context.get(), "SimpleKernel.Radiance", "SimpleKernel.NEE", "__miss__radiance");
-    m_TracerMap["NEE"].pipelines["Trace"].SetProgramGroupMS(m_Opx7Context.get(), "SimpleKernel.Occluded", "SimpleKernel.NEE", "__miss__occluded");
-    m_TracerMap["NEE"].pipelines["Trace"].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Radiance.Triangle", "SimpleKernel.NEE", "__closesthit__radiance", "", "", "BuiltIn.Triangle.NEE", "");
-    m_TracerMap["NEE"].pipelines["Trace"].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Occluded.Triangle", "SimpleKernel.NEE", "__closesthit__occluded", "", "", "BuiltIn.Triangle.NEE", "");
-    m_TracerMap["NEE"].pipelines["Trace"].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Radiance.Sphere", "SimpleKernel.NEE", "__closesthit__radiance_sphere", "", "", "BuiltIn.Sphere.NEE", "");
-    m_TracerMap["NEE"].pipelines["Trace"].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Occluded.Sphere", "SimpleKernel.NEE", "__closesthit__occluded", "", "", "BuiltIn.Sphere.NEE", "");
-    m_TracerMap["NEE"].pipelines["Trace"].InitPipeline(m_Opx7Context.get());
-    m_TracerMap["NEE"].pipelines["Trace"].shaderTable = this->NewShaderTable();
+    tracer.pipelines["Trace"].SetProgramGroupRG(m_Opx7Context.get(), "SimpleKernel.NEE", "__raygen__default");
+    tracer.pipelines["Trace"].SetProgramGroupEP(m_Opx7Context.get(), "SimpleKernel.NEE", "__exception__ep");
+    tracer.pipelines["Trace"].SetProgramGroupMS(m_Opx7Context.get(), "SimpleKernel.Radiance", "SimpleKernel.NEE", "__miss__radiance");
+    tracer.pipelines["Trace"].SetProgramGroupMS(m_Opx7Context.get(), "SimpleKernel.Occluded", "SimpleKernel.NEE", "__miss__occluded");
+    tracer.pipelines["Trace"].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Radiance.Triangle", "SimpleKernel.NEE", "__closesthit__radiance", "", "", "BuiltIn.Triangle.NEE", "");
+    tracer.pipelines["Trace"].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Occluded.Triangle", "SimpleKernel.NEE", "__closesthit__occluded", "", "", "BuiltIn.Triangle.NEE", "");
+    tracer.pipelines["Trace"].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Radiance.Sphere", "SimpleKernel.NEE", "__closesthit__radiance_sphere", "", "", "BuiltIn.Sphere.NEE", "");
+    tracer.pipelines["Trace"].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Occluded.Sphere", "SimpleKernel.NEE", "__closesthit__occluded", "", "", "BuiltIn.Sphere.NEE", "");
+    tracer.pipelines["Trace"].InitPipeline(m_Opx7Context.get());
+    tracer.pipelines["Trace"].shaderTable = this->NewShaderTable();
     auto programGroupHGNames = std::vector<std::string>{
         "SimpleKernel.Radiance",
         "SimpleKernel.Occluded" 
     };
-    m_TracerMap["NEE"].pipelines["Trace"].SetHostRayGenRecordTypeData(rtlib::test::GetRaygenData(m_SceneData.GetCamera()));
-    m_TracerMap["NEE"].pipelines["Trace"].SetHostMissRecordTypeData(RAY_TYPE_RADIANCE, "SimpleKernel.Radiance", MissData{ make_float4(m_BgColor,1.0f) });
-    m_TracerMap["NEE"].pipelines["Trace"].SetHostMissRecordTypeData(RAY_TYPE_OCCLUDED, "SimpleKernel.Occluded", MissData{});
-    m_TracerMap["NEE"].pipelines["Trace"].SetHostExceptionRecordTypeData( unsigned int());
+    tracer.pipelines["Trace"].SetHostRayGenRecordTypeData(rtlib::test::GetRaygenData(m_SceneData.GetCamera()));
+    tracer.pipelines["Trace"].SetHostMissRecordTypeData(RAY_TYPE_RADIANCE, "SimpleKernel.Radiance", MissData{ make_float4(m_BgColor,1.0f) });
+    tracer.pipelines["Trace"].SetHostMissRecordTypeData(RAY_TYPE_OCCLUDED, "SimpleKernel.Occluded", MissData{});
+    tracer.pipelines["Trace"].SetHostExceptionRecordTypeData( unsigned int());
 
     auto instanceAndGeometryNames = rtlib::test::EnumerateGeometriesFromGASInstances(m_ShaderTableLayout.get(), m_SceneData.world);
     for (auto& [instanceName, geometryName] : instanceAndGeometryNames)
@@ -624,7 +627,7 @@ void RTLibExtOPX7TestApplication::InitNeeTracer()
                     {
                         hitgroupData = rtlib::test::GetHitgroupFromObjMesh(meshData.materials[i / desc.recordStride], mesh, m_TextureMap);
                     }
-                    m_TracerMap["NEE"].pipelines["Trace"].SetHostHitgroupRecordTypeData(desc.recordOffset + i, programGroupHGNames[i % desc.recordStride] + ".Triangle", hitgroupData);
+                    tracer.pipelines["Trace"].SetHostHitgroupRecordTypeData(desc.recordOffset + i, programGroupHGNames[i % desc.recordStride] + ".Triangle", hitgroupData);
                 }
             }
         }
@@ -638,23 +641,23 @@ void RTLibExtOPX7TestApplication::InitNeeTracer()
                 {
                     hitgroupData = rtlib::test::GetHitgroupFromSphere(sphereRes->materials[i / desc.recordStride], sphereRes, m_TextureMap);
                 }
-                m_TracerMap["NEE"].pipelines["Trace"].SetHostHitgroupRecordTypeData(desc.recordOffset + i, programGroupHGNames[i % desc.recordStride] + ".Sphere", hitgroupData);
+                tracer.pipelines["Trace"].SetHostHitgroupRecordTypeData(desc.recordOffset + i, programGroupHGNames[i % desc.recordStride] + ".Sphere", hitgroupData);
             }
         }
     }
-    m_TracerMap["NEE"].pipelines["Trace"].shaderTable->Upload();
-    m_TracerMap["NEE"].pipelines["Trace"].SetPipelineStackSize(m_ShaderTableLayout->GetMaxTraversableDepth());
+    tracer.pipelines["Trace"].shaderTable->Upload();
+    tracer.pipelines["Trace"].SetPipelineStackSize(m_ShaderTableLayout->GetMaxTraversableDepth());
     auto params = Params();
     {
         params.flags = PARAM_FLAG_NONE;
     }
-    m_TracerMap["NEE"].InitParams(m_Opx7Context.get(), params);
-    m_TracerMap["NEE"].beginTrace = std::function<void(RTLib::Ext::CUDA::CUDAStream*)>(
+    tracer.InitParams(m_Opx7Context.get(), params);
+    tracer.beginTrace = std::function<std::string(RTLib::Ext::CUDA::CUDAStream*)>(
         [this](RTLib::Ext::CUDA::CUDAStream* stream) {
-            return;
+            return "Trace";
         }
     );
-    m_TracerMap["NEE"].getParams = std::function<Params(RTLib::Ext::CUDA::CUDABuffer*)>(
+    tracer.getParams = std::function<Params(RTLib::Ext::CUDA::CUDABuffer*)>(
         [this](RTLib::Ext::CUDA::CUDABuffer* frameBuffer) {
             auto params = Params();
             params.accumBuffer = reinterpret_cast<float3*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_AccumBufferCUDA.get()));
@@ -687,7 +690,7 @@ void RTLibExtOPX7TestApplication::InitNeeTracer()
             return params;
         }
     );
-    m_TracerMap["NEE"].endTrace = std::function<bool(RTLib::Ext::CUDA::CUDAStream*)>(
+    tracer.endTrace = std::function<bool(RTLib::Ext::CUDA::CUDAStream*)>(
         [this](RTLib::Ext::CUDA::CUDAStream* stream)->bool {
             bool shouldSync = false;
             {
@@ -704,19 +707,21 @@ void RTLibExtOPX7TestApplication::InitNeeTracer()
             return shouldSync;
         }
     );
+    m_TracerMap["NEE"] = std::move(tracer);
 }
 
 void RTLibExtOPX7TestApplication::InitRisTracer()
 {
-    m_TracerMap["RIS"].pipelines["Trace"].compileOptions.usesMotionBlur = false;
-    m_TracerMap["RIS"].pipelines["Trace"].compileOptions.traversableGraphFlags = 0;
-    m_TracerMap["RIS"].pipelines["Trace"].compileOptions.numAttributeValues = 3;
-    m_TracerMap["RIS"].pipelines["Trace"].compileOptions.numPayloadValues = 8;
-    m_TracerMap["RIS"].pipelines["Trace"].compileOptions.launchParamsVariableNames = "params";
-    m_TracerMap["RIS"].pipelines["Trace"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
-    m_TracerMap["RIS"].pipelines["Trace"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
-    m_TracerMap["RIS"].pipelines["Trace"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-    m_TracerMap["RIS"].pipelines["Trace"].linkOptions.maxTraceDepth = 2;
+    auto tracer = rtlib::test::TracerData();
+    tracer.pipelines["Trace"].compileOptions.usesMotionBlur = false;
+    tracer.pipelines["Trace"].compileOptions.traversableGraphFlags = 0;
+    tracer.pipelines["Trace"].compileOptions.numAttributeValues = 3;
+    tracer.pipelines["Trace"].compileOptions.numPayloadValues = 8;
+    tracer.pipelines["Trace"].compileOptions.launchParamsVariableNames = "params";
+    tracer.pipelines["Trace"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
+    tracer.pipelines["Trace"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
+    tracer.pipelines["Trace"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
+    tracer.pipelines["Trace"].linkOptions.maxTraceDepth = 2;
     {
         auto moduleOptions = RTLib::Ext::OPX7::OPX7ModuleCompileOptions{};
         unsigned int flags = PARAM_FLAG_RIS|PARAM_FLAG_NEE;
@@ -736,27 +741,27 @@ void RTLibExtOPX7TestApplication::InitRisTracer()
         moduleOptions.boundValueEntries.front().pipelineParamOffsetInBytes = offsetof(Params, flags);
         moduleOptions.boundValueEntries.front().boundValuePtr = &flags;
         moduleOptions.boundValueEntries.front().sizeInBytes = sizeof(flags);
-        m_TracerMap["RIS"].pipelines["Trace"].LoadModule(m_Opx7Context.get(), "SimpleKernel.RIS", moduleOptions, m_PtxStringMap.at("SimpleTrace.ptx"));
-        m_TracerMap["RIS"].pipelines["Trace"].LoadBuiltInISTriangleModule(m_Opx7Context.get(), "BuiltIn.Triangle.RIS", moduleOptions);
-        m_TracerMap["RIS"].pipelines["Trace"].LoadBuiltInISSphereModule(m_Opx7Context.get(), "BuiltIn.Sphere.RIS", moduleOptions);
+        tracer.pipelines["Trace"].LoadModule(m_Opx7Context.get(), "SimpleKernel.RIS", moduleOptions, m_PtxStringMap.at("SimpleTrace.ptx"));
+        tracer.pipelines["Trace"].LoadBuiltInISTriangleModule(m_Opx7Context.get(), "BuiltIn.Triangle.RIS", moduleOptions);
+        tracer.pipelines["Trace"].LoadBuiltInISSphereModule(m_Opx7Context.get(), "BuiltIn.Sphere.RIS", moduleOptions);
     }
-    m_TracerMap["RIS"].pipelines["Trace"].SetProgramGroupRG(m_Opx7Context.get(), "SimpleKernel.RIS", "__raygen__default");
-    m_TracerMap["RIS"].pipelines["Trace"].SetProgramGroupEP(m_Opx7Context.get(), "SimpleKernel.RIS", "__exception__ep");
-    m_TracerMap["RIS"].pipelines["Trace"].SetProgramGroupMS(m_Opx7Context.get(), "SimpleKernel.Radiance", "SimpleKernel.RIS", "__miss__radiance");
-    m_TracerMap["RIS"].pipelines["Trace"].SetProgramGroupMS(m_Opx7Context.get(), "SimpleKernel.Occluded", "SimpleKernel.RIS", "__miss__occluded");
-    m_TracerMap["RIS"].pipelines["Trace"].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Radiance.Triangle", "SimpleKernel.RIS", "__closesthit__radiance", "", "", "BuiltIn.Triangle.RIS", "");
-    m_TracerMap["RIS"].pipelines["Trace"].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Occluded.Triangle", "SimpleKernel.RIS", "__closesthit__occluded", "", "", "BuiltIn.Triangle.RIS", "");
-    m_TracerMap["RIS"].pipelines["Trace"].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Radiance.Sphere", "SimpleKernel.RIS", "__closesthit__radiance_sphere", "", "", "BuiltIn.Sphere.RIS", "");
-    m_TracerMap["RIS"].pipelines["Trace"].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Occluded.Sphere", "SimpleKernel.RIS", "__closesthit__occluded", "", "", "BuiltIn.Sphere.RIS", "");
-    m_TracerMap["RIS"].pipelines["Trace"].InitPipeline(m_Opx7Context.get());
-    m_TracerMap["RIS"].pipelines["Trace"].shaderTable = this->NewShaderTable();
+    tracer.pipelines["Trace"].SetProgramGroupRG(m_Opx7Context.get(), "SimpleKernel.RIS", "__raygen__default");
+    tracer.pipelines["Trace"].SetProgramGroupEP(m_Opx7Context.get(), "SimpleKernel.RIS", "__exception__ep");
+    tracer.pipelines["Trace"].SetProgramGroupMS(m_Opx7Context.get(), "SimpleKernel.Radiance", "SimpleKernel.RIS", "__miss__radiance");
+    tracer.pipelines["Trace"].SetProgramGroupMS(m_Opx7Context.get(), "SimpleKernel.Occluded", "SimpleKernel.RIS", "__miss__occluded");
+    tracer.pipelines["Trace"].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Radiance.Triangle", "SimpleKernel.RIS", "__closesthit__radiance", "", "", "BuiltIn.Triangle.RIS", "");
+    tracer.pipelines["Trace"].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Occluded.Triangle", "SimpleKernel.RIS", "__closesthit__occluded", "", "", "BuiltIn.Triangle.RIS", "");
+    tracer.pipelines["Trace"].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Radiance.Sphere", "SimpleKernel.RIS", "__closesthit__radiance_sphere", "", "", "BuiltIn.Sphere.RIS", "");
+    tracer.pipelines["Trace"].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Occluded.Sphere", "SimpleKernel.RIS", "__closesthit__occluded", "", "", "BuiltIn.Sphere.RIS", "");
+    tracer.pipelines["Trace"].InitPipeline(m_Opx7Context.get());
+    tracer.pipelines["Trace"].shaderTable = this->NewShaderTable();
     auto programGroupHGNames = std::vector<std::string>{
         "SimpleKernel.Radiance",
         "SimpleKernel.Occluded" };
-    m_TracerMap["RIS"].pipelines["Trace"].SetHostRayGenRecordTypeData(rtlib::test::GetRaygenData(m_SceneData.GetCamera()));
-    m_TracerMap["RIS"].pipelines["Trace"].SetHostMissRecordTypeData(RAY_TYPE_RADIANCE, "SimpleKernel.Radiance", MissData{ make_float4(m_BgColor,1.0f) });
-    m_TracerMap["RIS"].pipelines["Trace"].SetHostMissRecordTypeData(RAY_TYPE_OCCLUDED, "SimpleKernel.Occluded", MissData{});
-    m_TracerMap["RIS"].pipelines["Trace"].SetHostExceptionRecordTypeData(unsigned int());
+    tracer.pipelines["Trace"].SetHostRayGenRecordTypeData(rtlib::test::GetRaygenData(m_SceneData.GetCamera()));
+    tracer.pipelines["Trace"].SetHostMissRecordTypeData(RAY_TYPE_RADIANCE, "SimpleKernel.Radiance", MissData{ make_float4(m_BgColor,1.0f) });
+    tracer.pipelines["Trace"].SetHostMissRecordTypeData(RAY_TYPE_OCCLUDED, "SimpleKernel.Occluded", MissData{});
+    tracer.pipelines["Trace"].SetHostExceptionRecordTypeData(unsigned int());
     auto instanceAndGeometryNames = rtlib::test::EnumerateGeometriesFromGASInstances(m_ShaderTableLayout.get(), m_SceneData.world);
     for (auto& [instanceName,geometryName] : instanceAndGeometryNames)
     {
@@ -775,7 +780,7 @@ void RTLibExtOPX7TestApplication::InitRisTracer()
                     {
                         hitgroupData = rtlib::test::GetHitgroupFromObjMesh(meshData.materials[i / desc.recordStride], mesh, m_TextureMap);
                     }
-                    m_TracerMap["RIS"].pipelines["Trace"].SetHostHitgroupRecordTypeData(desc.recordOffset + i, programGroupHGNames[i % desc.recordStride] + ".Triangle", hitgroupData);
+                    tracer.pipelines["Trace"].SetHostHitgroupRecordTypeData(desc.recordOffset + i, programGroupHGNames[i % desc.recordStride] + ".Triangle", hitgroupData);
                 }
             }
         }
@@ -789,23 +794,23 @@ void RTLibExtOPX7TestApplication::InitRisTracer()
                 {
                     hitgroupData = rtlib::test::GetHitgroupFromSphere(sphereRes->materials[i / desc.recordStride], sphereRes, m_TextureMap);
                 }
-                m_TracerMap["RIS"].pipelines["Trace"].SetHostHitgroupRecordTypeData(desc.recordOffset + i, programGroupHGNames[i % desc.recordStride] + ".Sphere", hitgroupData);
+                tracer.pipelines["Trace"].SetHostHitgroupRecordTypeData(desc.recordOffset + i, programGroupHGNames[i % desc.recordStride] + ".Sphere", hitgroupData);
             }
         }
     }
-    m_TracerMap["RIS"].pipelines["Trace"].shaderTable->Upload();
-    m_TracerMap["RIS"].pipelines["Trace"].SetPipelineStackSize(m_ShaderTableLayout->GetMaxTraversableDepth());
+    tracer.pipelines["Trace"].shaderTable->Upload();
+    tracer.pipelines["Trace"].SetPipelineStackSize(m_ShaderTableLayout->GetMaxTraversableDepth());
     auto params = Params();
     {
         params.flags = PARAM_FLAG_NONE;
     }
-    m_TracerMap["RIS"].InitParams(m_Opx7Context.get(), params);
-    m_TracerMap["RIS"].beginTrace = std::function<void(RTLib::Ext::CUDA::CUDAStream*)>(
+    tracer.InitParams(m_Opx7Context.get(), params);
+    tracer.beginTrace = std::function<std::string(RTLib::Ext::CUDA::CUDAStream*)>(
         [this](RTLib::Ext::CUDA::CUDAStream* stream) {
-            return;
+            return "Trace";
         }
     );
-    m_TracerMap["RIS"].getParams = std::function<Params(RTLib::Ext::CUDA::CUDABuffer*)>(
+    tracer.getParams = std::function<Params(RTLib::Ext::CUDA::CUDABuffer*)>(
         [this](RTLib::Ext::CUDA::CUDABuffer* frameBuffer) {
             auto params = Params();
             params.accumBuffer = reinterpret_cast<float3*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_AccumBufferCUDA.get()));
@@ -837,7 +842,7 @@ void RTLibExtOPX7TestApplication::InitRisTracer()
             return params;
         }
     );
-    m_TracerMap["RIS"].endTrace = std::function<bool(RTLib::Ext::CUDA::CUDAStream*)>(
+    tracer.endTrace = std::function<bool(RTLib::Ext::CUDA::CUDAStream*)>(
         [this](RTLib::Ext::CUDA::CUDAStream* stream)->bool {
             bool shouldSync = false;
             {
@@ -854,18 +859,20 @@ void RTLibExtOPX7TestApplication::InitRisTracer()
             return shouldSync;
         }
     );
+    m_TracerMap["RIS"] = std::move(tracer);
 }
 
 void RTLibExtOPX7TestApplication::InitDbgTracer() {
-    m_TracerMap["DBG"].pipelines["Trace"].compileOptions.usesMotionBlur = false;
-    m_TracerMap["DBG"].pipelines["Trace"].compileOptions.traversableGraphFlags = 0;
-    m_TracerMap["DBG"].pipelines["Trace"].compileOptions.numAttributeValues = 3;
-    m_TracerMap["DBG"].pipelines["Trace"].compileOptions.numPayloadValues = 8;
-    m_TracerMap["DBG"].pipelines["Trace"].compileOptions.launchParamsVariableNames = "params";
-    m_TracerMap["DBG"].pipelines["Trace"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
-    m_TracerMap["DBG"].pipelines["Trace"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
-    m_TracerMap["DBG"].pipelines["Trace"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-    m_TracerMap["DBG"].pipelines["Trace"].linkOptions.maxTraceDepth = 1;
+    auto tracer = rtlib::test::TracerData();
+    tracer.pipelines["Trace"].compileOptions.usesMotionBlur = false;
+    tracer.pipelines["Trace"].compileOptions.traversableGraphFlags = 0;
+    tracer.pipelines["Trace"].compileOptions.numAttributeValues = 3;
+    tracer.pipelines["Trace"].compileOptions.numPayloadValues = 8;
+    tracer.pipelines["Trace"].compileOptions.launchParamsVariableNames = "params";
+    tracer.pipelines["Trace"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
+    tracer.pipelines["Trace"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
+    tracer.pipelines["Trace"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
+    tracer.pipelines["Trace"].linkOptions.maxTraceDepth = 1;
     {
         auto moduleOptions = RTLib::Ext::OPX7::OPX7ModuleCompileOptions{};
         unsigned int flags = PARAM_FLAG_NEE;
@@ -881,26 +888,26 @@ void RTLibExtOPX7TestApplication::InitDbgTracer() {
 #endif
         moduleOptions.maxRegisterCount = OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT;
         moduleOptions.payloadTypes = {};
-        m_TracerMap["DBG"].pipelines["Trace"].LoadModule(m_Opx7Context.get(), "SimpleKernel.DBG", moduleOptions, m_PtxStringMap.at("SimpleTrace.ptx"));
-        m_TracerMap["DBG"].pipelines["Trace"].LoadBuiltInISTriangleModule(m_Opx7Context.get(), "BuiltIn.Triangle.DBG", moduleOptions);
-        m_TracerMap["DBG"].pipelines["Trace"].LoadBuiltInISSphereModule(m_Opx7Context.get(), "BuiltIn.Sphere.DBG", moduleOptions);
+        tracer.pipelines["Trace"].LoadModule(m_Opx7Context.get(), "SimpleKernel.DBG", moduleOptions, m_PtxStringMap.at("SimpleTrace.ptx"));
+        tracer.pipelines["Trace"].LoadBuiltInISTriangleModule(m_Opx7Context.get(), "BuiltIn.Triangle.DBG", moduleOptions);
+        tracer.pipelines["Trace"].LoadBuiltInISSphereModule(m_Opx7Context.get(), "BuiltIn.Sphere.DBG", moduleOptions);
     }
-    m_TracerMap["DBG"].pipelines["Trace"].SetProgramGroupRG(m_Opx7Context.get(), "SimpleKernel.DBG", "__raygen__debug");
-    m_TracerMap["DBG"].pipelines["Trace"].SetProgramGroupEP(m_Opx7Context.get(), "SimpleKernel.DBG", "__exception__ep");
-    m_TracerMap["DBG"].pipelines["Trace"].SetProgramGroupMS(m_Opx7Context.get(), "SimpleKernel.Debug", "SimpleKernel.DBG", "__miss__debug");
-    m_TracerMap["DBG"].pipelines["Trace"].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Debug.Triangle", "SimpleKernel.DBG", "__closesthit__debug", "", "", "BuiltIn.Triangle.DBG", "");
-    m_TracerMap["DBG"].pipelines["Trace"].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Debug.Sphere", "SimpleKernel.DBG", "__closesthit__debug_sphere", "", "", "BuiltIn.Sphere.DBG", "");
-    m_TracerMap["DBG"].pipelines["Trace"].InitPipeline(m_Opx7Context.get());
-    m_TracerMap["DBG"].pipelines["Trace"].shaderTable = this->NewShaderTable();
+    tracer.pipelines["Trace"].SetProgramGroupRG(m_Opx7Context.get(), "SimpleKernel.DBG", "__raygen__debug");
+    tracer.pipelines["Trace"].SetProgramGroupEP(m_Opx7Context.get(), "SimpleKernel.DBG", "__exception__ep");
+    tracer.pipelines["Trace"].SetProgramGroupMS(m_Opx7Context.get(), "SimpleKernel.Debug", "SimpleKernel.DBG", "__miss__debug");
+    tracer.pipelines["Trace"].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Debug.Triangle", "SimpleKernel.DBG", "__closesthit__debug", "", "", "BuiltIn.Triangle.DBG", "");
+    tracer.pipelines["Trace"].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Debug.Sphere", "SimpleKernel.DBG", "__closesthit__debug_sphere", "", "", "BuiltIn.Sphere.DBG", "");
+    tracer.pipelines["Trace"].InitPipeline(m_Opx7Context.get());
+    tracer.pipelines["Trace"].shaderTable = this->NewShaderTable();
 
     auto programGroupHGNames = std::vector<std::string>{
         "SimpleKernel.Debug",
         "SimpleKernel.Debug" };
 
-    m_TracerMap["DBG"].pipelines["Trace"].SetHostRayGenRecordTypeData(rtlib::test::GetRaygenData(m_SceneData.GetCamera()));
-    m_TracerMap["DBG"].pipelines["Trace"].SetHostMissRecordTypeData(RAY_TYPE_RADIANCE, "SimpleKernel.Debug", MissData{ make_float4(m_BgColor,1.0f) });
-    m_TracerMap["DBG"].pipelines["Trace"].SetHostMissRecordTypeData(RAY_TYPE_OCCLUDED, "SimpleKernel.Debug", MissData{});
-    m_TracerMap["DBG"].pipelines["Trace"].SetHostExceptionRecordTypeData(unsigned int());
+    tracer.pipelines["Trace"].SetHostRayGenRecordTypeData(rtlib::test::GetRaygenData(m_SceneData.GetCamera()));
+    tracer.pipelines["Trace"].SetHostMissRecordTypeData(RAY_TYPE_RADIANCE, "SimpleKernel.Debug", MissData{ make_float4(m_BgColor,1.0f) });
+    tracer.pipelines["Trace"].SetHostMissRecordTypeData(RAY_TYPE_OCCLUDED, "SimpleKernel.Debug", MissData{});
+    tracer.pipelines["Trace"].SetHostExceptionRecordTypeData(unsigned int());
     auto instanceAndGeometryNames = rtlib::test::EnumerateGeometriesFromGASInstances(m_ShaderTableLayout.get(), m_SceneData.world);
     for (auto& [instanceName, geometryName] : instanceAndGeometryNames)
     {
@@ -919,7 +926,7 @@ void RTLibExtOPX7TestApplication::InitDbgTracer() {
                     {
                         hitgroupData = rtlib::test::GetHitgroupFromObjMesh(meshData.materials[i / desc.recordStride], mesh, m_TextureMap);
                     }
-                    m_TracerMap["DBG"].pipelines["Trace"].SetHostHitgroupRecordTypeData(desc.recordOffset + i, programGroupHGNames[i % desc.recordStride] + ".Triangle", hitgroupData);
+                    tracer.pipelines["Trace"].SetHostHitgroupRecordTypeData(desc.recordOffset + i, programGroupHGNames[i % desc.recordStride] + ".Triangle", hitgroupData);
                 }
             }
         }
@@ -933,24 +940,24 @@ void RTLibExtOPX7TestApplication::InitDbgTracer() {
                 {
                     hitgroupData = rtlib::test::GetHitgroupFromSphere(sphereRes->materials[i / desc.recordStride], sphereRes, m_TextureMap);
                 }
-                m_TracerMap["DBG"].pipelines["Trace"].SetHostHitgroupRecordTypeData(desc.recordOffset + i, programGroupHGNames[i % desc.recordStride] + ".Sphere", hitgroupData);
+                tracer.pipelines["Trace"].SetHostHitgroupRecordTypeData(desc.recordOffset + i, programGroupHGNames[i % desc.recordStride] + ".Sphere", hitgroupData);
             }
         }
     }
-    m_TracerMap["DBG"].pipelines["Trace"].shaderTable->Upload();
-    m_TracerMap["DBG"].pipelines["Trace"].SetPipelineStackSize(m_ShaderTableLayout->GetMaxTraversableDepth());
+    tracer.pipelines["Trace"].shaderTable->Upload();
+    tracer.pipelines["Trace"].SetPipelineStackSize(m_ShaderTableLayout->GetMaxTraversableDepth());
     auto params = Params();
     {
 
         params.flags = PARAM_FLAG_NEE;
     }
-    m_TracerMap["DBG"].InitParams(m_Opx7Context.get(), params);
-    m_TracerMap["DBG"].beginTrace = std::function<void(RTLib::Ext::CUDA::CUDAStream*)>(
+    tracer.InitParams(m_Opx7Context.get(), params);
+    tracer.beginTrace = std::function<std::string(RTLib::Ext::CUDA::CUDAStream*)>(
         [this](RTLib::Ext::CUDA::CUDAStream* stream) {
-            return;
+            return "Trace";
         }
     );
-    m_TracerMap["DBG"].getParams = std::function<Params(RTLib::Ext::CUDA::CUDABuffer*)>(
+    tracer.getParams = std::function<Params(RTLib::Ext::CUDA::CUDABuffer*)>(
         [this](RTLib::Ext::CUDA::CUDABuffer* frameBuffer) {
             auto params = Params();
             params.accumBuffer = reinterpret_cast<float3*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_AccumBufferCUDA.get()));
@@ -980,28 +987,30 @@ void RTLibExtOPX7TestApplication::InitDbgTracer() {
             return params;
         }
     );
-    m_TracerMap["DBG"].endTrace = std::function<bool(RTLib::Ext::CUDA::CUDAStream*)>(
+    tracer.endTrace = std::function<bool(RTLib::Ext::CUDA::CUDAStream*)>(
         [this](RTLib::Ext::CUDA::CUDAStream* stream)->bool {
             bool shouldSync = stream!=nullptr;
             return shouldSync;
         }
     );
+    m_TracerMap["DBG"] = std::move(tracer);
 }
 
 void RTLibExtOPX7TestApplication::InitSdTreeDefTracer()
 {
+    auto tracer = rtlib::test::TracerData();
     {
         //Build
         {
-            m_TracerMap["PGDEF"].pipelines["Build"].compileOptions.usesMotionBlur = false;
-            m_TracerMap["PGDEF"].pipelines["Build"].compileOptions.traversableGraphFlags = 0;
-            m_TracerMap["PGDEF"].pipelines["Build"].compileOptions.numAttributeValues = 3;
-            m_TracerMap["PGDEF"].pipelines["Build"].compileOptions.numPayloadValues = 8;
-            m_TracerMap["PGDEF"].pipelines["Build"].compileOptions.launchParamsVariableNames = "params";
-            m_TracerMap["PGDEF"].pipelines["Build"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
-            m_TracerMap["PGDEF"].pipelines["Build"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
-            m_TracerMap["PGDEF"].pipelines["Build"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-            m_TracerMap["PGDEF"].pipelines["Build"].linkOptions.maxTraceDepth = 1;
+            tracer.pipelines["Build"].compileOptions.usesMotionBlur = false;
+            tracer.pipelines["Build"].compileOptions.traversableGraphFlags = 0;
+            tracer.pipelines["Build"].compileOptions.numAttributeValues = 3;
+            tracer.pipelines["Build"].compileOptions.numPayloadValues = 8;
+            tracer.pipelines["Build"].compileOptions.launchParamsVariableNames = "params";
+            tracer.pipelines["Build"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
+            tracer.pipelines["Build"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
+            tracer.pipelines["Build"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
+            tracer.pipelines["Build"].linkOptions.maxTraceDepth = 1;
 
             auto moduleOptions = RTLib::Ext::OPX7::OPX7ModuleCompileOptions{};
             unsigned int flags = PARAM_FLAG_NONE;
@@ -1022,21 +1031,21 @@ void RTLibExtOPX7TestApplication::InitSdTreeDefTracer()
             moduleOptions.boundValueEntries.front().pipelineParamOffsetInBytes = offsetof(Params, flags);
             moduleOptions.boundValueEntries.front().boundValuePtr = &flags;
             moduleOptions.boundValueEntries.front().sizeInBytes = sizeof(flags);
-            m_TracerMap["PGDEF"].pipelines["Build"].LoadModule(m_Opx7Context.get(),                      "SimpleKernel.PGDEF", moduleOptions, m_PtxStringMap.at("SimpleGuide.ptx"));
-            m_TracerMap["PGDEF"].pipelines["Build"].LoadBuiltInISTriangleModule(m_Opx7Context.get(), "BuiltIn.Triangle.PGDEF", moduleOptions);
-            m_TracerMap["PGDEF"].pipelines["Build"].LoadBuiltInISSphereModule(m_Opx7Context.get()  ,   "BuiltIn.Sphere.PGDEF", moduleOptions);
+            tracer.pipelines["Build"].LoadModule(m_Opx7Context.get(),                      "SimpleKernel.PGDEF", moduleOptions, m_PtxStringMap.at("SimpleGuide.ptx"));
+            tracer.pipelines["Build"].LoadBuiltInISTriangleModule(m_Opx7Context.get(), "BuiltIn.Triangle.PGDEF", moduleOptions);
+            tracer.pipelines["Build"].LoadBuiltInISSphereModule(m_Opx7Context.get()  ,   "BuiltIn.Sphere.PGDEF", moduleOptions);
         }
         //Trace
         {
-            m_TracerMap["PGDEF"].pipelines["Trace"].compileOptions.usesMotionBlur = false;
-            m_TracerMap["PGDEF"].pipelines["Trace"].compileOptions.traversableGraphFlags = 0;
-            m_TracerMap["PGDEF"].pipelines["Trace"].compileOptions.numAttributeValues = 3;
-            m_TracerMap["PGDEF"].pipelines["Trace"].compileOptions.numPayloadValues = 8;
-            m_TracerMap["PGDEF"].pipelines["Trace"].compileOptions.launchParamsVariableNames = "params";
-            m_TracerMap["PGDEF"].pipelines["Trace"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
-            m_TracerMap["PGDEF"].pipelines["Trace"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
-            m_TracerMap["PGDEF"].pipelines["Trace"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-            m_TracerMap["PGDEF"].pipelines["Trace"].linkOptions.maxTraceDepth = 1;
+            tracer.pipelines["Trace"].compileOptions.usesMotionBlur = false;
+            tracer.pipelines["Trace"].compileOptions.traversableGraphFlags = 0;
+            tracer.pipelines["Trace"].compileOptions.numAttributeValues = 3;
+            tracer.pipelines["Trace"].compileOptions.numPayloadValues = 8;
+            tracer.pipelines["Trace"].compileOptions.launchParamsVariableNames = "params";
+            tracer.pipelines["Trace"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
+            tracer.pipelines["Trace"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
+            tracer.pipelines["Trace"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
+            tracer.pipelines["Trace"].linkOptions.maxTraceDepth = 1;
 
             auto moduleOptions = RTLib::Ext::OPX7::OPX7ModuleCompileOptions{};
             unsigned int flags = PARAM_FLAG_NONE|PARAM_FLAG_BUILD;
@@ -1057,21 +1066,21 @@ void RTLibExtOPX7TestApplication::InitSdTreeDefTracer()
             moduleOptions.boundValueEntries.front().pipelineParamOffsetInBytes = offsetof(Params, flags);
             moduleOptions.boundValueEntries.front().boundValuePtr = &flags;
             moduleOptions.boundValueEntries.front().sizeInBytes = sizeof(flags);
-            m_TracerMap["PGDEF"].pipelines["Trace"].LoadModule(m_Opx7Context.get(), "SimpleKernel.PGDEF", moduleOptions, m_PtxStringMap.at("SimpleGuide.ptx"));
-            m_TracerMap["PGDEF"].pipelines["Trace"].LoadBuiltInISTriangleModule(m_Opx7Context.get(), "BuiltIn.Triangle.PGDEF", moduleOptions);
-            m_TracerMap["PGDEF"].pipelines["Trace"].LoadBuiltInISSphereModule(m_Opx7Context.get(), "BuiltIn.Sphere.PGDEF", moduleOptions);
+            tracer.pipelines["Trace"].LoadModule(m_Opx7Context.get(), "SimpleKernel.PGDEF", moduleOptions, m_PtxStringMap.at("SimpleGuide.ptx"));
+            tracer.pipelines["Trace"].LoadBuiltInISTriangleModule(m_Opx7Context.get(), "BuiltIn.Triangle.PGDEF", moduleOptions);
+            tracer.pipelines["Trace"].LoadBuiltInISSphereModule(m_Opx7Context.get(), "BuiltIn.Sphere.PGDEF", moduleOptions);
         }
         //Final
         {
-            m_TracerMap["PGDEF"].pipelines["Final"].compileOptions.usesMotionBlur = false;
-            m_TracerMap["PGDEF"].pipelines["Final"].compileOptions.traversableGraphFlags = 0;
-            m_TracerMap["PGDEF"].pipelines["Final"].compileOptions.numAttributeValues = 3;
-            m_TracerMap["PGDEF"].pipelines["Final"].compileOptions.numPayloadValues = 8;
-            m_TracerMap["PGDEF"].pipelines["Final"].compileOptions.launchParamsVariableNames = "params";
-            m_TracerMap["PGDEF"].pipelines["Final"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
-            m_TracerMap["PGDEF"].pipelines["Final"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
-            m_TracerMap["PGDEF"].pipelines["Final"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-            m_TracerMap["PGDEF"].pipelines["Final"].linkOptions.maxTraceDepth = 1;
+            tracer.pipelines["Final"].compileOptions.usesMotionBlur = false;
+            tracer.pipelines["Final"].compileOptions.traversableGraphFlags = 0;
+            tracer.pipelines["Final"].compileOptions.numAttributeValues = 3;
+            tracer.pipelines["Final"].compileOptions.numPayloadValues = 8;
+            tracer.pipelines["Final"].compileOptions.launchParamsVariableNames = "params";
+            tracer.pipelines["Final"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
+            tracer.pipelines["Final"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
+            tracer.pipelines["Final"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
+            tracer.pipelines["Final"].linkOptions.maxTraceDepth = 1;
 
             auto moduleOptions = RTLib::Ext::OPX7::OPX7ModuleCompileOptions{};
             unsigned int flags = PARAM_FLAG_NONE | PARAM_FLAG_BUILD | PARAM_FLAG_FINAL;
@@ -1092,30 +1101,30 @@ void RTLibExtOPX7TestApplication::InitSdTreeDefTracer()
             moduleOptions.boundValueEntries.front().pipelineParamOffsetInBytes = offsetof(Params, flags);
             moduleOptions.boundValueEntries.front().boundValuePtr = &flags;
             moduleOptions.boundValueEntries.front().sizeInBytes = sizeof(flags);
-            m_TracerMap["PGDEF"].pipelines["Final"].LoadModule(m_Opx7Context.get(), "SimpleKernel.PGDEF", moduleOptions, m_PtxStringMap.at("SimpleGuide.ptx"));
-            m_TracerMap["PGDEF"].pipelines["Final"].LoadBuiltInISTriangleModule(m_Opx7Context.get(), "BuiltIn.Triangle.PGDEF", moduleOptions);
-            m_TracerMap["PGDEF"].pipelines["Final"].LoadBuiltInISSphereModule(m_Opx7Context.get(), "BuiltIn.Sphere.PGDEF", moduleOptions);
+            tracer.pipelines["Final"].LoadModule(m_Opx7Context.get(), "SimpleKernel.PGDEF", moduleOptions, m_PtxStringMap.at("SimpleGuide.ptx"));
+            tracer.pipelines["Final"].LoadBuiltInISTriangleModule(m_Opx7Context.get(), "BuiltIn.Triangle.PGDEF", moduleOptions);
+            tracer.pipelines["Final"].LoadBuiltInISSphereModule(m_Opx7Context.get(), "BuiltIn.Sphere.PGDEF", moduleOptions);
         }
     }
     auto stNames = std::vector<std::string>{ "Trace","Build","Final" };
     for (auto& stName : stNames) {
-        m_TracerMap["PGDEF"].pipelines[stName].SetProgramGroupRG(m_Opx7Context.get(), "SimpleKernel.PGDEF", "__raygen__default");
-        m_TracerMap["PGDEF"].pipelines[stName].SetProgramGroupEP(m_Opx7Context.get(), "SimpleKernel.PGDEF", "__exception__ep");
-        m_TracerMap["PGDEF"].pipelines[stName].SetProgramGroupMS(m_Opx7Context.get(), "SimpleKernel.Radiance", "SimpleKernel.PGDEF", "__miss__radiance");
-        m_TracerMap["PGDEF"].pipelines[stName].SetProgramGroupMS(m_Opx7Context.get(), "SimpleKernel.Occluded", "SimpleKernel.PGDEF", "__miss__occluded");
-        m_TracerMap["PGDEF"].pipelines[stName].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Radiance.Triangle", "SimpleKernel.PGDEF", "__closesthit__radiance", "", "", "BuiltIn.Triangle.PGDEF", "");
-        m_TracerMap["PGDEF"].pipelines[stName].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Occluded.Triangle", "SimpleKernel.PGDEF", "__closesthit__occluded", "", "", "BuiltIn.Triangle.PGDEF", "");
-        m_TracerMap["PGDEF"].pipelines[stName].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Radiance.Sphere", "SimpleKernel.PGDEF", "__closesthit__radiance_sphere", "", "", "BuiltIn.Sphere.PGDEF", "");
-        m_TracerMap["PGDEF"].pipelines[stName].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Occluded.Sphere", "SimpleKernel.PGDEF", "__closesthit__occluded", "", "", "BuiltIn.Sphere.PGDEF", "");
+        tracer.pipelines[stName].SetProgramGroupRG(m_Opx7Context.get(), "SimpleKernel.PGDEF", "__raygen__default");
+        tracer.pipelines[stName].SetProgramGroupEP(m_Opx7Context.get(), "SimpleKernel.PGDEF", "__exception__ep");
+        tracer.pipelines[stName].SetProgramGroupMS(m_Opx7Context.get(), "SimpleKernel.Radiance", "SimpleKernel.PGDEF", "__miss__radiance");
+        tracer.pipelines[stName].SetProgramGroupMS(m_Opx7Context.get(), "SimpleKernel.Occluded", "SimpleKernel.PGDEF", "__miss__occluded");
+        tracer.pipelines[stName].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Radiance.Triangle", "SimpleKernel.PGDEF", "__closesthit__radiance", "", "", "BuiltIn.Triangle.PGDEF", "");
+        tracer.pipelines[stName].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Occluded.Triangle", "SimpleKernel.PGDEF", "__closesthit__occluded", "", "", "BuiltIn.Triangle.PGDEF", "");
+        tracer.pipelines[stName].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Radiance.Sphere", "SimpleKernel.PGDEF", "__closesthit__radiance_sphere", "", "", "BuiltIn.Sphere.PGDEF", "");
+        tracer.pipelines[stName].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Occluded.Sphere", "SimpleKernel.PGDEF", "__closesthit__occluded", "", "", "BuiltIn.Sphere.PGDEF", "");
     }
-    m_TracerMap["PGDEF"].pipelines["Build"].InitPipeline(m_Opx7Context.get());
-    m_TracerMap["PGDEF"].pipelines["Build"].shaderTable = this->NewShaderTable();
+    tracer.pipelines["Build"].InitPipeline(m_Opx7Context.get());
+    tracer.pipelines["Build"].shaderTable = this->NewShaderTable();
 
-    m_TracerMap["PGDEF"].pipelines["Trace"].InitPipeline(m_Opx7Context.get());
-    m_TracerMap["PGDEF"].pipelines["Trace"].shaderTable = this->NewShaderTable();
+    tracer.pipelines["Trace"].InitPipeline(m_Opx7Context.get());
+    tracer.pipelines["Trace"].shaderTable = this->NewShaderTable();
     
-    m_TracerMap["PGDEF"].pipelines["Final"].InitPipeline(m_Opx7Context.get());
-    m_TracerMap["PGDEF"].pipelines["Final"].shaderTable = this->NewShaderTable();
+    tracer.pipelines["Final"].InitPipeline(m_Opx7Context.get());
+    tracer.pipelines["Final"].shaderTable = this->NewShaderTable();
 
     auto programGroupHGNames = std::vector<std::string>{
         "SimpleKernel.Radiance",
@@ -1123,10 +1132,10 @@ void RTLibExtOPX7TestApplication::InitSdTreeDefTracer()
     };
     auto instanceAndGeometryNames = rtlib::test::EnumerateGeometriesFromGASInstances(m_ShaderTableLayout.get(), m_SceneData.world);
     for (auto& stName : stNames) {
-        m_TracerMap["PGDEF"].pipelines[stName].SetHostRayGenRecordTypeData(rtlib::test::GetRaygenData(m_SceneData.GetCamera()));
-        m_TracerMap["PGDEF"].pipelines[stName].SetHostMissRecordTypeData(RAY_TYPE_RADIANCE, "SimpleKernel.Radiance", MissData{ make_float4(m_BgColor,1.0f) });
-        m_TracerMap["PGDEF"].pipelines[stName].SetHostMissRecordTypeData(RAY_TYPE_OCCLUDED, "SimpleKernel.Occluded", MissData{});
-        m_TracerMap["PGDEF"].pipelines[stName].SetHostExceptionRecordTypeData(unsigned int());
+        tracer.pipelines[stName].SetHostRayGenRecordTypeData(rtlib::test::GetRaygenData(m_SceneData.GetCamera()));
+        tracer.pipelines[stName].SetHostMissRecordTypeData(RAY_TYPE_RADIANCE, "SimpleKernel.Radiance", MissData{ make_float4(m_BgColor,1.0f) });
+        tracer.pipelines[stName].SetHostMissRecordTypeData(RAY_TYPE_OCCLUDED, "SimpleKernel.Occluded", MissData{});
+        tracer.pipelines[stName].SetHostExceptionRecordTypeData(unsigned int());
 
         for (auto& [instanceName, geometryName] : instanceAndGeometryNames)
         {
@@ -1145,7 +1154,7 @@ void RTLibExtOPX7TestApplication::InitSdTreeDefTracer()
                         {
                             hitgroupData = rtlib::test::GetHitgroupFromObjMesh(meshData.materials[i / desc.recordStride], mesh, m_TextureMap);
                         }
-                        m_TracerMap["PGDEF"].pipelines[stName].SetHostHitgroupRecordTypeData(desc.recordOffset + i, programGroupHGNames[i % desc.recordStride] + ".Triangle", hitgroupData);
+                        tracer.pipelines[stName].SetHostHitgroupRecordTypeData(desc.recordOffset + i, programGroupHGNames[i % desc.recordStride] + ".Triangle", hitgroupData);
                     }
                 }
             }
@@ -1159,43 +1168,43 @@ void RTLibExtOPX7TestApplication::InitSdTreeDefTracer()
                     {
                         hitgroupData = rtlib::test::GetHitgroupFromSphere(sphereRes->materials[i / desc.recordStride], sphereRes, m_TextureMap);
                     }
-                    m_TracerMap["PGDEF"].pipelines[stName].SetHostHitgroupRecordTypeData(desc.recordOffset + i, programGroupHGNames[i % desc.recordStride] + ".Sphere", hitgroupData);
+                    tracer.pipelines[stName].SetHostHitgroupRecordTypeData(desc.recordOffset + i, programGroupHGNames[i % desc.recordStride] + ".Sphere", hitgroupData);
                 }
             }
         }
     }
 
-    m_TracerMap["PGDEF"].pipelines["Build"].shaderTable->Upload();
-    m_TracerMap["PGDEF"].pipelines["Build"].SetPipelineStackSize(m_ShaderTableLayout->GetMaxTraversableDepth());
-    m_TracerMap["PGDEF"].pipelines["Trace"].shaderTable->Upload();
-    m_TracerMap["PGDEF"].pipelines["Trace"].SetPipelineStackSize(m_ShaderTableLayout->GetMaxTraversableDepth());
-    m_TracerMap["PGDEF"].pipelines["Final"].shaderTable->Upload();
-    m_TracerMap["PGDEF"].pipelines["Final"].SetPipelineStackSize(m_ShaderTableLayout->GetMaxTraversableDepth());
+    tracer.pipelines["Build"].shaderTable->Upload();
+    tracer.pipelines["Build"].SetPipelineStackSize(m_ShaderTableLayout->GetMaxTraversableDepth());
+    tracer.pipelines["Trace"].shaderTable->Upload();
+    tracer.pipelines["Trace"].SetPipelineStackSize(m_ShaderTableLayout->GetMaxTraversableDepth());
+    tracer.pipelines["Final"].shaderTable->Upload();
+    tracer.pipelines["Final"].SetPipelineStackSize(m_ShaderTableLayout->GetMaxTraversableDepth());
 
     auto params = Params();
     {
         params.flags = PARAM_FLAG_NONE;
     }
-    m_TracerMap["PGDEF"].InitParams(m_Opx7Context.get(),params);
-    m_TracerMap["PGDEF"].beginTrace = std::function<void(RTLib::Ext::CUDA::CUDAStream*)>(
+    tracer.InitParams(m_Opx7Context.get(),params);
+    tracer.beginTrace = std::function<std::string(RTLib::Ext::CUDA::CUDAStream*)>(
         [this](RTLib::Ext::CUDA::CUDAStream* stream) {
             {
                 m_SdTreeController->BegTrace(stream);
                 if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecord)
                 {
-                    m_PipelineName = "Build";
+                    return "Build";
                 }
                 if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecordAndSample) {
-                    m_PipelineName = "Trace";
+                    return "Trace";
                 }
                 if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateSample) {
-                    m_PipelineName = "Final";
+                    return "Final";
                 }
             }
-            return;
+            return "Trace";
         }
     );
-    m_TracerMap["PGDEF"].getParams = std::function<Params(RTLib::Ext::CUDA::CUDABuffer*)>(
+    tracer.getParams = std::function<Params(RTLib::Ext::CUDA::CUDABuffer*)>(
         [this](RTLib::Ext::CUDA::CUDABuffer* frameBuffer) {
             auto params = Params();
             params.accumBuffer = reinterpret_cast<float3*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_AccumBufferCUDA.get()));
@@ -1239,7 +1248,7 @@ void RTLibExtOPX7TestApplication::InitSdTreeDefTracer()
             return params;
         }
     );
-    m_TracerMap["PGDEF"].endTrace = std::function<bool(RTLib::Ext::CUDA::CUDAStream*)>(
+    tracer.endTrace = std::function<bool(RTLib::Ext::CUDA::CUDAStream*)>(
         [this](RTLib::Ext::CUDA::CUDAStream* stream)->bool {
             bool shouldSync = false;
             {
@@ -1256,22 +1265,24 @@ void RTLibExtOPX7TestApplication::InitSdTreeDefTracer()
             return shouldSync;
         }
     );
+    m_TracerMap["PGDEF"] = std::move(tracer);
 }
 
 void RTLibExtOPX7TestApplication::InitSdTreeNeeTracer()
 {
+    auto tracer = rtlib::test::TracerData();
     {
         //Build
         {
-            m_TracerMap["PGNEE"].pipelines["Build"].compileOptions.usesMotionBlur = false;
-            m_TracerMap["PGNEE"].pipelines["Build"].compileOptions.traversableGraphFlags = 0;
-            m_TracerMap["PGNEE"].pipelines["Build"].compileOptions.numAttributeValues = 3;
-            m_TracerMap["PGNEE"].pipelines["Build"].compileOptions.numPayloadValues = 8;
-            m_TracerMap["PGNEE"].pipelines["Build"].compileOptions.launchParamsVariableNames = "params";
-            m_TracerMap["PGNEE"].pipelines["Build"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
-            m_TracerMap["PGNEE"].pipelines["Build"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
-            m_TracerMap["PGNEE"].pipelines["Build"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-            m_TracerMap["PGNEE"].pipelines["Build"].linkOptions.maxTraceDepth = 2;
+            tracer.pipelines["Build"].compileOptions.usesMotionBlur = false;
+            tracer.pipelines["Build"].compileOptions.traversableGraphFlags = 0;
+            tracer.pipelines["Build"].compileOptions.numAttributeValues = 3;
+            tracer.pipelines["Build"].compileOptions.numPayloadValues = 8;
+            tracer.pipelines["Build"].compileOptions.launchParamsVariableNames = "params";
+            tracer.pipelines["Build"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
+            tracer.pipelines["Build"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
+            tracer.pipelines["Build"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
+            tracer.pipelines["Build"].linkOptions.maxTraceDepth = 2;
 
             auto moduleOptions = RTLib::Ext::OPX7::OPX7ModuleCompileOptions{};
             unsigned int flags = PARAM_FLAG_NONE| PARAM_FLAG_NEE;
@@ -1292,21 +1303,21 @@ void RTLibExtOPX7TestApplication::InitSdTreeNeeTracer()
             moduleOptions.boundValueEntries.front().pipelineParamOffsetInBytes = offsetof(Params, flags);
             moduleOptions.boundValueEntries.front().boundValuePtr = &flags;
             moduleOptions.boundValueEntries.front().sizeInBytes = sizeof(flags);
-            m_TracerMap["PGNEE"].pipelines["Build"].LoadModule(m_Opx7Context.get(), "SimpleKernel.PGDEF", moduleOptions, m_PtxStringMap.at("SimpleGuide.ptx"));
-            m_TracerMap["PGNEE"].pipelines["Build"].LoadBuiltInISTriangleModule(m_Opx7Context.get(), "BuiltIn.Triangle.PGDEF", moduleOptions);
-            m_TracerMap["PGNEE"].pipelines["Build"].LoadBuiltInISSphereModule(m_Opx7Context.get(), "BuiltIn.Sphere.PGDEF", moduleOptions);
+            tracer.pipelines["Build"].LoadModule(m_Opx7Context.get(), "SimpleKernel.PGDEF", moduleOptions, m_PtxStringMap.at("SimpleGuide.ptx"));
+            tracer.pipelines["Build"].LoadBuiltInISTriangleModule(m_Opx7Context.get(), "BuiltIn.Triangle.PGDEF", moduleOptions);
+            tracer.pipelines["Build"].LoadBuiltInISSphereModule(m_Opx7Context.get(), "BuiltIn.Sphere.PGDEF", moduleOptions);
         }
         //Trace
         {
-            m_TracerMap["PGNEE"].pipelines["Trace"].compileOptions.usesMotionBlur = false;
-            m_TracerMap["PGNEE"].pipelines["Trace"].compileOptions.traversableGraphFlags = 0;
-            m_TracerMap["PGNEE"].pipelines["Trace"].compileOptions.numAttributeValues = 3;
-            m_TracerMap["PGNEE"].pipelines["Trace"].compileOptions.numPayloadValues = 8;
-            m_TracerMap["PGNEE"].pipelines["Trace"].compileOptions.launchParamsVariableNames = "params";
-            m_TracerMap["PGNEE"].pipelines["Trace"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
-            m_TracerMap["PGNEE"].pipelines["Trace"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
-            m_TracerMap["PGNEE"].pipelines["Trace"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-            m_TracerMap["PGNEE"].pipelines["Trace"].linkOptions.maxTraceDepth = 2;
+            tracer.pipelines["Trace"].compileOptions.usesMotionBlur = false;
+            tracer.pipelines["Trace"].compileOptions.traversableGraphFlags = 0;
+            tracer.pipelines["Trace"].compileOptions.numAttributeValues = 3;
+            tracer.pipelines["Trace"].compileOptions.numPayloadValues = 8;
+            tracer.pipelines["Trace"].compileOptions.launchParamsVariableNames = "params";
+            tracer.pipelines["Trace"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
+            tracer.pipelines["Trace"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
+            tracer.pipelines["Trace"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
+            tracer.pipelines["Trace"].linkOptions.maxTraceDepth = 2;
 
             auto moduleOptions = RTLib::Ext::OPX7::OPX7ModuleCompileOptions{};
             unsigned int flags = PARAM_FLAG_NONE | PARAM_FLAG_BUILD | PARAM_FLAG_NEE;
@@ -1327,21 +1338,21 @@ void RTLibExtOPX7TestApplication::InitSdTreeNeeTracer()
             moduleOptions.boundValueEntries.front().pipelineParamOffsetInBytes = offsetof(Params, flags);
             moduleOptions.boundValueEntries.front().boundValuePtr = &flags;
             moduleOptions.boundValueEntries.front().sizeInBytes = sizeof(flags);
-            m_TracerMap["PGNEE"].pipelines["Trace"].LoadModule(m_Opx7Context.get(), "SimpleKernel.PGDEF", moduleOptions, m_PtxStringMap.at("SimpleGuide.ptx"));
-            m_TracerMap["PGNEE"].pipelines["Trace"].LoadBuiltInISTriangleModule(m_Opx7Context.get(), "BuiltIn.Triangle.PGDEF", moduleOptions);
-            m_TracerMap["PGNEE"].pipelines["Trace"].LoadBuiltInISSphereModule(m_Opx7Context.get(), "BuiltIn.Sphere.PGDEF", moduleOptions);
+            tracer.pipelines["Trace"].LoadModule(m_Opx7Context.get(), "SimpleKernel.PGDEF", moduleOptions, m_PtxStringMap.at("SimpleGuide.ptx"));
+            tracer.pipelines["Trace"].LoadBuiltInISTriangleModule(m_Opx7Context.get(), "BuiltIn.Triangle.PGDEF", moduleOptions);
+            tracer.pipelines["Trace"].LoadBuiltInISSphereModule(m_Opx7Context.get(), "BuiltIn.Sphere.PGDEF", moduleOptions);
         }
         //Final
         {
-            m_TracerMap["PGNEE"].pipelines["Final"].compileOptions.usesMotionBlur = false;
-            m_TracerMap["PGNEE"].pipelines["Final"].compileOptions.traversableGraphFlags = 0;
-            m_TracerMap["PGNEE"].pipelines["Final"].compileOptions.numAttributeValues = 3;
-            m_TracerMap["PGNEE"].pipelines["Final"].compileOptions.numPayloadValues = 8;
-            m_TracerMap["PGNEE"].pipelines["Final"].compileOptions.launchParamsVariableNames = "params";
-            m_TracerMap["PGNEE"].pipelines["Final"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
-            m_TracerMap["PGNEE"].pipelines["Final"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
-            m_TracerMap["PGNEE"].pipelines["Final"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-            m_TracerMap["PGNEE"].pipelines["Final"].linkOptions.maxTraceDepth = 2;
+            tracer.pipelines["Final"].compileOptions.usesMotionBlur = false;
+            tracer.pipelines["Final"].compileOptions.traversableGraphFlags = 0;
+            tracer.pipelines["Final"].compileOptions.numAttributeValues = 3;
+            tracer.pipelines["Final"].compileOptions.numPayloadValues = 8;
+            tracer.pipelines["Final"].compileOptions.launchParamsVariableNames = "params";
+            tracer.pipelines["Final"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
+            tracer.pipelines["Final"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
+            tracer.pipelines["Final"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
+            tracer.pipelines["Final"].linkOptions.maxTraceDepth = 2;
 
             auto moduleOptions = RTLib::Ext::OPX7::OPX7ModuleCompileOptions{};
             unsigned int flags = PARAM_FLAG_NONE | PARAM_FLAG_BUILD | PARAM_FLAG_FINAL | PARAM_FLAG_NEE;
@@ -1362,31 +1373,31 @@ void RTLibExtOPX7TestApplication::InitSdTreeNeeTracer()
             moduleOptions.boundValueEntries.front().pipelineParamOffsetInBytes = offsetof(Params, flags);
             moduleOptions.boundValueEntries.front().boundValuePtr = &flags;
             moduleOptions.boundValueEntries.front().sizeInBytes = sizeof(flags);
-            m_TracerMap["PGNEE"].pipelines["Final"].LoadModule(m_Opx7Context.get(), "SimpleKernel.PGDEF", moduleOptions, m_PtxStringMap.at("SimpleGuide.ptx"));
-            m_TracerMap["PGNEE"].pipelines["Final"].LoadBuiltInISTriangleModule(m_Opx7Context.get(), "BuiltIn.Triangle.PGDEF", moduleOptions);
-            m_TracerMap["PGNEE"].pipelines["Final"].LoadBuiltInISSphereModule(m_Opx7Context.get(), "BuiltIn.Sphere.PGDEF", moduleOptions);
+            tracer.pipelines["Final"].LoadModule(m_Opx7Context.get(), "SimpleKernel.PGDEF", moduleOptions, m_PtxStringMap.at("SimpleGuide.ptx"));
+            tracer.pipelines["Final"].LoadBuiltInISTriangleModule(m_Opx7Context.get(), "BuiltIn.Triangle.PGDEF", moduleOptions);
+            tracer.pipelines["Final"].LoadBuiltInISSphereModule(m_Opx7Context.get(), "BuiltIn.Sphere.PGDEF", moduleOptions);
         }
 
     }
     auto stNames = std::vector<std::string>{ "Trace","Build","Final" };
     for (auto& stName : stNames) {
-        m_TracerMap["PGNEE"].pipelines[stName].SetProgramGroupRG(m_Opx7Context.get(), "SimpleKernel.PGDEF", "__raygen__default");
-        m_TracerMap["PGNEE"].pipelines[stName].SetProgramGroupEP(m_Opx7Context.get(), "SimpleKernel.PGDEF", "__exception__ep");
-        m_TracerMap["PGNEE"].pipelines[stName].SetProgramGroupMS(m_Opx7Context.get(), "SimpleKernel.Radiance", "SimpleKernel.PGDEF", "__miss__radiance");
-        m_TracerMap["PGNEE"].pipelines[stName].SetProgramGroupMS(m_Opx7Context.get(), "SimpleKernel.Occluded", "SimpleKernel.PGDEF", "__miss__occluded");
-        m_TracerMap["PGNEE"].pipelines[stName].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Radiance.Triangle", "SimpleKernel.PGDEF", "__closesthit__radiance", "", "", "BuiltIn.Triangle.PGDEF", "");
-        m_TracerMap["PGNEE"].pipelines[stName].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Occluded.Triangle", "SimpleKernel.PGDEF", "__closesthit__occluded", "", "", "BuiltIn.Triangle.PGDEF", "");
-        m_TracerMap["PGNEE"].pipelines[stName].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Radiance.Sphere", "SimpleKernel.PGDEF", "__closesthit__radiance_sphere", "", "", "BuiltIn.Sphere.PGDEF", "");
-        m_TracerMap["PGNEE"].pipelines[stName].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Occluded.Sphere", "SimpleKernel.PGDEF", "__closesthit__occluded", "", "", "BuiltIn.Sphere.PGDEF", "");
+        tracer.pipelines[stName].SetProgramGroupRG(m_Opx7Context.get(), "SimpleKernel.PGDEF", "__raygen__default");
+        tracer.pipelines[stName].SetProgramGroupEP(m_Opx7Context.get(), "SimpleKernel.PGDEF", "__exception__ep");
+        tracer.pipelines[stName].SetProgramGroupMS(m_Opx7Context.get(), "SimpleKernel.Radiance", "SimpleKernel.PGDEF", "__miss__radiance");
+        tracer.pipelines[stName].SetProgramGroupMS(m_Opx7Context.get(), "SimpleKernel.Occluded", "SimpleKernel.PGDEF", "__miss__occluded");
+        tracer.pipelines[stName].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Radiance.Triangle", "SimpleKernel.PGDEF", "__closesthit__radiance", "", "", "BuiltIn.Triangle.PGDEF", "");
+        tracer.pipelines[stName].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Occluded.Triangle", "SimpleKernel.PGDEF", "__closesthit__occluded", "", "", "BuiltIn.Triangle.PGDEF", "");
+        tracer.pipelines[stName].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Radiance.Sphere", "SimpleKernel.PGDEF", "__closesthit__radiance_sphere", "", "", "BuiltIn.Sphere.PGDEF", "");
+        tracer.pipelines[stName].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Occluded.Sphere", "SimpleKernel.PGDEF", "__closesthit__occluded", "", "", "BuiltIn.Sphere.PGDEF", "");
     }
-    m_TracerMap["PGNEE"].pipelines["Build"].InitPipeline(m_Opx7Context.get());
-    m_TracerMap["PGNEE"].pipelines["Build"].shaderTable = this->NewShaderTable();
+    tracer.pipelines["Build"].InitPipeline(m_Opx7Context.get());
+    tracer.pipelines["Build"].shaderTable = this->NewShaderTable();
 
-    m_TracerMap["PGNEE"].pipelines["Trace"].InitPipeline(m_Opx7Context.get());
-    m_TracerMap["PGNEE"].pipelines["Trace"].shaderTable = this->NewShaderTable();
+    tracer.pipelines["Trace"].InitPipeline(m_Opx7Context.get());
+    tracer.pipelines["Trace"].shaderTable = this->NewShaderTable();
 
-    m_TracerMap["PGNEE"].pipelines["Final"].InitPipeline(m_Opx7Context.get());
-    m_TracerMap["PGNEE"].pipelines["Final"].shaderTable = this->NewShaderTable();
+    tracer.pipelines["Final"].InitPipeline(m_Opx7Context.get());
+    tracer.pipelines["Final"].shaderTable = this->NewShaderTable();
 
     auto programGroupHGNames = std::vector<std::string>{
         "SimpleKernel.Radiance",
@@ -1394,10 +1405,10 @@ void RTLibExtOPX7TestApplication::InitSdTreeNeeTracer()
     };
     auto instanceAndGeometryNames = rtlib::test::EnumerateGeometriesFromGASInstances(m_ShaderTableLayout.get(), m_SceneData.world);
     for (auto& stName : stNames) {
-        m_TracerMap["PGNEE"].pipelines[stName].SetHostRayGenRecordTypeData(rtlib::test::GetRaygenData(m_SceneData.GetCamera()));
-        m_TracerMap["PGNEE"].pipelines[stName].SetHostMissRecordTypeData(RAY_TYPE_RADIANCE, "SimpleKernel.Radiance", MissData{ make_float4(m_BgColor,1.0f) });
-        m_TracerMap["PGNEE"].pipelines[stName].SetHostMissRecordTypeData(RAY_TYPE_OCCLUDED, "SimpleKernel.Occluded", MissData{});
-        m_TracerMap["PGNEE"].pipelines[stName].SetHostExceptionRecordTypeData(unsigned int());
+        tracer.pipelines[stName].SetHostRayGenRecordTypeData(rtlib::test::GetRaygenData(m_SceneData.GetCamera()));
+        tracer.pipelines[stName].SetHostMissRecordTypeData(RAY_TYPE_RADIANCE, "SimpleKernel.Radiance", MissData{ make_float4(m_BgColor,1.0f) });
+        tracer.pipelines[stName].SetHostMissRecordTypeData(RAY_TYPE_OCCLUDED, "SimpleKernel.Occluded", MissData{});
+        tracer.pipelines[stName].SetHostExceptionRecordTypeData(unsigned int());
 
         for (auto& [instanceName, geometryName] : instanceAndGeometryNames)
         {
@@ -1416,7 +1427,7 @@ void RTLibExtOPX7TestApplication::InitSdTreeNeeTracer()
                         {
                             hitgroupData = rtlib::test::GetHitgroupFromObjMesh(meshData.materials[i / desc.recordStride], mesh, m_TextureMap);
                         }
-                        m_TracerMap["PGNEE"].pipelines[stName].SetHostHitgroupRecordTypeData(desc.recordOffset + i, programGroupHGNames[i % desc.recordStride] + ".Triangle", hitgroupData);
+                        tracer.pipelines[stName].SetHostHitgroupRecordTypeData(desc.recordOffset + i, programGroupHGNames[i % desc.recordStride] + ".Triangle", hitgroupData);
                     }
                 }
             }
@@ -1430,43 +1441,43 @@ void RTLibExtOPX7TestApplication::InitSdTreeNeeTracer()
                     {
                         hitgroupData = rtlib::test::GetHitgroupFromSphere(sphereRes->materials[i / desc.recordStride], sphereRes, m_TextureMap);
                     }
-                    m_TracerMap["PGNEE"].pipelines[stName].SetHostHitgroupRecordTypeData(desc.recordOffset + i, programGroupHGNames[i % desc.recordStride] + ".Sphere", hitgroupData);
+                    tracer.pipelines[stName].SetHostHitgroupRecordTypeData(desc.recordOffset + i, programGroupHGNames[i % desc.recordStride] + ".Sphere", hitgroupData);
                 }
             }
         }
     }
 
-    m_TracerMap["PGNEE"].pipelines["Build"].shaderTable->Upload();
-    m_TracerMap["PGNEE"].pipelines["Build"].SetPipelineStackSize(m_ShaderTableLayout->GetMaxTraversableDepth());
-    m_TracerMap["PGNEE"].pipelines["Trace"].shaderTable->Upload();
-    m_TracerMap["PGNEE"].pipelines["Trace"].SetPipelineStackSize(m_ShaderTableLayout->GetMaxTraversableDepth());
-    m_TracerMap["PGNEE"].pipelines["Final"].shaderTable->Upload();
-    m_TracerMap["PGNEE"].pipelines["Final"].SetPipelineStackSize(m_ShaderTableLayout->GetMaxTraversableDepth());
+    tracer.pipelines["Build"].shaderTable->Upload();
+    tracer.pipelines["Build"].SetPipelineStackSize(m_ShaderTableLayout->GetMaxTraversableDepth());
+    tracer.pipelines["Trace"].shaderTable->Upload();
+    tracer.pipelines["Trace"].SetPipelineStackSize(m_ShaderTableLayout->GetMaxTraversableDepth());
+    tracer.pipelines["Final"].shaderTable->Upload();
+    tracer.pipelines["Final"].SetPipelineStackSize(m_ShaderTableLayout->GetMaxTraversableDepth());
 
     auto params = Params();
     {
         params.flags = PARAM_FLAG_NONE;
     }
-    m_TracerMap["PGNEE"].InitParams(m_Opx7Context.get(), params);
-    m_TracerMap["PGNEE"].beginTrace = std::function<void(RTLib::Ext::CUDA::CUDAStream*)>(
+    tracer.InitParams(m_Opx7Context.get(), params);
+    tracer.beginTrace = std::function<std::string(RTLib::Ext::CUDA::CUDAStream*)>(
         [this](RTLib::Ext::CUDA::CUDAStream* stream) {
             {
                 m_SdTreeController->BegTrace(stream);
                 if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecord)
                 {
-                    m_PipelineName = "Build";
+                    return "Build";
                 }
                 if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecordAndSample) {
-                    m_PipelineName = "Trace";
+                    return "Trace";
                 }
                 if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateSample) {
-                    m_PipelineName = "Final";
+                    return "Final";
                 }
             }
-            return;
+            return "Trace";
         }
     );
-    m_TracerMap["PGNEE"].getParams = std::function<Params(RTLib::Ext::CUDA::CUDABuffer*)>(
+    tracer.getParams = std::function<Params(RTLib::Ext::CUDA::CUDABuffer*)>(
         [this](RTLib::Ext::CUDA::CUDABuffer* frameBuffer) {
             auto params = Params();
             params.accumBuffer = reinterpret_cast<float3*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_AccumBufferCUDA.get()));
@@ -1515,7 +1526,7 @@ void RTLibExtOPX7TestApplication::InitSdTreeNeeTracer()
             return params;
         }
     );
-    m_TracerMap["PGNEE"].endTrace = std::function<bool(RTLib::Ext::CUDA::CUDAStream*)>(
+    tracer.endTrace = std::function<bool(RTLib::Ext::CUDA::CUDAStream*)>(
         [this](RTLib::Ext::CUDA::CUDAStream* stream)->bool {
             bool shouldSync = false;
             {
@@ -1532,22 +1543,24 @@ void RTLibExtOPX7TestApplication::InitSdTreeNeeTracer()
             return shouldSync;
         }
     );
+    m_TracerMap["PGNEE"] = std::move(tracer);
 }
 
 void RTLibExtOPX7TestApplication::InitSdTreeRisTracer()
 {
+    auto tracer = rtlib::test::TracerData();
     {
         //Build
         {
-            m_TracerMap["PGRIS"].pipelines["Build"].compileOptions.usesMotionBlur = false;
-            m_TracerMap["PGRIS"].pipelines["Build"].compileOptions.traversableGraphFlags = 0;
-            m_TracerMap["PGRIS"].pipelines["Build"].compileOptions.numAttributeValues = 3;
-            m_TracerMap["PGRIS"].pipelines["Build"].compileOptions.numPayloadValues = 8;
-            m_TracerMap["PGRIS"].pipelines["Build"].compileOptions.launchParamsVariableNames = "params";
-            m_TracerMap["PGRIS"].pipelines["Build"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
-            m_TracerMap["PGRIS"].pipelines["Build"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
-            m_TracerMap["PGRIS"].pipelines["Build"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-            m_TracerMap["PGRIS"].pipelines["Build"].linkOptions.maxTraceDepth = 2;
+            tracer.pipelines["Build"].compileOptions.usesMotionBlur = false;
+            tracer.pipelines["Build"].compileOptions.traversableGraphFlags = 0;
+            tracer.pipelines["Build"].compileOptions.numAttributeValues = 3;
+            tracer.pipelines["Build"].compileOptions.numPayloadValues = 8;
+            tracer.pipelines["Build"].compileOptions.launchParamsVariableNames = "params";
+            tracer.pipelines["Build"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
+            tracer.pipelines["Build"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
+            tracer.pipelines["Build"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
+            tracer.pipelines["Build"].linkOptions.maxTraceDepth = 2;
 
             auto moduleOptions = RTLib::Ext::OPX7::OPX7ModuleCompileOptions{};
             unsigned int flags = PARAM_FLAG_NONE | PARAM_FLAG_NEE | PARAM_FLAG_RIS;
@@ -1568,21 +1581,21 @@ void RTLibExtOPX7TestApplication::InitSdTreeRisTracer()
             moduleOptions.boundValueEntries.front().pipelineParamOffsetInBytes = offsetof(Params, flags);
             moduleOptions.boundValueEntries.front().boundValuePtr = &flags;
             moduleOptions.boundValueEntries.front().sizeInBytes = sizeof(flags);
-            m_TracerMap["PGRIS"].pipelines["Build"].LoadModule(m_Opx7Context.get(), "SimpleKernel.PGDEF", moduleOptions, m_PtxStringMap.at("SimpleGuide.ptx"));
-            m_TracerMap["PGRIS"].pipelines["Build"].LoadBuiltInISTriangleModule(m_Opx7Context.get(), "BuiltIn.Triangle.PGDEF", moduleOptions);
-            m_TracerMap["PGRIS"].pipelines["Build"].LoadBuiltInISSphereModule(m_Opx7Context.get(), "BuiltIn.Sphere.PGDEF", moduleOptions);
+            tracer.pipelines["Build"].LoadModule(m_Opx7Context.get(), "SimpleKernel.PGDEF", moduleOptions, m_PtxStringMap.at("SimpleGuide.ptx"));
+            tracer.pipelines["Build"].LoadBuiltInISTriangleModule(m_Opx7Context.get(), "BuiltIn.Triangle.PGDEF", moduleOptions);
+            tracer.pipelines["Build"].LoadBuiltInISSphereModule(m_Opx7Context.get(), "BuiltIn.Sphere.PGDEF", moduleOptions);
         }
         //Trace
         {
-            m_TracerMap["PGRIS"].pipelines["Trace"].compileOptions.usesMotionBlur = false;
-            m_TracerMap["PGRIS"].pipelines["Trace"].compileOptions.traversableGraphFlags = 0;
-            m_TracerMap["PGRIS"].pipelines["Trace"].compileOptions.numAttributeValues = 3;
-            m_TracerMap["PGRIS"].pipelines["Trace"].compileOptions.numPayloadValues = 8;
-            m_TracerMap["PGRIS"].pipelines["Trace"].compileOptions.launchParamsVariableNames = "params";
-            m_TracerMap["PGRIS"].pipelines["Trace"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
-            m_TracerMap["PGRIS"].pipelines["Trace"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
-            m_TracerMap["PGRIS"].pipelines["Trace"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-            m_TracerMap["PGRIS"].pipelines["Trace"].linkOptions.maxTraceDepth = 2;
+            tracer.pipelines["Trace"].compileOptions.usesMotionBlur = false;
+            tracer.pipelines["Trace"].compileOptions.traversableGraphFlags = 0;
+            tracer.pipelines["Trace"].compileOptions.numAttributeValues = 3;
+            tracer.pipelines["Trace"].compileOptions.numPayloadValues = 8;
+            tracer.pipelines["Trace"].compileOptions.launchParamsVariableNames = "params";
+            tracer.pipelines["Trace"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
+            tracer.pipelines["Trace"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
+            tracer.pipelines["Trace"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
+            tracer.pipelines["Trace"].linkOptions.maxTraceDepth = 2;
 
             auto moduleOptions = RTLib::Ext::OPX7::OPX7ModuleCompileOptions{};
             unsigned int flags = PARAM_FLAG_NONE | PARAM_FLAG_BUILD | PARAM_FLAG_NEE | PARAM_FLAG_RIS;
@@ -1603,21 +1616,21 @@ void RTLibExtOPX7TestApplication::InitSdTreeRisTracer()
             moduleOptions.boundValueEntries.front().pipelineParamOffsetInBytes = offsetof(Params, flags);
             moduleOptions.boundValueEntries.front().boundValuePtr = &flags;
             moduleOptions.boundValueEntries.front().sizeInBytes = sizeof(flags);
-            m_TracerMap["PGRIS"].pipelines["Trace"].LoadModule(m_Opx7Context.get(), "SimpleKernel.PGDEF", moduleOptions, m_PtxStringMap.at("SimpleGuide.ptx"));
-            m_TracerMap["PGRIS"].pipelines["Trace"].LoadBuiltInISTriangleModule(m_Opx7Context.get(), "BuiltIn.Triangle.PGDEF", moduleOptions);
-            m_TracerMap["PGRIS"].pipelines["Trace"].LoadBuiltInISSphereModule(m_Opx7Context.get(), "BuiltIn.Sphere.PGDEF", moduleOptions);
+            tracer.pipelines["Trace"].LoadModule(m_Opx7Context.get(), "SimpleKernel.PGDEF", moduleOptions, m_PtxStringMap.at("SimpleGuide.ptx"));
+            tracer.pipelines["Trace"].LoadBuiltInISTriangleModule(m_Opx7Context.get(), "BuiltIn.Triangle.PGDEF", moduleOptions);
+            tracer.pipelines["Trace"].LoadBuiltInISSphereModule(m_Opx7Context.get(), "BuiltIn.Sphere.PGDEF", moduleOptions);
         }
         //Final
         {
-            m_TracerMap["PGRIS"].pipelines["Final"].compileOptions.usesMotionBlur = false;
-            m_TracerMap["PGRIS"].pipelines["Final"].compileOptions.traversableGraphFlags = 0;
-            m_TracerMap["PGRIS"].pipelines["Final"].compileOptions.numAttributeValues = 3;
-            m_TracerMap["PGRIS"].pipelines["Final"].compileOptions.numPayloadValues = 8;
-            m_TracerMap["PGRIS"].pipelines["Final"].compileOptions.launchParamsVariableNames = "params";
-            m_TracerMap["PGRIS"].pipelines["Final"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
-            m_TracerMap["PGRIS"].pipelines["Final"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
-            m_TracerMap["PGRIS"].pipelines["Final"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-            m_TracerMap["PGRIS"].pipelines["Final"].linkOptions.maxTraceDepth = 2;
+            tracer.pipelines["Final"].compileOptions.usesMotionBlur = false;
+            tracer.pipelines["Final"].compileOptions.traversableGraphFlags = 0;
+            tracer.pipelines["Final"].compileOptions.numAttributeValues = 3;
+            tracer.pipelines["Final"].compileOptions.numPayloadValues = 8;
+            tracer.pipelines["Final"].compileOptions.launchParamsVariableNames = "params";
+            tracer.pipelines["Final"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
+            tracer.pipelines["Final"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
+            tracer.pipelines["Final"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
+            tracer.pipelines["Final"].linkOptions.maxTraceDepth = 2;
 
             auto moduleOptions = RTLib::Ext::OPX7::OPX7ModuleCompileOptions{};
             unsigned int flags = PARAM_FLAG_NONE | PARAM_FLAG_BUILD | PARAM_FLAG_FINAL | PARAM_FLAG_NEE | PARAM_FLAG_RIS;
@@ -1638,31 +1651,31 @@ void RTLibExtOPX7TestApplication::InitSdTreeRisTracer()
             moduleOptions.boundValueEntries.front().pipelineParamOffsetInBytes = offsetof(Params, flags);
             moduleOptions.boundValueEntries.front().boundValuePtr = &flags;
             moduleOptions.boundValueEntries.front().sizeInBytes = sizeof(flags);
-            m_TracerMap["PGRIS"].pipelines["Final"].LoadModule(m_Opx7Context.get(), "SimpleKernel.PGDEF", moduleOptions, m_PtxStringMap.at("SimpleGuide.ptx"));
-            m_TracerMap["PGRIS"].pipelines["Final"].LoadBuiltInISTriangleModule(m_Opx7Context.get(), "BuiltIn.Triangle.PGDEF", moduleOptions);
-            m_TracerMap["PGRIS"].pipelines["Final"].LoadBuiltInISSphereModule(m_Opx7Context.get(), "BuiltIn.Sphere.PGDEF", moduleOptions);
+            tracer.pipelines["Final"].LoadModule(m_Opx7Context.get(), "SimpleKernel.PGDEF", moduleOptions, m_PtxStringMap.at("SimpleGuide.ptx"));
+            tracer.pipelines["Final"].LoadBuiltInISTriangleModule(m_Opx7Context.get(), "BuiltIn.Triangle.PGDEF", moduleOptions);
+            tracer.pipelines["Final"].LoadBuiltInISSphereModule(m_Opx7Context.get(), "BuiltIn.Sphere.PGDEF", moduleOptions);
         }
 
     }
     auto stNames = std::vector<std::string>{ "Trace","Build","Final" };
     for (auto& stName : stNames) {
-        m_TracerMap["PGRIS"].pipelines[stName].SetProgramGroupRG(m_Opx7Context.get(), "SimpleKernel.PGDEF", "__raygen__default");
-        m_TracerMap["PGRIS"].pipelines[stName].SetProgramGroupEP(m_Opx7Context.get(), "SimpleKernel.PGDEF", "__exception__ep");
-        m_TracerMap["PGRIS"].pipelines[stName].SetProgramGroupMS(m_Opx7Context.get(), "SimpleKernel.Radiance", "SimpleKernel.PGDEF", "__miss__radiance");
-        m_TracerMap["PGRIS"].pipelines[stName].SetProgramGroupMS(m_Opx7Context.get(), "SimpleKernel.Occluded", "SimpleKernel.PGDEF", "__miss__occluded");
-        m_TracerMap["PGRIS"].pipelines[stName].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Radiance.Triangle", "SimpleKernel.PGDEF", "__closesthit__radiance", "", "", "BuiltIn.Triangle.PGDEF", "");
-        m_TracerMap["PGRIS"].pipelines[stName].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Occluded.Triangle", "SimpleKernel.PGDEF", "__closesthit__occluded", "", "", "BuiltIn.Triangle.PGDEF", "");
-        m_TracerMap["PGRIS"].pipelines[stName].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Radiance.Sphere", "SimpleKernel.PGDEF", "__closesthit__radiance_sphere", "", "", "BuiltIn.Sphere.PGDEF", "");
-        m_TracerMap["PGRIS"].pipelines[stName].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Occluded.Sphere", "SimpleKernel.PGDEF", "__closesthit__occluded", "", "", "BuiltIn.Sphere.PGDEF", "");
+        tracer.pipelines[stName].SetProgramGroupRG(m_Opx7Context.get(), "SimpleKernel.PGDEF", "__raygen__default");
+        tracer.pipelines[stName].SetProgramGroupEP(m_Opx7Context.get(), "SimpleKernel.PGDEF", "__exception__ep");
+        tracer.pipelines[stName].SetProgramGroupMS(m_Opx7Context.get(), "SimpleKernel.Radiance", "SimpleKernel.PGDEF", "__miss__radiance");
+        tracer.pipelines[stName].SetProgramGroupMS(m_Opx7Context.get(), "SimpleKernel.Occluded", "SimpleKernel.PGDEF", "__miss__occluded");
+        tracer.pipelines[stName].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Radiance.Triangle", "SimpleKernel.PGDEF", "__closesthit__radiance", "", "", "BuiltIn.Triangle.PGDEF", "");
+        tracer.pipelines[stName].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Occluded.Triangle", "SimpleKernel.PGDEF", "__closesthit__occluded", "", "", "BuiltIn.Triangle.PGDEF", "");
+        tracer.pipelines[stName].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Radiance.Sphere", "SimpleKernel.PGDEF", "__closesthit__radiance_sphere", "", "", "BuiltIn.Sphere.PGDEF", "");
+        tracer.pipelines[stName].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Occluded.Sphere", "SimpleKernel.PGDEF", "__closesthit__occluded", "", "", "BuiltIn.Sphere.PGDEF", "");
     }
-    m_TracerMap["PGRIS"].pipelines["Build"].InitPipeline(m_Opx7Context.get());
-    m_TracerMap["PGRIS"].pipelines["Build"].shaderTable = this->NewShaderTable();
+    tracer.pipelines["Build"].InitPipeline(m_Opx7Context.get());
+    tracer.pipelines["Build"].shaderTable = this->NewShaderTable();
 
-    m_TracerMap["PGRIS"].pipelines["Trace"].InitPipeline(m_Opx7Context.get());
-    m_TracerMap["PGRIS"].pipelines["Trace"].shaderTable = this->NewShaderTable();
+    tracer.pipelines["Trace"].InitPipeline(m_Opx7Context.get());
+    tracer.pipelines["Trace"].shaderTable = this->NewShaderTable();
 
-    m_TracerMap["PGRIS"].pipelines["Final"].InitPipeline(m_Opx7Context.get());
-    m_TracerMap["PGRIS"].pipelines["Final"].shaderTable = this->NewShaderTable();
+    tracer.pipelines["Final"].InitPipeline(m_Opx7Context.get());
+    tracer.pipelines["Final"].shaderTable = this->NewShaderTable();
 
     auto programGroupHGNames = std::vector<std::string>{
         "SimpleKernel.Radiance",
@@ -1670,10 +1683,10 @@ void RTLibExtOPX7TestApplication::InitSdTreeRisTracer()
     };
     auto instanceAndGeometryNames = rtlib::test::EnumerateGeometriesFromGASInstances(m_ShaderTableLayout.get(), m_SceneData.world);
     for (auto& stName : stNames) {
-        m_TracerMap["PGRIS"].pipelines[stName].SetHostRayGenRecordTypeData(rtlib::test::GetRaygenData(m_SceneData.GetCamera()));
-        m_TracerMap["PGRIS"].pipelines[stName].SetHostMissRecordTypeData(RAY_TYPE_RADIANCE, "SimpleKernel.Radiance", MissData{ make_float4(m_BgColor,1.0f) });
-        m_TracerMap["PGRIS"].pipelines[stName].SetHostMissRecordTypeData(RAY_TYPE_OCCLUDED, "SimpleKernel.Occluded", MissData{});
-        m_TracerMap["PGRIS"].pipelines[stName].SetHostExceptionRecordTypeData(unsigned int());
+        tracer.pipelines[stName].SetHostRayGenRecordTypeData(rtlib::test::GetRaygenData(m_SceneData.GetCamera()));
+        tracer.pipelines[stName].SetHostMissRecordTypeData(RAY_TYPE_RADIANCE, "SimpleKernel.Radiance", MissData{ make_float4(m_BgColor,1.0f) });
+        tracer.pipelines[stName].SetHostMissRecordTypeData(RAY_TYPE_OCCLUDED, "SimpleKernel.Occluded", MissData{});
+        tracer.pipelines[stName].SetHostExceptionRecordTypeData(unsigned int());
 
         for (auto& [instanceName, geometryName] : instanceAndGeometryNames)
         {
@@ -1692,7 +1705,7 @@ void RTLibExtOPX7TestApplication::InitSdTreeRisTracer()
                         {
                             hitgroupData = rtlib::test::GetHitgroupFromObjMesh(meshData.materials[i / desc.recordStride], mesh, m_TextureMap);
                         }
-                        m_TracerMap["PGRIS"].pipelines[stName].SetHostHitgroupRecordTypeData(desc.recordOffset + i, programGroupHGNames[i % desc.recordStride] + ".Triangle", hitgroupData);
+                        tracer.pipelines[stName].SetHostHitgroupRecordTypeData(desc.recordOffset + i, programGroupHGNames[i % desc.recordStride] + ".Triangle", hitgroupData);
                     }
                 }
             }
@@ -1706,43 +1719,43 @@ void RTLibExtOPX7TestApplication::InitSdTreeRisTracer()
                     {
                         hitgroupData = rtlib::test::GetHitgroupFromSphere(sphereRes->materials[i / desc.recordStride], sphereRes, m_TextureMap);
                     }
-                    m_TracerMap["PGRIS"].pipelines[stName].SetHostHitgroupRecordTypeData(desc.recordOffset + i, programGroupHGNames[i % desc.recordStride] + ".Sphere", hitgroupData);
+                    tracer.pipelines[stName].SetHostHitgroupRecordTypeData(desc.recordOffset + i, programGroupHGNames[i % desc.recordStride] + ".Sphere", hitgroupData);
                 }
             }
         }
     }
 
-    m_TracerMap["PGRIS"].pipelines["Build"].shaderTable->Upload();
-    m_TracerMap["PGRIS"].pipelines["Build"].SetPipelineStackSize(m_ShaderTableLayout->GetMaxTraversableDepth());
-    m_TracerMap["PGRIS"].pipelines["Trace"].shaderTable->Upload();
-    m_TracerMap["PGRIS"].pipelines["Trace"].SetPipelineStackSize(m_ShaderTableLayout->GetMaxTraversableDepth());
-    m_TracerMap["PGRIS"].pipelines["Final"].shaderTable->Upload();
-    m_TracerMap["PGRIS"].pipelines["Final"].SetPipelineStackSize(m_ShaderTableLayout->GetMaxTraversableDepth());
+    tracer.pipelines["Build"].shaderTable->Upload();
+    tracer.pipelines["Build"].SetPipelineStackSize(m_ShaderTableLayout->GetMaxTraversableDepth());
+    tracer.pipelines["Trace"].shaderTable->Upload();
+    tracer.pipelines["Trace"].SetPipelineStackSize(m_ShaderTableLayout->GetMaxTraversableDepth());
+    tracer.pipelines["Final"].shaderTable->Upload();
+    tracer.pipelines["Final"].SetPipelineStackSize(m_ShaderTableLayout->GetMaxTraversableDepth());
 
     auto params = Params();
     {
         params.flags = PARAM_FLAG_NONE;
     }
-    m_TracerMap["PGRIS"].InitParams(m_Opx7Context.get(), params);
-    m_TracerMap["PGRIS"].beginTrace = std::function<void(RTLib::Ext::CUDA::CUDAStream*)>(
+    tracer.InitParams(m_Opx7Context.get(), params);
+    tracer.beginTrace = std::function<std::string(RTLib::Ext::CUDA::CUDAStream*)>(
         [this](RTLib::Ext::CUDA::CUDAStream* stream) {
             {
                 m_SdTreeController->BegTrace(stream);
                 if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecord)
                 {
-                    m_PipelineName = "Build";
+                    return "Build";
                 }
                 if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecordAndSample) {
-                    m_PipelineName = "Trace";
+                    return "Trace";
                 }
                 if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateSample) {
-                    m_PipelineName = "Final";
+                    return "Final";
                 }
             }
-            return;
+            return "Trace";
         }
     );
-    m_TracerMap["PGRIS"].getParams = std::function<Params(RTLib::Ext::CUDA::CUDABuffer*)>(
+    tracer.getParams = std::function<Params(RTLib::Ext::CUDA::CUDABuffer*)>(
         [this](RTLib::Ext::CUDA::CUDABuffer* frameBuffer) {
             auto params = Params();
             params.accumBuffer = reinterpret_cast<float3*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_AccumBufferCUDA.get()));
@@ -1791,7 +1804,7 @@ void RTLibExtOPX7TestApplication::InitSdTreeRisTracer()
             return params;
         }
     );
-    m_TracerMap["PGRIS"].endTrace = std::function<bool(RTLib::Ext::CUDA::CUDAStream*)>(
+    tracer.endTrace = std::function<bool(RTLib::Ext::CUDA::CUDAStream*)>(
         [this](RTLib::Ext::CUDA::CUDAStream* stream)->bool {
             bool shouldSync = false;
             {
@@ -1808,22 +1821,24 @@ void RTLibExtOPX7TestApplication::InitSdTreeRisTracer()
             return shouldSync;
         }
     );
+    m_TracerMap["PGRIS"] = std::move(tracer);
 }
 
 void RTLibExtOPX7TestApplication::InitHashTreeDefTracer()
 {
+    auto tracer = rtlib::test::TracerData();
     {
         //Locate
         {
-            m_TracerMap["HTDEF"].pipelines["Locate"].compileOptions.usesMotionBlur = false;
-            m_TracerMap["HTDEF"].pipelines["Locate"].compileOptions.traversableGraphFlags = 0;
-            m_TracerMap["HTDEF"].pipelines["Locate"].compileOptions.numAttributeValues = 3;
-            m_TracerMap["HTDEF"].pipelines["Locate"].compileOptions.numPayloadValues = 8;
-            m_TracerMap["HTDEF"].pipelines["Locate"].compileOptions.launchParamsVariableNames = "params";
-            m_TracerMap["HTDEF"].pipelines["Locate"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
-            m_TracerMap["HTDEF"].pipelines["Locate"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
-            m_TracerMap["HTDEF"].pipelines["Locate"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-            m_TracerMap["HTDEF"].pipelines["Locate"].linkOptions.maxTraceDepth = 1;
+            tracer.pipelines["Locate"].compileOptions.usesMotionBlur = false;
+            tracer.pipelines["Locate"].compileOptions.traversableGraphFlags = 0;
+            tracer.pipelines["Locate"].compileOptions.numAttributeValues = 3;
+            tracer.pipelines["Locate"].compileOptions.numPayloadValues = 8;
+            tracer.pipelines["Locate"].compileOptions.launchParamsVariableNames = "params";
+            tracer.pipelines["Locate"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
+            tracer.pipelines["Locate"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
+            tracer.pipelines["Locate"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
+            tracer.pipelines["Locate"].linkOptions.maxTraceDepth = 1;
 
             auto moduleOptions = RTLib::Ext::OPX7::OPX7ModuleCompileOptions{};
             unsigned int flags = PARAM_FLAG_NONE|PARAM_FLAG_LOCATE;
@@ -1844,21 +1859,21 @@ void RTLibExtOPX7TestApplication::InitHashTreeDefTracer()
             moduleOptions.boundValueEntries.front().pipelineParamOffsetInBytes = offsetof(Params, flags);
             moduleOptions.boundValueEntries.front().boundValuePtr = &flags;
             moduleOptions.boundValueEntries.front().sizeInBytes = sizeof(flags);
-            m_TracerMap["HTDEF"].pipelines["Locate"].LoadModule(m_Opx7Context.get(), "SimpleKernel.PGDEF", moduleOptions, m_PtxStringMap.at("SimpleGuide2.ptx"));
-            m_TracerMap["HTDEF"].pipelines["Locate"].LoadBuiltInISTriangleModule(m_Opx7Context.get(), "BuiltIn.Triangle.PGDEF", moduleOptions);
-            m_TracerMap["HTDEF"].pipelines["Locate"].LoadBuiltInISSphereModule(m_Opx7Context.get(), "BuiltIn.Sphere.PGDEF", moduleOptions);
+            tracer.pipelines["Locate"].LoadModule(m_Opx7Context.get(), "SimpleKernel.PGDEF", moduleOptions, m_PtxStringMap.at("SimpleGuide2.ptx"));
+            tracer.pipelines["Locate"].LoadBuiltInISTriangleModule(m_Opx7Context.get(), "BuiltIn.Triangle.PGDEF", moduleOptions);
+            tracer.pipelines["Locate"].LoadBuiltInISSphereModule(m_Opx7Context.get(), "BuiltIn.Sphere.PGDEF", moduleOptions);
         }
         //Build
         {
-            m_TracerMap["HTDEF"].pipelines["Build"].compileOptions.usesMotionBlur = false;
-            m_TracerMap["HTDEF"].pipelines["Build"].compileOptions.traversableGraphFlags = 0;
-            m_TracerMap["HTDEF"].pipelines["Build"].compileOptions.numAttributeValues = 3;
-            m_TracerMap["HTDEF"].pipelines["Build"].compileOptions.numPayloadValues = 8;
-            m_TracerMap["HTDEF"].pipelines["Build"].compileOptions.launchParamsVariableNames = "params";
-            m_TracerMap["HTDEF"].pipelines["Build"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
-            m_TracerMap["HTDEF"].pipelines["Build"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
-            m_TracerMap["HTDEF"].pipelines["Build"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-            m_TracerMap["HTDEF"].pipelines["Build"].linkOptions.maxTraceDepth = 1;
+            tracer.pipelines["Build"].compileOptions.usesMotionBlur = false;
+            tracer.pipelines["Build"].compileOptions.traversableGraphFlags = 0;
+            tracer.pipelines["Build"].compileOptions.numAttributeValues = 3;
+            tracer.pipelines["Build"].compileOptions.numPayloadValues = 8;
+            tracer.pipelines["Build"].compileOptions.launchParamsVariableNames = "params";
+            tracer.pipelines["Build"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
+            tracer.pipelines["Build"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
+            tracer.pipelines["Build"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
+            tracer.pipelines["Build"].linkOptions.maxTraceDepth = 1;
 
             auto moduleOptions = RTLib::Ext::OPX7::OPX7ModuleCompileOptions{};
             unsigned int flags = PARAM_FLAG_NONE;
@@ -1879,21 +1894,21 @@ void RTLibExtOPX7TestApplication::InitHashTreeDefTracer()
             moduleOptions.boundValueEntries.front().pipelineParamOffsetInBytes = offsetof(Params, flags);
             moduleOptions.boundValueEntries.front().boundValuePtr = &flags;
             moduleOptions.boundValueEntries.front().sizeInBytes = sizeof(flags);
-            m_TracerMap["HTDEF"].pipelines["Build"].LoadModule(m_Opx7Context.get(), "SimpleKernel.PGDEF", moduleOptions, m_PtxStringMap.at("SimpleGuide2.ptx"));
-            m_TracerMap["HTDEF"].pipelines["Build"].LoadBuiltInISTriangleModule(m_Opx7Context.get(), "BuiltIn.Triangle.PGDEF", moduleOptions);
-            m_TracerMap["HTDEF"].pipelines["Build"].LoadBuiltInISSphereModule(m_Opx7Context.get(), "BuiltIn.Sphere.PGDEF", moduleOptions);
+            tracer.pipelines["Build"].LoadModule(m_Opx7Context.get(), "SimpleKernel.PGDEF", moduleOptions, m_PtxStringMap.at("SimpleGuide2.ptx"));
+            tracer.pipelines["Build"].LoadBuiltInISTriangleModule(m_Opx7Context.get(), "BuiltIn.Triangle.PGDEF", moduleOptions);
+            tracer.pipelines["Build"].LoadBuiltInISSphereModule(m_Opx7Context.get(), "BuiltIn.Sphere.PGDEF", moduleOptions);
         }
         //Trace
         {
-            m_TracerMap["HTDEF"].pipelines["Trace"].compileOptions.usesMotionBlur = false;
-            m_TracerMap["HTDEF"].pipelines["Trace"].compileOptions.traversableGraphFlags = 0;
-            m_TracerMap["HTDEF"].pipelines["Trace"].compileOptions.numAttributeValues = 3;
-            m_TracerMap["HTDEF"].pipelines["Trace"].compileOptions.numPayloadValues = 8;
-            m_TracerMap["HTDEF"].pipelines["Trace"].compileOptions.launchParamsVariableNames = "params";
-            m_TracerMap["HTDEF"].pipelines["Trace"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
-            m_TracerMap["HTDEF"].pipelines["Trace"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
-            m_TracerMap["HTDEF"].pipelines["Trace"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-            m_TracerMap["HTDEF"].pipelines["Trace"].linkOptions.maxTraceDepth = 1;
+            tracer.pipelines["Trace"].compileOptions.usesMotionBlur = false;
+            tracer.pipelines["Trace"].compileOptions.traversableGraphFlags = 0;
+            tracer.pipelines["Trace"].compileOptions.numAttributeValues = 3;
+            tracer.pipelines["Trace"].compileOptions.numPayloadValues = 8;
+            tracer.pipelines["Trace"].compileOptions.launchParamsVariableNames = "params";
+            tracer.pipelines["Trace"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
+            tracer.pipelines["Trace"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
+            tracer.pipelines["Trace"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
+            tracer.pipelines["Trace"].linkOptions.maxTraceDepth = 1;
 
             auto moduleOptions = RTLib::Ext::OPX7::OPX7ModuleCompileOptions{};
             unsigned int flags = PARAM_FLAG_NONE | PARAM_FLAG_BUILD;
@@ -1914,21 +1929,21 @@ void RTLibExtOPX7TestApplication::InitHashTreeDefTracer()
             moduleOptions.boundValueEntries.front().pipelineParamOffsetInBytes = offsetof(Params, flags);
             moduleOptions.boundValueEntries.front().boundValuePtr = &flags;
             moduleOptions.boundValueEntries.front().sizeInBytes = sizeof(flags);
-            m_TracerMap["HTDEF"].pipelines["Trace"].LoadModule(m_Opx7Context.get(), "SimpleKernel.PGDEF", moduleOptions, m_PtxStringMap.at("SimpleGuide2.ptx"));
-            m_TracerMap["HTDEF"].pipelines["Trace"].LoadBuiltInISTriangleModule(m_Opx7Context.get(), "BuiltIn.Triangle.PGDEF", moduleOptions);
-            m_TracerMap["HTDEF"].pipelines["Trace"].LoadBuiltInISSphereModule(m_Opx7Context.get(), "BuiltIn.Sphere.PGDEF", moduleOptions);
+            tracer.pipelines["Trace"].LoadModule(m_Opx7Context.get(), "SimpleKernel.PGDEF", moduleOptions, m_PtxStringMap.at("SimpleGuide2.ptx"));
+            tracer.pipelines["Trace"].LoadBuiltInISTriangleModule(m_Opx7Context.get(), "BuiltIn.Triangle.PGDEF", moduleOptions);
+            tracer.pipelines["Trace"].LoadBuiltInISSphereModule(m_Opx7Context.get(), "BuiltIn.Sphere.PGDEF", moduleOptions);
         }
         //Final
         {
-            m_TracerMap["HTDEF"].pipelines["Final"].compileOptions.usesMotionBlur = false;
-            m_TracerMap["HTDEF"].pipelines["Final"].compileOptions.traversableGraphFlags = 0;
-            m_TracerMap["HTDEF"].pipelines["Final"].compileOptions.numAttributeValues = 3;
-            m_TracerMap["HTDEF"].pipelines["Final"].compileOptions.numPayloadValues = 8;
-            m_TracerMap["HTDEF"].pipelines["Final"].compileOptions.launchParamsVariableNames = "params";
-            m_TracerMap["HTDEF"].pipelines["Final"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
-            m_TracerMap["HTDEF"].pipelines["Final"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
-            m_TracerMap["HTDEF"].pipelines["Final"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-            m_TracerMap["HTDEF"].pipelines["Final"].linkOptions.maxTraceDepth = 1;
+            tracer.pipelines["Final"].compileOptions.usesMotionBlur = false;
+            tracer.pipelines["Final"].compileOptions.traversableGraphFlags = 0;
+            tracer.pipelines["Final"].compileOptions.numAttributeValues = 3;
+            tracer.pipelines["Final"].compileOptions.numPayloadValues = 8;
+            tracer.pipelines["Final"].compileOptions.launchParamsVariableNames = "params";
+            tracer.pipelines["Final"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
+            tracer.pipelines["Final"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
+            tracer.pipelines["Final"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
+            tracer.pipelines["Final"].linkOptions.maxTraceDepth = 1;
 
             auto moduleOptions = RTLib::Ext::OPX7::OPX7ModuleCompileOptions{};
             unsigned int flags = PARAM_FLAG_NONE | PARAM_FLAG_BUILD | PARAM_FLAG_FINAL;
@@ -1949,35 +1964,35 @@ void RTLibExtOPX7TestApplication::InitHashTreeDefTracer()
             moduleOptions.boundValueEntries.front().pipelineParamOffsetInBytes = offsetof(Params, flags);
             moduleOptions.boundValueEntries.front().boundValuePtr = &flags;
             moduleOptions.boundValueEntries.front().sizeInBytes = sizeof(flags);
-            m_TracerMap["HTDEF"].pipelines["Final"].LoadModule(m_Opx7Context.get(), "SimpleKernel.PGDEF", moduleOptions, m_PtxStringMap.at("SimpleGuide2.ptx"));
-            m_TracerMap["HTDEF"].pipelines["Final"].LoadBuiltInISTriangleModule(m_Opx7Context.get(), "BuiltIn.Triangle.PGDEF", moduleOptions);
-            m_TracerMap["HTDEF"].pipelines["Final"].LoadBuiltInISSphereModule(m_Opx7Context.get(), "BuiltIn.Sphere.PGDEF", moduleOptions);
+            tracer.pipelines["Final"].LoadModule(m_Opx7Context.get(), "SimpleKernel.PGDEF", moduleOptions, m_PtxStringMap.at("SimpleGuide2.ptx"));
+            tracer.pipelines["Final"].LoadBuiltInISTriangleModule(m_Opx7Context.get(), "BuiltIn.Triangle.PGDEF", moduleOptions);
+            tracer.pipelines["Final"].LoadBuiltInISSphereModule(m_Opx7Context.get(), "BuiltIn.Sphere.PGDEF", moduleOptions);
         }
 
     }
     auto stNames = std::vector<std::string>{ "Locate","Trace","Build","Final" };
     for (auto& stName : stNames) {
-        m_TracerMap["HTDEF"].pipelines[stName].SetProgramGroupRG(m_Opx7Context.get(), "SimpleKernel.PGDEF", "__raygen__default");
-        m_TracerMap["HTDEF"].pipelines[stName].SetProgramGroupEP(m_Opx7Context.get(), "SimpleKernel.PGDEF", "__exception__ep");
-        m_TracerMap["HTDEF"].pipelines[stName].SetProgramGroupMS(m_Opx7Context.get(), "SimpleKernel.Radiance", "SimpleKernel.PGDEF", "__miss__radiance");
-        m_TracerMap["HTDEF"].pipelines[stName].SetProgramGroupMS(m_Opx7Context.get(), "SimpleKernel.Occluded", "SimpleKernel.PGDEF", "__miss__occluded");
-        m_TracerMap["HTDEF"].pipelines[stName].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Radiance.Triangle", "SimpleKernel.PGDEF", "__closesthit__radiance", "", "", "BuiltIn.Triangle.PGDEF", "");
-        m_TracerMap["HTDEF"].pipelines[stName].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Occluded.Triangle", "SimpleKernel.PGDEF", "__closesthit__occluded", "", "", "BuiltIn.Triangle.PGDEF", "");
-        m_TracerMap["HTDEF"].pipelines[stName].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Radiance.Sphere", "SimpleKernel.PGDEF", "__closesthit__radiance_sphere", "", "", "BuiltIn.Sphere.PGDEF", "");
-        m_TracerMap["HTDEF"].pipelines[stName].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Occluded.Sphere", "SimpleKernel.PGDEF", "__closesthit__occluded", "", "", "BuiltIn.Sphere.PGDEF", "");
+        tracer.pipelines[stName].SetProgramGroupRG(m_Opx7Context.get(), "SimpleKernel.PGDEF", "__raygen__default");
+        tracer.pipelines[stName].SetProgramGroupEP(m_Opx7Context.get(), "SimpleKernel.PGDEF", "__exception__ep");
+        tracer.pipelines[stName].SetProgramGroupMS(m_Opx7Context.get(), "SimpleKernel.Radiance", "SimpleKernel.PGDEF", "__miss__radiance");
+        tracer.pipelines[stName].SetProgramGroupMS(m_Opx7Context.get(), "SimpleKernel.Occluded", "SimpleKernel.PGDEF", "__miss__occluded");
+        tracer.pipelines[stName].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Radiance.Triangle", "SimpleKernel.PGDEF", "__closesthit__radiance", "", "", "BuiltIn.Triangle.PGDEF", "");
+        tracer.pipelines[stName].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Occluded.Triangle", "SimpleKernel.PGDEF", "__closesthit__occluded", "", "", "BuiltIn.Triangle.PGDEF", "");
+        tracer.pipelines[stName].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Radiance.Sphere", "SimpleKernel.PGDEF", "__closesthit__radiance_sphere", "", "", "BuiltIn.Sphere.PGDEF", "");
+        tracer.pipelines[stName].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Occluded.Sphere", "SimpleKernel.PGDEF", "__closesthit__occluded", "", "", "BuiltIn.Sphere.PGDEF", "");
     }
 
-    m_TracerMap["HTDEF"].pipelines["Locate"].InitPipeline(m_Opx7Context.get());
-    m_TracerMap["HTDEF"].pipelines["Locate"].shaderTable = this->NewShaderTable();
+    tracer.pipelines["Locate"].InitPipeline(m_Opx7Context.get());
+    tracer.pipelines["Locate"].shaderTable = this->NewShaderTable();
 
-    m_TracerMap["HTDEF"].pipelines["Build"].InitPipeline(m_Opx7Context.get());
-    m_TracerMap["HTDEF"].pipelines["Build"].shaderTable = this->NewShaderTable();
+    tracer.pipelines["Build"].InitPipeline(m_Opx7Context.get());
+    tracer.pipelines["Build"].shaderTable = this->NewShaderTable();
 
-    m_TracerMap["HTDEF"].pipelines["Trace"].InitPipeline(m_Opx7Context.get());
-    m_TracerMap["HTDEF"].pipelines["Trace"].shaderTable = this->NewShaderTable();
+    tracer.pipelines["Trace"].InitPipeline(m_Opx7Context.get());
+    tracer.pipelines["Trace"].shaderTable = this->NewShaderTable();
 
-    m_TracerMap["HTDEF"].pipelines["Final"].InitPipeline(m_Opx7Context.get());
-    m_TracerMap["HTDEF"].pipelines["Final"].shaderTable = this->NewShaderTable();
+    tracer.pipelines["Final"].InitPipeline(m_Opx7Context.get());
+    tracer.pipelines["Final"].shaderTable = this->NewShaderTable();
 
     auto programGroupHGNames = std::vector<std::string>{
         "SimpleKernel.Radiance",
@@ -1985,10 +2000,10 @@ void RTLibExtOPX7TestApplication::InitHashTreeDefTracer()
     };
     auto instanceAndGeometryNames = rtlib::test::EnumerateGeometriesFromGASInstances(m_ShaderTableLayout.get(), m_SceneData.world);
     for (auto& stName : stNames) {
-        m_TracerMap["HTDEF"].pipelines[stName].SetHostRayGenRecordTypeData(rtlib::test::GetRaygenData(m_SceneData.GetCamera()));
-        m_TracerMap["HTDEF"].pipelines[stName].SetHostMissRecordTypeData(RAY_TYPE_RADIANCE, "SimpleKernel.Radiance", MissData{ make_float4(m_BgColor,1.0f) });
-        m_TracerMap["HTDEF"].pipelines[stName].SetHostMissRecordTypeData(RAY_TYPE_OCCLUDED, "SimpleKernel.Occluded", MissData{});
-        m_TracerMap["HTDEF"].pipelines[stName].SetHostExceptionRecordTypeData(unsigned int());
+        tracer.pipelines[stName].SetHostRayGenRecordTypeData(rtlib::test::GetRaygenData(m_SceneData.GetCamera()));
+        tracer.pipelines[stName].SetHostMissRecordTypeData(RAY_TYPE_RADIANCE, "SimpleKernel.Radiance", MissData{ make_float4(m_BgColor,1.0f) });
+        tracer.pipelines[stName].SetHostMissRecordTypeData(RAY_TYPE_OCCLUDED, "SimpleKernel.Occluded", MissData{});
+        tracer.pipelines[stName].SetHostExceptionRecordTypeData(unsigned int());
 
         for (auto& [instanceName, geometryName] : instanceAndGeometryNames)
         {
@@ -2007,7 +2022,7 @@ void RTLibExtOPX7TestApplication::InitHashTreeDefTracer()
                         {
                             hitgroupData = rtlib::test::GetHitgroupFromObjMesh(meshData.materials[i / desc.recordStride], mesh, m_TextureMap);
                         }
-                        m_TracerMap["HTDEF"].pipelines[stName].SetHostHitgroupRecordTypeData(desc.recordOffset + i, programGroupHGNames[i % desc.recordStride] + ".Triangle", hitgroupData);
+                        tracer.pipelines[stName].SetHostHitgroupRecordTypeData(desc.recordOffset + i, programGroupHGNames[i % desc.recordStride] + ".Triangle", hitgroupData);
                     }
                 }
             }
@@ -2021,49 +2036,49 @@ void RTLibExtOPX7TestApplication::InitHashTreeDefTracer()
                     {
                         hitgroupData = rtlib::test::GetHitgroupFromSphere(sphereRes->materials[i / desc.recordStride], sphereRes, m_TextureMap);
                     }
-                    m_TracerMap["HTDEF"].pipelines[stName].SetHostHitgroupRecordTypeData(desc.recordOffset + i, programGroupHGNames[i % desc.recordStride] + ".Sphere", hitgroupData);
+                    tracer.pipelines[stName].SetHostHitgroupRecordTypeData(desc.recordOffset + i, programGroupHGNames[i % desc.recordStride] + ".Sphere", hitgroupData);
                 }
             }
         }
     }
 
-    m_TracerMap["HTDEF"].pipelines["Locate"].shaderTable->Upload();
-    m_TracerMap["HTDEF"].pipelines["Locate"].SetPipelineStackSize(m_ShaderTableLayout->GetMaxTraversableDepth());
-    m_TracerMap["HTDEF"].pipelines["Build"].shaderTable->Upload();
-    m_TracerMap["HTDEF"].pipelines["Build"].SetPipelineStackSize(m_ShaderTableLayout->GetMaxTraversableDepth());
-    m_TracerMap["HTDEF"].pipelines["Trace"].shaderTable->Upload();
-    m_TracerMap["HTDEF"].pipelines["Trace"].SetPipelineStackSize(m_ShaderTableLayout->GetMaxTraversableDepth());
-    m_TracerMap["HTDEF"].pipelines["Final"].shaderTable->Upload();
-    m_TracerMap["HTDEF"].pipelines["Final"].SetPipelineStackSize(m_ShaderTableLayout->GetMaxTraversableDepth());
+    tracer.pipelines["Locate"].shaderTable->Upload();
+    tracer.pipelines["Locate"].SetPipelineStackSize(m_ShaderTableLayout->GetMaxTraversableDepth());
+    tracer.pipelines["Build"].shaderTable->Upload();
+    tracer.pipelines["Build"].SetPipelineStackSize(m_ShaderTableLayout->GetMaxTraversableDepth());
+    tracer.pipelines["Trace"].shaderTable->Upload();
+    tracer.pipelines["Trace"].SetPipelineStackSize(m_ShaderTableLayout->GetMaxTraversableDepth());
+    tracer.pipelines["Final"].shaderTable->Upload();
+    tracer.pipelines["Final"].SetPipelineStackSize(m_ShaderTableLayout->GetMaxTraversableDepth());
 
     auto params = Params();
     {
         params.flags = PARAM_FLAG_NONE;
     }
-    m_TracerMap["HTDEF"].InitParams(m_Opx7Context.get(), params);
-    m_TracerMap["HTDEF"].beginTrace = std::function<void(RTLib::Ext::CUDA::CUDAStream*)>(
+    tracer.InitParams(m_Opx7Context.get(), params);
+    tracer.beginTrace = std::function<std::string(RTLib::Ext::CUDA::CUDAStream*)>(
         [this](RTLib::Ext::CUDA::CUDAStream* stream) {
             {
                 m_MortonQuadTreeController->BegTrace(stream);
                 if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateLocate)
                 {
-                    m_PipelineName = "Locate";
+                    return "Locate";
                 }
                 if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecord)
                 {
-                    m_PipelineName = "Build";
+                    return "Build";
                 }
                 if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecordAndSample) {
-                    m_PipelineName = "Trace";
+                    return "Trace";
                 }
                 if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateSample) {
-                    m_PipelineName = "Final";
+                    return "Final";
                 }
             }
-            return;
+            return "Trace";
         }
     );
-    m_TracerMap["HTDEF"].getParams = std::function<Params(RTLib::Ext::CUDA::CUDABuffer*)>(
+    tracer.getParams = std::function<Params(RTLib::Ext::CUDA::CUDABuffer*)>(
         [this](RTLib::Ext::CUDA::CUDABuffer* frameBuffer) {
             auto params = Params();
             params.accumBuffer = reinterpret_cast<float3*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_AccumBufferCUDA.get()));
@@ -2113,7 +2128,7 @@ void RTLibExtOPX7TestApplication::InitHashTreeDefTracer()
             return params;
         }
     );
-    m_TracerMap["HTDEF"].endTrace = std::function<bool(RTLib::Ext::CUDA::CUDAStream*)>(
+    tracer.endTrace = std::function<bool(RTLib::Ext::CUDA::CUDAStream*)>(
         [this](RTLib::Ext::CUDA::CUDAStream* stream)->bool {
             bool shouldSync = false;
             {
@@ -2134,22 +2149,24 @@ void RTLibExtOPX7TestApplication::InitHashTreeDefTracer()
             return shouldSync;
         }
     );
+    m_TracerMap["HTDEF"] = std::move(tracer);
 }
 
 void RTLibExtOPX7TestApplication::InitHashTreeNeeTracer()
 {
+    auto tracer = rtlib::test::TracerData();
     {
         //Locate
         {
-            m_TracerMap["HTNEE"].pipelines["Locate"].compileOptions.usesMotionBlur = false;
-            m_TracerMap["HTNEE"].pipelines["Locate"].compileOptions.traversableGraphFlags = 0;
-            m_TracerMap["HTNEE"].pipelines["Locate"].compileOptions.numAttributeValues = 3;
-            m_TracerMap["HTNEE"].pipelines["Locate"].compileOptions.numPayloadValues = 8;
-            m_TracerMap["HTNEE"].pipelines["Locate"].compileOptions.launchParamsVariableNames = "params";
-            m_TracerMap["HTNEE"].pipelines["Locate"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
-            m_TracerMap["HTNEE"].pipelines["Locate"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
-            m_TracerMap["HTNEE"].pipelines["Locate"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-            m_TracerMap["HTNEE"].pipelines["Locate"].linkOptions.maxTraceDepth = 2;
+            tracer.pipelines["Locate"].compileOptions.usesMotionBlur        = false;
+            tracer.pipelines["Locate"].compileOptions.traversableGraphFlags = 0;
+            tracer.pipelines["Locate"].compileOptions.numAttributeValues = 3;
+            tracer.pipelines["Locate"].compileOptions.numPayloadValues = 8;
+            tracer.pipelines["Locate"].compileOptions.launchParamsVariableNames = "params";
+            tracer.pipelines["Locate"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
+            tracer.pipelines["Locate"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
+            tracer.pipelines["Locate"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
+            tracer.pipelines["Locate"].linkOptions.maxTraceDepth = 2;
 
             auto moduleOptions = RTLib::Ext::OPX7::OPX7ModuleCompileOptions{};
             unsigned int flags = PARAM_FLAG_NONE | PARAM_FLAG_NEE | PARAM_FLAG_LOCATE;
@@ -2170,21 +2187,21 @@ void RTLibExtOPX7TestApplication::InitHashTreeNeeTracer()
             moduleOptions.boundValueEntries.front().pipelineParamOffsetInBytes = offsetof(Params, flags);
             moduleOptions.boundValueEntries.front().boundValuePtr = &flags;
             moduleOptions.boundValueEntries.front().sizeInBytes = sizeof(flags);
-            m_TracerMap["HTNEE"].pipelines["Locate"].LoadModule(m_Opx7Context.get(), "SimpleKernel.PGDEF", moduleOptions, m_PtxStringMap.at("SimpleGuide2.ptx"));
-            m_TracerMap["HTNEE"].pipelines["Locate"].LoadBuiltInISTriangleModule(m_Opx7Context.get(), "BuiltIn.Triangle.PGDEF", moduleOptions);
-            m_TracerMap["HTNEE"].pipelines["Locate"].LoadBuiltInISSphereModule(m_Opx7Context.get(), "BuiltIn.Sphere.PGDEF", moduleOptions);
+            tracer.pipelines["Locate"].LoadModule(m_Opx7Context.get(), "SimpleKernel.PGDEF", moduleOptions, m_PtxStringMap.at("SimpleGuide2.ptx"));
+            tracer.pipelines["Locate"].LoadBuiltInISTriangleModule(m_Opx7Context.get(), "BuiltIn.Triangle.PGDEF", moduleOptions);
+            tracer.pipelines["Locate"].LoadBuiltInISSphereModule(m_Opx7Context.get(), "BuiltIn.Sphere.PGDEF", moduleOptions);
         }
         //Build
         {
-            m_TracerMap["HTNEE"].pipelines["Build"].compileOptions.usesMotionBlur            = false;
-            m_TracerMap["HTNEE"].pipelines["Build"].compileOptions.traversableGraphFlags     = 0;
-            m_TracerMap["HTNEE"].pipelines["Build"].compileOptions.numAttributeValues        = 3;
-            m_TracerMap["HTNEE"].pipelines["Build"].compileOptions.numPayloadValues          = 8;
-            m_TracerMap["HTNEE"].pipelines["Build"].compileOptions.launchParamsVariableNames = "params";
-            m_TracerMap["HTNEE"].pipelines["Build"].compileOptions.usesPrimitiveTypeFlags    = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
-            m_TracerMap["HTNEE"].pipelines["Build"].compileOptions.exceptionFlags            = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
-            m_TracerMap["HTNEE"].pipelines["Build"].linkOptions.debugLevel                   = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-            m_TracerMap["HTNEE"].pipelines["Build"].linkOptions.maxTraceDepth                = 2;
+            tracer.pipelines["Build"].compileOptions.usesMotionBlur            = false;
+            tracer.pipelines["Build"].compileOptions.traversableGraphFlags     = 0;
+            tracer.pipelines["Build"].compileOptions.numAttributeValues        = 3;
+            tracer.pipelines["Build"].compileOptions.numPayloadValues          = 8;
+            tracer.pipelines["Build"].compileOptions.launchParamsVariableNames = "params";
+            tracer.pipelines["Build"].compileOptions.usesPrimitiveTypeFlags    = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
+            tracer.pipelines["Build"].compileOptions.exceptionFlags            = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
+            tracer.pipelines["Build"].linkOptions.debugLevel                   = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
+            tracer.pipelines["Build"].linkOptions.maxTraceDepth                = 2;
 
             auto moduleOptions = RTLib::Ext::OPX7::OPX7ModuleCompileOptions{};
             unsigned int flags = PARAM_FLAG_NONE | PARAM_FLAG_NEE;
@@ -2205,21 +2222,21 @@ void RTLibExtOPX7TestApplication::InitHashTreeNeeTracer()
             moduleOptions.boundValueEntries.front().pipelineParamOffsetInBytes = offsetof(Params, flags);
             moduleOptions.boundValueEntries.front().boundValuePtr = &flags;
             moduleOptions.boundValueEntries.front().sizeInBytes = sizeof(flags);
-            m_TracerMap["HTNEE"].pipelines["Build"].LoadModule(m_Opx7Context.get(), "SimpleKernel.PGDEF", moduleOptions, m_PtxStringMap.at("SimpleGuide2.ptx"));
-            m_TracerMap["HTNEE"].pipelines["Build"].LoadBuiltInISTriangleModule(m_Opx7Context.get(), "BuiltIn.Triangle.PGDEF", moduleOptions);
-            m_TracerMap["HTNEE"].pipelines["Build"].LoadBuiltInISSphereModule(m_Opx7Context.get(), "BuiltIn.Sphere.PGDEF", moduleOptions);
+            tracer.pipelines["Build"].LoadModule(m_Opx7Context.get(), "SimpleKernel.PGDEF", moduleOptions, m_PtxStringMap.at("SimpleGuide2.ptx"));
+            tracer.pipelines["Build"].LoadBuiltInISTriangleModule(m_Opx7Context.get(), "BuiltIn.Triangle.PGDEF", moduleOptions);
+            tracer.pipelines["Build"].LoadBuiltInISSphereModule(m_Opx7Context.get(), "BuiltIn.Sphere.PGDEF", moduleOptions);
         }
         //Trace
         {
-            m_TracerMap["HTNEE"].pipelines["Trace"].compileOptions.usesMotionBlur = false;
-            m_TracerMap["HTNEE"].pipelines["Trace"].compileOptions.traversableGraphFlags = 0;
-            m_TracerMap["HTNEE"].pipelines["Trace"].compileOptions.numAttributeValues = 3;
-            m_TracerMap["HTNEE"].pipelines["Trace"].compileOptions.numPayloadValues = 8;
-            m_TracerMap["HTNEE"].pipelines["Trace"].compileOptions.launchParamsVariableNames = "params";
-            m_TracerMap["HTNEE"].pipelines["Trace"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
-            m_TracerMap["HTNEE"].pipelines["Trace"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
-            m_TracerMap["HTNEE"].pipelines["Trace"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-            m_TracerMap["HTNEE"].pipelines["Trace"].linkOptions.maxTraceDepth = 2;
+            tracer.pipelines["Trace"].compileOptions.usesMotionBlur = false;
+            tracer.pipelines["Trace"].compileOptions.traversableGraphFlags = 0;
+            tracer.pipelines["Trace"].compileOptions.numAttributeValues = 3;
+            tracer.pipelines["Trace"].compileOptions.numPayloadValues = 8;
+            tracer.pipelines["Trace"].compileOptions.launchParamsVariableNames = "params";
+            tracer.pipelines["Trace"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
+            tracer.pipelines["Trace"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
+            tracer.pipelines["Trace"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
+            tracer.pipelines["Trace"].linkOptions.maxTraceDepth = 2;
 
             auto moduleOptions = RTLib::Ext::OPX7::OPX7ModuleCompileOptions{};
             unsigned int flags = PARAM_FLAG_NONE | PARAM_FLAG_BUILD | PARAM_FLAG_NEE;
@@ -2240,21 +2257,21 @@ void RTLibExtOPX7TestApplication::InitHashTreeNeeTracer()
             moduleOptions.boundValueEntries.front().pipelineParamOffsetInBytes = offsetof(Params, flags);
             moduleOptions.boundValueEntries.front().boundValuePtr = &flags;
             moduleOptions.boundValueEntries.front().sizeInBytes = sizeof(flags);
-            m_TracerMap["HTNEE"].pipelines["Trace"].LoadModule(m_Opx7Context.get(), "SimpleKernel.PGDEF", moduleOptions, m_PtxStringMap.at("SimpleGuide2.ptx"));
-            m_TracerMap["HTNEE"].pipelines["Trace"].LoadBuiltInISTriangleModule(m_Opx7Context.get(), "BuiltIn.Triangle.PGDEF", moduleOptions);
-            m_TracerMap["HTNEE"].pipelines["Trace"].LoadBuiltInISSphereModule(m_Opx7Context.get(), "BuiltIn.Sphere.PGDEF", moduleOptions);
+            tracer.pipelines["Trace"].LoadModule(m_Opx7Context.get(), "SimpleKernel.PGDEF", moduleOptions, m_PtxStringMap.at("SimpleGuide2.ptx"));
+            tracer.pipelines["Trace"].LoadBuiltInISTriangleModule(m_Opx7Context.get(), "BuiltIn.Triangle.PGDEF", moduleOptions);
+            tracer.pipelines["Trace"].LoadBuiltInISSphereModule(m_Opx7Context.get(), "BuiltIn.Sphere.PGDEF", moduleOptions);
         }
         //Final
         {
-            m_TracerMap["HTNEE"].pipelines["Final"].compileOptions.usesMotionBlur = false;
-            m_TracerMap["HTNEE"].pipelines["Final"].compileOptions.traversableGraphFlags = 0;
-            m_TracerMap["HTNEE"].pipelines["Final"].compileOptions.numAttributeValues = 3;
-            m_TracerMap["HTNEE"].pipelines["Final"].compileOptions.numPayloadValues = 8;
-            m_TracerMap["HTNEE"].pipelines["Final"].compileOptions.launchParamsVariableNames = "params";
-            m_TracerMap["HTNEE"].pipelines["Final"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
-            m_TracerMap["HTNEE"].pipelines["Final"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
-            m_TracerMap["HTNEE"].pipelines["Final"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-            m_TracerMap["HTNEE"].pipelines["Final"].linkOptions.maxTraceDepth = 2;
+            tracer.pipelines["Final"].compileOptions.usesMotionBlur = false;
+            tracer.pipelines["Final"].compileOptions.traversableGraphFlags = 0;
+            tracer.pipelines["Final"].compileOptions.numAttributeValues = 3;
+            tracer.pipelines["Final"].compileOptions.numPayloadValues = 8;
+            tracer.pipelines["Final"].compileOptions.launchParamsVariableNames = "params";
+            tracer.pipelines["Final"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
+            tracer.pipelines["Final"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
+            tracer.pipelines["Final"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
+            tracer.pipelines["Final"].linkOptions.maxTraceDepth = 2;
 
             auto moduleOptions = RTLib::Ext::OPX7::OPX7ModuleCompileOptions{};
             unsigned int flags = PARAM_FLAG_NONE | PARAM_FLAG_BUILD | PARAM_FLAG_FINAL | PARAM_FLAG_NEE;
@@ -2275,34 +2292,34 @@ void RTLibExtOPX7TestApplication::InitHashTreeNeeTracer()
             moduleOptions.boundValueEntries.front().pipelineParamOffsetInBytes = offsetof(Params, flags);
             moduleOptions.boundValueEntries.front().boundValuePtr = &flags;
             moduleOptions.boundValueEntries.front().sizeInBytes = sizeof(flags);
-            m_TracerMap["HTNEE"].pipelines["Final"].LoadModule(m_Opx7Context.get(), "SimpleKernel.PGDEF", moduleOptions, m_PtxStringMap.at("SimpleGuide2.ptx"));
-            m_TracerMap["HTNEE"].pipelines["Final"].LoadBuiltInISTriangleModule(m_Opx7Context.get(), "BuiltIn.Triangle.PGDEF", moduleOptions);
-            m_TracerMap["HTNEE"].pipelines["Final"].LoadBuiltInISSphereModule(m_Opx7Context.get(), "BuiltIn.Sphere.PGDEF", moduleOptions);
+            tracer.pipelines["Final"].LoadModule(m_Opx7Context.get(), "SimpleKernel.PGDEF", moduleOptions, m_PtxStringMap.at("SimpleGuide2.ptx"));
+            tracer.pipelines["Final"].LoadBuiltInISTriangleModule(m_Opx7Context.get(), "BuiltIn.Triangle.PGDEF", moduleOptions);
+            tracer.pipelines["Final"].LoadBuiltInISSphereModule(m_Opx7Context.get(), "BuiltIn.Sphere.PGDEF", moduleOptions);
         }
 
     }
     auto stNames = std::vector<std::string>{ "Locate","Trace","Build","Final"};
     for (auto& stName : stNames) {
-        m_TracerMap["HTNEE"].pipelines[stName].SetProgramGroupRG(m_Opx7Context.get(), "SimpleKernel.PGDEF", "__raygen__default");
-        m_TracerMap["HTNEE"].pipelines[stName].SetProgramGroupEP(m_Opx7Context.get(), "SimpleKernel.PGDEF", "__exception__ep");
-        m_TracerMap["HTNEE"].pipelines[stName].SetProgramGroupMS(m_Opx7Context.get(), "SimpleKernel.Radiance", "SimpleKernel.PGDEF", "__miss__radiance");
-        m_TracerMap["HTNEE"].pipelines[stName].SetProgramGroupMS(m_Opx7Context.get(), "SimpleKernel.Occluded", "SimpleKernel.PGDEF", "__miss__occluded");
-        m_TracerMap["HTNEE"].pipelines[stName].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Radiance.Triangle", "SimpleKernel.PGDEF", "__closesthit__radiance", "", "", "BuiltIn.Triangle.PGDEF", "");
-        m_TracerMap["HTNEE"].pipelines[stName].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Occluded.Triangle", "SimpleKernel.PGDEF", "__closesthit__occluded", "", "", "BuiltIn.Triangle.PGDEF", "");
-        m_TracerMap["HTNEE"].pipelines[stName].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Radiance.Sphere", "SimpleKernel.PGDEF", "__closesthit__radiance_sphere", "", "", "BuiltIn.Sphere.PGDEF", "");
-        m_TracerMap["HTNEE"].pipelines[stName].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Occluded.Sphere", "SimpleKernel.PGDEF", "__closesthit__occluded", "", "", "BuiltIn.Sphere.PGDEF", "");
+        tracer.pipelines[stName].SetProgramGroupRG(m_Opx7Context.get(), "SimpleKernel.PGDEF", "__raygen__default");
+        tracer.pipelines[stName].SetProgramGroupEP(m_Opx7Context.get(), "SimpleKernel.PGDEF", "__exception__ep");
+        tracer.pipelines[stName].SetProgramGroupMS(m_Opx7Context.get(), "SimpleKernel.Radiance", "SimpleKernel.PGDEF", "__miss__radiance");
+        tracer.pipelines[stName].SetProgramGroupMS(m_Opx7Context.get(), "SimpleKernel.Occluded", "SimpleKernel.PGDEF", "__miss__occluded");
+        tracer.pipelines[stName].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Radiance.Triangle", "SimpleKernel.PGDEF", "__closesthit__radiance", "", "", "BuiltIn.Triangle.PGDEF", "");
+        tracer.pipelines[stName].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Occluded.Triangle", "SimpleKernel.PGDEF", "__closesthit__occluded", "", "", "BuiltIn.Triangle.PGDEF", "");
+        tracer.pipelines[stName].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Radiance.Sphere", "SimpleKernel.PGDEF", "__closesthit__radiance_sphere", "", "", "BuiltIn.Sphere.PGDEF", "");
+        tracer.pipelines[stName].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Occluded.Sphere", "SimpleKernel.PGDEF", "__closesthit__occluded", "", "", "BuiltIn.Sphere.PGDEF", "");
     }
-    m_TracerMap["HTNEE"].pipelines["Locate"].InitPipeline(m_Opx7Context.get());
-    m_TracerMap["HTNEE"].pipelines["Locate"].shaderTable = this->NewShaderTable();
+    tracer.pipelines["Locate"].InitPipeline(m_Opx7Context.get());
+    tracer.pipelines["Locate"].shaderTable = this->NewShaderTable();
 
-    m_TracerMap["HTNEE"].pipelines["Build"].InitPipeline(m_Opx7Context.get());
-    m_TracerMap["HTNEE"].pipelines["Build"].shaderTable = this->NewShaderTable();
+    tracer.pipelines["Build"].InitPipeline(m_Opx7Context.get());
+    tracer.pipelines["Build"].shaderTable = this->NewShaderTable();
 
-    m_TracerMap["HTNEE"].pipelines["Trace"].InitPipeline(m_Opx7Context.get());
-    m_TracerMap["HTNEE"].pipelines["Trace"].shaderTable = this->NewShaderTable();
+    tracer.pipelines["Trace"].InitPipeline(m_Opx7Context.get());
+    tracer.pipelines["Trace"].shaderTable = this->NewShaderTable();
 
-    m_TracerMap["HTNEE"].pipelines["Final"].InitPipeline(m_Opx7Context.get());
-    m_TracerMap["HTNEE"].pipelines["Final"].shaderTable = this->NewShaderTable();
+    tracer.pipelines["Final"].InitPipeline(m_Opx7Context.get());
+    tracer.pipelines["Final"].shaderTable = this->NewShaderTable();
 
     auto programGroupHGNames = std::vector<std::string>{
         "SimpleKernel.Radiance",
@@ -2310,10 +2327,10 @@ void RTLibExtOPX7TestApplication::InitHashTreeNeeTracer()
     };
     auto instanceAndGeometryNames = rtlib::test::EnumerateGeometriesFromGASInstances(m_ShaderTableLayout.get(), m_SceneData.world);
     for (auto& stName : stNames) {
-        m_TracerMap["HTNEE"].pipelines[stName].SetHostRayGenRecordTypeData(rtlib::test::GetRaygenData(m_SceneData.GetCamera()));
-        m_TracerMap["HTNEE"].pipelines[stName].SetHostMissRecordTypeData(RAY_TYPE_RADIANCE, "SimpleKernel.Radiance", MissData{ make_float4(m_BgColor,1.0f) });
-        m_TracerMap["HTNEE"].pipelines[stName].SetHostMissRecordTypeData(RAY_TYPE_OCCLUDED, "SimpleKernel.Occluded", MissData{});
-        m_TracerMap["HTNEE"].pipelines[stName].SetHostExceptionRecordTypeData(unsigned int());
+        tracer.pipelines[stName].SetHostRayGenRecordTypeData(rtlib::test::GetRaygenData(m_SceneData.GetCamera()));
+        tracer.pipelines[stName].SetHostMissRecordTypeData(RAY_TYPE_RADIANCE, "SimpleKernel.Radiance", MissData{ make_float4(m_BgColor,1.0f) });
+        tracer.pipelines[stName].SetHostMissRecordTypeData(RAY_TYPE_OCCLUDED, "SimpleKernel.Occluded", MissData{});
+        tracer.pipelines[stName].SetHostExceptionRecordTypeData(unsigned int());
 
 
         for (auto& [instanceName, geometryName] : instanceAndGeometryNames)
@@ -2333,7 +2350,7 @@ void RTLibExtOPX7TestApplication::InitHashTreeNeeTracer()
                         {
                             hitgroupData = rtlib::test::GetHitgroupFromObjMesh(meshData.materials[i / desc.recordStride], mesh, m_TextureMap);
                         }
-                        m_TracerMap["HTNEE"].pipelines[stName].SetHostHitgroupRecordTypeData(desc.recordOffset + i, programGroupHGNames[i % desc.recordStride] + ".Triangle", hitgroupData);
+                        tracer.pipelines[stName].SetHostHitgroupRecordTypeData(desc.recordOffset + i, programGroupHGNames[i % desc.recordStride] + ".Triangle", hitgroupData);
                     }
                 }
             }
@@ -2347,52 +2364,52 @@ void RTLibExtOPX7TestApplication::InitHashTreeNeeTracer()
                     {
                         hitgroupData = rtlib::test::GetHitgroupFromSphere(sphereRes->materials[i / desc.recordStride], sphereRes, m_TextureMap);
                     }
-                    m_TracerMap["HTNEE"].pipelines[stName].SetHostHitgroupRecordTypeData(desc.recordOffset + i, programGroupHGNames[i % desc.recordStride] + ".Sphere", hitgroupData);
+                    tracer.pipelines[stName].SetHostHitgroupRecordTypeData(desc.recordOffset + i, programGroupHGNames[i % desc.recordStride] + ".Sphere", hitgroupData);
                 }
             }
         }
     }
 
-    m_TracerMap["HTNEE"].pipelines["Locate"].shaderTable->Upload();
-    m_TracerMap["HTNEE"].pipelines["Locate"].SetPipelineStackSize(m_ShaderTableLayout->GetMaxTraversableDepth());
+    tracer.pipelines["Locate"].shaderTable->Upload();
+    tracer.pipelines["Locate"].SetPipelineStackSize(m_ShaderTableLayout->GetMaxTraversableDepth());
 
-    m_TracerMap["HTNEE"].pipelines["Build" ].shaderTable->Upload();
-    m_TracerMap["HTNEE"].pipelines["Build" ].SetPipelineStackSize(m_ShaderTableLayout->GetMaxTraversableDepth());
+    tracer.pipelines["Build" ].shaderTable->Upload();
+    tracer.pipelines["Build" ].SetPipelineStackSize(m_ShaderTableLayout->GetMaxTraversableDepth());
 
-    m_TracerMap["HTNEE"].pipelines["Trace" ].shaderTable->Upload();
-    m_TracerMap["HTNEE"].pipelines["Trace" ].SetPipelineStackSize(m_ShaderTableLayout->GetMaxTraversableDepth());
+    tracer.pipelines["Trace" ].shaderTable->Upload();
+    tracer.pipelines["Trace" ].SetPipelineStackSize(m_ShaderTableLayout->GetMaxTraversableDepth());
 
-    m_TracerMap["HTNEE"].pipelines["Final" ].shaderTable->Upload();
-    m_TracerMap["HTNEE"].pipelines["Final" ].SetPipelineStackSize(m_ShaderTableLayout->GetMaxTraversableDepth());
+    tracer.pipelines["Final" ].shaderTable->Upload();
+    tracer.pipelines["Final" ].SetPipelineStackSize(m_ShaderTableLayout->GetMaxTraversableDepth());
 
     auto params = Params();
     {
         params.flags = PARAM_FLAG_NONE;
     }
-    m_TracerMap["HTNEE"].InitParams(m_Opx7Context.get(), params);
-    m_TracerMap["HTNEE"].beginTrace = std::function<void(RTLib::Ext::CUDA::CUDAStream*)>(
+    tracer.InitParams(m_Opx7Context.get(), params);
+    tracer.beginTrace = std::function<std::string(RTLib::Ext::CUDA::CUDAStream*)>(
         [this](RTLib::Ext::CUDA::CUDAStream* stream) {
             {
                 m_MortonQuadTreeController->BegTrace(stream);
                 if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateLocate)
                 {
-                    m_PipelineName = "Locate";
+                    return "Locate";
                 }
                 if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecord)
                 {
-                    m_PipelineName = "Build";
+                    return "Build";
                 }
                 if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecordAndSample) {
-                    m_PipelineName = "Trace";
+                    return "Trace";
                 }
                 if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateSample) {
-                    m_PipelineName = "Final";
+                    return "Final";
                 }
             }
-            return;
+            return "Trace";
         }
     );
-    m_TracerMap["HTNEE"].getParams = std::function<Params(RTLib::Ext::CUDA::CUDABuffer*)>(
+    tracer.getParams = std::function<Params(RTLib::Ext::CUDA::CUDABuffer*)>(
         [this](RTLib::Ext::CUDA::CUDABuffer* frameBuffer) {
             auto params = Params();
             params.accumBuffer = reinterpret_cast<float3*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_AccumBufferCUDA.get()));
@@ -2445,7 +2462,7 @@ void RTLibExtOPX7TestApplication::InitHashTreeNeeTracer()
             return params;
         }
     );
-    m_TracerMap["HTNEE"].endTrace = std::function<bool(RTLib::Ext::CUDA::CUDAStream*)>(
+    tracer.endTrace = std::function<bool(RTLib::Ext::CUDA::CUDAStream*)>(
         [this](RTLib::Ext::CUDA::CUDAStream* stream)->bool {
             bool shouldSync = false; {
                 m_MortonQuadTreeController->EndTrace(stream);
@@ -2465,22 +2482,24 @@ void RTLibExtOPX7TestApplication::InitHashTreeNeeTracer()
             return shouldSync;
         }
     );
+    m_TracerMap["HTNEE"] = std::move(tracer);
 }
 
 void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
 {
+    auto tracer = rtlib::test::TracerData();
     {
         //Locate
         {
-            m_TracerMap["HTRIS"].pipelines["Locate"].compileOptions.usesMotionBlur = false;
-            m_TracerMap["HTRIS"].pipelines["Locate"].compileOptions.traversableGraphFlags = 0;
-            m_TracerMap["HTRIS"].pipelines["Locate"].compileOptions.numAttributeValues = 3;
-            m_TracerMap["HTRIS"].pipelines["Locate"].compileOptions.numPayloadValues = 8;
-            m_TracerMap["HTRIS"].pipelines["Locate"].compileOptions.launchParamsVariableNames = "params";
-            m_TracerMap["HTRIS"].pipelines["Locate"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
-            m_TracerMap["HTRIS"].pipelines["Locate"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
-            m_TracerMap["HTRIS"].pipelines["Locate"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-            m_TracerMap["HTRIS"].pipelines["Locate"].linkOptions.maxTraceDepth = 2;
+            tracer.pipelines["Locate"].compileOptions.usesMotionBlur = false;
+            tracer.pipelines["Locate"].compileOptions.traversableGraphFlags = 0;
+            tracer.pipelines["Locate"].compileOptions.numAttributeValues = 3;
+            tracer.pipelines["Locate"].compileOptions.numPayloadValues = 8;
+            tracer.pipelines["Locate"].compileOptions.launchParamsVariableNames = "params";
+            tracer.pipelines["Locate"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
+            tracer.pipelines["Locate"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
+            tracer.pipelines["Locate"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
+            tracer.pipelines["Locate"].linkOptions.maxTraceDepth = 2;
 
             auto moduleOptions = RTLib::Ext::OPX7::OPX7ModuleCompileOptions{};
             unsigned int flags = PARAM_FLAG_NONE | PARAM_FLAG_NEE | PARAM_FLAG_RIS | PARAM_FLAG_LOCATE;
@@ -2501,21 +2520,21 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
             moduleOptions.boundValueEntries.front().pipelineParamOffsetInBytes = offsetof(Params, flags);
             moduleOptions.boundValueEntries.front().boundValuePtr = &flags;
             moduleOptions.boundValueEntries.front().sizeInBytes = sizeof(flags);
-            m_TracerMap["HTRIS"].pipelines["Locate"].LoadModule(m_Opx7Context.get(), "SimpleKernel.PGDEF", moduleOptions, m_PtxStringMap.at("SimpleGuide2.ptx"));
-            m_TracerMap["HTRIS"].pipelines["Locate"].LoadBuiltInISTriangleModule(m_Opx7Context.get(), "BuiltIn.Triangle.PGDEF", moduleOptions);
-            m_TracerMap["HTRIS"].pipelines["Locate"].LoadBuiltInISSphereModule(m_Opx7Context.get(), "BuiltIn.Sphere.PGDEF", moduleOptions);
+            tracer.pipelines["Locate"].LoadModule(m_Opx7Context.get(), "SimpleKernel.PGDEF", moduleOptions, m_PtxStringMap.at("SimpleGuide2.ptx"));
+            tracer.pipelines["Locate"].LoadBuiltInISTriangleModule(m_Opx7Context.get(), "BuiltIn.Triangle.PGDEF", moduleOptions);
+            tracer.pipelines["Locate"].LoadBuiltInISSphereModule(m_Opx7Context.get(), "BuiltIn.Sphere.PGDEF", moduleOptions);
         }
         //Build
         {
-            m_TracerMap["HTRIS"].pipelines["Build"].compileOptions.usesMotionBlur = false;
-            m_TracerMap["HTRIS"].pipelines["Build"].compileOptions.traversableGraphFlags = 0;
-            m_TracerMap["HTRIS"].pipelines["Build"].compileOptions.numAttributeValues = 3;
-            m_TracerMap["HTRIS"].pipelines["Build"].compileOptions.numPayloadValues = 8;
-            m_TracerMap["HTRIS"].pipelines["Build"].compileOptions.launchParamsVariableNames = "params";
-            m_TracerMap["HTRIS"].pipelines["Build"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
-            m_TracerMap["HTRIS"].pipelines["Build"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
-            m_TracerMap["HTRIS"].pipelines["Build"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-            m_TracerMap["HTRIS"].pipelines["Build"].linkOptions.maxTraceDepth = 2;
+            tracer.pipelines["Build"].compileOptions.usesMotionBlur = false;
+            tracer.pipelines["Build"].compileOptions.traversableGraphFlags = 0;
+            tracer.pipelines["Build"].compileOptions.numAttributeValues = 3;
+            tracer.pipelines["Build"].compileOptions.numPayloadValues = 8;
+            tracer.pipelines["Build"].compileOptions.launchParamsVariableNames = "params";
+            tracer.pipelines["Build"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
+            tracer.pipelines["Build"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
+            tracer.pipelines["Build"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
+            tracer.pipelines["Build"].linkOptions.maxTraceDepth = 2;
 
             auto moduleOptions = RTLib::Ext::OPX7::OPX7ModuleCompileOptions{};
             unsigned int flags = PARAM_FLAG_NONE | PARAM_FLAG_NEE | PARAM_FLAG_RIS;
@@ -2536,21 +2555,21 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
             moduleOptions.boundValueEntries.front().pipelineParamOffsetInBytes = offsetof(Params, flags);
             moduleOptions.boundValueEntries.front().boundValuePtr = &flags;
             moduleOptions.boundValueEntries.front().sizeInBytes = sizeof(flags);
-            m_TracerMap["HTRIS"].pipelines["Build"].LoadModule(m_Opx7Context.get(), "SimpleKernel.PGDEF", moduleOptions, m_PtxStringMap.at("SimpleGuide2.ptx"));
-            m_TracerMap["HTRIS"].pipelines["Build"].LoadBuiltInISTriangleModule(m_Opx7Context.get(), "BuiltIn.Triangle.PGDEF", moduleOptions);
-            m_TracerMap["HTRIS"].pipelines["Build"].LoadBuiltInISSphereModule(m_Opx7Context.get(), "BuiltIn.Sphere.PGDEF", moduleOptions);
+            tracer.pipelines["Build"].LoadModule(m_Opx7Context.get(), "SimpleKernel.PGDEF", moduleOptions, m_PtxStringMap.at("SimpleGuide2.ptx"));
+            tracer.pipelines["Build"].LoadBuiltInISTriangleModule(m_Opx7Context.get(), "BuiltIn.Triangle.PGDEF", moduleOptions);
+            tracer.pipelines["Build"].LoadBuiltInISSphereModule(m_Opx7Context.get(), "BuiltIn.Sphere.PGDEF", moduleOptions);
         }
         //Trace
         {
-            m_TracerMap["HTRIS"].pipelines["Trace"].compileOptions.usesMotionBlur = false;
-            m_TracerMap["HTRIS"].pipelines["Trace"].compileOptions.traversableGraphFlags = 0;
-            m_TracerMap["HTRIS"].pipelines["Trace"].compileOptions.numAttributeValues = 3;
-            m_TracerMap["HTRIS"].pipelines["Trace"].compileOptions.numPayloadValues = 8;
-            m_TracerMap["HTRIS"].pipelines["Trace"].compileOptions.launchParamsVariableNames = "params";
-            m_TracerMap["HTRIS"].pipelines["Trace"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
-            m_TracerMap["HTRIS"].pipelines["Trace"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
-            m_TracerMap["HTRIS"].pipelines["Trace"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-            m_TracerMap["HTRIS"].pipelines["Trace"].linkOptions.maxTraceDepth = 2;
+            tracer.pipelines["Trace"].compileOptions.usesMotionBlur = false;
+            tracer.pipelines["Trace"].compileOptions.traversableGraphFlags = 0;
+            tracer.pipelines["Trace"].compileOptions.numAttributeValues = 3;
+            tracer.pipelines["Trace"].compileOptions.numPayloadValues = 8;
+            tracer.pipelines["Trace"].compileOptions.launchParamsVariableNames = "params";
+            tracer.pipelines["Trace"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
+            tracer.pipelines["Trace"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
+            tracer.pipelines["Trace"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
+            tracer.pipelines["Trace"].linkOptions.maxTraceDepth = 2;
 
             auto moduleOptions = RTLib::Ext::OPX7::OPX7ModuleCompileOptions{};
             unsigned int flags = PARAM_FLAG_NONE | PARAM_FLAG_BUILD | PARAM_FLAG_NEE | PARAM_FLAG_RIS;
@@ -2571,21 +2590,21 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
             moduleOptions.boundValueEntries.front().pipelineParamOffsetInBytes = offsetof(Params, flags);
             moduleOptions.boundValueEntries.front().boundValuePtr = &flags;
             moduleOptions.boundValueEntries.front().sizeInBytes = sizeof(flags);
-            m_TracerMap["HTRIS"].pipelines["Trace"].LoadModule(m_Opx7Context.get(), "SimpleKernel.PGDEF", moduleOptions, m_PtxStringMap.at("SimpleGuide2.ptx"));
-            m_TracerMap["HTRIS"].pipelines["Trace"].LoadBuiltInISTriangleModule(m_Opx7Context.get(), "BuiltIn.Triangle.PGDEF", moduleOptions);
-            m_TracerMap["HTRIS"].pipelines["Trace"].LoadBuiltInISSphereModule(m_Opx7Context.get(), "BuiltIn.Sphere.PGDEF", moduleOptions);
+            tracer.pipelines["Trace"].LoadModule(m_Opx7Context.get(), "SimpleKernel.PGDEF", moduleOptions, m_PtxStringMap.at("SimpleGuide2.ptx"));
+            tracer.pipelines["Trace"].LoadBuiltInISTriangleModule(m_Opx7Context.get(), "BuiltIn.Triangle.PGDEF", moduleOptions);
+            tracer.pipelines["Trace"].LoadBuiltInISSphereModule(m_Opx7Context.get(), "BuiltIn.Sphere.PGDEF", moduleOptions);
         }
         //Final
         {
-            m_TracerMap["HTRIS"].pipelines["Final"].compileOptions.usesMotionBlur = false;
-            m_TracerMap["HTRIS"].pipelines["Final"].compileOptions.traversableGraphFlags = 0;
-            m_TracerMap["HTRIS"].pipelines["Final"].compileOptions.numAttributeValues = 3;
-            m_TracerMap["HTRIS"].pipelines["Final"].compileOptions.numPayloadValues = 8;
-            m_TracerMap["HTRIS"].pipelines["Final"].compileOptions.launchParamsVariableNames = "params";
-            m_TracerMap["HTRIS"].pipelines["Final"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
-            m_TracerMap["HTRIS"].pipelines["Final"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
-            m_TracerMap["HTRIS"].pipelines["Final"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-            m_TracerMap["HTRIS"].pipelines["Final"].linkOptions.maxTraceDepth = 2;
+            tracer.pipelines["Final"].compileOptions.usesMotionBlur = false;
+            tracer.pipelines["Final"].compileOptions.traversableGraphFlags = 0;
+            tracer.pipelines["Final"].compileOptions.numAttributeValues = 3;
+            tracer.pipelines["Final"].compileOptions.numPayloadValues = 8;
+            tracer.pipelines["Final"].compileOptions.launchParamsVariableNames = "params";
+            tracer.pipelines["Final"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
+            tracer.pipelines["Final"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
+            tracer.pipelines["Final"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
+            tracer.pipelines["Final"].linkOptions.maxTraceDepth = 2;
 
             auto moduleOptions = RTLib::Ext::OPX7::OPX7ModuleCompileOptions{};
             unsigned int flags = PARAM_FLAG_NONE | PARAM_FLAG_BUILD | PARAM_FLAG_FINAL | PARAM_FLAG_NEE | PARAM_FLAG_RIS;
@@ -2606,34 +2625,34 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
             moduleOptions.boundValueEntries.front().pipelineParamOffsetInBytes = offsetof(Params, flags);
             moduleOptions.boundValueEntries.front().boundValuePtr = &flags;
             moduleOptions.boundValueEntries.front().sizeInBytes = sizeof(flags);
-            m_TracerMap["HTRIS"].pipelines["Final"].LoadModule(m_Opx7Context.get(), "SimpleKernel.PGDEF", moduleOptions, m_PtxStringMap.at("SimpleGuide2.ptx"));
-            m_TracerMap["HTRIS"].pipelines["Final"].LoadBuiltInISTriangleModule(m_Opx7Context.get(), "BuiltIn.Triangle.PGDEF", moduleOptions);
-            m_TracerMap["HTRIS"].pipelines["Final"].LoadBuiltInISSphereModule(m_Opx7Context.get(), "BuiltIn.Sphere.PGDEF", moduleOptions);
+            tracer.pipelines["Final"].LoadModule(m_Opx7Context.get(), "SimpleKernel.PGDEF", moduleOptions, m_PtxStringMap.at("SimpleGuide2.ptx"));
+            tracer.pipelines["Final"].LoadBuiltInISTriangleModule(m_Opx7Context.get(), "BuiltIn.Triangle.PGDEF", moduleOptions);
+            tracer.pipelines["Final"].LoadBuiltInISSphereModule(m_Opx7Context.get(), "BuiltIn.Sphere.PGDEF", moduleOptions);
         }
 
     }
     auto stNames = std::vector<std::string>{ "Locate","Trace","Build","Final" };
     for (auto& stName : stNames) {
-        m_TracerMap["HTRIS"].pipelines[stName].SetProgramGroupRG(m_Opx7Context.get(), "SimpleKernel.PGDEF", "__raygen__default");
-        m_TracerMap["HTRIS"].pipelines[stName].SetProgramGroupEP(m_Opx7Context.get(), "SimpleKernel.PGDEF", "__exception__ep");
-        m_TracerMap["HTRIS"].pipelines[stName].SetProgramGroupMS(m_Opx7Context.get(), "SimpleKernel.Radiance", "SimpleKernel.PGDEF", "__miss__radiance");
-        m_TracerMap["HTRIS"].pipelines[stName].SetProgramGroupMS(m_Opx7Context.get(), "SimpleKernel.Occluded", "SimpleKernel.PGDEF", "__miss__occluded");
-        m_TracerMap["HTRIS"].pipelines[stName].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Radiance.Triangle", "SimpleKernel.PGDEF", "__closesthit__radiance", "", "", "BuiltIn.Triangle.PGDEF", "");
-        m_TracerMap["HTRIS"].pipelines[stName].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Occluded.Triangle", "SimpleKernel.PGDEF", "__closesthit__occluded", "", "", "BuiltIn.Triangle.PGDEF", "");
-        m_TracerMap["HTRIS"].pipelines[stName].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Radiance.Sphere", "SimpleKernel.PGDEF", "__closesthit__radiance_sphere", "", "", "BuiltIn.Sphere.PGDEF", "");
-        m_TracerMap["HTRIS"].pipelines[stName].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Occluded.Sphere", "SimpleKernel.PGDEF", "__closesthit__occluded", "", "", "BuiltIn.Sphere.PGDEF", "");
+        tracer.pipelines[stName].SetProgramGroupRG(m_Opx7Context.get(), "SimpleKernel.PGDEF", "__raygen__default");
+        tracer.pipelines[stName].SetProgramGroupEP(m_Opx7Context.get(), "SimpleKernel.PGDEF", "__exception__ep");
+        tracer.pipelines[stName].SetProgramGroupMS(m_Opx7Context.get(), "SimpleKernel.Radiance", "SimpleKernel.PGDEF", "__miss__radiance");
+        tracer.pipelines[stName].SetProgramGroupMS(m_Opx7Context.get(), "SimpleKernel.Occluded", "SimpleKernel.PGDEF", "__miss__occluded");
+        tracer.pipelines[stName].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Radiance.Triangle", "SimpleKernel.PGDEF", "__closesthit__radiance", "", "", "BuiltIn.Triangle.PGDEF", "");
+        tracer.pipelines[stName].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Occluded.Triangle", "SimpleKernel.PGDEF", "__closesthit__occluded", "", "", "BuiltIn.Triangle.PGDEF", "");
+        tracer.pipelines[stName].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Radiance.Sphere", "SimpleKernel.PGDEF", "__closesthit__radiance_sphere", "", "", "BuiltIn.Sphere.PGDEF", "");
+        tracer.pipelines[stName].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Occluded.Sphere", "SimpleKernel.PGDEF", "__closesthit__occluded", "", "", "BuiltIn.Sphere.PGDEF", "");
     }
-    m_TracerMap["HTRIS"].pipelines["Locate"].InitPipeline(m_Opx7Context.get());
-    m_TracerMap["HTRIS"].pipelines["Locate"].shaderTable = this->NewShaderTable();
+    tracer.pipelines["Locate"].InitPipeline(m_Opx7Context.get());
+    tracer.pipelines["Locate"].shaderTable = this->NewShaderTable();
 
-    m_TracerMap["HTRIS"].pipelines["Build"].InitPipeline(m_Opx7Context.get());
-    m_TracerMap["HTRIS"].pipelines["Build"].shaderTable = this->NewShaderTable();
+    tracer.pipelines["Build"].InitPipeline(m_Opx7Context.get());
+    tracer.pipelines["Build"].shaderTable = this->NewShaderTable();
 
-    m_TracerMap["HTRIS"].pipelines["Trace"].InitPipeline(m_Opx7Context.get());
-    m_TracerMap["HTRIS"].pipelines["Trace"].shaderTable = this->NewShaderTable();
+    tracer.pipelines["Trace"].InitPipeline(m_Opx7Context.get());
+    tracer.pipelines["Trace"].shaderTable = this->NewShaderTable();
 
-    m_TracerMap["HTRIS"].pipelines["Final"].InitPipeline(m_Opx7Context.get());
-    m_TracerMap["HTRIS"].pipelines["Final"].shaderTable = this->NewShaderTable();
+    tracer.pipelines["Final"].InitPipeline(m_Opx7Context.get());
+    tracer.pipelines["Final"].shaderTable = this->NewShaderTable();
 
     auto programGroupHGNames = std::vector<std::string>{
         "SimpleKernel.Radiance",
@@ -2641,10 +2660,10 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
     };
     auto instanceAndGeometryNames = rtlib::test::EnumerateGeometriesFromGASInstances(m_ShaderTableLayout.get(), m_SceneData.world);
     for (auto& stName : stNames) {
-        m_TracerMap["HTRIS"].pipelines[stName].SetHostRayGenRecordTypeData(rtlib::test::GetRaygenData(m_SceneData.GetCamera()));
-        m_TracerMap["HTRIS"].pipelines[stName].SetHostMissRecordTypeData(RAY_TYPE_RADIANCE, "SimpleKernel.Radiance", MissData{ make_float4(m_BgColor,1.0f) });
-        m_TracerMap["HTRIS"].pipelines[stName].SetHostMissRecordTypeData(RAY_TYPE_OCCLUDED, "SimpleKernel.Occluded", MissData{});
-        m_TracerMap["HTRIS"].pipelines[stName].SetHostExceptionRecordTypeData(unsigned int());
+        tracer.pipelines[stName].SetHostRayGenRecordTypeData(rtlib::test::GetRaygenData(m_SceneData.GetCamera()));
+        tracer.pipelines[stName].SetHostMissRecordTypeData(RAY_TYPE_RADIANCE, "SimpleKernel.Radiance", MissData{ make_float4(m_BgColor,1.0f) });
+        tracer.pipelines[stName].SetHostMissRecordTypeData(RAY_TYPE_OCCLUDED, "SimpleKernel.Occluded", MissData{});
+        tracer.pipelines[stName].SetHostExceptionRecordTypeData(unsigned int());
 
         for (auto& [instanceName, geometryName] : instanceAndGeometryNames)
         {
@@ -2663,7 +2682,7 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
                         {
                             hitgroupData = rtlib::test::GetHitgroupFromObjMesh(meshData.materials[i / desc.recordStride], mesh, m_TextureMap);
                         }
-                        m_TracerMap["HTRIS"].pipelines[stName].SetHostHitgroupRecordTypeData(desc.recordOffset + i, programGroupHGNames[i % desc.recordStride] + ".Triangle", hitgroupData);
+                        tracer.pipelines[stName].SetHostHitgroupRecordTypeData(desc.recordOffset + i, programGroupHGNames[i % desc.recordStride] + ".Triangle", hitgroupData);
                     }
                 }
             }
@@ -2677,49 +2696,49 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
                     {
                         hitgroupData = rtlib::test::GetHitgroupFromSphere(sphereRes->materials[i / desc.recordStride], sphereRes, m_TextureMap);
                     }
-                    m_TracerMap["HTRIS"].pipelines[stName].SetHostHitgroupRecordTypeData(desc.recordOffset + i, programGroupHGNames[i % desc.recordStride] + ".Sphere", hitgroupData);
+                    tracer.pipelines[stName].SetHostHitgroupRecordTypeData(desc.recordOffset + i, programGroupHGNames[i % desc.recordStride] + ".Sphere", hitgroupData);
                 }
             }
         }
     }
 
-    m_TracerMap["HTRIS"].pipelines["Locate"].shaderTable->Upload();
-    m_TracerMap["HTRIS"].pipelines["Locate"].SetPipelineStackSize(m_ShaderTableLayout->GetMaxTraversableDepth());
-    m_TracerMap["HTRIS"].pipelines["Build"].shaderTable->Upload();
-    m_TracerMap["HTRIS"].pipelines["Build"].SetPipelineStackSize(m_ShaderTableLayout->GetMaxTraversableDepth());
-    m_TracerMap["HTRIS"].pipelines["Trace"].shaderTable->Upload();
-    m_TracerMap["HTRIS"].pipelines["Trace"].SetPipelineStackSize(m_ShaderTableLayout->GetMaxTraversableDepth());
-    m_TracerMap["HTRIS"].pipelines["Final"].shaderTable->Upload();
-    m_TracerMap["HTRIS"].pipelines["Final"].SetPipelineStackSize(m_ShaderTableLayout->GetMaxTraversableDepth());
+    tracer.pipelines["Locate"].shaderTable->Upload();
+    tracer.pipelines["Locate"].SetPipelineStackSize(m_ShaderTableLayout->GetMaxTraversableDepth());
+    tracer.pipelines["Build"].shaderTable->Upload();
+    tracer.pipelines["Build"].SetPipelineStackSize(m_ShaderTableLayout->GetMaxTraversableDepth());
+    tracer.pipelines["Trace"].shaderTable->Upload();
+    tracer.pipelines["Trace"].SetPipelineStackSize(m_ShaderTableLayout->GetMaxTraversableDepth());
+    tracer.pipelines["Final"].shaderTable->Upload();
+    tracer.pipelines["Final"].SetPipelineStackSize(m_ShaderTableLayout->GetMaxTraversableDepth());
 
     auto params = Params();
     {
         params.flags = PARAM_FLAG_NONE;
     }
-    m_TracerMap["HTRIS"].InitParams(m_Opx7Context.get(), params);
-    m_TracerMap["HTRIS"].beginTrace = std::function<void(RTLib::Ext::CUDA::CUDAStream*)>(
+    tracer.InitParams(m_Opx7Context.get(), params);
+    tracer.beginTrace = std::function<std::string(RTLib::Ext::CUDA::CUDAStream*)>(
         [this](RTLib::Ext::CUDA::CUDAStream* stream) {
             {
                 m_MortonQuadTreeController->BegTrace(stream);
                 if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateLocate)
                 {
-                    m_PipelineName = "Locate";
+                    return "Locate";
                 }
                 if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecord)
                 {
-                    m_PipelineName = "Build";
+                    return "Build";
                 }
                 if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecordAndSample) {
-                    m_PipelineName = "Trace";
+                    return "Trace";
                 }
                 if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateSample) {
-                    m_PipelineName = "Final";
+                    return "Final";
                 }
             }
-            return;
+            return "Trace";
         }
     );
-    m_TracerMap["HTRIS"].getParams = std::function<Params(RTLib::Ext::CUDA::CUDABuffer*)>(
+    tracer.getParams = std::function<Params(RTLib::Ext::CUDA::CUDABuffer*)>(
         [this](RTLib::Ext::CUDA::CUDABuffer* frameBuffer) {
             auto params = Params();
             params.accumBuffer = reinterpret_cast<float3*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_AccumBufferCUDA.get()));
@@ -2774,7 +2793,7 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
             return params;
         }
     );
-    m_TracerMap["HTRIS"].endTrace = std::function<bool(RTLib::Ext::CUDA::CUDAStream*)>(
+    tracer.endTrace = std::function<bool(RTLib::Ext::CUDA::CUDAStream*)>(
         [this](RTLib::Ext::CUDA::CUDAStream* stream)->bool {
             bool shouldSync = false;
             {
@@ -2795,6 +2814,7 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
             return shouldSync;
         }
     );
+    m_TracerMap["HTRIS"] = std::move(tracer);
 }
 
  void RTLibExtOPX7TestApplication::FreeTracers()
@@ -2896,25 +2916,12 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
     m_GlfwWindow->SetCursorPosCallback(CursorPosCallback);
 }
 
- bool RTLibExtOPX7TestApplication::TracePipeline(RTLib::Ext::CUDA::CUDAStream* stream, RTLib::Ext::CUDA::CUDABuffer* frameBuffer)
-{   
-    m_TracerMap[m_CurTracerName].beginTrace(stream);
-    auto params = m_TracerMap[m_CurTracerName].getParams(frameBuffer);
-    if (stream) {
-        stream->CopyMemoryToBuffer(m_TracerMap[m_CurTracerName].paramsBuffer.get(), { { &params, 0, sizeof(params) } });
-    }
-    else {
-        m_Opx7Context->CopyMemoryToBuffer(m_TracerMap[m_CurTracerName].paramsBuffer.get(), { { &params, 0, sizeof(params) } });
-    }
-    m_TracerMap[m_CurTracerName].Launch(stream, m_PipelineName, m_SceneData.config.width, m_SceneData.config.height);
-    return m_TracerMap[m_CurTracerName].endTrace(stream);
-}
  void RTLibExtOPX7TestApplication::SetupPipeline()
  {
      auto desc = RTLib::Ext::CUDA::CUDABufferCreateDesc();
      desc.sizeInBytes = m_FrameBufferCUDA->GetSizeInBytes();
      auto frameBufferTmp = m_Opx7Context->CreateBuffer(desc);
-     TracePipeline(nullptr, frameBufferTmp);
+     m_TracerMap[m_CurTracerName].TracePipeline(m_Opx7Context.get(), nullptr, frameBufferTmp, m_SceneData.config.width, m_SceneData.config.height);
      m_SamplesForAccum = 0;
      m_TimesForIterations = std::vector<unsigned long long>{ 0 };
      cuMemsetD32(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_AccumBufferCUDA.get()), m_AccumBufferCUDA->GetSizeInBytes() / sizeof(float), 0);
@@ -2967,8 +2974,8 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
         }
         if (m_EventState.isMovedCamera)
         {
-            m_TracerMap[m_CurTracerName].pipelines[m_PipelineName].SetHostRayGenRecordTypeData(rtlib::test::GetRaygenData(m_SceneData.GetCamera()));
-            m_TracerMap[m_CurTracerName].pipelines[m_PipelineName].shaderTable->UploadRaygenRecord();
+            m_TracerMap[m_CurTracerName].GetCurPipeline().SetHostRayGenRecordTypeData(rtlib::test::GetRaygenData(m_SceneData.GetCamera()));
+            m_TracerMap[m_CurTracerName].GetCurPipeline().shaderTable->UploadRaygenRecord();
         }
         if (m_SamplesForAccum % 100 == 99)
         {
@@ -3189,7 +3196,7 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
     {
         auto  beg = std::chrono::system_clock::now();
         auto frameBufferCUDA = m_FrameBufferCUGL->Map(stream);
-        (void)this->TracePipeline(stream,  frameBufferCUDA);
+        (void)m_TracerMap[m_CurTracerName].TracePipeline(m_Opx7Context.get(), stream, frameBufferCUDA, m_SceneData.config.width,m_SceneData.config.height);
         m_FrameBufferCUGL->Unmap(stream);
         if (stream) {
             RTLIB_CORE_ASSERT_IF_FAILED(stream->Synchronize());
@@ -3205,7 +3212,7 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
     else
     {
         auto beg = std::chrono::system_clock::now();
-        if (this->TracePipeline(stream, m_FrameBufferCUDA.get())) {
+        if (this->m_TracerMap[m_CurTracerName].TracePipeline(m_Opx7Context.get(), stream, m_FrameBufferCUDA.get(),m_SceneData.config.width, m_SceneData.config.height)) {
             RTLIB_CORE_ASSERT_IF_FAILED(stream->Synchronize());
         }
         auto end = std::chrono::system_clock::now();

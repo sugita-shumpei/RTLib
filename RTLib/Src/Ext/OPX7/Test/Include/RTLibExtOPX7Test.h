@@ -1320,11 +1320,19 @@ namespace rtlib
         };
         struct TracerData
         {
+            std::string                                          curPipelineName;
             std::unordered_map<std::string, PipelineData>        pipelines;
             std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>        paramsBuffer;
-            std::function<void(RTLib::Ext::CUDA::CUDAStream*)>   beginTrace;
-            std::function<Params(RTLib::Ext::CUDA::CUDABuffer*)> getParams;
-            std::function<bool(RTLib::Ext::CUDA::CUDAStream*)>   endTrace;
+            std::function<std::string(RTLib::Ext::CUDA::CUDAStream*)> beginTrace;
+            std::function<Params(RTLib::Ext::CUDA::CUDABuffer*)>      getParams;
+            std::function<bool(RTLib::Ext::CUDA::CUDAStream*)>        endTrace;
+
+            auto GetCurPipeline()const -> const PipelineData& {
+                return pipelines.at(curPipelineName);
+            }
+            auto GetCurPipeline() -> PipelineData& {
+                return pipelines.at(curPipelineName);
+            }
 
             template<typename ParamsType>
             void InitParams(RTLib::Ext::OPX7::OPX7Context* context, ParamsType params) {
@@ -1345,10 +1353,20 @@ namespace rtlib
                 paramsBuffer.reset();
             }
 
-            void Launch(RTLib::Ext::CUDA::CUDAStream* stream, std::string pipelineName, int width, int height, int depth = 1)
+            bool TracePipeline(RTLib::Ext::CUDA::CUDAContext* cudaContext, RTLib::Ext::CUDA::CUDAStream* stream, RTLib::Ext::CUDA::CUDABuffer* frameBuffer, int width, int height)
             {
-                pipelines[pipelineName].Launch(stream, paramsBuffer.get(), width, height, depth);
+                curPipelineName = beginTrace(stream);
+                auto params = getParams(frameBuffer);
+                if (stream) {
+                    stream->CopyMemoryToBuffer(paramsBuffer.get(), { { &params, 0, sizeof(params) } });
+                }
+                else {
+                    cudaContext->CopyMemoryToBuffer(paramsBuffer.get(), { { &params, 0, sizeof(params) } });
+                }
+                pipelines[curPipelineName].Launch(stream, paramsBuffer.get(), width, height, 1);
+                return endTrace(stream);
             }
+
         };
 
         struct  EventState
