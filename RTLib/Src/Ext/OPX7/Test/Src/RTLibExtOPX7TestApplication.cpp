@@ -489,25 +489,7 @@ void RTLibExtOPX7TestApplication::InitDefTracer()
     );
     tracer.getParams  = std::function<Params(RTLib::Ext::CUDA::CUDABuffer*)>(
         [this](RTLib::Ext::CUDA::CUDABuffer* frameBuffer) {
-            auto params = Params();
-            params.accumBuffer = reinterpret_cast<float3*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_AccumBufferCUDA.get()));
-            params.seedBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<unsigned int>(m_SeedBufferCUDA.get());
-            params.frameBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<uchar4>(frameBuffer);
-            params.width = GetTraceConfig().width;
-            params.height = GetTraceConfig().height;
-            params.maxDepth = GetTraceConfig().maxDepth;
-            params.samplesForAccum = m_SamplesForAccum;
-            params.samplesForLaunch = GetTraceConfig().samples;
-            params.debugFrameType = m_DebugFrameType;
-            params.gasHandle = m_InstanceASMap["Root"].handle;
-            params.lights.count = m_lightBuffer.cpuHandle.size();
-            params.lights.data = reinterpret_cast<MeshLight*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_lightBuffer.gpuHandle.get()));
-            params.grid = m_HashBufferCUDA.GetHandle();
-            params.numCandidates = GetTraceConfig().custom.GetUInt32Or("Ris.NumCandidates", 32);
-            //std::cout << params.maxDepth << std::endl;
-            if (m_EnableGrid) {
-                params.diffuseGridBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<float4>(m_DiffuseBufferCUDA.get());
-            }
+            auto params = this->GetDefaultParams(frameBuffer);
             {
                 params.flags = PARAM_FLAG_NONE;
 
@@ -627,25 +609,8 @@ void RTLibExtOPX7TestApplication::InitNeeTracer()
     );
     tracer.getParams = std::function<Params(RTLib::Ext::CUDA::CUDABuffer*)>(
         [this](RTLib::Ext::CUDA::CUDABuffer* frameBuffer) {
-            auto params = Params();
-            params.accumBuffer = reinterpret_cast<float3*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_AccumBufferCUDA.get()));
-            params.seedBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<unsigned int>(m_SeedBufferCUDA.get());
-            params.frameBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<uchar4>(frameBuffer);
-            params.width = GetTraceConfig().width;
-            params.height = GetTraceConfig().height;
-            params.maxDepth = GetTraceConfig().maxDepth;
-            params.samplesForAccum = m_SamplesForAccum;
-            params.samplesForLaunch = GetTraceConfig().samples;
-            params.debugFrameType = m_DebugFrameType;
-            params.gasHandle = m_InstanceASMap["Root"].handle;
-            params.lights.count = m_lightBuffer.cpuHandle.size();
-            params.lights.data = reinterpret_cast<MeshLight*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_lightBuffer.gpuHandle.get()));
-            params.grid = m_HashBufferCUDA.GetHandle();
-            params.numCandidates = GetTraceConfig().custom.GetUInt32Or("Ris.NumCandidates", 32);
-            //std::cout << params.maxDepth << std::endl;
-            if (m_EnableGrid) {
-                params.diffuseGridBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<float4>(m_DiffuseBufferCUDA.get());
-            }
+
+            auto params = this->GetDefaultParams(frameBuffer);
             {
                 params.flags = PARAM_FLAG_NEE;
 
@@ -764,25 +729,8 @@ void RTLibExtOPX7TestApplication::InitRisTracer()
     );
     tracer.getParams = std::function<Params(RTLib::Ext::CUDA::CUDABuffer*)>(
         [this](RTLib::Ext::CUDA::CUDABuffer* frameBuffer) {
-            auto params = Params();
-            params.accumBuffer = reinterpret_cast<float3*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_AccumBufferCUDA.get()));
-            params.seedBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<unsigned int>(m_SeedBufferCUDA.get());
-            params.frameBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<uchar4>(frameBuffer);
-            params.width = GetTraceConfig().width;
-            params.height = GetTraceConfig().height;
-            params.maxDepth = GetTraceConfig().maxDepth;
-            params.samplesForAccum = m_SamplesForAccum;
-            params.samplesForLaunch = GetTraceConfig().samples;
-            params.debugFrameType = m_DebugFrameType;
-            params.gasHandle = m_InstanceASMap["Root"].handle;
-            params.lights.count = m_lightBuffer.cpuHandle.size();
-            params.lights.data = reinterpret_cast<MeshLight*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_lightBuffer.gpuHandle.get()));
-            params.grid = m_HashBufferCUDA.GetHandle();
-            params.numCandidates = GetTraceConfig().custom.GetUInt32Or("Ris.NumCandidates", 32);
-            //std::cout << params.maxDepth << std::endl;
-            if (m_EnableGrid) {
-                params.diffuseGridBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<float4>(m_DiffuseBufferCUDA.get());
-            }
+
+            auto params = this->GetDefaultParams(frameBuffer);
             if (m_CurTracerName == "RIS") {
                 params.flags = PARAM_FLAG_NEE | PARAM_FLAG_RIS;
 
@@ -891,26 +839,8 @@ void RTLibExtOPX7TestApplication::InitDbgTracer() {
     );
     tracer.getParams = std::function<Params(RTLib::Ext::CUDA::CUDABuffer*)>(
         [this](RTLib::Ext::CUDA::CUDABuffer* frameBuffer) {
-            auto params = Params();
-            params.accumBuffer = reinterpret_cast<float3*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_AccumBufferCUDA.get()));
-            params.seedBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<unsigned int>(m_SeedBufferCUDA.get());
-            params.frameBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<uchar4>(frameBuffer);
-            params.width = GetTraceConfig().width;
-            params.height = GetTraceConfig().height;
-            params.maxDepth = GetTraceConfig().maxDepth;
-            params.samplesForAccum = m_SamplesForAccum;
-            params.samplesForLaunch = GetTraceConfig().samples;
-            params.debugFrameType = m_DebugFrameType;
-            params.gasHandle = m_InstanceASMap["Root"].handle;
-            params.lights.count = m_lightBuffer.cpuHandle.size();
-            params.lights.data = reinterpret_cast<MeshLight*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_lightBuffer.gpuHandle.get()));
-            params.grid = m_HashBufferCUDA.GetHandle();
-            params.numCandidates = GetTraceConfig().custom.GetUInt32Or("Ris.NumCandidates", 32);
-            //std::cout << params.maxDepth << std::endl;
-            if (m_EnableGrid) {
-                params.diffuseGridBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<float4>(m_DiffuseBufferCUDA.get());
-            }
-            if (m_CurTracerName == "DBG") {
+            auto params = this->GetDefaultParams(frameBuffer); 
+            {
                 if (m_EnableGrid) {
                     params.flags |= PARAM_FLAG_USE_GRID;
                     params.mortonTree = m_MortonQuadTreeController->GetGpuHandle();
@@ -1069,63 +999,21 @@ void RTLibExtOPX7TestApplication::InitSdTreeDefTracer()
     }
     tracer.InitParams(m_Opx7Context.get(),params);
     tracer.beginTrace = std::function<std::string(RTLib::Ext::CUDA::CUDAStream*)>(
-        [this](RTLib::Ext::CUDA::CUDAStream* stream) {
-            {
-                m_SdTreeController->BegTrace(stream);
-                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecord)
-                {
-                    return "Build";
-                }
-                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecordAndSample) {
-                    return "Trace";
-                }
-                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateSample) {
-                    return "Final";
-                }
-            }
-            return "Trace";
+        [this](RTLib::Ext::CUDA::CUDAStream* stream) { 
+            m_SdTreeController->BegTrace(stream);
+            return rtlib::test::GetPipelineNameFromSdTreeTraceState(m_SdTreeController->GetState());
         }
     );
     tracer.getParams = std::function<Params(RTLib::Ext::CUDA::CUDABuffer*)>(
         [this](RTLib::Ext::CUDA::CUDABuffer* frameBuffer) {
-            auto params = Params();
-            params.accumBuffer = reinterpret_cast<float3*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_AccumBufferCUDA.get()));
-            params.seedBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<unsigned int>(m_SeedBufferCUDA.get());
-            params.frameBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<uchar4>(frameBuffer);
-            params.width = GetTraceConfig().width;
-            params.height = GetTraceConfig().height;
-            params.maxDepth = GetTraceConfig().maxDepth;
-            params.samplesForAccum = m_SamplesForAccum;
-            params.samplesForLaunch = GetTraceConfig().samples;
-            params.debugFrameType = m_DebugFrameType;
-            params.gasHandle = m_InstanceASMap["Root"].handle;
-            params.lights.count = m_lightBuffer.cpuHandle.size();
-            params.lights.data = reinterpret_cast<MeshLight*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_lightBuffer.gpuHandle.get()));
-            params.grid = m_HashBufferCUDA.GetHandle();
-            params.numCandidates = GetTraceConfig().custom.GetUInt32Or("Ris.NumCandidates", 32);
-            //std::cout << params.maxDepth << std::endl;
-            if (m_EnableGrid) {
-                params.diffuseGridBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<float4>(m_DiffuseBufferCUDA.get());
-            }
+            auto params = this->GetDefaultParams(frameBuffer);
             {
                 params.flags = PARAM_FLAG_NONE;
                 if (m_EnableTree) {
                     params.tree = m_SdTreeController->GetGpuSTree();
                     params.flags |= PARAM_FLAG_USE_TREE;
                 }
-                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecord)
-                {
-                    params.flags |= PARAM_FLAG_NONE;
-                }
-                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecordAndSample)
-                {
-                    params.flags |= PARAM_FLAG_BUILD;
-                }
-                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateSample)
-                {
-                    params.flags |= PARAM_FLAG_BUILD;
-                    params.flags |= PARAM_FLAG_FINAL;
-                }
+                params.flags |= rtlib::test::GetParamFlagsFromSdTreeTraceState(m_SdTreeController->GetState());
             }
             return params;
         }
@@ -1296,43 +1184,13 @@ void RTLibExtOPX7TestApplication::InitSdTreeNeeTracer()
     tracer.InitParams(m_Opx7Context.get(), params);
     tracer.beginTrace = std::function<std::string(RTLib::Ext::CUDA::CUDAStream*)>(
         [this](RTLib::Ext::CUDA::CUDAStream* stream) {
-            {
-                m_SdTreeController->BegTrace(stream);
-                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecord)
-                {
-                    return "Build";
-                }
-                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecordAndSample) {
-                    return "Trace";
-                }
-                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateSample) {
-                    return "Final";
-                }
-            }
-            return "Trace";
+            m_SdTreeController->BegTrace(stream);
+            return rtlib::test::GetPipelineNameFromSdTreeTraceState(m_SdTreeController->GetState());
         }
     );
     tracer.getParams = std::function<Params(RTLib::Ext::CUDA::CUDABuffer*)>(
         [this](RTLib::Ext::CUDA::CUDABuffer* frameBuffer) {
-            auto params = Params();
-            params.accumBuffer = reinterpret_cast<float3*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_AccumBufferCUDA.get()));
-            params.seedBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<unsigned int>(m_SeedBufferCUDA.get());
-            params.frameBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<uchar4>(frameBuffer);
-            params.width = GetTraceConfig().width;
-            params.height = GetTraceConfig().height;
-            params.maxDepth = GetTraceConfig().maxDepth;
-            params.samplesForAccum = m_SamplesForAccum;
-            params.samplesForLaunch = GetTraceConfig().samples;
-            params.debugFrameType = m_DebugFrameType;
-            params.gasHandle = m_InstanceASMap["Root"].handle;
-            params.lights.count = m_lightBuffer.cpuHandle.size();
-            params.lights.data = reinterpret_cast<MeshLight*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_lightBuffer.gpuHandle.get()));
-            params.grid = m_HashBufferCUDA.GetHandle();
-            params.numCandidates = GetTraceConfig().custom.GetUInt32Or("Ris.NumCandidates", 32);
-            //std::cout << params.maxDepth << std::endl;
-            if (m_EnableGrid) {
-                params.diffuseGridBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<float4>(m_DiffuseBufferCUDA.get());
-            }
+            auto params = this->GetDefaultParams(frameBuffer);
             {
                 params.flags = PARAM_FLAG_NONE;
                 if (m_EnableTree) {
@@ -1342,21 +1200,9 @@ void RTLibExtOPX7TestApplication::InitSdTreeNeeTracer()
 
                 {
                     params.flags |= PARAM_FLAG_NEE;
+                    params.flags |= rtlib::test::GetParamFlagsFromSdTreeTraceState(m_SdTreeController->GetState());
                 }
 
-                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecord)
-                {
-                    params.flags |= PARAM_FLAG_NONE;
-                }
-                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecordAndSample)
-                {
-                    params.flags |= PARAM_FLAG_BUILD;
-                }
-                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateSample)
-                {
-                    params.flags |= PARAM_FLAG_BUILD;
-                    params.flags |= PARAM_FLAG_FINAL;
-                }
             }
             return params;
         }
@@ -1524,43 +1370,13 @@ void RTLibExtOPX7TestApplication::InitSdTreeRisTracer()
     tracer.InitParams(m_Opx7Context.get(), params);
     tracer.beginTrace = std::function<std::string(RTLib::Ext::CUDA::CUDAStream*)>(
         [this](RTLib::Ext::CUDA::CUDAStream* stream) {
-            {
-                m_SdTreeController->BegTrace(stream);
-                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecord)
-                {
-                    return "Build";
-                }
-                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecordAndSample) {
-                    return "Trace";
-                }
-                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateSample) {
-                    return "Final";
-                }
-            }
-            return "Trace";
+            m_SdTreeController->BegTrace(stream);
+            return rtlib::test::GetPipelineNameFromSdTreeTraceState(m_SdTreeController->GetState());
         }
     );
     tracer.getParams = std::function<Params(RTLib::Ext::CUDA::CUDABuffer*)>(
         [this](RTLib::Ext::CUDA::CUDABuffer* frameBuffer) {
-            auto params = Params();
-            params.accumBuffer = reinterpret_cast<float3*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_AccumBufferCUDA.get()));
-            params.seedBuffer  = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<unsigned int>(m_SeedBufferCUDA.get());
-            params.frameBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<uchar4>(frameBuffer);
-            params.width = GetTraceConfig().width;
-            params.height = GetTraceConfig().height;
-            params.maxDepth = GetTraceConfig().maxDepth;
-            params.samplesForAccum = m_SamplesForAccum;
-            params.samplesForLaunch = GetTraceConfig().samples;
-            params.debugFrameType = m_DebugFrameType;
-            params.gasHandle = m_InstanceASMap["Root"].handle;
-            params.lights.count = m_lightBuffer.cpuHandle.size();
-            params.lights.data = reinterpret_cast<MeshLight*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_lightBuffer.gpuHandle.get()));
-            params.grid = m_HashBufferCUDA.GetHandle();
-            params.numCandidates = GetTraceConfig().custom.GetUInt32Or("Ris.NumCandidates", 32);
-            //std::cout << params.maxDepth << std::endl;
-            if (m_EnableGrid) {
-                params.diffuseGridBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<float4>(m_DiffuseBufferCUDA.get());
-            }
+            auto params = this->GetDefaultParams(frameBuffer);
             {
                 params.flags = PARAM_FLAG_NONE;
                 if (m_EnableTree) {
@@ -1570,20 +1386,7 @@ void RTLibExtOPX7TestApplication::InitSdTreeRisTracer()
                 {
                     params.flags |= PARAM_FLAG_NEE;
                     params.flags |= PARAM_FLAG_RIS;
-                }
-
-                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecord)
-                {
-                    params.flags |= PARAM_FLAG_NONE;
-                }
-                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecordAndSample)
-                {
-                    params.flags |= PARAM_FLAG_BUILD;
-                }
-                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateSample)
-                {
-                    params.flags |= PARAM_FLAG_BUILD;
-                    params.flags |= PARAM_FLAG_FINAL;
+                    params.flags |= rtlib::test::GetParamFlagsFromSdTreeTraceState(m_SdTreeController->GetState());
                 }
             }
             return params;
@@ -1776,47 +1579,13 @@ void RTLibExtOPX7TestApplication::InitHashTreeDefTracer()
     tracer.InitParams(m_Opx7Context.get(), params);
     tracer.beginTrace = std::function<std::string(RTLib::Ext::CUDA::CUDAStream*)>(
         [this](RTLib::Ext::CUDA::CUDAStream* stream) {
-            {
-                m_MortonQuadTreeController->BegTrace(stream);
-                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateLocate)
-                {
-                    return "Locate";
-                }
-                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecord)
-                {
-                    return "Build";
-                }
-                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecordAndSample) {
-                    return "Trace";
-                }
-                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateSample) {
-                    return "Final";
-                }
-            }
-            return "Trace";
+            m_MortonQuadTreeController->BegTrace(stream);
+            return rtlib::test::GetPipelineNameFromMortonTraceState(m_MortonQuadTreeController->GetState());
         }
     );
     tracer.getParams = std::function<Params(RTLib::Ext::CUDA::CUDABuffer*)>(
         [this](RTLib::Ext::CUDA::CUDABuffer* frameBuffer) {
-            auto params = Params();
-            params.accumBuffer = reinterpret_cast<float3*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_AccumBufferCUDA.get()));
-            params.seedBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<unsigned int>(m_SeedBufferCUDA.get());
-            params.frameBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<uchar4>(frameBuffer);
-            params.width = GetTraceConfig().width;
-            params.height = GetTraceConfig().height;
-            params.maxDepth = GetTraceConfig().maxDepth;
-            params.samplesForAccum = m_SamplesForAccum;
-            params.samplesForLaunch = GetTraceConfig().samples;
-            params.debugFrameType = m_DebugFrameType;
-            params.gasHandle = m_InstanceASMap["Root"].handle;
-            params.lights.count = m_lightBuffer.cpuHandle.size();
-            params.lights.data = reinterpret_cast<MeshLight*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_lightBuffer.gpuHandle.get()));
-            params.grid = m_HashBufferCUDA.GetHandle();
-            params.numCandidates = GetTraceConfig().custom.GetUInt32Or("Ris.NumCandidates", 32);
-            //std::cout << params.maxDepth << std::endl;
-            if (m_EnableGrid) {
-                params.diffuseGridBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<float4>(m_DiffuseBufferCUDA.get());
-            }
+            auto params = GetDefaultParams(frameBuffer);
             {
                 if (m_EnableGrid) {
                     params.mortonTree = m_MortonQuadTreeController->GetGpuHandle();
@@ -1825,23 +1594,7 @@ void RTLibExtOPX7TestApplication::InitHashTreeDefTracer()
                     params.mortonTree.level = RTLib::Ext::CUDA::Math::min(params.mortonTree.level, rtlib::test::MortonQTreeWrapper::kMaxTreeLevel);
                 }
 
-                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateLocate)
-                {
-                    params.flags |= PARAM_FLAG_LOCATE;
-                }
-                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecord)
-                {
-                    params.flags |= PARAM_FLAG_NONE;
-                }
-                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecordAndSample)
-                {
-                    params.flags |= PARAM_FLAG_BUILD;
-                }
-                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateSample)
-                {
-                    params.flags |= PARAM_FLAG_BUILD;
-                    params.flags |= PARAM_FLAG_FINAL;
-                }
+                params.flags |= rtlib::test::GetParamFlagsFromMortonTraceState(m_MortonQuadTreeController->GetState());
             }
             return params;
         }
@@ -2039,48 +1792,13 @@ void RTLibExtOPX7TestApplication::InitHashTreeNeeTracer()
     tracer.InitParams(m_Opx7Context.get(), params);
     tracer.beginTrace = std::function<std::string(RTLib::Ext::CUDA::CUDAStream*)>(
         [this](RTLib::Ext::CUDA::CUDAStream* stream) {
-            {
-                m_MortonQuadTreeController->BegTrace(stream);
-                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateLocate)
-                {
-                    return "Locate";
-                }
-                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecord)
-                {
-                    return "Build";
-                }
-                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecordAndSample) {
-                    return "Trace";
-                }
-                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateSample) {
-                    return "Final";
-                }
-            }
-            return "Trace";
+            m_MortonQuadTreeController->BegTrace(stream);
+            return rtlib::test::GetPipelineNameFromMortonTraceState(m_MortonQuadTreeController->GetState());
         }
     );
     tracer.getParams = std::function<Params(RTLib::Ext::CUDA::CUDABuffer*)>(
         [this](RTLib::Ext::CUDA::CUDABuffer* frameBuffer) {
-            auto params = Params();
-            params.accumBuffer = reinterpret_cast<float3*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_AccumBufferCUDA.get()));
-            params.seedBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<unsigned int>(m_SeedBufferCUDA.get());
-            params.frameBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<uchar4>(frameBuffer);
-            params.width = GetTraceConfig().width;
-            params.height = GetTraceConfig().height;
-            params.maxDepth = GetTraceConfig().maxDepth;
-            params.samplesForAccum = m_SamplesForAccum;
-            params.samplesForLaunch = GetTraceConfig().samples;
-            params.debugFrameType = m_DebugFrameType;
-            params.gasHandle = m_InstanceASMap["Root"].handle;
-            params.lights.count = m_lightBuffer.cpuHandle.size();
-            params.lights.data = reinterpret_cast<MeshLight*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_lightBuffer.gpuHandle.get()));
-            params.grid = m_HashBufferCUDA.GetHandle();
-            params.numCandidates = GetTraceConfig().custom.GetUInt32Or("Ris.NumCandidates", 32);
-            //std::cout << params.maxDepth << std::endl;
-            if (m_EnableGrid) {
-                params.diffuseGridBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<float4>(m_DiffuseBufferCUDA.get());
-            }
-            
+            auto params = this->GetDefaultParams(frameBuffer); 
             {
                 if (m_EnableGrid) {
                     params.mortonTree = m_MortonQuadTreeController->GetGpuHandle();
@@ -2091,23 +1809,7 @@ void RTLibExtOPX7TestApplication::InitHashTreeNeeTracer()
                 {
                     params.flags |= PARAM_FLAG_NEE;
                 }
-                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateLocate)
-                {
-                    params.flags |= PARAM_FLAG_LOCATE;
-                }
-                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecord)
-                {
-                    params.flags |= PARAM_FLAG_NONE;
-                }
-                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecordAndSample)
-                {
-                    params.flags |= PARAM_FLAG_BUILD;
-                }
-                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateSample)
-                {
-                    params.flags |= PARAM_FLAG_BUILD;
-                    params.flags |= PARAM_FLAG_FINAL;
-                }
+                params.flags |= rtlib::test::GetParamFlagsFromMortonTraceState(m_MortonQuadTreeController->GetState());
             }
             return params;
         }
@@ -2302,47 +2004,14 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
     tracer.InitParams(m_Opx7Context.get(), params);
     tracer.beginTrace = std::function<std::string(RTLib::Ext::CUDA::CUDAStream*)>(
         [this](RTLib::Ext::CUDA::CUDAStream* stream) {
-            {
-                m_MortonQuadTreeController->BegTrace(stream);
-                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateLocate)
-                {
-                    return "Locate";
-                }
-                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecord)
-                {
-                    return "Build";
-                }
-                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecordAndSample) {
-                    return "Trace";
-                }
-                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateSample) {
-                    return "Final";
-                }
-            }
-            return "Trace";
+            m_MortonQuadTreeController->BegTrace(stream);
+            return rtlib::test::GetPipelineNameFromMortonTraceState(m_MortonQuadTreeController->GetState());
         }
     );
     tracer.getParams = std::function<Params(RTLib::Ext::CUDA::CUDABuffer*)>(
         [this](RTLib::Ext::CUDA::CUDABuffer* frameBuffer) {
-            auto params = Params();
-            params.accumBuffer = reinterpret_cast<float3*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_AccumBufferCUDA.get()));
-            params.seedBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<unsigned int>(m_SeedBufferCUDA.get());
-            params.frameBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<uchar4>(frameBuffer);
-            params.width = GetTraceConfig().width;
-            params.height = GetTraceConfig().height;
-            params.maxDepth = GetTraceConfig().maxDepth;
-            params.samplesForAccum = m_SamplesForAccum;
-            params.samplesForLaunch = GetTraceConfig().samples;
-            params.debugFrameType = m_DebugFrameType;
-            params.gasHandle = m_InstanceASMap["Root"].handle;
-            params.lights.count = m_lightBuffer.cpuHandle.size();
-            params.lights.data = reinterpret_cast<MeshLight*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_lightBuffer.gpuHandle.get()));
-            params.grid = m_HashBufferCUDA.GetHandle();
-            params.numCandidates = GetTraceConfig().custom.GetUInt32Or("Ris.NumCandidates", 32);
+            auto params = this->GetDefaultParams(frameBuffer);
             //std::cout << params.maxDepth << std::endl;
-            if (m_EnableGrid) {
-                params.diffuseGridBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<float4>(m_DiffuseBufferCUDA.get());
-            }
             {
                 if (m_EnableGrid) {
                     params.mortonTree = m_MortonQuadTreeController->GetGpuHandle();
@@ -2354,24 +2023,7 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
                 {
                     params.flags |= PARAM_FLAG_NEE;
                     params.flags |= PARAM_FLAG_RIS;
-                }
-
-                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateLocate)
-                {
-                    params.flags |= PARAM_FLAG_LOCATE;
-                }
-                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecord)
-                {
-                    params.flags |= PARAM_FLAG_NONE;
-                }
-                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecordAndSample)
-                {
-                    params.flags |= PARAM_FLAG_BUILD;
-                }
-                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateSample)
-                {
-                    params.flags |= PARAM_FLAG_BUILD;
-                    params.flags |= PARAM_FLAG_FINAL;
+                    params.flags |= rtlib::test::GetParamFlagsFromMortonTraceState(m_MortonQuadTreeController->GetState());
                 }
             }
             return params;

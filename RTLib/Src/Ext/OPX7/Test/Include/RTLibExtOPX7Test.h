@@ -1761,7 +1761,83 @@ namespace rtlib
 #endif
             return moduleCompileOptions;
         }
-        
+
+        inline auto GetPipelineNameFromSdTreeTraceState(rtlib::test::RTSTreeController::TraceState traceState)->std::string
+        {
+            if (traceState == rtlib::test::RTSTreeController::TraceStateRecord)
+            {
+                return "Build";
+            }
+            if (traceState == rtlib::test::RTSTreeController::TraceStateRecordAndSample)
+            {
+                return "Trace";
+            }
+            if (traceState == rtlib::test::RTSTreeController::TraceStateSample)
+            {
+                return "Final";
+            }
+            return "Trace";
+        }
+        inline auto GetParamFlagsFromSdTreeTraceState(rtlib::test::RTSTreeController::TraceState traceState)->unsigned int
+        {
+            unsigned int flags = 0;
+            if (traceState == rtlib::test::RTSTreeController::TraceStateRecord)
+            {
+                flags |= PARAM_FLAG_NONE;
+            }
+            if (traceState == rtlib::test::RTSTreeController::TraceStateRecordAndSample)
+            {
+                flags |= PARAM_FLAG_BUILD;
+            }
+            if (traceState == rtlib::test::RTSTreeController::TraceStateSample)
+            {
+                flags |= PARAM_FLAG_BUILD;
+                flags |= PARAM_FLAG_FINAL;
+            }
+            return flags;
+        }
+        inline auto GetPipelineNameFromMortonTraceState(rtlib::test::RTMortonQuadTreeController::TraceState traceState)->std::string
+        {
+            if (traceState == rtlib::test::RTMortonQuadTreeController::TraceStateLocate)
+            {
+                return "Locate";
+            }
+            if (traceState == rtlib::test::RTMortonQuadTreeController::TraceStateRecord)
+            {
+                return "Build";
+            }
+            if (traceState == rtlib::test::RTMortonQuadTreeController::TraceStateRecordAndSample)
+            {
+                return "Trace";
+            }
+            if (traceState == rtlib::test::RTMortonQuadTreeController::TraceStateSample)
+            {
+                return "Final";
+            }
+            return "Trace";
+        }
+        inline auto GetParamFlagsFromMortonTraceState(rtlib::test::RTMortonQuadTreeController::TraceState traceState)->unsigned int
+        {
+            unsigned int flags = 0;
+            if (traceState == rtlib::test::RTMortonQuadTreeController::TraceStateLocate)
+            {
+                flags |= PARAM_FLAG_LOCATE;
+            }
+            if (traceState == rtlib::test::RTMortonQuadTreeController::TraceStateRecord)
+            {
+                flags |= PARAM_FLAG_NONE;
+            }
+            if (traceState == rtlib::test::RTMortonQuadTreeController::TraceStateRecordAndSample)
+            {
+                flags |= PARAM_FLAG_BUILD;
+            }
+            if (traceState == rtlib::test::RTMortonQuadTreeController::TraceStateSample)
+            {
+                flags |= PARAM_FLAG_BUILD;
+                flags |= PARAM_FLAG_FINAL;
+            }
+            return flags;
+        }
     }
 }
 #endif

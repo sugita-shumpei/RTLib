@@ -329,6 +329,29 @@ private:
     void UpdateTimeStamp();
     void TraceFrame(RTLib::Ext::CUDA::CUDAStream* stream);
     void SaveResultImage(RTLib::Ext::CUDA::CUDAStream* stream);
+
+    auto GetDefaultParams(RTLib::Ext::CUDA::CUDABuffer* frameBuffer)  ->Params
+    {
+        auto params = Params();
+        params.accumBuffer = reinterpret_cast<float3*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_AccumBufferCUDA.get()));
+        params.seedBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<unsigned int>(m_SeedBufferCUDA.get());
+        params.frameBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<uchar4>(frameBuffer);
+        params.width = GetTraceConfig().width;
+        params.height = GetTraceConfig().height;
+        params.maxDepth = GetTraceConfig().maxDepth;
+        params.samplesForAccum = m_SamplesForAccum;
+        params.samplesForLaunch = GetTraceConfig().samples;
+        params.debugFrameType = m_DebugFrameType;
+        params.gasHandle = m_InstanceASMap["Root"].handle;
+        params.lights.count = m_lightBuffer.cpuHandle.size();
+        params.lights.data = reinterpret_cast<MeshLight*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_lightBuffer.gpuHandle.get()));
+        params.grid = m_HashBufferCUDA.GetHandle();
+        params.numCandidates = GetTraceConfig().custom.GetUInt32Or("Ris.NumCandidates", 32);
+        if (m_EnableGrid) {
+            params.diffuseGridBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<float4>(m_DiffuseBufferCUDA.get());
+        }
+        return params;
+    }
 private:
     std::string m_ScenePath;
     rtlib::test::SceneData m_SceneData;
