@@ -497,6 +497,206 @@ void RTLibExtOPX7TestApplication::InitDefTracer()
         params.flags = PARAM_FLAG_NONE;
     }
     m_TracerMap["DEF"].InitParams(m_Opx7Context.get(),params);
+    m_TracerMap["DEF"].beginTrace = std::function<void(RTLib::Ext::CUDA::CUDAStream*)>(
+        [this](RTLib::Ext::CUDA::CUDAStream* stream){
+            if ((m_CurTracerName == "PGDEF") || (m_CurTracerName == "PGNEE") || (m_CurTracerName == "PGRIS"))
+            {
+                m_SdTreeController->BegTrace(stream);
+                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecord)
+                {
+                    m_PipelineName = "Build";
+                }
+                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecordAndSample) {
+                    m_PipelineName = "Trace";
+                }
+                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateSample) {
+                    m_PipelineName = "Final";
+                }
+            }
+            if ((m_CurTracerName == "HTDEF") || (m_CurTracerName == "HTNEE") || (m_CurTracerName == "HTRIS"))
+            {
+                m_MortonQuadTreeController->BegTrace(stream);
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateLocate)
+                {
+                    m_PipelineName = "Locate";
+                }
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecord)
+                {
+                    m_PipelineName = "Build";
+                }
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecordAndSample) {
+                    m_PipelineName = "Trace";
+                }
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateSample) {
+                    m_PipelineName = "Final";
+                }
+            }
+            return;
+        }
+    );
+    m_TracerMap["DEF"].getParams  = std::function<Params(RTLib::Ext::CUDA::CUDABuffer*)>(
+        [this](RTLib::Ext::CUDA::CUDABuffer* frameBuffer) {
+            auto params = Params();
+            params.accumBuffer = reinterpret_cast<float3*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_AccumBufferCUDA.get()));
+            params.seedBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<unsigned int>(m_SeedBufferCUDA.get());
+            params.frameBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<uchar4>(frameBuffer);
+            params.width = m_SceneData.config.width;
+            params.height = m_SceneData.config.height;
+            params.maxDepth = m_SceneData.config.maxDepth;
+            params.samplesForAccum = m_SamplesForAccum;
+            params.samplesForLaunch = m_SceneData.config.samples;
+            params.debugFrameType = m_DebugFrameType;
+            params.gasHandle = m_InstanceASMap["Root"].handle;
+            params.lights.count = m_lightBuffer.cpuHandle.size();
+            params.lights.data = reinterpret_cast<MeshLight*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_lightBuffer.gpuHandle.get()));
+            params.grid = m_HashBufferCUDA.GetHandle();
+            params.numCandidates = GetTraceConfig().custom.GetUInt32Or("Ris.NumCandidates", 32);
+            //std::cout << params.maxDepth << std::endl;
+            if (m_EnableGrid) {
+                params.diffuseGridBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<float4>(m_DiffuseBufferCUDA.get());
+            }
+            if (m_CurTracerName == "DBG") {
+                if (m_EnableGrid) {
+                    params.flags |= PARAM_FLAG_USE_GRID;
+                    params.mortonTree = m_MortonQuadTreeController->GetGpuHandle();
+                }
+            }
+            if (m_CurTracerName == "DEF")
+            {
+                params.flags = PARAM_FLAG_NONE;
+
+                if (m_EnableGrid) {
+                    params.flags |= PARAM_FLAG_USE_GRID;
+                    params.mortonTree = m_MortonQuadTree->GetGpuHandle();
+                }
+            }
+            if (m_CurTracerName == "NEE")
+            {
+                params.flags = PARAM_FLAG_NEE;
+
+                if (m_EnableGrid) {
+
+                    params.flags |= PARAM_FLAG_USE_GRID;
+                    params.mortonTree = m_MortonQuadTree->GetGpuHandle();
+                }
+            }
+            if (m_CurTracerName == "RIS") {
+                params.flags = PARAM_FLAG_NEE | PARAM_FLAG_RIS;
+
+                if (m_EnableGrid) {
+                    params.flags |= PARAM_FLAG_USE_GRID;
+                    params.mortonTree = m_MortonQuadTree->GetGpuHandle();
+                }
+            }
+            if ((m_CurTracerName == "PGDEF") || ((m_CurTracerName == "PGNEE")) || (m_CurTracerName == "PGRIS"))
+            {
+                params.flags = PARAM_FLAG_NONE;
+                if (m_EnableTree) {
+                    params.tree = m_SdTreeController->GetGpuSTree();
+                    params.flags |= PARAM_FLAG_USE_TREE;
+                }
+
+                if (m_CurTracerName == "PGNEE")
+                {
+                    params.flags |= PARAM_FLAG_NEE;
+                }
+                if (m_CurTracerName == "PGRIS")
+                {
+                    params.flags |= PARAM_FLAG_NEE;
+                    params.flags |= PARAM_FLAG_RIS;
+                }
+
+                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecord)
+                {
+                    params.flags |= PARAM_FLAG_NONE;
+                }
+                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecordAndSample)
+                {
+                    params.flags |= PARAM_FLAG_BUILD;
+                }
+                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateSample)
+                {
+                    params.flags |= PARAM_FLAG_BUILD;
+                    params.flags |= PARAM_FLAG_FINAL;
+                }
+            }
+            if ((m_CurTracerName == "HTDEF") || ((m_CurTracerName == "HTNEE")) || (m_CurTracerName == "HTRIS"))
+            {
+                if (m_EnableGrid) {
+                    params.mortonTree = m_MortonQuadTreeController->GetGpuHandle();
+                    params.grid = m_HashBufferCUDA.GetHandle();
+                    params.flags |= PARAM_FLAG_USE_GRID;
+                    params.mortonTree.level = RTLib::Ext::CUDA::Math::min(params.mortonTree.level, rtlib::test::MortonQTreeWrapper::kMaxTreeLevel);
+                }
+
+                if (m_CurTracerName == "HTNEE")
+                {
+                    params.flags |= PARAM_FLAG_NEE;
+                }
+                if (m_CurTracerName == "HTRIS")
+                {
+                    params.flags |= PARAM_FLAG_NEE;
+                    params.flags |= PARAM_FLAG_RIS;
+                }
+
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateLocate)
+                {
+                    params.flags |= PARAM_FLAG_LOCATE;
+                }
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecord)
+                {
+                    params.flags |= PARAM_FLAG_NONE;
+                }
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecordAndSample)
+                {
+                    params.flags |= PARAM_FLAG_BUILD;
+                }
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateSample)
+                {
+                    params.flags |= PARAM_FLAG_BUILD;
+                    params.flags |= PARAM_FLAG_FINAL;
+                }
+            }
+            return params;
+        }
+    );
+    m_TracerMap["DEF"].endTrace = std::function<bool(RTLib::Ext::CUDA::CUDAStream*)>(
+        [this](RTLib::Ext::CUDA::CUDAStream* stream)->bool {
+            bool shouldSync = false;
+            if ((m_CurTracerName == "DEF") || (m_CurTracerName == "NEE") || (m_CurTracerName == "RIS")) {
+                if (m_EnableGrid) {
+                    m_HashBufferCUDA.Update(m_Opx7Context.get(), stream);
+                    if (stream) {
+                        shouldSync = true;
+                    }
+                }
+            }
+            if ((m_CurTracerName == "PGDEF") || (m_CurTracerName == "PGNEE") || (m_CurTracerName == "PGRIS")) {
+                if (m_EnableTree) {
+                    m_SdTreeController->EndTrace(stream);
+                    if (stream) {
+                        shouldSync = true;
+                    }
+                }
+            }
+            if ((m_CurTracerName == "HTDEF") || (m_CurTracerName == "HTNEE") || (m_CurTracerName == "HTRIS")) {
+                m_MortonQuadTreeController->EndTrace(stream);
+                if (m_EnableGrid) {
+                    if (m_MortonQuadTreeController->GetSamplePerTmp() == 0)
+                    {
+                        m_HashBufferCUDA.Update(m_Opx7Context.get(), stream);
+                    }
+                }
+                if (stream) {
+                    shouldSync = true;
+                }
+            }
+            if (m_CurTracerName != "DBG") {
+                m_SamplesForAccum += m_SceneData.config.samples;
+            }
+            return shouldSync;
+        }
+    );
 }
 
 void RTLibExtOPX7TestApplication::InitNeeTracer()
@@ -595,6 +795,206 @@ void RTLibExtOPX7TestApplication::InitNeeTracer()
         params.flags = PARAM_FLAG_NONE;
     }
     m_TracerMap["NEE"].InitParams(m_Opx7Context.get(), params);
+    m_TracerMap["NEE"].beginTrace = std::function<void(RTLib::Ext::CUDA::CUDAStream*)>(
+        [this](RTLib::Ext::CUDA::CUDAStream* stream) {
+            if ((m_CurTracerName == "PGDEF") || (m_CurTracerName == "PGNEE") || (m_CurTracerName == "PGRIS"))
+            {
+                m_SdTreeController->BegTrace(stream);
+                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecord)
+                {
+                    m_PipelineName = "Build";
+                }
+                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecordAndSample) {
+                    m_PipelineName = "Trace";
+                }
+                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateSample) {
+                    m_PipelineName = "Final";
+                }
+            }
+            if ((m_CurTracerName == "HTDEF") || (m_CurTracerName == "HTNEE") || (m_CurTracerName == "HTRIS"))
+            {
+                m_MortonQuadTreeController->BegTrace(stream);
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateLocate)
+                {
+                    m_PipelineName = "Locate";
+                }
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecord)
+                {
+                    m_PipelineName = "Build";
+                }
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecordAndSample) {
+                    m_PipelineName = "Trace";
+                }
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateSample) {
+                    m_PipelineName = "Final";
+                }
+            }
+            return;
+        }
+    );
+    m_TracerMap["NEE"].getParams = std::function<Params(RTLib::Ext::CUDA::CUDABuffer*)>(
+        [this](RTLib::Ext::CUDA::CUDABuffer* frameBuffer) {
+            auto params = Params();
+            params.accumBuffer = reinterpret_cast<float3*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_AccumBufferCUDA.get()));
+            params.seedBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<unsigned int>(m_SeedBufferCUDA.get());
+            params.frameBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<uchar4>(frameBuffer);
+            params.width = m_SceneData.config.width;
+            params.height = m_SceneData.config.height;
+            params.maxDepth = m_SceneData.config.maxDepth;
+            params.samplesForAccum = m_SamplesForAccum;
+            params.samplesForLaunch = m_SceneData.config.samples;
+            params.debugFrameType = m_DebugFrameType;
+            params.gasHandle = m_InstanceASMap["Root"].handle;
+            params.lights.count = m_lightBuffer.cpuHandle.size();
+            params.lights.data = reinterpret_cast<MeshLight*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_lightBuffer.gpuHandle.get()));
+            params.grid = m_HashBufferCUDA.GetHandle();
+            params.numCandidates = GetTraceConfig().custom.GetUInt32Or("Ris.NumCandidates", 32);
+            //std::cout << params.maxDepth << std::endl;
+            if (m_EnableGrid) {
+                params.diffuseGridBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<float4>(m_DiffuseBufferCUDA.get());
+            }
+            if (m_CurTracerName == "DBG") {
+                if (m_EnableGrid) {
+                    params.flags |= PARAM_FLAG_USE_GRID;
+                    params.mortonTree = m_MortonQuadTreeController->GetGpuHandle();
+                }
+            }
+            if (m_CurTracerName == "DEF")
+            {
+                params.flags = PARAM_FLAG_NONE;
+
+                if (m_EnableGrid) {
+                    params.flags |= PARAM_FLAG_USE_GRID;
+                    params.mortonTree = m_MortonQuadTree->GetGpuHandle();
+                }
+            }
+            if (m_CurTracerName == "NEE")
+            {
+                params.flags = PARAM_FLAG_NEE;
+
+                if (m_EnableGrid) {
+
+                    params.flags |= PARAM_FLAG_USE_GRID;
+                    params.mortonTree = m_MortonQuadTree->GetGpuHandle();
+                }
+            }
+            if (m_CurTracerName == "RIS") {
+                params.flags = PARAM_FLAG_NEE | PARAM_FLAG_RIS;
+
+                if (m_EnableGrid) {
+                    params.flags |= PARAM_FLAG_USE_GRID;
+                    params.mortonTree = m_MortonQuadTree->GetGpuHandle();
+                }
+            }
+            if ((m_CurTracerName == "PGDEF") || ((m_CurTracerName == "PGNEE")) || (m_CurTracerName == "PGRIS"))
+            {
+                params.flags = PARAM_FLAG_NONE;
+                if (m_EnableTree) {
+                    params.tree = m_SdTreeController->GetGpuSTree();
+                    params.flags |= PARAM_FLAG_USE_TREE;
+                }
+
+                if (m_CurTracerName == "PGNEE")
+                {
+                    params.flags |= PARAM_FLAG_NEE;
+                }
+                if (m_CurTracerName == "PGRIS")
+                {
+                    params.flags |= PARAM_FLAG_NEE;
+                    params.flags |= PARAM_FLAG_RIS;
+                }
+
+                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecord)
+                {
+                    params.flags |= PARAM_FLAG_NONE;
+                }
+                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecordAndSample)
+                {
+                    params.flags |= PARAM_FLAG_BUILD;
+                }
+                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateSample)
+                {
+                    params.flags |= PARAM_FLAG_BUILD;
+                    params.flags |= PARAM_FLAG_FINAL;
+                }
+            }
+            if ((m_CurTracerName == "HTDEF") || ((m_CurTracerName == "HTNEE")) || (m_CurTracerName == "HTRIS"))
+            {
+                if (m_EnableGrid) {
+                    params.mortonTree = m_MortonQuadTreeController->GetGpuHandle();
+                    params.grid = m_HashBufferCUDA.GetHandle();
+                    params.flags |= PARAM_FLAG_USE_GRID;
+                    params.mortonTree.level = RTLib::Ext::CUDA::Math::min(params.mortonTree.level, rtlib::test::MortonQTreeWrapper::kMaxTreeLevel);
+                }
+
+                if (m_CurTracerName == "HTNEE")
+                {
+                    params.flags |= PARAM_FLAG_NEE;
+                }
+                if (m_CurTracerName == "HTRIS")
+                {
+                    params.flags |= PARAM_FLAG_NEE;
+                    params.flags |= PARAM_FLAG_RIS;
+                }
+
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateLocate)
+                {
+                    params.flags |= PARAM_FLAG_LOCATE;
+                }
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecord)
+                {
+                    params.flags |= PARAM_FLAG_NONE;
+                }
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecordAndSample)
+                {
+                    params.flags |= PARAM_FLAG_BUILD;
+                }
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateSample)
+                {
+                    params.flags |= PARAM_FLAG_BUILD;
+                    params.flags |= PARAM_FLAG_FINAL;
+                }
+            }
+            return params;
+        }
+    );
+    m_TracerMap["NEE"].endTrace = std::function<bool(RTLib::Ext::CUDA::CUDAStream*)>(
+        [this](RTLib::Ext::CUDA::CUDAStream* stream)->bool {
+            bool shouldSync = false;
+            if ((m_CurTracerName == "DEF") || (m_CurTracerName == "NEE") || (m_CurTracerName == "RIS")) {
+                if (m_EnableGrid) {
+                    m_HashBufferCUDA.Update(m_Opx7Context.get(), stream);
+                    if (stream) {
+                        shouldSync = true;
+                    }
+                }
+            }
+            if ((m_CurTracerName == "PGDEF") || (m_CurTracerName == "PGNEE") || (m_CurTracerName == "PGRIS")) {
+                if (m_EnableTree) {
+                    m_SdTreeController->EndTrace(stream);
+                    if (stream) {
+                        shouldSync = true;
+                    }
+                }
+            }
+            if ((m_CurTracerName == "HTDEF") || (m_CurTracerName == "HTNEE") || (m_CurTracerName == "HTRIS")) {
+                m_MortonQuadTreeController->EndTrace(stream);
+                if (m_EnableGrid) {
+                    if (m_MortonQuadTreeController->GetSamplePerTmp() == 0)
+                    {
+                        m_HashBufferCUDA.Update(m_Opx7Context.get(), stream);
+                    }
+                }
+                if (stream) {
+                    shouldSync = true;
+                }
+            }
+            if (m_CurTracerName != "DBG") {
+                m_SamplesForAccum += m_SceneData.config.samples;
+            }
+            return shouldSync;
+        }
+    );
 }
 
 void RTLibExtOPX7TestApplication::InitRisTracer()
@@ -691,6 +1091,206 @@ void RTLibExtOPX7TestApplication::InitRisTracer()
         params.flags = PARAM_FLAG_NONE;
     }
     m_TracerMap["RIS"].InitParams(m_Opx7Context.get(), params);
+    m_TracerMap["RIS"].beginTrace = std::function<void(RTLib::Ext::CUDA::CUDAStream*)>(
+        [this](RTLib::Ext::CUDA::CUDAStream* stream) {
+            if ((m_CurTracerName == "PGDEF") || (m_CurTracerName == "PGNEE") || (m_CurTracerName == "PGRIS"))
+            {
+                m_SdTreeController->BegTrace(stream);
+                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecord)
+                {
+                    m_PipelineName = "Build";
+                }
+                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecordAndSample) {
+                    m_PipelineName = "Trace";
+                }
+                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateSample) {
+                    m_PipelineName = "Final";
+                }
+            }
+            if ((m_CurTracerName == "HTDEF") || (m_CurTracerName == "HTNEE") || (m_CurTracerName == "HTRIS"))
+            {
+                m_MortonQuadTreeController->BegTrace(stream);
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateLocate)
+                {
+                    m_PipelineName = "Locate";
+                }
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecord)
+                {
+                    m_PipelineName = "Build";
+                }
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecordAndSample) {
+                    m_PipelineName = "Trace";
+                }
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateSample) {
+                    m_PipelineName = "Final";
+                }
+            }
+            return;
+        }
+    );
+    m_TracerMap["RIS"].getParams = std::function<Params(RTLib::Ext::CUDA::CUDABuffer*)>(
+        [this](RTLib::Ext::CUDA::CUDABuffer* frameBuffer) {
+            auto params = Params();
+            params.accumBuffer = reinterpret_cast<float3*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_AccumBufferCUDA.get()));
+            params.seedBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<unsigned int>(m_SeedBufferCUDA.get());
+            params.frameBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<uchar4>(frameBuffer);
+            params.width = m_SceneData.config.width;
+            params.height = m_SceneData.config.height;
+            params.maxDepth = m_SceneData.config.maxDepth;
+            params.samplesForAccum = m_SamplesForAccum;
+            params.samplesForLaunch = m_SceneData.config.samples;
+            params.debugFrameType = m_DebugFrameType;
+            params.gasHandle = m_InstanceASMap["Root"].handle;
+            params.lights.count = m_lightBuffer.cpuHandle.size();
+            params.lights.data = reinterpret_cast<MeshLight*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_lightBuffer.gpuHandle.get()));
+            params.grid = m_HashBufferCUDA.GetHandle();
+            params.numCandidates = GetTraceConfig().custom.GetUInt32Or("Ris.NumCandidates", 32);
+            //std::cout << params.maxDepth << std::endl;
+            if (m_EnableGrid) {
+                params.diffuseGridBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<float4>(m_DiffuseBufferCUDA.get());
+            }
+            if (m_CurTracerName == "DBG") {
+                if (m_EnableGrid) {
+                    params.flags |= PARAM_FLAG_USE_GRID;
+                    params.mortonTree = m_MortonQuadTreeController->GetGpuHandle();
+                }
+            }
+            if (m_CurTracerName == "DEF")
+            {
+                params.flags = PARAM_FLAG_NONE;
+
+                if (m_EnableGrid) {
+                    params.flags |= PARAM_FLAG_USE_GRID;
+                    params.mortonTree = m_MortonQuadTree->GetGpuHandle();
+                }
+            }
+            if (m_CurTracerName == "NEE")
+            {
+                params.flags = PARAM_FLAG_NEE;
+
+                if (m_EnableGrid) {
+
+                    params.flags |= PARAM_FLAG_USE_GRID;
+                    params.mortonTree = m_MortonQuadTree->GetGpuHandle();
+                }
+            }
+            if (m_CurTracerName == "RIS") {
+                params.flags = PARAM_FLAG_NEE | PARAM_FLAG_RIS;
+
+                if (m_EnableGrid) {
+                    params.flags |= PARAM_FLAG_USE_GRID;
+                    params.mortonTree = m_MortonQuadTree->GetGpuHandle();
+                }
+            }
+            if ((m_CurTracerName == "PGDEF") || ((m_CurTracerName == "PGNEE")) || (m_CurTracerName == "PGRIS"))
+            {
+                params.flags = PARAM_FLAG_NONE;
+                if (m_EnableTree) {
+                    params.tree = m_SdTreeController->GetGpuSTree();
+                    params.flags |= PARAM_FLAG_USE_TREE;
+                }
+
+                if (m_CurTracerName == "PGNEE")
+                {
+                    params.flags |= PARAM_FLAG_NEE;
+                }
+                if (m_CurTracerName == "PGRIS")
+                {
+                    params.flags |= PARAM_FLAG_NEE;
+                    params.flags |= PARAM_FLAG_RIS;
+                }
+
+                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecord)
+                {
+                    params.flags |= PARAM_FLAG_NONE;
+                }
+                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecordAndSample)
+                {
+                    params.flags |= PARAM_FLAG_BUILD;
+                }
+                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateSample)
+                {
+                    params.flags |= PARAM_FLAG_BUILD;
+                    params.flags |= PARAM_FLAG_FINAL;
+                }
+            }
+            if ((m_CurTracerName == "HTDEF") || ((m_CurTracerName == "HTNEE")) || (m_CurTracerName == "HTRIS"))
+            {
+                if (m_EnableGrid) {
+                    params.mortonTree = m_MortonQuadTreeController->GetGpuHandle();
+                    params.grid = m_HashBufferCUDA.GetHandle();
+                    params.flags |= PARAM_FLAG_USE_GRID;
+                    params.mortonTree.level = RTLib::Ext::CUDA::Math::min(params.mortonTree.level, rtlib::test::MortonQTreeWrapper::kMaxTreeLevel);
+                }
+
+                if (m_CurTracerName == "HTNEE")
+                {
+                    params.flags |= PARAM_FLAG_NEE;
+                }
+                if (m_CurTracerName == "HTRIS")
+                {
+                    params.flags |= PARAM_FLAG_NEE;
+                    params.flags |= PARAM_FLAG_RIS;
+                }
+
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateLocate)
+                {
+                    params.flags |= PARAM_FLAG_LOCATE;
+                }
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecord)
+                {
+                    params.flags |= PARAM_FLAG_NONE;
+                }
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecordAndSample)
+                {
+                    params.flags |= PARAM_FLAG_BUILD;
+                }
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateSample)
+                {
+                    params.flags |= PARAM_FLAG_BUILD;
+                    params.flags |= PARAM_FLAG_FINAL;
+                }
+            }
+            return params;
+        }
+    );
+    m_TracerMap["RIS"].endTrace = std::function<bool(RTLib::Ext::CUDA::CUDAStream*)>(
+        [this](RTLib::Ext::CUDA::CUDAStream* stream)->bool {
+            bool shouldSync = false;
+            if ((m_CurTracerName == "DEF") || (m_CurTracerName == "NEE") || (m_CurTracerName == "RIS")) {
+                if (m_EnableGrid) {
+                    m_HashBufferCUDA.Update(m_Opx7Context.get(), stream);
+                    if (stream) {
+                        shouldSync = true;
+                    }
+                }
+            }
+            if ((m_CurTracerName == "PGDEF") || (m_CurTracerName == "PGNEE") || (m_CurTracerName == "PGRIS")) {
+                if (m_EnableTree) {
+                    m_SdTreeController->EndTrace(stream);
+                    if (stream) {
+                        shouldSync = true;
+                    }
+                }
+            }
+            if ((m_CurTracerName == "HTDEF") || (m_CurTracerName == "HTNEE") || (m_CurTracerName == "HTRIS")) {
+                m_MortonQuadTreeController->EndTrace(stream);
+                if (m_EnableGrid) {
+                    if (m_MortonQuadTreeController->GetSamplePerTmp() == 0)
+                    {
+                        m_HashBufferCUDA.Update(m_Opx7Context.get(), stream);
+                    }
+                }
+                if (stream) {
+                    shouldSync = true;
+                }
+            }
+            if (m_CurTracerName != "DBG") {
+                m_SamplesForAccum += m_SceneData.config.samples;
+            }
+            return shouldSync;
+        }
+    );
 }
 
 void RTLibExtOPX7TestApplication::InitDbgTracer() {
@@ -782,6 +1382,206 @@ void RTLibExtOPX7TestApplication::InitDbgTracer() {
         params.flags = PARAM_FLAG_NEE;
     }
     m_TracerMap["DBG"].InitParams(m_Opx7Context.get(), params);
+    m_TracerMap["DBG"].beginTrace = std::function<void(RTLib::Ext::CUDA::CUDAStream*)>(
+        [this](RTLib::Ext::CUDA::CUDAStream* stream) {
+            if ((m_CurTracerName == "PGDEF") || (m_CurTracerName == "PGNEE") || (m_CurTracerName == "PGRIS"))
+            {
+                m_SdTreeController->BegTrace(stream);
+                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecord)
+                {
+                    m_PipelineName = "Build";
+                }
+                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecordAndSample) {
+                    m_PipelineName = "Trace";
+                }
+                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateSample) {
+                    m_PipelineName = "Final";
+                }
+            }
+            if ((m_CurTracerName == "HTDEF") || (m_CurTracerName == "HTNEE") || (m_CurTracerName == "HTRIS"))
+            {
+                m_MortonQuadTreeController->BegTrace(stream);
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateLocate)
+                {
+                    m_PipelineName = "Locate";
+                }
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecord)
+                {
+                    m_PipelineName = "Build";
+                }
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecordAndSample) {
+                    m_PipelineName = "Trace";
+                }
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateSample) {
+                    m_PipelineName = "Final";
+                }
+            }
+            return;
+        }
+    );
+    m_TracerMap["DBG"].getParams = std::function<Params(RTLib::Ext::CUDA::CUDABuffer*)>(
+        [this](RTLib::Ext::CUDA::CUDABuffer* frameBuffer) {
+            auto params = Params();
+            params.accumBuffer = reinterpret_cast<float3*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_AccumBufferCUDA.get()));
+            params.seedBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<unsigned int>(m_SeedBufferCUDA.get());
+            params.frameBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<uchar4>(frameBuffer);
+            params.width = m_SceneData.config.width;
+            params.height = m_SceneData.config.height;
+            params.maxDepth = m_SceneData.config.maxDepth;
+            params.samplesForAccum = m_SamplesForAccum;
+            params.samplesForLaunch = m_SceneData.config.samples;
+            params.debugFrameType = m_DebugFrameType;
+            params.gasHandle = m_InstanceASMap["Root"].handle;
+            params.lights.count = m_lightBuffer.cpuHandle.size();
+            params.lights.data = reinterpret_cast<MeshLight*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_lightBuffer.gpuHandle.get()));
+            params.grid = m_HashBufferCUDA.GetHandle();
+            params.numCandidates = GetTraceConfig().custom.GetUInt32Or("Ris.NumCandidates", 32);
+            //std::cout << params.maxDepth << std::endl;
+            if (m_EnableGrid) {
+                params.diffuseGridBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<float4>(m_DiffuseBufferCUDA.get());
+            }
+            if (m_CurTracerName == "DBG") {
+                if (m_EnableGrid) {
+                    params.flags |= PARAM_FLAG_USE_GRID;
+                    params.mortonTree = m_MortonQuadTreeController->GetGpuHandle();
+                }
+            }
+            if (m_CurTracerName == "DEF")
+            {
+                params.flags = PARAM_FLAG_NONE;
+
+                if (m_EnableGrid) {
+                    params.flags |= PARAM_FLAG_USE_GRID;
+                    params.mortonTree = m_MortonQuadTree->GetGpuHandle();
+                }
+            }
+            if (m_CurTracerName == "NEE")
+            {
+                params.flags = PARAM_FLAG_NEE;
+
+                if (m_EnableGrid) {
+
+                    params.flags |= PARAM_FLAG_USE_GRID;
+                    params.mortonTree = m_MortonQuadTree->GetGpuHandle();
+                }
+            }
+            if (m_CurTracerName == "RIS") {
+                params.flags = PARAM_FLAG_NEE | PARAM_FLAG_RIS;
+
+                if (m_EnableGrid) {
+                    params.flags |= PARAM_FLAG_USE_GRID;
+                    params.mortonTree = m_MortonQuadTree->GetGpuHandle();
+                }
+            }
+            if ((m_CurTracerName == "PGDEF") || ((m_CurTracerName == "PGNEE")) || (m_CurTracerName == "PGRIS"))
+            {
+                params.flags = PARAM_FLAG_NONE;
+                if (m_EnableTree) {
+                    params.tree = m_SdTreeController->GetGpuSTree();
+                    params.flags |= PARAM_FLAG_USE_TREE;
+                }
+
+                if (m_CurTracerName == "PGNEE")
+                {
+                    params.flags |= PARAM_FLAG_NEE;
+                }
+                if (m_CurTracerName == "PGRIS")
+                {
+                    params.flags |= PARAM_FLAG_NEE;
+                    params.flags |= PARAM_FLAG_RIS;
+                }
+
+                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecord)
+                {
+                    params.flags |= PARAM_FLAG_NONE;
+                }
+                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecordAndSample)
+                {
+                    params.flags |= PARAM_FLAG_BUILD;
+                }
+                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateSample)
+                {
+                    params.flags |= PARAM_FLAG_BUILD;
+                    params.flags |= PARAM_FLAG_FINAL;
+                }
+            }
+            if ((m_CurTracerName == "HTDEF") || ((m_CurTracerName == "HTNEE")) || (m_CurTracerName == "HTRIS"))
+            {
+                if (m_EnableGrid) {
+                    params.mortonTree = m_MortonQuadTreeController->GetGpuHandle();
+                    params.grid = m_HashBufferCUDA.GetHandle();
+                    params.flags |= PARAM_FLAG_USE_GRID;
+                    params.mortonTree.level = RTLib::Ext::CUDA::Math::min(params.mortonTree.level, rtlib::test::MortonQTreeWrapper::kMaxTreeLevel);
+                }
+
+                if (m_CurTracerName == "HTNEE")
+                {
+                    params.flags |= PARAM_FLAG_NEE;
+                }
+                if (m_CurTracerName == "HTRIS")
+                {
+                    params.flags |= PARAM_FLAG_NEE;
+                    params.flags |= PARAM_FLAG_RIS;
+                }
+
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateLocate)
+                {
+                    params.flags |= PARAM_FLAG_LOCATE;
+                }
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecord)
+                {
+                    params.flags |= PARAM_FLAG_NONE;
+                }
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecordAndSample)
+                {
+                    params.flags |= PARAM_FLAG_BUILD;
+                }
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateSample)
+                {
+                    params.flags |= PARAM_FLAG_BUILD;
+                    params.flags |= PARAM_FLAG_FINAL;
+                }
+            }
+            return params;
+        }
+    );
+    m_TracerMap["DBG"].endTrace = std::function<bool(RTLib::Ext::CUDA::CUDAStream*)>(
+        [this](RTLib::Ext::CUDA::CUDAStream* stream)->bool {
+            bool shouldSync = false;
+            if ((m_CurTracerName == "DEF") || (m_CurTracerName == "NEE") || (m_CurTracerName == "RIS")) {
+                if (m_EnableGrid) {
+                    m_HashBufferCUDA.Update(m_Opx7Context.get(), stream);
+                    if (stream) {
+                        shouldSync = true;
+                    }
+                }
+            }
+            if ((m_CurTracerName == "PGDEF") || (m_CurTracerName == "PGNEE") || (m_CurTracerName == "PGRIS")) {
+                if (m_EnableTree) {
+                    m_SdTreeController->EndTrace(stream);
+                    if (stream) {
+                        shouldSync = true;
+                    }
+                }
+            }
+            if ((m_CurTracerName == "HTDEF") || (m_CurTracerName == "HTNEE") || (m_CurTracerName == "HTRIS")) {
+                m_MortonQuadTreeController->EndTrace(stream);
+                if (m_EnableGrid) {
+                    if (m_MortonQuadTreeController->GetSamplePerTmp() == 0)
+                    {
+                        m_HashBufferCUDA.Update(m_Opx7Context.get(), stream);
+                    }
+                }
+                if (stream) {
+                    shouldSync = true;
+                }
+            }
+            if (m_CurTracerName != "DBG") {
+                m_SamplesForAccum += m_SceneData.config.samples;
+            }
+            return shouldSync;
+        }
+    );
 }
 
 void RTLibExtOPX7TestApplication::InitSdTreeDefTracer()
@@ -892,7 +1692,6 @@ void RTLibExtOPX7TestApplication::InitSdTreeDefTracer()
             m_TracerMap["PGDEF"].pipelines["Final"].LoadBuiltInISTriangleModule(m_Opx7Context.get(), "BuiltIn.Triangle.PGDEF", moduleOptions);
             m_TracerMap["PGDEF"].pipelines["Final"].LoadBuiltInISSphereModule(m_Opx7Context.get(), "BuiltIn.Sphere.PGDEF", moduleOptions);
         }
-
     }
     auto stNames = std::vector<std::string>{ "Trace","Build","Final" };
     for (auto& stName : stNames) {
@@ -974,6 +1773,206 @@ void RTLibExtOPX7TestApplication::InitSdTreeDefTracer()
         params.flags = PARAM_FLAG_NONE;
     }
     m_TracerMap["PGDEF"].InitParams(m_Opx7Context.get(),params);
+    m_TracerMap["PGDEF"].beginTrace = std::function<void(RTLib::Ext::CUDA::CUDAStream*)>(
+        [this](RTLib::Ext::CUDA::CUDAStream* stream) {
+            if ((m_CurTracerName == "PGDEF") || (m_CurTracerName == "PGNEE") || (m_CurTracerName == "PGRIS"))
+            {
+                m_SdTreeController->BegTrace(stream);
+                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecord)
+                {
+                    m_PipelineName = "Build";
+                }
+                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecordAndSample) {
+                    m_PipelineName = "Trace";
+                }
+                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateSample) {
+                    m_PipelineName = "Final";
+                }
+            }
+            if ((m_CurTracerName == "HTDEF") || (m_CurTracerName == "HTNEE") || (m_CurTracerName == "HTRIS"))
+            {
+                m_MortonQuadTreeController->BegTrace(stream);
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateLocate)
+                {
+                    m_PipelineName = "Locate";
+                }
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecord)
+                {
+                    m_PipelineName = "Build";
+                }
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecordAndSample) {
+                    m_PipelineName = "Trace";
+                }
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateSample) {
+                    m_PipelineName = "Final";
+                }
+            }
+            return;
+        }
+    );
+    m_TracerMap["PGDEF"].getParams = std::function<Params(RTLib::Ext::CUDA::CUDABuffer*)>(
+        [this](RTLib::Ext::CUDA::CUDABuffer* frameBuffer) {
+            auto params = Params();
+            params.accumBuffer = reinterpret_cast<float3*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_AccumBufferCUDA.get()));
+            params.seedBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<unsigned int>(m_SeedBufferCUDA.get());
+            params.frameBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<uchar4>(frameBuffer);
+            params.width = m_SceneData.config.width;
+            params.height = m_SceneData.config.height;
+            params.maxDepth = m_SceneData.config.maxDepth;
+            params.samplesForAccum = m_SamplesForAccum;
+            params.samplesForLaunch = m_SceneData.config.samples;
+            params.debugFrameType = m_DebugFrameType;
+            params.gasHandle = m_InstanceASMap["Root"].handle;
+            params.lights.count = m_lightBuffer.cpuHandle.size();
+            params.lights.data = reinterpret_cast<MeshLight*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_lightBuffer.gpuHandle.get()));
+            params.grid = m_HashBufferCUDA.GetHandle();
+            params.numCandidates = GetTraceConfig().custom.GetUInt32Or("Ris.NumCandidates", 32);
+            //std::cout << params.maxDepth << std::endl;
+            if (m_EnableGrid) {
+                params.diffuseGridBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<float4>(m_DiffuseBufferCUDA.get());
+            }
+            if (m_CurTracerName == "DBG") {
+                if (m_EnableGrid) {
+                    params.flags |= PARAM_FLAG_USE_GRID;
+                    params.mortonTree = m_MortonQuadTreeController->GetGpuHandle();
+                }
+            }
+            if (m_CurTracerName == "DEF")
+            {
+                params.flags = PARAM_FLAG_NONE;
+
+                if (m_EnableGrid) {
+                    params.flags |= PARAM_FLAG_USE_GRID;
+                    params.mortonTree = m_MortonQuadTree->GetGpuHandle();
+                }
+            }
+            if (m_CurTracerName == "NEE")
+            {
+                params.flags = PARAM_FLAG_NEE;
+
+                if (m_EnableGrid) {
+
+                    params.flags |= PARAM_FLAG_USE_GRID;
+                    params.mortonTree = m_MortonQuadTree->GetGpuHandle();
+                }
+            }
+            if (m_CurTracerName == "RIS") {
+                params.flags = PARAM_FLAG_NEE | PARAM_FLAG_RIS;
+
+                if (m_EnableGrid) {
+                    params.flags |= PARAM_FLAG_USE_GRID;
+                    params.mortonTree = m_MortonQuadTree->GetGpuHandle();
+                }
+            }
+            if ((m_CurTracerName == "PGDEF") || ((m_CurTracerName == "PGNEE")) || (m_CurTracerName == "PGRIS"))
+            {
+                params.flags = PARAM_FLAG_NONE;
+                if (m_EnableTree) {
+                    params.tree = m_SdTreeController->GetGpuSTree();
+                    params.flags |= PARAM_FLAG_USE_TREE;
+                }
+
+                if (m_CurTracerName == "PGNEE")
+                {
+                    params.flags |= PARAM_FLAG_NEE;
+                }
+                if (m_CurTracerName == "PGRIS")
+                {
+                    params.flags |= PARAM_FLAG_NEE;
+                    params.flags |= PARAM_FLAG_RIS;
+                }
+
+                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecord)
+                {
+                    params.flags |= PARAM_FLAG_NONE;
+                }
+                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecordAndSample)
+                {
+                    params.flags |= PARAM_FLAG_BUILD;
+                }
+                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateSample)
+                {
+                    params.flags |= PARAM_FLAG_BUILD;
+                    params.flags |= PARAM_FLAG_FINAL;
+                }
+            }
+            if ((m_CurTracerName == "HTDEF") || ((m_CurTracerName == "HTNEE")) || (m_CurTracerName == "HTRIS"))
+            {
+                if (m_EnableGrid) {
+                    params.mortonTree = m_MortonQuadTreeController->GetGpuHandle();
+                    params.grid = m_HashBufferCUDA.GetHandle();
+                    params.flags |= PARAM_FLAG_USE_GRID;
+                    params.mortonTree.level = RTLib::Ext::CUDA::Math::min(params.mortonTree.level, rtlib::test::MortonQTreeWrapper::kMaxTreeLevel);
+                }
+
+                if (m_CurTracerName == "HTNEE")
+                {
+                    params.flags |= PARAM_FLAG_NEE;
+                }
+                if (m_CurTracerName == "HTRIS")
+                {
+                    params.flags |= PARAM_FLAG_NEE;
+                    params.flags |= PARAM_FLAG_RIS;
+                }
+
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateLocate)
+                {
+                    params.flags |= PARAM_FLAG_LOCATE;
+                }
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecord)
+                {
+                    params.flags |= PARAM_FLAG_NONE;
+                }
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecordAndSample)
+                {
+                    params.flags |= PARAM_FLAG_BUILD;
+                }
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateSample)
+                {
+                    params.flags |= PARAM_FLAG_BUILD;
+                    params.flags |= PARAM_FLAG_FINAL;
+                }
+            }
+            return params;
+        }
+    );
+    m_TracerMap["PGDEF"].endTrace = std::function<bool(RTLib::Ext::CUDA::CUDAStream*)>(
+        [this](RTLib::Ext::CUDA::CUDAStream* stream)->bool {
+            bool shouldSync = false;
+            if ((m_CurTracerName == "DEF") || (m_CurTracerName == "NEE") || (m_CurTracerName == "RIS")) {
+                if (m_EnableGrid) {
+                    m_HashBufferCUDA.Update(m_Opx7Context.get(), stream);
+                    if (stream) {
+                        shouldSync = true;
+                    }
+                }
+            }
+            if ((m_CurTracerName == "PGDEF") || (m_CurTracerName == "PGNEE") || (m_CurTracerName == "PGRIS")) {
+                if (m_EnableTree) {
+                    m_SdTreeController->EndTrace(stream);
+                    if (stream) {
+                        shouldSync = true;
+                    }
+                }
+            }
+            if ((m_CurTracerName == "HTDEF") || (m_CurTracerName == "HTNEE") || (m_CurTracerName == "HTRIS")) {
+                m_MortonQuadTreeController->EndTrace(stream);
+                if (m_EnableGrid) {
+                    if (m_MortonQuadTreeController->GetSamplePerTmp() == 0)
+                    {
+                        m_HashBufferCUDA.Update(m_Opx7Context.get(), stream);
+                    }
+                }
+                if (stream) {
+                    shouldSync = true;
+                }
+            }
+            if (m_CurTracerName != "DBG") {
+                m_SamplesForAccum += m_SceneData.config.samples;
+            }
+            return shouldSync;
+        }
+    );
 }
 
 void RTLibExtOPX7TestApplication::InitSdTreeNeeTracer()
@@ -1166,6 +2165,206 @@ void RTLibExtOPX7TestApplication::InitSdTreeNeeTracer()
         params.flags = PARAM_FLAG_NONE;
     }
     m_TracerMap["PGNEE"].InitParams(m_Opx7Context.get(), params);
+    m_TracerMap["PGNEE"].beginTrace = std::function<void(RTLib::Ext::CUDA::CUDAStream*)>(
+        [this](RTLib::Ext::CUDA::CUDAStream* stream) {
+            if ((m_CurTracerName == "PGDEF") || (m_CurTracerName == "PGNEE") || (m_CurTracerName == "PGRIS"))
+            {
+                m_SdTreeController->BegTrace(stream);
+                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecord)
+                {
+                    m_PipelineName = "Build";
+                }
+                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecordAndSample) {
+                    m_PipelineName = "Trace";
+                }
+                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateSample) {
+                    m_PipelineName = "Final";
+                }
+            }
+            if ((m_CurTracerName == "HTDEF") || (m_CurTracerName == "HTNEE") || (m_CurTracerName == "HTRIS"))
+            {
+                m_MortonQuadTreeController->BegTrace(stream);
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateLocate)
+                {
+                    m_PipelineName = "Locate";
+                }
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecord)
+                {
+                    m_PipelineName = "Build";
+                }
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecordAndSample) {
+                    m_PipelineName = "Trace";
+                }
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateSample) {
+                    m_PipelineName = "Final";
+                }
+            }
+            return;
+        }
+    );
+    m_TracerMap["PGNEE"].getParams = std::function<Params(RTLib::Ext::CUDA::CUDABuffer*)>(
+        [this](RTLib::Ext::CUDA::CUDABuffer* frameBuffer) {
+            auto params = Params();
+            params.accumBuffer = reinterpret_cast<float3*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_AccumBufferCUDA.get()));
+            params.seedBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<unsigned int>(m_SeedBufferCUDA.get());
+            params.frameBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<uchar4>(frameBuffer);
+            params.width = m_SceneData.config.width;
+            params.height = m_SceneData.config.height;
+            params.maxDepth = m_SceneData.config.maxDepth;
+            params.samplesForAccum = m_SamplesForAccum;
+            params.samplesForLaunch = m_SceneData.config.samples;
+            params.debugFrameType = m_DebugFrameType;
+            params.gasHandle = m_InstanceASMap["Root"].handle;
+            params.lights.count = m_lightBuffer.cpuHandle.size();
+            params.lights.data = reinterpret_cast<MeshLight*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_lightBuffer.gpuHandle.get()));
+            params.grid = m_HashBufferCUDA.GetHandle();
+            params.numCandidates = GetTraceConfig().custom.GetUInt32Or("Ris.NumCandidates", 32);
+            //std::cout << params.maxDepth << std::endl;
+            if (m_EnableGrid) {
+                params.diffuseGridBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<float4>(m_DiffuseBufferCUDA.get());
+            }
+            if (m_CurTracerName == "DBG") {
+                if (m_EnableGrid) {
+                    params.flags |= PARAM_FLAG_USE_GRID;
+                    params.mortonTree = m_MortonQuadTreeController->GetGpuHandle();
+                }
+            }
+            if (m_CurTracerName == "DEF")
+            {
+                params.flags = PARAM_FLAG_NONE;
+
+                if (m_EnableGrid) {
+                    params.flags |= PARAM_FLAG_USE_GRID;
+                    params.mortonTree = m_MortonQuadTree->GetGpuHandle();
+                }
+            }
+            if (m_CurTracerName == "NEE")
+            {
+                params.flags = PARAM_FLAG_NEE;
+
+                if (m_EnableGrid) {
+
+                    params.flags |= PARAM_FLAG_USE_GRID;
+                    params.mortonTree = m_MortonQuadTree->GetGpuHandle();
+                }
+            }
+            if (m_CurTracerName == "RIS") {
+                params.flags = PARAM_FLAG_NEE | PARAM_FLAG_RIS;
+
+                if (m_EnableGrid) {
+                    params.flags |= PARAM_FLAG_USE_GRID;
+                    params.mortonTree = m_MortonQuadTree->GetGpuHandle();
+                }
+            }
+            if ((m_CurTracerName == "PGDEF") || ((m_CurTracerName == "PGNEE")) || (m_CurTracerName == "PGRIS"))
+            {
+                params.flags = PARAM_FLAG_NONE;
+                if (m_EnableTree) {
+                    params.tree = m_SdTreeController->GetGpuSTree();
+                    params.flags |= PARAM_FLAG_USE_TREE;
+                }
+
+                if (m_CurTracerName == "PGNEE")
+                {
+                    params.flags |= PARAM_FLAG_NEE;
+                }
+                if (m_CurTracerName == "PGRIS")
+                {
+                    params.flags |= PARAM_FLAG_NEE;
+                    params.flags |= PARAM_FLAG_RIS;
+                }
+
+                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecord)
+                {
+                    params.flags |= PARAM_FLAG_NONE;
+                }
+                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecordAndSample)
+                {
+                    params.flags |= PARAM_FLAG_BUILD;
+                }
+                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateSample)
+                {
+                    params.flags |= PARAM_FLAG_BUILD;
+                    params.flags |= PARAM_FLAG_FINAL;
+                }
+            }
+            if ((m_CurTracerName == "HTDEF") || ((m_CurTracerName == "HTNEE")) || (m_CurTracerName == "HTRIS"))
+            {
+                if (m_EnableGrid) {
+                    params.mortonTree = m_MortonQuadTreeController->GetGpuHandle();
+                    params.grid = m_HashBufferCUDA.GetHandle();
+                    params.flags |= PARAM_FLAG_USE_GRID;
+                    params.mortonTree.level = RTLib::Ext::CUDA::Math::min(params.mortonTree.level, rtlib::test::MortonQTreeWrapper::kMaxTreeLevel);
+                }
+
+                if (m_CurTracerName == "HTNEE")
+                {
+                    params.flags |= PARAM_FLAG_NEE;
+                }
+                if (m_CurTracerName == "HTRIS")
+                {
+                    params.flags |= PARAM_FLAG_NEE;
+                    params.flags |= PARAM_FLAG_RIS;
+                }
+
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateLocate)
+                {
+                    params.flags |= PARAM_FLAG_LOCATE;
+                }
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecord)
+                {
+                    params.flags |= PARAM_FLAG_NONE;
+                }
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecordAndSample)
+                {
+                    params.flags |= PARAM_FLAG_BUILD;
+                }
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateSample)
+                {
+                    params.flags |= PARAM_FLAG_BUILD;
+                    params.flags |= PARAM_FLAG_FINAL;
+                }
+            }
+            return params;
+        }
+    );
+    m_TracerMap["PGNEE"].endTrace = std::function<bool(RTLib::Ext::CUDA::CUDAStream*)>(
+        [this](RTLib::Ext::CUDA::CUDAStream* stream)->bool {
+            bool shouldSync = false;
+            if ((m_CurTracerName == "DEF") || (m_CurTracerName == "NEE") || (m_CurTracerName == "RIS")) {
+                if (m_EnableGrid) {
+                    m_HashBufferCUDA.Update(m_Opx7Context.get(), stream);
+                    if (stream) {
+                        shouldSync = true;
+                    }
+                }
+            }
+            if ((m_CurTracerName == "PGDEF") || (m_CurTracerName == "PGNEE") || (m_CurTracerName == "PGRIS")) {
+                if (m_EnableTree) {
+                    m_SdTreeController->EndTrace(stream);
+                    if (stream) {
+                        shouldSync = true;
+                    }
+                }
+            }
+            if ((m_CurTracerName == "HTDEF") || (m_CurTracerName == "HTNEE") || (m_CurTracerName == "HTRIS")) {
+                m_MortonQuadTreeController->EndTrace(stream);
+                if (m_EnableGrid) {
+                    if (m_MortonQuadTreeController->GetSamplePerTmp() == 0)
+                    {
+                        m_HashBufferCUDA.Update(m_Opx7Context.get(), stream);
+                    }
+                }
+                if (stream) {
+                    shouldSync = true;
+                }
+            }
+            if (m_CurTracerName != "DBG") {
+                m_SamplesForAccum += m_SceneData.config.samples;
+            }
+            return shouldSync;
+        }
+    );
 }
 
 void RTLibExtOPX7TestApplication::InitSdTreeRisTracer()
@@ -1358,6 +2557,206 @@ void RTLibExtOPX7TestApplication::InitSdTreeRisTracer()
         params.flags = PARAM_FLAG_NONE;
     }
     m_TracerMap["PGRIS"].InitParams(m_Opx7Context.get(), params);
+    m_TracerMap["PGRIS"].beginTrace = std::function<void(RTLib::Ext::CUDA::CUDAStream*)>(
+        [this](RTLib::Ext::CUDA::CUDAStream* stream) {
+            if ((m_CurTracerName == "PGDEF") || (m_CurTracerName == "PGNEE") || (m_CurTracerName == "PGRIS"))
+            {
+                m_SdTreeController->BegTrace(stream);
+                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecord)
+                {
+                    m_PipelineName = "Build";
+                }
+                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecordAndSample) {
+                    m_PipelineName = "Trace";
+                }
+                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateSample) {
+                    m_PipelineName = "Final";
+                }
+            }
+            if ((m_CurTracerName == "HTDEF") || (m_CurTracerName == "HTNEE") || (m_CurTracerName == "HTRIS"))
+            {
+                m_MortonQuadTreeController->BegTrace(stream);
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateLocate)
+                {
+                    m_PipelineName = "Locate";
+                }
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecord)
+                {
+                    m_PipelineName = "Build";
+                }
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecordAndSample) {
+                    m_PipelineName = "Trace";
+                }
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateSample) {
+                    m_PipelineName = "Final";
+                }
+            }
+            return;
+        }
+    );
+    m_TracerMap["PGRIS"].getParams = std::function<Params(RTLib::Ext::CUDA::CUDABuffer*)>(
+        [this](RTLib::Ext::CUDA::CUDABuffer* frameBuffer) {
+            auto params = Params();
+            params.accumBuffer = reinterpret_cast<float3*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_AccumBufferCUDA.get()));
+            params.seedBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<unsigned int>(m_SeedBufferCUDA.get());
+            params.frameBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<uchar4>(frameBuffer);
+            params.width = m_SceneData.config.width;
+            params.height = m_SceneData.config.height;
+            params.maxDepth = m_SceneData.config.maxDepth;
+            params.samplesForAccum = m_SamplesForAccum;
+            params.samplesForLaunch = m_SceneData.config.samples;
+            params.debugFrameType = m_DebugFrameType;
+            params.gasHandle = m_InstanceASMap["Root"].handle;
+            params.lights.count = m_lightBuffer.cpuHandle.size();
+            params.lights.data = reinterpret_cast<MeshLight*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_lightBuffer.gpuHandle.get()));
+            params.grid = m_HashBufferCUDA.GetHandle();
+            params.numCandidates = GetTraceConfig().custom.GetUInt32Or("Ris.NumCandidates", 32);
+            //std::cout << params.maxDepth << std::endl;
+            if (m_EnableGrid) {
+                params.diffuseGridBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<float4>(m_DiffuseBufferCUDA.get());
+            }
+            if (m_CurTracerName == "DBG") {
+                if (m_EnableGrid) {
+                    params.flags |= PARAM_FLAG_USE_GRID;
+                    params.mortonTree = m_MortonQuadTreeController->GetGpuHandle();
+                }
+            }
+            if (m_CurTracerName == "DEF")
+            {
+                params.flags = PARAM_FLAG_NONE;
+
+                if (m_EnableGrid) {
+                    params.flags |= PARAM_FLAG_USE_GRID;
+                    params.mortonTree = m_MortonQuadTree->GetGpuHandle();
+                }
+            }
+            if (m_CurTracerName == "NEE")
+            {
+                params.flags = PARAM_FLAG_NEE;
+
+                if (m_EnableGrid) {
+
+                    params.flags |= PARAM_FLAG_USE_GRID;
+                    params.mortonTree = m_MortonQuadTree->GetGpuHandle();
+                }
+            }
+            if (m_CurTracerName == "RIS") {
+                params.flags = PARAM_FLAG_NEE | PARAM_FLAG_RIS;
+
+                if (m_EnableGrid) {
+                    params.flags |= PARAM_FLAG_USE_GRID;
+                    params.mortonTree = m_MortonQuadTree->GetGpuHandle();
+                }
+            }
+            if ((m_CurTracerName == "PGDEF") || ((m_CurTracerName == "PGNEE")) || (m_CurTracerName == "PGRIS"))
+            {
+                params.flags = PARAM_FLAG_NONE;
+                if (m_EnableTree) {
+                    params.tree = m_SdTreeController->GetGpuSTree();
+                    params.flags |= PARAM_FLAG_USE_TREE;
+                }
+
+                if (m_CurTracerName == "PGNEE")
+                {
+                    params.flags |= PARAM_FLAG_NEE;
+                }
+                if (m_CurTracerName == "PGRIS")
+                {
+                    params.flags |= PARAM_FLAG_NEE;
+                    params.flags |= PARAM_FLAG_RIS;
+                }
+
+                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecord)
+                {
+                    params.flags |= PARAM_FLAG_NONE;
+                }
+                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecordAndSample)
+                {
+                    params.flags |= PARAM_FLAG_BUILD;
+                }
+                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateSample)
+                {
+                    params.flags |= PARAM_FLAG_BUILD;
+                    params.flags |= PARAM_FLAG_FINAL;
+                }
+            }
+            if ((m_CurTracerName == "HTDEF") || ((m_CurTracerName == "HTNEE")) || (m_CurTracerName == "HTRIS"))
+            {
+                if (m_EnableGrid) {
+                    params.mortonTree = m_MortonQuadTreeController->GetGpuHandle();
+                    params.grid = m_HashBufferCUDA.GetHandle();
+                    params.flags |= PARAM_FLAG_USE_GRID;
+                    params.mortonTree.level = RTLib::Ext::CUDA::Math::min(params.mortonTree.level, rtlib::test::MortonQTreeWrapper::kMaxTreeLevel);
+                }
+
+                if (m_CurTracerName == "HTNEE")
+                {
+                    params.flags |= PARAM_FLAG_NEE;
+                }
+                if (m_CurTracerName == "HTRIS")
+                {
+                    params.flags |= PARAM_FLAG_NEE;
+                    params.flags |= PARAM_FLAG_RIS;
+                }
+
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateLocate)
+                {
+                    params.flags |= PARAM_FLAG_LOCATE;
+                }
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecord)
+                {
+                    params.flags |= PARAM_FLAG_NONE;
+                }
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecordAndSample)
+                {
+                    params.flags |= PARAM_FLAG_BUILD;
+                }
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateSample)
+                {
+                    params.flags |= PARAM_FLAG_BUILD;
+                    params.flags |= PARAM_FLAG_FINAL;
+                }
+            }
+            return params;
+        }
+    );
+    m_TracerMap["PGRIS"].endTrace = std::function<bool(RTLib::Ext::CUDA::CUDAStream*)>(
+        [this](RTLib::Ext::CUDA::CUDAStream* stream)->bool {
+            bool shouldSync = false;
+            if ((m_CurTracerName == "DEF") || (m_CurTracerName == "NEE") || (m_CurTracerName == "RIS")) {
+                if (m_EnableGrid) {
+                    m_HashBufferCUDA.Update(m_Opx7Context.get(), stream);
+                    if (stream) {
+                        shouldSync = true;
+                    }
+                }
+            }
+            if ((m_CurTracerName == "PGDEF") || (m_CurTracerName == "PGNEE") || (m_CurTracerName == "PGRIS")) {
+                if (m_EnableTree) {
+                    m_SdTreeController->EndTrace(stream);
+                    if (stream) {
+                        shouldSync = true;
+                    }
+                }
+            }
+            if ((m_CurTracerName == "HTDEF") || (m_CurTracerName == "HTNEE") || (m_CurTracerName == "HTRIS")) {
+                m_MortonQuadTreeController->EndTrace(stream);
+                if (m_EnableGrid) {
+                    if (m_MortonQuadTreeController->GetSamplePerTmp() == 0)
+                    {
+                        m_HashBufferCUDA.Update(m_Opx7Context.get(), stream);
+                    }
+                }
+                if (stream) {
+                    shouldSync = true;
+                }
+            }
+            if (m_CurTracerName != "DBG") {
+                m_SamplesForAccum += m_SceneData.config.samples;
+            }
+            return shouldSync;
+        }
+    );
 }
 
 void RTLibExtOPX7TestApplication::InitHashTreeDefTracer()
@@ -1591,6 +2990,206 @@ void RTLibExtOPX7TestApplication::InitHashTreeDefTracer()
         params.flags = PARAM_FLAG_NONE;
     }
     m_TracerMap["HTDEF"].InitParams(m_Opx7Context.get(), params);
+    m_TracerMap["HTDEF"].beginTrace = std::function<void(RTLib::Ext::CUDA::CUDAStream*)>(
+        [this](RTLib::Ext::CUDA::CUDAStream* stream) {
+            if ((m_CurTracerName == "PGDEF") || (m_CurTracerName == "PGNEE") || (m_CurTracerName == "PGRIS"))
+            {
+                m_SdTreeController->BegTrace(stream);
+                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecord)
+                {
+                    m_PipelineName = "Build";
+                }
+                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecordAndSample) {
+                    m_PipelineName = "Trace";
+                }
+                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateSample) {
+                    m_PipelineName = "Final";
+                }
+            }
+            if ((m_CurTracerName == "HTDEF") || (m_CurTracerName == "HTNEE") || (m_CurTracerName == "HTRIS"))
+            {
+                m_MortonQuadTreeController->BegTrace(stream);
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateLocate)
+                {
+                    m_PipelineName = "Locate";
+                }
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecord)
+                {
+                    m_PipelineName = "Build";
+                }
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecordAndSample) {
+                    m_PipelineName = "Trace";
+                }
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateSample) {
+                    m_PipelineName = "Final";
+                }
+            }
+            return;
+        }
+    );
+    m_TracerMap["HTDEF"].getParams = std::function<Params(RTLib::Ext::CUDA::CUDABuffer*)>(
+        [this](RTLib::Ext::CUDA::CUDABuffer* frameBuffer) {
+            auto params = Params();
+            params.accumBuffer = reinterpret_cast<float3*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_AccumBufferCUDA.get()));
+            params.seedBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<unsigned int>(m_SeedBufferCUDA.get());
+            params.frameBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<uchar4>(frameBuffer);
+            params.width = m_SceneData.config.width;
+            params.height = m_SceneData.config.height;
+            params.maxDepth = m_SceneData.config.maxDepth;
+            params.samplesForAccum = m_SamplesForAccum;
+            params.samplesForLaunch = m_SceneData.config.samples;
+            params.debugFrameType = m_DebugFrameType;
+            params.gasHandle = m_InstanceASMap["Root"].handle;
+            params.lights.count = m_lightBuffer.cpuHandle.size();
+            params.lights.data = reinterpret_cast<MeshLight*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_lightBuffer.gpuHandle.get()));
+            params.grid = m_HashBufferCUDA.GetHandle();
+            params.numCandidates = GetTraceConfig().custom.GetUInt32Or("Ris.NumCandidates", 32);
+            //std::cout << params.maxDepth << std::endl;
+            if (m_EnableGrid) {
+                params.diffuseGridBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<float4>(m_DiffuseBufferCUDA.get());
+            }
+            if (m_CurTracerName == "DBG") {
+                if (m_EnableGrid) {
+                    params.flags |= PARAM_FLAG_USE_GRID;
+                    params.mortonTree = m_MortonQuadTreeController->GetGpuHandle();
+                }
+            }
+            if (m_CurTracerName == "DEF")
+            {
+                params.flags = PARAM_FLAG_NONE;
+
+                if (m_EnableGrid) {
+                    params.flags |= PARAM_FLAG_USE_GRID;
+                    params.mortonTree = m_MortonQuadTree->GetGpuHandle();
+                }
+            }
+            if (m_CurTracerName == "NEE")
+            {
+                params.flags = PARAM_FLAG_NEE;
+
+                if (m_EnableGrid) {
+
+                    params.flags |= PARAM_FLAG_USE_GRID;
+                    params.mortonTree = m_MortonQuadTree->GetGpuHandle();
+                }
+            }
+            if (m_CurTracerName == "RIS") {
+                params.flags = PARAM_FLAG_NEE | PARAM_FLAG_RIS;
+
+                if (m_EnableGrid) {
+                    params.flags |= PARAM_FLAG_USE_GRID;
+                    params.mortonTree = m_MortonQuadTree->GetGpuHandle();
+                }
+            }
+            if ((m_CurTracerName == "PGDEF") || ((m_CurTracerName == "PGNEE")) || (m_CurTracerName == "PGRIS"))
+            {
+                params.flags = PARAM_FLAG_NONE;
+                if (m_EnableTree) {
+                    params.tree = m_SdTreeController->GetGpuSTree();
+                    params.flags |= PARAM_FLAG_USE_TREE;
+                }
+
+                if (m_CurTracerName == "PGNEE")
+                {
+                    params.flags |= PARAM_FLAG_NEE;
+                }
+                if (m_CurTracerName == "PGRIS")
+                {
+                    params.flags |= PARAM_FLAG_NEE;
+                    params.flags |= PARAM_FLAG_RIS;
+                }
+
+                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecord)
+                {
+                    params.flags |= PARAM_FLAG_NONE;
+                }
+                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecordAndSample)
+                {
+                    params.flags |= PARAM_FLAG_BUILD;
+                }
+                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateSample)
+                {
+                    params.flags |= PARAM_FLAG_BUILD;
+                    params.flags |= PARAM_FLAG_FINAL;
+                }
+            }
+            if ((m_CurTracerName == "HTDEF") || ((m_CurTracerName == "HTNEE")) || (m_CurTracerName == "HTRIS"))
+            {
+                if (m_EnableGrid) {
+                    params.mortonTree = m_MortonQuadTreeController->GetGpuHandle();
+                    params.grid = m_HashBufferCUDA.GetHandle();
+                    params.flags |= PARAM_FLAG_USE_GRID;
+                    params.mortonTree.level = RTLib::Ext::CUDA::Math::min(params.mortonTree.level, rtlib::test::MortonQTreeWrapper::kMaxTreeLevel);
+                }
+
+                if (m_CurTracerName == "HTNEE")
+                {
+                    params.flags |= PARAM_FLAG_NEE;
+                }
+                if (m_CurTracerName == "HTRIS")
+                {
+                    params.flags |= PARAM_FLAG_NEE;
+                    params.flags |= PARAM_FLAG_RIS;
+                }
+
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateLocate)
+                {
+                    params.flags |= PARAM_FLAG_LOCATE;
+                }
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecord)
+                {
+                    params.flags |= PARAM_FLAG_NONE;
+                }
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecordAndSample)
+                {
+                    params.flags |= PARAM_FLAG_BUILD;
+                }
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateSample)
+                {
+                    params.flags |= PARAM_FLAG_BUILD;
+                    params.flags |= PARAM_FLAG_FINAL;
+                }
+            }
+            return params;
+        }
+    );
+    m_TracerMap["HTDEF"].endTrace = std::function<bool(RTLib::Ext::CUDA::CUDAStream*)>(
+        [this](RTLib::Ext::CUDA::CUDAStream* stream)->bool {
+            bool shouldSync = false;
+            if ((m_CurTracerName == "DEF") || (m_CurTracerName == "NEE") || (m_CurTracerName == "RIS")) {
+                if (m_EnableGrid) {
+                    m_HashBufferCUDA.Update(m_Opx7Context.get(), stream);
+                    if (stream) {
+                        shouldSync = true;
+                    }
+                }
+            }
+            if ((m_CurTracerName == "PGDEF") || (m_CurTracerName == "PGNEE") || (m_CurTracerName == "PGRIS")) {
+                if (m_EnableTree) {
+                    m_SdTreeController->EndTrace(stream);
+                    if (stream) {
+                        shouldSync = true;
+                    }
+                }
+            }
+            if ((m_CurTracerName == "HTDEF") || (m_CurTracerName == "HTNEE") || (m_CurTracerName == "HTRIS")) {
+                m_MortonQuadTreeController->EndTrace(stream);
+                if (m_EnableGrid) {
+                    if (m_MortonQuadTreeController->GetSamplePerTmp() == 0)
+                    {
+                        m_HashBufferCUDA.Update(m_Opx7Context.get(), stream);
+                    }
+                }
+                if (stream) {
+                    shouldSync = true;
+                }
+            }
+            if (m_CurTracerName != "DBG") {
+                m_SamplesForAccum += m_SceneData.config.samples;
+            }
+            return shouldSync;
+        }
+    );
 }
 
 void RTLibExtOPX7TestApplication::InitHashTreeNeeTracer()
@@ -1827,6 +3426,206 @@ void RTLibExtOPX7TestApplication::InitHashTreeNeeTracer()
         params.flags = PARAM_FLAG_NONE;
     }
     m_TracerMap["HTNEE"].InitParams(m_Opx7Context.get(), params);
+    m_TracerMap["HTNEE"].beginTrace = std::function<void(RTLib::Ext::CUDA::CUDAStream*)>(
+        [this](RTLib::Ext::CUDA::CUDAStream* stream) {
+            if ((m_CurTracerName == "PGDEF") || (m_CurTracerName == "PGNEE") || (m_CurTracerName == "PGRIS"))
+            {
+                m_SdTreeController->BegTrace(stream);
+                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecord)
+                {
+                    m_PipelineName = "Build";
+                }
+                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecordAndSample) {
+                    m_PipelineName = "Trace";
+                }
+                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateSample) {
+                    m_PipelineName = "Final";
+                }
+            }
+            if ((m_CurTracerName == "HTDEF") || (m_CurTracerName == "HTNEE") || (m_CurTracerName == "HTRIS"))
+            {
+                m_MortonQuadTreeController->BegTrace(stream);
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateLocate)
+                {
+                    m_PipelineName = "Locate";
+                }
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecord)
+                {
+                    m_PipelineName = "Build";
+                }
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecordAndSample) {
+                    m_PipelineName = "Trace";
+                }
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateSample) {
+                    m_PipelineName = "Final";
+                }
+            }
+            return;
+        }
+    );
+    m_TracerMap["HTNEE"].getParams = std::function<Params(RTLib::Ext::CUDA::CUDABuffer*)>(
+        [this](RTLib::Ext::CUDA::CUDABuffer* frameBuffer) {
+            auto params = Params();
+            params.accumBuffer = reinterpret_cast<float3*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_AccumBufferCUDA.get()));
+            params.seedBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<unsigned int>(m_SeedBufferCUDA.get());
+            params.frameBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<uchar4>(frameBuffer);
+            params.width = m_SceneData.config.width;
+            params.height = m_SceneData.config.height;
+            params.maxDepth = m_SceneData.config.maxDepth;
+            params.samplesForAccum = m_SamplesForAccum;
+            params.samplesForLaunch = m_SceneData.config.samples;
+            params.debugFrameType = m_DebugFrameType;
+            params.gasHandle = m_InstanceASMap["Root"].handle;
+            params.lights.count = m_lightBuffer.cpuHandle.size();
+            params.lights.data = reinterpret_cast<MeshLight*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_lightBuffer.gpuHandle.get()));
+            params.grid = m_HashBufferCUDA.GetHandle();
+            params.numCandidates = GetTraceConfig().custom.GetUInt32Or("Ris.NumCandidates", 32);
+            //std::cout << params.maxDepth << std::endl;
+            if (m_EnableGrid) {
+                params.diffuseGridBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<float4>(m_DiffuseBufferCUDA.get());
+            }
+            if (m_CurTracerName == "DBG") {
+                if (m_EnableGrid) {
+                    params.flags |= PARAM_FLAG_USE_GRID;
+                    params.mortonTree = m_MortonQuadTreeController->GetGpuHandle();
+                }
+            }
+            if (m_CurTracerName == "DEF")
+            {
+                params.flags = PARAM_FLAG_NONE;
+
+                if (m_EnableGrid) {
+                    params.flags |= PARAM_FLAG_USE_GRID;
+                    params.mortonTree = m_MortonQuadTree->GetGpuHandle();
+                }
+            }
+            if (m_CurTracerName == "NEE")
+            {
+                params.flags = PARAM_FLAG_NEE;
+
+                if (m_EnableGrid) {
+
+                    params.flags |= PARAM_FLAG_USE_GRID;
+                    params.mortonTree = m_MortonQuadTree->GetGpuHandle();
+                }
+            }
+            if (m_CurTracerName == "RIS") {
+                params.flags = PARAM_FLAG_NEE | PARAM_FLAG_RIS;
+
+                if (m_EnableGrid) {
+                    params.flags |= PARAM_FLAG_USE_GRID;
+                    params.mortonTree = m_MortonQuadTree->GetGpuHandle();
+                }
+            }
+            if ((m_CurTracerName == "PGDEF") || ((m_CurTracerName == "PGNEE")) || (m_CurTracerName == "PGRIS"))
+            {
+                params.flags = PARAM_FLAG_NONE;
+                if (m_EnableTree) {
+                    params.tree = m_SdTreeController->GetGpuSTree();
+                    params.flags |= PARAM_FLAG_USE_TREE;
+                }
+
+                if (m_CurTracerName == "PGNEE")
+                {
+                    params.flags |= PARAM_FLAG_NEE;
+                }
+                if (m_CurTracerName == "PGRIS")
+                {
+                    params.flags |= PARAM_FLAG_NEE;
+                    params.flags |= PARAM_FLAG_RIS;
+                }
+
+                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecord)
+                {
+                    params.flags |= PARAM_FLAG_NONE;
+                }
+                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecordAndSample)
+                {
+                    params.flags |= PARAM_FLAG_BUILD;
+                }
+                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateSample)
+                {
+                    params.flags |= PARAM_FLAG_BUILD;
+                    params.flags |= PARAM_FLAG_FINAL;
+                }
+            }
+            if ((m_CurTracerName == "HTDEF") || ((m_CurTracerName == "HTNEE")) || (m_CurTracerName == "HTRIS"))
+            {
+                if (m_EnableGrid) {
+                    params.mortonTree = m_MortonQuadTreeController->GetGpuHandle();
+                    params.grid = m_HashBufferCUDA.GetHandle();
+                    params.flags |= PARAM_FLAG_USE_GRID;
+                    params.mortonTree.level = RTLib::Ext::CUDA::Math::min(params.mortonTree.level, rtlib::test::MortonQTreeWrapper::kMaxTreeLevel);
+                }
+
+                if (m_CurTracerName == "HTNEE")
+                {
+                    params.flags |= PARAM_FLAG_NEE;
+                }
+                if (m_CurTracerName == "HTRIS")
+                {
+                    params.flags |= PARAM_FLAG_NEE;
+                    params.flags |= PARAM_FLAG_RIS;
+                }
+
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateLocate)
+                {
+                    params.flags |= PARAM_FLAG_LOCATE;
+                }
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecord)
+                {
+                    params.flags |= PARAM_FLAG_NONE;
+                }
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecordAndSample)
+                {
+                    params.flags |= PARAM_FLAG_BUILD;
+                }
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateSample)
+                {
+                    params.flags |= PARAM_FLAG_BUILD;
+                    params.flags |= PARAM_FLAG_FINAL;
+                }
+            }
+            return params;
+        }
+    );
+    m_TracerMap["HTNEE"].endTrace = std::function<bool(RTLib::Ext::CUDA::CUDAStream*)>(
+        [this](RTLib::Ext::CUDA::CUDAStream* stream)->bool {
+            bool shouldSync = false;
+            if ((m_CurTracerName == "DEF") || (m_CurTracerName == "NEE") || (m_CurTracerName == "RIS")) {
+                if (m_EnableGrid) {
+                    m_HashBufferCUDA.Update(m_Opx7Context.get(), stream);
+                    if (stream) {
+                        shouldSync = true;
+                    }
+                }
+            }
+            if ((m_CurTracerName == "PGDEF") || (m_CurTracerName == "PGNEE") || (m_CurTracerName == "PGRIS")) {
+                if (m_EnableTree) {
+                    m_SdTreeController->EndTrace(stream);
+                    if (stream) {
+                        shouldSync = true;
+                    }
+                }
+            }
+            if ((m_CurTracerName == "HTDEF") || (m_CurTracerName == "HTNEE") || (m_CurTracerName == "HTRIS")) {
+                m_MortonQuadTreeController->EndTrace(stream);
+                if (m_EnableGrid) {
+                    if (m_MortonQuadTreeController->GetSamplePerTmp() == 0)
+                    {
+                        m_HashBufferCUDA.Update(m_Opx7Context.get(), stream);
+                    }
+                }
+                if (stream) {
+                    shouldSync = true;
+                }
+            }
+            if (m_CurTracerName != "DBG") {
+                m_SamplesForAccum += m_SceneData.config.samples;
+            }
+            return shouldSync;
+        }
+    );
 }
 
 void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
@@ -2059,6 +3858,206 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
         params.flags = PARAM_FLAG_NONE;
     }
     m_TracerMap["HTRIS"].InitParams(m_Opx7Context.get(), params);
+    m_TracerMap["HTRIS"].beginTrace = std::function<void(RTLib::Ext::CUDA::CUDAStream*)>(
+        [this](RTLib::Ext::CUDA::CUDAStream* stream) {
+            if ((m_CurTracerName == "PGDEF") || (m_CurTracerName == "PGNEE") || (m_CurTracerName == "PGRIS"))
+            {
+                m_SdTreeController->BegTrace(stream);
+                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecord)
+                {
+                    m_PipelineName = "Build";
+                }
+                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecordAndSample) {
+                    m_PipelineName = "Trace";
+                }
+                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateSample) {
+                    m_PipelineName = "Final";
+                }
+            }
+            if ((m_CurTracerName == "HTDEF") || (m_CurTracerName == "HTNEE") || (m_CurTracerName == "HTRIS"))
+            {
+                m_MortonQuadTreeController->BegTrace(stream);
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateLocate)
+                {
+                    m_PipelineName = "Locate";
+                }
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecord)
+                {
+                    m_PipelineName = "Build";
+                }
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecordAndSample) {
+                    m_PipelineName = "Trace";
+                }
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateSample) {
+                    m_PipelineName = "Final";
+                }
+            }
+            return;
+        }
+    );
+    m_TracerMap["HTRIS"].getParams = std::function<Params(RTLib::Ext::CUDA::CUDABuffer*)>(
+        [this](RTLib::Ext::CUDA::CUDABuffer* frameBuffer) {
+            auto params = Params();
+            params.accumBuffer = reinterpret_cast<float3*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_AccumBufferCUDA.get()));
+            params.seedBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<unsigned int>(m_SeedBufferCUDA.get());
+            params.frameBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<uchar4>(frameBuffer);
+            params.width = m_SceneData.config.width;
+            params.height = m_SceneData.config.height;
+            params.maxDepth = m_SceneData.config.maxDepth;
+            params.samplesForAccum = m_SamplesForAccum;
+            params.samplesForLaunch = m_SceneData.config.samples;
+            params.debugFrameType = m_DebugFrameType;
+            params.gasHandle = m_InstanceASMap["Root"].handle;
+            params.lights.count = m_lightBuffer.cpuHandle.size();
+            params.lights.data = reinterpret_cast<MeshLight*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_lightBuffer.gpuHandle.get()));
+            params.grid = m_HashBufferCUDA.GetHandle();
+            params.numCandidates = GetTraceConfig().custom.GetUInt32Or("Ris.NumCandidates", 32);
+            //std::cout << params.maxDepth << std::endl;
+            if (m_EnableGrid) {
+                params.diffuseGridBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<float4>(m_DiffuseBufferCUDA.get());
+            }
+            if (m_CurTracerName == "DBG") {
+                if (m_EnableGrid) {
+                    params.flags |= PARAM_FLAG_USE_GRID;
+                    params.mortonTree = m_MortonQuadTreeController->GetGpuHandle();
+                }
+            }
+            if (m_CurTracerName == "DEF")
+            {
+                params.flags = PARAM_FLAG_NONE;
+
+                if (m_EnableGrid) {
+                    params.flags |= PARAM_FLAG_USE_GRID;
+                    params.mortonTree = m_MortonQuadTree->GetGpuHandle();
+                }
+            }
+            if (m_CurTracerName == "NEE")
+            {
+                params.flags = PARAM_FLAG_NEE;
+
+                if (m_EnableGrid) {
+
+                    params.flags |= PARAM_FLAG_USE_GRID;
+                    params.mortonTree = m_MortonQuadTree->GetGpuHandle();
+                }
+            }
+            if (m_CurTracerName == "RIS") {
+                params.flags = PARAM_FLAG_NEE | PARAM_FLAG_RIS;
+
+                if (m_EnableGrid) {
+                    params.flags |= PARAM_FLAG_USE_GRID;
+                    params.mortonTree = m_MortonQuadTree->GetGpuHandle();
+                }
+            }
+            if ((m_CurTracerName == "PGDEF") || ((m_CurTracerName == "PGNEE")) || (m_CurTracerName == "PGRIS"))
+            {
+                params.flags = PARAM_FLAG_NONE;
+                if (m_EnableTree) {
+                    params.tree = m_SdTreeController->GetGpuSTree();
+                    params.flags |= PARAM_FLAG_USE_TREE;
+                }
+
+                if (m_CurTracerName == "PGNEE")
+                {
+                    params.flags |= PARAM_FLAG_NEE;
+                }
+                if (m_CurTracerName == "PGRIS")
+                {
+                    params.flags |= PARAM_FLAG_NEE;
+                    params.flags |= PARAM_FLAG_RIS;
+                }
+
+                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecord)
+                {
+                    params.flags |= PARAM_FLAG_NONE;
+                }
+                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecordAndSample)
+                {
+                    params.flags |= PARAM_FLAG_BUILD;
+                }
+                if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateSample)
+                {
+                    params.flags |= PARAM_FLAG_BUILD;
+                    params.flags |= PARAM_FLAG_FINAL;
+                }
+            }
+            if ((m_CurTracerName == "HTDEF") || ((m_CurTracerName == "HTNEE")) || (m_CurTracerName == "HTRIS"))
+            {
+                if (m_EnableGrid) {
+                    params.mortonTree = m_MortonQuadTreeController->GetGpuHandle();
+                    params.grid = m_HashBufferCUDA.GetHandle();
+                    params.flags |= PARAM_FLAG_USE_GRID;
+                    params.mortonTree.level = RTLib::Ext::CUDA::Math::min(params.mortonTree.level, rtlib::test::MortonQTreeWrapper::kMaxTreeLevel);
+                }
+
+                if (m_CurTracerName == "HTNEE")
+                {
+                    params.flags |= PARAM_FLAG_NEE;
+                }
+                if (m_CurTracerName == "HTRIS")
+                {
+                    params.flags |= PARAM_FLAG_NEE;
+                    params.flags |= PARAM_FLAG_RIS;
+                }
+
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateLocate)
+                {
+                    params.flags |= PARAM_FLAG_LOCATE;
+                }
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecord)
+                {
+                    params.flags |= PARAM_FLAG_NONE;
+                }
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecordAndSample)
+                {
+                    params.flags |= PARAM_FLAG_BUILD;
+                }
+                if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateSample)
+                {
+                    params.flags |= PARAM_FLAG_BUILD;
+                    params.flags |= PARAM_FLAG_FINAL;
+                }
+            }
+            return params;
+        }
+    );
+    m_TracerMap["HTRIS"].endTrace = std::function<bool(RTLib::Ext::CUDA::CUDAStream*)>(
+        [this](RTLib::Ext::CUDA::CUDAStream* stream)->bool {
+            bool shouldSync = false;
+            if ((m_CurTracerName == "DEF") || (m_CurTracerName == "NEE") || (m_CurTracerName == "RIS")) {
+                if (m_EnableGrid) {
+                    m_HashBufferCUDA.Update(m_Opx7Context.get(), stream);
+                    if (stream) {
+                        shouldSync = true;
+                    }
+                }
+            }
+            if ((m_CurTracerName == "PGDEF") || (m_CurTracerName == "PGNEE") || (m_CurTracerName == "PGRIS")) {
+                if (m_EnableTree) {
+                    m_SdTreeController->EndTrace(stream);
+                    if (stream) {
+                        shouldSync = true;
+                    }
+                }
+            }
+            if ((m_CurTracerName == "HTDEF") || (m_CurTracerName == "HTNEE") || (m_CurTracerName == "HTRIS")) {
+                m_MortonQuadTreeController->EndTrace(stream);
+                if (m_EnableGrid) {
+                    if (m_MortonQuadTreeController->GetSamplePerTmp() == 0)
+                    {
+                        m_HashBufferCUDA.Update(m_Opx7Context.get(), stream);
+                    }
+                }
+                if (stream) {
+                    shouldSync = true;
+                }
+            }
+            if (m_CurTracerName != "DBG") {
+                m_SamplesForAccum += m_SceneData.config.samples;
+            }
+            return shouldSync;
+        }
+    );
 }
 
  void RTLibExtOPX7TestApplication::FreeTracers()
@@ -2162,80 +4161,16 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
 
  bool RTLibExtOPX7TestApplication::TracePipeline(RTLib::Ext::CUDA::CUDAStream* stream, RTLib::Ext::CUDA::CUDABuffer* frameBuffer)
 {   
-    m_PipelineName = "Trace";
-    if ((m_CurTracerName == "PGDEF") || (m_CurTracerName == "PGNEE") || (m_CurTracerName == "PGRIS"))
-    {
-        m_SdTreeController->BegTrace(stream);
-        if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecord)
-        {
-            m_PipelineName = "Build";
-        }
-        if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateRecordAndSample) {
-            m_PipelineName = "Trace";
-        }
-        if (m_SdTreeController->GetState() == rtlib::test::RTSTreeController::TraceStateSample) {
-            m_PipelineName = "Final";
-        }
-    }
-    if ((m_CurTracerName == "HTDEF") || (m_CurTracerName == "HTNEE") || (m_CurTracerName == "HTRIS"))
-    {
-        m_MortonQuadTreeController->BegTrace(stream);
-        if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateLocate)
-        {
-            m_PipelineName = "Locate";
-        }
-        if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecord)
-        {
-            m_PipelineName = "Build";
-        }
-        if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateRecordAndSample) {
-            m_PipelineName = "Trace";
-        }
-        if (m_MortonQuadTreeController->GetState() == rtlib::test::RTMortonQuadTreeController::TraceStateSample) {
-            m_PipelineName = "Final";
-        }
-    }
-
-    auto params = GetParams(frameBuffer);
+    m_TracerMap[m_CurTracerName].beginTrace(stream);
+    auto params = m_TracerMap[m_CurTracerName].getParams(frameBuffer);
     if (stream) {
         stream->CopyMemoryToBuffer(m_TracerMap[m_CurTracerName].paramsBuffer.get(), { { &params, 0, sizeof(params) } });
     }
     else {
         m_Opx7Context->CopyMemoryToBuffer(m_TracerMap[m_CurTracerName].paramsBuffer.get(), { { &params, 0, sizeof(params) } });
     }
-    m_TracerMap[m_CurTracerName].Launch(stream, m_PipelineName, m_SceneData.config.width, m_SceneData.config.height);bool shouldSync = false;
-    if ((m_CurTracerName == "DEF")   || (m_CurTracerName == "NEE")   || (m_CurTracerName == "RIS")) {
-        if (m_EnableGrid) {
-            m_HashBufferCUDA.Update(m_Opx7Context.get(),stream);
-            if (stream) {
-                shouldSync = true;
-            }
-        }
-    }
-    if ((m_CurTracerName == "PGDEF") || (m_CurTracerName == "PGNEE") || (m_CurTracerName == "PGRIS")) {
-        if (m_EnableTree) {
-            m_SdTreeController->EndTrace(stream);
-            if (stream) {
-                shouldSync = true;
-            }
-        }
-    }
-    if ((m_CurTracerName == "HTDEF") || (m_CurTracerName == "HTNEE") || (m_CurTracerName == "HTRIS")) {
-        m_MortonQuadTreeController->EndTrace(stream);
-        if (m_EnableGrid) {
-            if (m_MortonQuadTreeController->GetSamplePerTmp() == 0)
-            {
-                m_HashBufferCUDA.Update(m_Opx7Context.get(), stream);
-            }
-        }
-        if (stream) {
-            shouldSync = true;
-        }
-    }
-    if ( m_CurTracerName != "DBG") {
-        m_SamplesForAccum += m_SceneData.config.samples;
-    }
-    return shouldSync;
+    m_TracerMap[m_CurTracerName].Launch(stream, m_PipelineName, m_SceneData.config.width, m_SceneData.config.height);
+    return m_TracerMap[m_CurTracerName].endTrace(stream);
 }
  void RTLibExtOPX7TestApplication::SetupPipeline()
  {

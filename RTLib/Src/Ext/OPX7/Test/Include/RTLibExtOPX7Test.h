@@ -1320,8 +1320,11 @@ namespace rtlib
         };
         struct TracerData
         {
-            std::unordered_map<std::string, PipelineData>                                        pipelines;
-            std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>                                        paramsBuffer;
+            std::unordered_map<std::string, PipelineData>        pipelines;
+            std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>        paramsBuffer;
+            std::function<void(RTLib::Ext::CUDA::CUDAStream*)>   beginTrace;
+            std::function<Params(RTLib::Ext::CUDA::CUDABuffer*)> getParams;
+            std::function<bool(RTLib::Ext::CUDA::CUDAStream*)>   endTrace;
 
             template<typename ParamsType>
             void InitParams(RTLib::Ext::OPX7::OPX7Context* context, ParamsType params) {
