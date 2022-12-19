@@ -98,6 +98,11 @@ extern "C" __global__ void     __raygen__default() {
             for (unsigned int d = 0; d < traceVertexDepth; ++d) {
                 traceVertices[d].Record(hrec.userData.radiance);
             }
+            if (params.flags & PARAM_FLAG_REUSE) {
+                if (hrec.userData.gridIndex != UINT32_MAX) {
+                    atomicAdd(&params.curCountBuffer[hrec.userData.gridIndex], 1);
+                }
+            }
 
             color += hrec.userData.radiance;
 
@@ -124,6 +129,12 @@ extern "C" __global__ void     __raygen__default() {
         while (true) {
             TraceRadiance(params.gasHandle, hrec.rayOrigin, hrec.rayDirection, 0.0001f, 1.0e20f, hrec);
             color += hrec.userData.radiance;
+
+            if (params.flags & PARAM_FLAG_REUSE) {
+                if (hrec.userData.gridIndex != UINT32_MAX) {
+                    atomicAdd(&params.curCountBuffer[hrec.userData.gridIndex], 1);
+                }
+            }
 
             if (isnan(hrec.rayDirection.x) || isnan(hrec.rayDirection.y) || isnan(hrec.rayDirection.z) ||
                 isnan(hrec.userData.throughPut.x) || isnan(hrec.userData.throughPut.y) || isnan(hrec.userData.throughPut.z) ||
@@ -647,6 +658,7 @@ extern "C" __global__ void     __closesthit__radiance_sphere() {
                             if (!TraceOccluded(params.gasHandle, position, lDir_y, 0.0001f, dist_y - 0.0001f)) {
                                 resv.w = resv.w_sum / (f_a_y * static_cast<float>(resv.m));
                             }
+                            //IF Reuse This Reservoir, Then Require Visibility Check
                         }
                         radiance += prevThroughput * f_y * resv.w;
                     }

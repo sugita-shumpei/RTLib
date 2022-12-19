@@ -30,8 +30,20 @@ void RTLibExtOPX7TestApplication::LoadScene(int argc, const char** argv)
     if (!GetTraceConfig().custom.GetBoolOr("SdTree.Enable",false)) {
         m_EnableTree = false;
     }
+    else {
+        m_EnableTree = true;
+    }
     if (!GetTraceConfig().custom.GetBoolOr("MortonTree.Enable", false)) {
         m_EnableGrid = false;
+    }
+    else {
+        m_EnableGrid = true;
+    }
+    if (!GetTraceConfig().custom.GetBoolOr("ReservoirReuse.Enable", false)) {
+        m_EnableReuse = false;
+    }
+    else {
+        m_EnableReuse = true;
     }
     auto tmpBgColor = GetTraceConfig().custom.GetFloat3Or("MissData.BgColor", { 0.0f ,0.0f ,0.0f });
     m_BgColor = {tmpBgColor[0], tmpBgColor[1], tmpBgColor[2]};
@@ -92,7 +104,28 @@ void RTLibExtOPX7TestApplication::LoadScene(int argc, const char** argv)
                     std::cout << "BUG: --EnableTree Args is Missing: Use Default(false)\n";
                 }
             }
+            if (std::string(argv[i]) == "--EnableReuse") {
+                m_EnableReuse = false;
+                if ((std::string(argv[i + 1]) == "true") || (std::string(argv[i + 1]) == "True") ||
+                    (std::string(argv[i + 1]) == "on") || (std::string(argv[i + 1]) == "On") ||
+                    (std::string(argv[i + 1]) == "1")) {
+                    std::cout << "SUC: --EnableReuse Args is ON\n";
+                    m_EnableReuse = true;
+                }
+                else if ((std::string(argv[i + 1]) == "false") || (std::string(argv[i + 1]) == "False") ||
+                    (std::string(argv[i + 1]) == "off") || (std::string(argv[i + 1]) == "Off") ||
+                    (std::string(argv[i + 1]) == "0")) {
+                    std::cout << "SUC: --EnableReuse Args is OFF\n";
+                    m_EnableReuse = false;
+                }
+                else {
+                    std::cout << "BUG: --EnableReuse Args is Missing: Use Default(false)\n";
+                }
+            }
         }
+    }
+    if (m_EnableReuse) {
+        m_EnableGrid = true;
     }
     auto neeThresholdMeshSize = GetTraceConfig().custom.GetUInt32Or("Nee.ThresholdMeshSize", 0);
     for (auto& [name, asset] : m_SceneData.objAssetManager.GetAssets())
@@ -365,6 +398,25 @@ void RTLibExtOPX7TestApplication::LoadScene(int argc, const char** argv)
         m_MortonQuadTreeController.reset();
     }
 }
+
+ void RTLibExtOPX7TestApplication::InitReuse()
+ {
+     auto desc = RTLib::Ext::CUDA::CUDABufferCreateDesc();
+     desc.sizeInBytes = sizeof(unsigned int) * m_HashBufferCUDA.checkSumCpuHandle.size();
+     m_CountBufferCurIndex = 0;
+     m_CountBuffersCUDA[0] = std::unique_ptr <RTLib::Ext::CUDA::CUDABuffer>(
+             m_Opx7Context->CreateBuffer(desc)
+             );
+     m_CountBuffersCUDA[1] = std::unique_ptr <RTLib::Ext::CUDA::CUDABuffer>(
+         m_Opx7Context->CreateBuffer(desc)
+         );
+ }
+
+ void RTLibExtOPX7TestApplication::FreeReuse()
+ {
+     m_CountBuffersCUDA[0]->Destroy();
+     m_CountBuffersCUDA[1]->Destroy();
+ }
 
  void RTLibExtOPX7TestApplication::InitSdTree()
  {
@@ -1854,6 +1906,9 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
             if (m_EnableGrid) {
                 flags |= PARAM_FLAG_USE_GRID;
             }
+            if (m_EnableReuse) {
+                flags |= PARAM_FLAG_REUSE;
+            }
             moduleOptions.payloadTypes = {};
             moduleOptions.boundValueEntries.push_back({});
             moduleOptions.boundValueEntries.front().pipelineParamOffsetInBytes = offsetof(Params, flags);
@@ -1872,6 +1927,9 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
             if (m_EnableGrid) {
                 flags |= PARAM_FLAG_USE_GRID;
             }
+            if (m_EnableReuse) {
+                flags |= PARAM_FLAG_REUSE;
+            }
             moduleOptions.boundValueEntries.push_back({});
             moduleOptions.boundValueEntries.front().pipelineParamOffsetInBytes = offsetof(Params, flags);
             moduleOptions.boundValueEntries.front().boundValuePtr = &flags;
@@ -1888,6 +1946,9 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
             unsigned int flags = PARAM_FLAG_NONE | PARAM_FLAG_BUILD | PARAM_FLAG_NEE | PARAM_FLAG_RIS;
             if (m_EnableGrid) {
                 flags |= PARAM_FLAG_USE_GRID;
+            }
+            if (m_EnableReuse) {
+                flags |= PARAM_FLAG_REUSE;
             }
             moduleOptions.payloadTypes = {};
             moduleOptions.boundValueEntries.push_back({});
@@ -1906,6 +1967,9 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
             unsigned int flags = PARAM_FLAG_NONE | PARAM_FLAG_BUILD | PARAM_FLAG_FINAL | PARAM_FLAG_NEE | PARAM_FLAG_RIS;
             if (m_EnableGrid) {
                 flags |= PARAM_FLAG_USE_GRID;
+            }
+            if (m_EnableReuse) {
+                flags |= PARAM_FLAG_REUSE;
             }
             moduleOptions.boundValueEntries.push_back({});
             moduleOptions.boundValueEntries.front().pipelineParamOffsetInBytes = offsetof(Params, flags);
@@ -2019,7 +2083,11 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
                     params.flags |= PARAM_FLAG_USE_GRID;
                     params.mortonTree.level = RTLib::Ext::CUDA::Math::min(params.mortonTree.level, rtlib::test::MortonQTreeWrapper::kMaxTreeLevel);
                 }
-
+                if (m_EnableReuse) {
+                    params.flags |= PARAM_FLAG_REUSE;
+                    params.curCountBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<unsigned int>(m_CountBuffersCUDA[m_CountBufferCurIndex].get());
+                    params.prvCountBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<unsigned int>(m_CountBuffersCUDA[(m_CountBufferCurIndex+1)%2].get());
+                }
                 {
                     params.flags |= PARAM_FLAG_NEE;
                     params.flags |= PARAM_FLAG_RIS;
@@ -2039,6 +2107,46 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
                     {
                         m_HashBufferCUDA.Update(m_Opx7Context.get(), stream);
                     }
+                }
+                if (m_EnableReuse) {
+                    auto cuStream = RTLib::Ext::CUDA::CUDANatives::GetCUstream(stream);
+                    auto nxtCountBufferIndex = (m_CountBufferCurIndex + 1) % 2;
+                    auto nxtCountBufferAddress = RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_CountBuffersCUDA[nxtCountBufferIndex].get());
+                    auto nxtCountBufferSize = m_CountBuffersCUDA[nxtCountBufferIndex]->GetSizeInBytes();
+                    if (stream) {
+                        RTLIB_CORE_ASSERT_IF_FAILED(cuMemsetD32Async(nxtCountBufferAddress, 0, nxtCountBufferSize / sizeof(unsigned int),cuStream)==CUresult::CUDA_SUCCESS);
+                    }
+                    else {
+                        RTLIB_CORE_ASSERT_IF_FAILED(cuMemsetD32(nxtCountBufferAddress,0, nxtCountBufferSize / sizeof(unsigned int)) == CUresult::CUDA_SUCCESS);
+                    }
+#ifndef NDEBUG
+                    {
+
+                        auto curCountBuffers = std::vector<unsigned int>(nxtCountBufferSize / sizeof(unsigned int));
+                        RTLib::Ext::CUDA::CUDABufferMemoryCopy copy = {};
+                        copy.dstData = curCountBuffers.data();
+                        copy.size = nxtCountBufferSize;
+                        copy.srcOffset = 0;
+                        if (stream) {
+                            RTLIB_CORE_ASSERT_IF_FAILED(stream->CopyBufferToMemory(m_CountBuffersCUDA[m_CountBufferCurIndex].get(), { copy }));
+                            RTLIB_CORE_ASSERT_IF_FAILED(stream->Synchronize());
+
+                        }
+                        else {
+                            RTLIB_CORE_ASSERT_IF_FAILED(m_Opx7Context->CopyBufferToMemory(m_CountBuffersCUDA[m_CountBufferCurIndex].get(), { copy }));
+                        }
+                        std::ofstream dumpFile(RTLIB_EXT_OPX7_TEST_CUDA_PATH"\\countBufferDump.txt");
+                        {
+                            for (auto& count:curCountBuffers) {
+                                dumpFile << count << "\n";
+                            }
+                            dumpFile.close();
+                        }
+
+                    }
+                    
+#endif
+                    m_CountBufferCurIndex = nxtCountBufferIndex;
                 }
                 if (stream) {
                     shouldSync = true;
@@ -2160,9 +2268,13 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
      m_TracerMap[m_CurTracerName].TracePipeline(m_Opx7Context.get(), nullptr, frameBufferTmp, GetTraceConfig().width, GetTraceConfig().height);
      m_SamplesForAccum = 0;
      m_TimesForIterations = std::vector<unsigned long long>{ 0 };
-     cuMemsetD32(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_AccumBufferCUDA.get()), m_AccumBufferCUDA->GetSizeInBytes() / sizeof(float), 0);
+     cuMemsetD32(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_AccumBufferCUDA.get()),0, m_AccumBufferCUDA->GetSizeInBytes() / sizeof(float));
      if (m_EnableGrid) {
          m_HashBufferCUDA.Clear(m_Opx7Context.get());
+     }
+     if (m_EnableReuse) {
+         RTLIB_EXT_CUDA_THROW_IF_FAILED(cuMemsetD32(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_CountBuffersCUDA[0].get()), 0,m_CountBuffersCUDA[0]->GetSizeInBytes() / sizeof(unsigned int)));
+         RTLIB_EXT_CUDA_THROW_IF_FAILED(cuMemsetD32(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_CountBuffersCUDA[1].get()), 0,m_CountBuffersCUDA[1]->GetSizeInBytes() / sizeof(unsigned int)));
      }
      frameBufferTmp->Destroy();
      delete frameBufferTmp;

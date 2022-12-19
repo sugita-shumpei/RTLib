@@ -23,6 +23,9 @@ public:
         if (m_EnableTree) {
             this->InitSdTree();
         }
+        if (m_EnableReuse) {
+            this->InitReuse();
+        }
         this->InitPtxString();
         this->InitDefTracer();
         this->InitNeeTracer();
@@ -181,6 +184,9 @@ public:
         this->FreeGLFW();
         this->FreeFrameResourceCUDA();
         this->FreeTracers();
+        if (m_EnableReuse) {
+            this->FreeReuse();
+        }
         if (m_EnableTree) {
             this->FreeSdTree();
         }
@@ -286,6 +292,9 @@ private:
     void InitGrids();
     void FreeGrids();
 
+    void InitReuse();
+    void FreeReuse();
+
     void InitSdTree();
     void FreeSdTree();
 
@@ -374,6 +383,10 @@ private:
     std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>   m_SeedBufferCUDA;
     rtlib::test::DoubleBufferedHashGrid3Buffer      m_HashBufferCUDA;
     std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>   m_DiffuseBufferCUDA;
+
+    unsigned int                                    m_CountBufferCurIndex;
+    std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>   m_CountBuffersCUDA[2];
+
     std::unique_ptr<rtlib::test::RTSTreeWrapper>    m_SdTree;
     std::unique_ptr<rtlib::test::RTSTreeController> m_SdTreeController;
     std::unique_ptr<rtlib::test::RTMortonQuadTreeWrapper> m_MortonQuadTree;
@@ -404,8 +417,9 @@ private:
 
     std::string m_TimeStampString = "";
 
-    bool  m_EnableVis = true;
-    bool  m_EnableGrid = false;
-    bool  m_EnableTree = false;
+    bool  m_EnableVis   = true;
+    bool  m_EnableGrid  = false;
+    bool  m_EnableTree  = false;
+    bool  m_EnableReuse = false;
 };
 #endif

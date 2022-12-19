@@ -127,7 +127,7 @@ struct ReservoirState
     float targetDensity;
 };
 
-enum   ParamFlag
+enum   ParamFlag:unsigned int
 {
     PARAM_FLAG_NONE = 0,
     PARAM_FLAG_NEE = 1,
@@ -137,6 +137,7 @@ enum   ParamFlag
     PARAM_FLAG_BUILD = 16,
     PARAM_FLAG_FINAL = 32,
     PARAM_FLAG_LOCATE = 64,
+    PARAM_FLAG_REUSE  = 128,
 };
 enum   DebugFrameType
 {
@@ -155,6 +156,8 @@ struct Params {
     float3* accumBuffer;
     uchar4* frameBuffer;
     float4* diffuseGridBuffer;
+    unsigned int*               curCountBuffer;
+    unsigned int*               prvCountBuffer;
     rtlib::test::MortonQTreeWrapper mortonTree;
     unsigned int                         width;
     unsigned int                        height;
