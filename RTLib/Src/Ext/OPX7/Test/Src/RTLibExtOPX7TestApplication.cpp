@@ -20,20 +20,20 @@ void RTLibExtOPX7TestApplication::CursorPosCallback(RTLib::Core::Window* window,
 void RTLibExtOPX7TestApplication::LoadScene(int argc, const char** argv)
 {
     m_SceneData = rtlib::test::LoadScene(m_ScenePath);
-    if (!m_SceneData.config.enableVis) {
+    if (!GetTraceConfig().enableVis) {
         m_EnableVis = false;
     }
-    if (m_SceneData.config.defTracer != "NONE")
+    if (GetTraceConfig().defTracer != "NONE")
     {
-        m_CurTracerName = m_SceneData.config.defTracer;
+        m_CurTracerName = GetTraceConfig().defTracer;
     }
-    if (!m_SceneData.config.custom.GetBoolOr("SdTree.Enable",false)) {
+    if (!GetTraceConfig().custom.GetBoolOr("SdTree.Enable",false)) {
         m_EnableTree = false;
     }
-    if (!m_SceneData.config.custom.GetBoolOr("MortonTree.Enable", false)) {
+    if (!GetTraceConfig().custom.GetBoolOr("MortonTree.Enable", false)) {
         m_EnableGrid = false;
     }
-    auto tmpBgColor = m_SceneData.config.custom.GetFloat3Or("MissData.BgColor", { 0.0f ,0.0f ,0.0f });
+    auto tmpBgColor = GetTraceConfig().custom.GetFloat3Or("MissData.BgColor", { 0.0f ,0.0f ,0.0f });
     m_BgColor = {tmpBgColor[0], tmpBgColor[1], tmpBgColor[2]};
     std::cout << "OK_HERE" << std::endl;
     if (argc > 1) {
@@ -94,7 +94,7 @@ void RTLibExtOPX7TestApplication::LoadScene(int argc, const char** argv)
             }
         }
     }
-    auto neeThresholdMeshSize = m_SceneData.config.custom.GetUInt32Or("Nee.ThresholdMeshSize", 0);
+    auto neeThresholdMeshSize = GetTraceConfig().custom.GetUInt32Or("Nee.ThresholdMeshSize", 0);
     for (auto& [name, asset] : m_SceneData.objAssetManager.GetAssets())
     {
         for (auto& [uniqueName, uniqueRes] : asset.meshGroup->GetUniqueResources())
@@ -130,7 +130,7 @@ void RTLibExtOPX7TestApplication::LoadScene(int argc, const char** argv)
 
  void RTLibExtOPX7TestApplication::InitOGL4()
 {
-    m_GlfwWindow = std::unique_ptr<RTLib::Ext::GLFW::GL::GLFWOpenGLWindow>(rtlib::test::CreateGLFWWindow(m_GlfwContext.get(), m_SceneData.config.width, m_SceneData.config.height, "title"));
+    m_GlfwWindow = std::unique_ptr<RTLib::Ext::GLFW::GL::GLFWOpenGLWindow>(rtlib::test::CreateGLFWWindow(m_GlfwContext.get(), GetTraceConfig().width, GetTraceConfig().height, "title"));
 }
 
  void RTLibExtOPX7TestApplication::FreeOGL4()
@@ -314,19 +314,19 @@ void RTLibExtOPX7TestApplication::LoadScene(int argc, const char** argv)
     m_HashBufferCUDA.aabbMax = make_float3(m_WorldAabbMax[0] + 0.005f, m_WorldAabbMax[1] + 0.005f, m_WorldAabbMax[2] + 0.005f);
     auto hashGridCellSize = static_cast<unsigned int>(128*128*4);
     auto hashGridGridSize = make_uint3(128,64,128);
-    if (m_SceneData.config.custom.HasFloat1("HashGrid.CellSize")&&
-        m_SceneData.config.custom.HasFloat3("HashGrid.GridSize")) {
-        hashGridCellSize = m_SceneData.config.custom.GetFloat1("HashGrid.CellSize");
+    if (GetTraceConfig().custom.HasFloat1("HashGrid.CellSize")&&
+        GetTraceConfig().custom.HasFloat3("HashGrid.GridSize")) {
+        hashGridCellSize = GetTraceConfig().custom.GetFloat1("HashGrid.CellSize");
         hashGridGridSize = make_uint3(
-            m_SceneData.config.custom.GetFloat3("HashGrid.GridSize")[0],
-            m_SceneData.config.custom.GetFloat3("HashGrid.GridSize")[1],
-            m_SceneData.config.custom.GetFloat3("HashGrid.GridSize")[2]
+            GetTraceConfig().custom.GetFloat3("HashGrid.GridSize")[0],
+            GetTraceConfig().custom.GetFloat3("HashGrid.GridSize")[1],
+            GetTraceConfig().custom.GetFloat3("HashGrid.GridSize")[2]
         );
     }
-    auto ratioForBudget    = m_SceneData.config.custom.GetFloat1Or("MortonTree.RatioForBudget"   ,0.3f);
-    auto iterationForBuilt = m_SceneData.config.custom.GetUInt32Or("MortonTree.IterationForBuilt",3);
-    auto fraction          = m_SceneData.config.custom.GetFloat1Or("MortonTree.Fraction"         ,0.3f);
-    m_SceneData.config.custom.SetUInt32("MortonTree.MaxLevel", rtlib::test::RTMortonQuadTreeWrapper::kMaxLevel);
+    auto ratioForBudget    = GetTraceConfig().custom.GetFloat1Or("MortonTree.RatioForBudget"   ,0.3f);
+    auto iterationForBuilt = GetTraceConfig().custom.GetUInt32Or("MortonTree.IterationForBuilt",3);
+    auto fraction          = GetTraceConfig().custom.GetFloat1Or("MortonTree.Fraction"         ,0.3f);
+    GetTraceConfig().custom.SetUInt32("MortonTree.MaxLevel", rtlib::test::RTMortonQuadTreeWrapper::kMaxLevel);
     std::cout << "HashGrid.GridSize: (" << hashGridGridSize.x << "," << hashGridGridSize.y << "," << hashGridGridSize.z << ")\n";
     std::cout << "HashGrid.CellSize:  " << hashGridCellSize   << "\n";
     std::cout << "MortonTree.RatioForBudget   :  " << ratioForBudget    << "\n";
@@ -347,7 +347,7 @@ void RTLibExtOPX7TestApplication::LoadScene(int argc, const char** argv)
         m_MortonQuadTree           = std::make_unique<rtlib::test::RTMortonQuadTreeWrapper>(m_Opx7Context.get(),m_HashBufferCUDA.checkSumCpuHandle.size(), 30, fraction);
         m_MortonQuadTree->Allocate();
         m_MortonQuadTreeController = std::make_unique<rtlib::test::RTMortonQuadTreeController>(
-            m_MortonQuadTree.get(), (uint32_t)m_SceneData.config.maxSamples, iterationForBuilt,0, ratioForBudget, m_SceneData.config.samples
+            m_MortonQuadTree.get(), (uint32_t)GetTraceConfig().maxSamples, iterationForBuilt,0, ratioForBudget, GetTraceConfig().samples
         );
     }
 }
@@ -368,9 +368,9 @@ void RTLibExtOPX7TestApplication::LoadScene(int argc, const char** argv)
 
  void RTLibExtOPX7TestApplication::InitSdTree()
  {
-     auto fraction          = m_SceneData.config.custom.GetFloat1Or("SdTree.Fraction"         , 0.3f);
-     auto ratioForBudget    = m_SceneData.config.custom.GetFloat1Or("SdTree.RatioForBudget"   , 0.3f);
-     auto iterationForBuilt = m_SceneData.config.custom.GetUInt32Or("SdTree.IterationForBuilt", 0);
+     auto fraction          = GetTraceConfig().custom.GetFloat1Or("SdTree.Fraction"         , 0.3f);
+     auto ratioForBudget    = GetTraceConfig().custom.GetFloat1Or("SdTree.RatioForBudget"   , 0.3f);
+     auto iterationForBuilt = GetTraceConfig().custom.GetUInt32Or("SdTree.IterationForBuilt", 0);
 
      m_SdTree = std::make_unique<rtlib::test::RTSTreeWrapper>(m_Opx7Context.get(),
          make_float3(m_WorldAabbMin[0] - 0.005f, m_WorldAabbMin[1] - 0.005f, m_WorldAabbMin[2] - 0.005f),
@@ -379,7 +379,7 @@ void RTLibExtOPX7TestApplication::LoadScene(int argc, const char** argv)
      );
      m_SdTree->Upload();
      m_SdTreeController = std::make_unique<rtlib::test::RTSTreeController>(
-         m_SdTree.get(), (uint32_t)m_SceneData.config.maxSamples, iterationForBuilt, ratioForBudget,m_SceneData.config.samples
+         m_SdTree.get(), (uint32_t)GetTraceConfig().maxSamples, iterationForBuilt, ratioForBudget,GetTraceConfig().samples
      );
  }
 
@@ -402,30 +402,14 @@ void RTLibExtOPX7TestApplication::InitPtxString()
 void RTLibExtOPX7TestApplication::InitDefTracer()
 {
     auto tracer = rtlib::test::TracerData();
-    tracer.pipelines["Trace"].compileOptions.usesMotionBlur = false;
-    tracer.pipelines["Trace"].compileOptions.traversableGraphFlags = 0;
-    tracer.pipelines["Trace"].compileOptions.numAttributeValues = 3;
-    tracer.pipelines["Trace"].compileOptions.numPayloadValues = 8;
-    tracer.pipelines["Trace"].compileOptions.launchParamsVariableNames = "params";
-    tracer.pipelines["Trace"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle| RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
-    tracer.pipelines["Trace"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
-    tracer.pipelines["Trace"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-    tracer.pipelines["Trace"].linkOptions.maxTraceDepth = 1;
+    tracer.pipelines["Trace"].compileOptions = rtlib::test::GetDefaultPipelineCompileOptions();
+    tracer.pipelines["Trace"].linkOptions    = rtlib::test::GetDefaultPipelineLinkOptions(1);
     {
-        auto moduleOptions = RTLib::Ext::OPX7::OPX7ModuleCompileOptions{};
+        auto moduleOptions = rtlib::test::GetDefaultModuleCompileOptions();
         unsigned int flags = PARAM_FLAG_NONE;
         if (m_EnableGrid) {
             flags |= PARAM_FLAG_USE_GRID;
         }
-#ifdef NDEBUG
-        moduleOptions.optLevel = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eLevel3;
-        moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eNone;
-#else
-        moduleOptions.optLevel = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eDefault;
-        moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-#endif
-        moduleOptions.maxRegisterCount = OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT;
-        moduleOptions.payloadTypes = {};
         moduleOptions.boundValueEntries.push_back({});
         moduleOptions.boundValueEntries.front().pipelineParamOffsetInBytes = offsetof(Params, flags);
         moduleOptions.boundValueEntries.front().boundValuePtr = &flags;
@@ -443,7 +427,7 @@ void RTLibExtOPX7TestApplication::InitDefTracer()
     tracer.pipelines["Trace"].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Radiance.Sphere"  , "SimpleKernel.DEF", "__closesthit__radiance_sphere", "", "", "BuiltIn.Sphere.DEF", "");
     tracer.pipelines["Trace"].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Occluded.Sphere"  , "SimpleKernel.DEF", "__closesthit__occluded", "", "", "BuiltIn.Sphere.DEF", "");
     tracer.pipelines["Trace"].InitPipeline(m_Opx7Context.get());
-    tracer.pipelines["Trace"].shaderTable = this->NewShaderTable();
+    tracer.pipelines["Trace"].shaderTable = rtlib::test::NewShaderTable(m_Opx7Context.get(),m_ShaderTableLayout.get());
 
     auto programGroupHGNames = std::vector<std::string>{
         "SimpleKernel.Radiance",
@@ -509,11 +493,11 @@ void RTLibExtOPX7TestApplication::InitDefTracer()
             params.accumBuffer = reinterpret_cast<float3*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_AccumBufferCUDA.get()));
             params.seedBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<unsigned int>(m_SeedBufferCUDA.get());
             params.frameBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<uchar4>(frameBuffer);
-            params.width = m_SceneData.config.width;
-            params.height = m_SceneData.config.height;
-            params.maxDepth = m_SceneData.config.maxDepth;
+            params.width = GetTraceConfig().width;
+            params.height = GetTraceConfig().height;
+            params.maxDepth = GetTraceConfig().maxDepth;
             params.samplesForAccum = m_SamplesForAccum;
-            params.samplesForLaunch = m_SceneData.config.samples;
+            params.samplesForLaunch = GetTraceConfig().samples;
             params.debugFrameType = m_DebugFrameType;
             params.gasHandle = m_InstanceASMap["Root"].handle;
             params.lights.count = m_lightBuffer.cpuHandle.size();
@@ -547,7 +531,7 @@ void RTLibExtOPX7TestApplication::InitDefTracer()
                 }
             }
             {
-                m_SamplesForAccum += m_SceneData.config.samples;
+                m_SamplesForAccum += GetTraceConfig().samples;
             }
             return shouldSync;
         }
@@ -558,30 +542,14 @@ void RTLibExtOPX7TestApplication::InitDefTracer()
 void RTLibExtOPX7TestApplication::InitNeeTracer()
 {
     auto tracer = rtlib::test::TracerData();
-    tracer.pipelines["Trace"].compileOptions.usesMotionBlur = false;
-    tracer.pipelines["Trace"].compileOptions.traversableGraphFlags = 0;
-    tracer.pipelines["Trace"].compileOptions.numAttributeValues = 3;
-    tracer.pipelines["Trace"].compileOptions.numPayloadValues = 8;
-    tracer.pipelines["Trace"].compileOptions.launchParamsVariableNames = "params";
-    tracer.pipelines["Trace"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
-    tracer.pipelines["Trace"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
-    tracer.pipelines["Trace"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-    tracer.pipelines["Trace"].linkOptions.maxTraceDepth = 2;
+    tracer.pipelines["Trace"].compileOptions = rtlib::test::GetDefaultPipelineCompileOptions();
+    tracer.pipelines["Trace"].linkOptions = rtlib::test::GetDefaultPipelineLinkOptions(2);
     {
-        auto moduleOptions = RTLib::Ext::OPX7::OPX7ModuleCompileOptions{};
+        auto moduleOptions = rtlib::test::GetDefaultModuleCompileOptions();
         unsigned int flags = PARAM_FLAG_NEE;
         if (m_EnableGrid) {
             flags |= PARAM_FLAG_USE_GRID;
         }
-#ifdef NDEBUG
-        moduleOptions.optLevel = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eLevel3;
-        moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eNone;
-#else
-        moduleOptions.optLevel = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eDefault;
-        moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-#endif
-        moduleOptions.maxRegisterCount = OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT;
-        moduleOptions.payloadTypes = {};
         moduleOptions.boundValueEntries.push_back({});
         moduleOptions.boundValueEntries.front().pipelineParamOffsetInBytes = offsetof(Params, flags);
         moduleOptions.boundValueEntries.front().boundValuePtr = &flags;
@@ -599,7 +567,7 @@ void RTLibExtOPX7TestApplication::InitNeeTracer()
     tracer.pipelines["Trace"].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Radiance.Sphere", "SimpleKernel.NEE", "__closesthit__radiance_sphere", "", "", "BuiltIn.Sphere.NEE", "");
     tracer.pipelines["Trace"].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Occluded.Sphere", "SimpleKernel.NEE", "__closesthit__occluded", "", "", "BuiltIn.Sphere.NEE", "");
     tracer.pipelines["Trace"].InitPipeline(m_Opx7Context.get());
-    tracer.pipelines["Trace"].shaderTable = this->NewShaderTable();
+    tracer.pipelines["Trace"].shaderTable = rtlib::test::NewShaderTable(m_Opx7Context.get(),m_ShaderTableLayout.get());
     auto programGroupHGNames = std::vector<std::string>{
         "SimpleKernel.Radiance",
         "SimpleKernel.Occluded" 
@@ -663,11 +631,11 @@ void RTLibExtOPX7TestApplication::InitNeeTracer()
             params.accumBuffer = reinterpret_cast<float3*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_AccumBufferCUDA.get()));
             params.seedBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<unsigned int>(m_SeedBufferCUDA.get());
             params.frameBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<uchar4>(frameBuffer);
-            params.width = m_SceneData.config.width;
-            params.height = m_SceneData.config.height;
-            params.maxDepth = m_SceneData.config.maxDepth;
+            params.width = GetTraceConfig().width;
+            params.height = GetTraceConfig().height;
+            params.maxDepth = GetTraceConfig().maxDepth;
             params.samplesForAccum = m_SamplesForAccum;
-            params.samplesForLaunch = m_SceneData.config.samples;
+            params.samplesForLaunch = GetTraceConfig().samples;
             params.debugFrameType = m_DebugFrameType;
             params.gasHandle = m_InstanceASMap["Root"].handle;
             params.lights.count = m_lightBuffer.cpuHandle.size();
@@ -702,7 +670,7 @@ void RTLibExtOPX7TestApplication::InitNeeTracer()
                 }
             }
             {
-                m_SamplesForAccum += m_SceneData.config.samples;
+                m_SamplesForAccum += GetTraceConfig().samples;
             }
             return shouldSync;
         }
@@ -713,30 +681,14 @@ void RTLibExtOPX7TestApplication::InitNeeTracer()
 void RTLibExtOPX7TestApplication::InitRisTracer()
 {
     auto tracer = rtlib::test::TracerData();
-    tracer.pipelines["Trace"].compileOptions.usesMotionBlur = false;
-    tracer.pipelines["Trace"].compileOptions.traversableGraphFlags = 0;
-    tracer.pipelines["Trace"].compileOptions.numAttributeValues = 3;
-    tracer.pipelines["Trace"].compileOptions.numPayloadValues = 8;
-    tracer.pipelines["Trace"].compileOptions.launchParamsVariableNames = "params";
-    tracer.pipelines["Trace"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
-    tracer.pipelines["Trace"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
-    tracer.pipelines["Trace"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-    tracer.pipelines["Trace"].linkOptions.maxTraceDepth = 2;
+    tracer.pipelines["Trace"].compileOptions = rtlib::test::GetDefaultPipelineCompileOptions();
+    tracer.pipelines["Trace"].linkOptions = rtlib::test::GetDefaultPipelineLinkOptions(2);
     {
-        auto moduleOptions = RTLib::Ext::OPX7::OPX7ModuleCompileOptions{};
+        auto moduleOptions = rtlib::test::GetDefaultModuleCompileOptions();
         unsigned int flags = PARAM_FLAG_RIS|PARAM_FLAG_NEE;
         if (m_EnableGrid) {
             flags |= PARAM_FLAG_USE_GRID;
         }
-#ifdef NDEBUG
-        moduleOptions.optLevel = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eLevel3;
-        moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eNone;
-#else
-        moduleOptions.optLevel = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eDefault;
-        moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-#endif
-        moduleOptions.maxRegisterCount = OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT;
-        moduleOptions.payloadTypes = {};
         moduleOptions.boundValueEntries.push_back({});
         moduleOptions.boundValueEntries.front().pipelineParamOffsetInBytes = offsetof(Params, flags);
         moduleOptions.boundValueEntries.front().boundValuePtr = &flags;
@@ -754,7 +706,7 @@ void RTLibExtOPX7TestApplication::InitRisTracer()
     tracer.pipelines["Trace"].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Radiance.Sphere", "SimpleKernel.RIS", "__closesthit__radiance_sphere", "", "", "BuiltIn.Sphere.RIS", "");
     tracer.pipelines["Trace"].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Occluded.Sphere", "SimpleKernel.RIS", "__closesthit__occluded", "", "", "BuiltIn.Sphere.RIS", "");
     tracer.pipelines["Trace"].InitPipeline(m_Opx7Context.get());
-    tracer.pipelines["Trace"].shaderTable = this->NewShaderTable();
+    tracer.pipelines["Trace"].shaderTable = rtlib::test::NewShaderTable(m_Opx7Context.get(),m_ShaderTableLayout.get());
     auto programGroupHGNames = std::vector<std::string>{
         "SimpleKernel.Radiance",
         "SimpleKernel.Occluded" };
@@ -816,11 +768,11 @@ void RTLibExtOPX7TestApplication::InitRisTracer()
             params.accumBuffer = reinterpret_cast<float3*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_AccumBufferCUDA.get()));
             params.seedBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<unsigned int>(m_SeedBufferCUDA.get());
             params.frameBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<uchar4>(frameBuffer);
-            params.width = m_SceneData.config.width;
-            params.height = m_SceneData.config.height;
-            params.maxDepth = m_SceneData.config.maxDepth;
+            params.width = GetTraceConfig().width;
+            params.height = GetTraceConfig().height;
+            params.maxDepth = GetTraceConfig().maxDepth;
             params.samplesForAccum = m_SamplesForAccum;
-            params.samplesForLaunch = m_SceneData.config.samples;
+            params.samplesForLaunch = GetTraceConfig().samples;
             params.debugFrameType = m_DebugFrameType;
             params.gasHandle = m_InstanceASMap["Root"].handle;
             params.lights.count = m_lightBuffer.cpuHandle.size();
@@ -854,7 +806,7 @@ void RTLibExtOPX7TestApplication::InitRisTracer()
                 }
             } 
             {
-                m_SamplesForAccum += m_SceneData.config.samples;
+                m_SamplesForAccum += GetTraceConfig().samples;
             }
             return shouldSync;
         }
@@ -864,30 +816,10 @@ void RTLibExtOPX7TestApplication::InitRisTracer()
 
 void RTLibExtOPX7TestApplication::InitDbgTracer() {
     auto tracer = rtlib::test::TracerData();
-    tracer.pipelines["Trace"].compileOptions.usesMotionBlur = false;
-    tracer.pipelines["Trace"].compileOptions.traversableGraphFlags = 0;
-    tracer.pipelines["Trace"].compileOptions.numAttributeValues = 3;
-    tracer.pipelines["Trace"].compileOptions.numPayloadValues = 8;
-    tracer.pipelines["Trace"].compileOptions.launchParamsVariableNames = "params";
-    tracer.pipelines["Trace"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
-    tracer.pipelines["Trace"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
-    tracer.pipelines["Trace"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-    tracer.pipelines["Trace"].linkOptions.maxTraceDepth = 1;
+    tracer.pipelines["Trace"].compileOptions = rtlib::test::GetDefaultPipelineCompileOptions();
+    tracer.pipelines["Trace"].linkOptions = rtlib::test::GetDefaultPipelineLinkOptions(1);
     {
-        auto moduleOptions = RTLib::Ext::OPX7::OPX7ModuleCompileOptions{};
-        unsigned int flags = PARAM_FLAG_NEE;
-        if (m_EnableGrid) {
-            flags |= PARAM_FLAG_USE_GRID;
-        }
-#ifdef NDEBUG
-        moduleOptions.optLevel = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eLevel3;
-        moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eNone;
-#else
-        moduleOptions.optLevel = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eDefault;
-        moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eModerate;
-#endif
-        moduleOptions.maxRegisterCount = OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT;
-        moduleOptions.payloadTypes = {};
+        auto moduleOptions = rtlib::test::GetDefaultModuleCompileOptions();
         tracer.pipelines["Trace"].LoadModule(m_Opx7Context.get(), "SimpleKernel.DBG", moduleOptions, m_PtxStringMap.at("SimpleTrace.ptx"));
         tracer.pipelines["Trace"].LoadBuiltInISTriangleModule(m_Opx7Context.get(), "BuiltIn.Triangle.DBG", moduleOptions);
         tracer.pipelines["Trace"].LoadBuiltInISSphereModule(m_Opx7Context.get(), "BuiltIn.Sphere.DBG", moduleOptions);
@@ -898,7 +830,7 @@ void RTLibExtOPX7TestApplication::InitDbgTracer() {
     tracer.pipelines["Trace"].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Debug.Triangle", "SimpleKernel.DBG", "__closesthit__debug", "", "", "BuiltIn.Triangle.DBG", "");
     tracer.pipelines["Trace"].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Debug.Sphere", "SimpleKernel.DBG", "__closesthit__debug_sphere", "", "", "BuiltIn.Sphere.DBG", "");
     tracer.pipelines["Trace"].InitPipeline(m_Opx7Context.get());
-    tracer.pipelines["Trace"].shaderTable = this->NewShaderTable();
+    tracer.pipelines["Trace"].shaderTable = rtlib::test::NewShaderTable(m_Opx7Context.get(),m_ShaderTableLayout.get());
 
     auto programGroupHGNames = std::vector<std::string>{
         "SimpleKernel.Debug",
@@ -963,11 +895,11 @@ void RTLibExtOPX7TestApplication::InitDbgTracer() {
             params.accumBuffer = reinterpret_cast<float3*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_AccumBufferCUDA.get()));
             params.seedBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<unsigned int>(m_SeedBufferCUDA.get());
             params.frameBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<uchar4>(frameBuffer);
-            params.width = m_SceneData.config.width;
-            params.height = m_SceneData.config.height;
-            params.maxDepth = m_SceneData.config.maxDepth;
+            params.width = GetTraceConfig().width;
+            params.height = GetTraceConfig().height;
+            params.maxDepth = GetTraceConfig().maxDepth;
             params.samplesForAccum = m_SamplesForAccum;
-            params.samplesForLaunch = m_SceneData.config.samples;
+            params.samplesForLaunch = GetTraceConfig().samples;
             params.debugFrameType = m_DebugFrameType;
             params.gasHandle = m_InstanceASMap["Root"].handle;
             params.lights.count = m_lightBuffer.cpuHandle.size();
@@ -998,35 +930,21 @@ void RTLibExtOPX7TestApplication::InitDbgTracer() {
 
 void RTLibExtOPX7TestApplication::InitSdTreeDefTracer()
 {
+    constexpr unsigned int maxTraceDepth = 1;
     auto tracer = rtlib::test::TracerData();
     {
+        auto   moduleCompileOptions = rtlib::test::GetDefaultModuleCompileOptions();
+        auto pipelineCompileOptions = rtlib::test::GetDefaultPipelineCompileOptions();
+        auto    pipelineLinkOptions = rtlib::test::GetDefaultPipelineLinkOptions(maxTraceDepth);
         //Build
         {
-            tracer.pipelines["Build"].compileOptions.usesMotionBlur = false;
-            tracer.pipelines["Build"].compileOptions.traversableGraphFlags = 0;
-            tracer.pipelines["Build"].compileOptions.numAttributeValues = 3;
-            tracer.pipelines["Build"].compileOptions.numPayloadValues = 8;
-            tracer.pipelines["Build"].compileOptions.launchParamsVariableNames = "params";
-            tracer.pipelines["Build"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
-            tracer.pipelines["Build"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
-            tracer.pipelines["Build"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-            tracer.pipelines["Build"].linkOptions.maxTraceDepth = 1;
-
-            auto moduleOptions = RTLib::Ext::OPX7::OPX7ModuleCompileOptions{};
+            tracer.pipelines["Build"].compileOptions = pipelineCompileOptions;
+            tracer.pipelines["Build"].linkOptions = pipelineLinkOptions;
+            auto moduleOptions = moduleCompileOptions;
             unsigned int flags = PARAM_FLAG_NONE;
             if (m_EnableTree) {
                 flags |= PARAM_FLAG_USE_TREE;
             }
-
-#ifdef NDEBUG
-            moduleOptions.optLevel = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eLevel3;
-            moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eNone;
-#else
-            moduleOptions.optLevel = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eDefault;
-            moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-#endif
-            moduleOptions.maxRegisterCount = OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT;
-            moduleOptions.payloadTypes = {};
             moduleOptions.boundValueEntries.push_back({});
             moduleOptions.boundValueEntries.front().pipelineParamOffsetInBytes = offsetof(Params, flags);
             moduleOptions.boundValueEntries.front().boundValuePtr = &flags;
@@ -1037,31 +955,13 @@ void RTLibExtOPX7TestApplication::InitSdTreeDefTracer()
         }
         //Trace
         {
-            tracer.pipelines["Trace"].compileOptions.usesMotionBlur = false;
-            tracer.pipelines["Trace"].compileOptions.traversableGraphFlags = 0;
-            tracer.pipelines["Trace"].compileOptions.numAttributeValues = 3;
-            tracer.pipelines["Trace"].compileOptions.numPayloadValues = 8;
-            tracer.pipelines["Trace"].compileOptions.launchParamsVariableNames = "params";
-            tracer.pipelines["Trace"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
-            tracer.pipelines["Trace"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
-            tracer.pipelines["Trace"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-            tracer.pipelines["Trace"].linkOptions.maxTraceDepth = 1;
-
-            auto moduleOptions = RTLib::Ext::OPX7::OPX7ModuleCompileOptions{};
+            tracer.pipelines["Trace"].compileOptions = pipelineCompileOptions;
+            tracer.pipelines["Trace"].linkOptions = pipelineLinkOptions;
+            auto moduleOptions = moduleCompileOptions;
             unsigned int flags = PARAM_FLAG_NONE|PARAM_FLAG_BUILD;
             if (m_EnableTree) {
                 flags |= PARAM_FLAG_USE_TREE;
             }
-
-#ifdef NDEBUG
-            moduleOptions.optLevel = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eLevel3;
-            moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eNone;
-#else
-            moduleOptions.optLevel = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eDefault;
-            moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-#endif
-            moduleOptions.maxRegisterCount = OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT;
-            moduleOptions.payloadTypes = {};
             moduleOptions.boundValueEntries.push_back({});
             moduleOptions.boundValueEntries.front().pipelineParamOffsetInBytes = offsetof(Params, flags);
             moduleOptions.boundValueEntries.front().boundValuePtr = &flags;
@@ -1072,31 +972,13 @@ void RTLibExtOPX7TestApplication::InitSdTreeDefTracer()
         }
         //Final
         {
-            tracer.pipelines["Final"].compileOptions.usesMotionBlur = false;
-            tracer.pipelines["Final"].compileOptions.traversableGraphFlags = 0;
-            tracer.pipelines["Final"].compileOptions.numAttributeValues = 3;
-            tracer.pipelines["Final"].compileOptions.numPayloadValues = 8;
-            tracer.pipelines["Final"].compileOptions.launchParamsVariableNames = "params";
-            tracer.pipelines["Final"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
-            tracer.pipelines["Final"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
-            tracer.pipelines["Final"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-            tracer.pipelines["Final"].linkOptions.maxTraceDepth = 1;
-
-            auto moduleOptions = RTLib::Ext::OPX7::OPX7ModuleCompileOptions{};
+            tracer.pipelines["Final"].compileOptions = pipelineCompileOptions;
+            tracer.pipelines["Final"].linkOptions = pipelineLinkOptions;
+            auto moduleOptions = moduleCompileOptions;
             unsigned int flags = PARAM_FLAG_NONE | PARAM_FLAG_BUILD | PARAM_FLAG_FINAL;
             if (m_EnableTree) {
                 flags |= PARAM_FLAG_USE_TREE;
             }
-
-#ifdef NDEBUG
-            moduleOptions.optLevel = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eLevel3;
-            moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eNone;
-#else
-            moduleOptions.optLevel = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eDefault;
-            moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-#endif
-            moduleOptions.maxRegisterCount = OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT;
-            moduleOptions.payloadTypes = {};
             moduleOptions.boundValueEntries.push_back({});
             moduleOptions.boundValueEntries.front().pipelineParamOffsetInBytes = offsetof(Params, flags);
             moduleOptions.boundValueEntries.front().boundValuePtr = &flags;
@@ -1118,13 +1000,13 @@ void RTLibExtOPX7TestApplication::InitSdTreeDefTracer()
         tracer.pipelines[stName].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Occluded.Sphere", "SimpleKernel.PGDEF", "__closesthit__occluded", "", "", "BuiltIn.Sphere.PGDEF", "");
     }
     tracer.pipelines["Build"].InitPipeline(m_Opx7Context.get());
-    tracer.pipelines["Build"].shaderTable = this->NewShaderTable();
+    tracer.pipelines["Build"].shaderTable = rtlib::test::NewShaderTable(m_Opx7Context.get(),m_ShaderTableLayout.get());
 
     tracer.pipelines["Trace"].InitPipeline(m_Opx7Context.get());
-    tracer.pipelines["Trace"].shaderTable = this->NewShaderTable();
+    tracer.pipelines["Trace"].shaderTable = rtlib::test::NewShaderTable(m_Opx7Context.get(),m_ShaderTableLayout.get());
     
     tracer.pipelines["Final"].InitPipeline(m_Opx7Context.get());
-    tracer.pipelines["Final"].shaderTable = this->NewShaderTable();
+    tracer.pipelines["Final"].shaderTable = rtlib::test::NewShaderTable(m_Opx7Context.get(),m_ShaderTableLayout.get());
 
     auto programGroupHGNames = std::vector<std::string>{
         "SimpleKernel.Radiance",
@@ -1210,11 +1092,11 @@ void RTLibExtOPX7TestApplication::InitSdTreeDefTracer()
             params.accumBuffer = reinterpret_cast<float3*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_AccumBufferCUDA.get()));
             params.seedBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<unsigned int>(m_SeedBufferCUDA.get());
             params.frameBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<uchar4>(frameBuffer);
-            params.width = m_SceneData.config.width;
-            params.height = m_SceneData.config.height;
-            params.maxDepth = m_SceneData.config.maxDepth;
+            params.width = GetTraceConfig().width;
+            params.height = GetTraceConfig().height;
+            params.maxDepth = GetTraceConfig().maxDepth;
             params.samplesForAccum = m_SamplesForAccum;
-            params.samplesForLaunch = m_SceneData.config.samples;
+            params.samplesForLaunch = GetTraceConfig().samples;
             params.debugFrameType = m_DebugFrameType;
             params.gasHandle = m_InstanceASMap["Root"].handle;
             params.lights.count = m_lightBuffer.cpuHandle.size();
@@ -1260,7 +1142,7 @@ void RTLibExtOPX7TestApplication::InitSdTreeDefTracer()
                 }
             }
             {
-                m_SamplesForAccum += m_SceneData.config.samples;
+                m_SamplesForAccum += GetTraceConfig().samples;
             }
             return shouldSync;
         }
@@ -1270,35 +1152,22 @@ void RTLibExtOPX7TestApplication::InitSdTreeDefTracer()
 
 void RTLibExtOPX7TestApplication::InitSdTreeNeeTracer()
 {
+    constexpr unsigned int maxTraceDepth = 2;
     auto tracer = rtlib::test::TracerData();
     {
+
+        auto   moduleCompileOptions = rtlib::test::GetDefaultModuleCompileOptions();
+        auto pipelineCompileOptions = rtlib::test::GetDefaultPipelineCompileOptions();
+        auto    pipelineLinkOptions = rtlib::test::GetDefaultPipelineLinkOptions(maxTraceDepth);
         //Build
         {
-            tracer.pipelines["Build"].compileOptions.usesMotionBlur = false;
-            tracer.pipelines["Build"].compileOptions.traversableGraphFlags = 0;
-            tracer.pipelines["Build"].compileOptions.numAttributeValues = 3;
-            tracer.pipelines["Build"].compileOptions.numPayloadValues = 8;
-            tracer.pipelines["Build"].compileOptions.launchParamsVariableNames = "params";
-            tracer.pipelines["Build"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
-            tracer.pipelines["Build"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
-            tracer.pipelines["Build"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-            tracer.pipelines["Build"].linkOptions.maxTraceDepth = 2;
-
-            auto moduleOptions = RTLib::Ext::OPX7::OPX7ModuleCompileOptions{};
+            tracer.pipelines["Build"].compileOptions = pipelineCompileOptions;
+            tracer.pipelines["Build"].linkOptions    = pipelineLinkOptions;
+            auto moduleOptions = moduleCompileOptions;
             unsigned int flags = PARAM_FLAG_NONE| PARAM_FLAG_NEE;
             if (m_EnableTree) {
                 flags |= PARAM_FLAG_USE_TREE;
             }
-
-#ifdef NDEBUG
-            moduleOptions.optLevel = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eLevel3;
-            moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eNone;
-#else
-            moduleOptions.optLevel = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eDefault;
-            moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-#endif
-            moduleOptions.maxRegisterCount = OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT;
-            moduleOptions.payloadTypes = {};
             moduleOptions.boundValueEntries.push_back({});
             moduleOptions.boundValueEntries.front().pipelineParamOffsetInBytes = offsetof(Params, flags);
             moduleOptions.boundValueEntries.front().boundValuePtr = &flags;
@@ -1309,31 +1178,14 @@ void RTLibExtOPX7TestApplication::InitSdTreeNeeTracer()
         }
         //Trace
         {
-            tracer.pipelines["Trace"].compileOptions.usesMotionBlur = false;
-            tracer.pipelines["Trace"].compileOptions.traversableGraphFlags = 0;
-            tracer.pipelines["Trace"].compileOptions.numAttributeValues = 3;
-            tracer.pipelines["Trace"].compileOptions.numPayloadValues = 8;
-            tracer.pipelines["Trace"].compileOptions.launchParamsVariableNames = "params";
-            tracer.pipelines["Trace"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
-            tracer.pipelines["Trace"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
-            tracer.pipelines["Trace"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-            tracer.pipelines["Trace"].linkOptions.maxTraceDepth = 2;
-
-            auto moduleOptions = RTLib::Ext::OPX7::OPX7ModuleCompileOptions{};
+            tracer.pipelines["Trace"].compileOptions = pipelineCompileOptions;
+            tracer.pipelines["Trace"].linkOptions = pipelineLinkOptions;
+            auto moduleOptions = moduleCompileOptions;
             unsigned int flags = PARAM_FLAG_NONE | PARAM_FLAG_BUILD | PARAM_FLAG_NEE;
             if (m_EnableTree) {
                 flags |= PARAM_FLAG_USE_TREE;
             }
-
-#ifdef NDEBUG
-            moduleOptions.optLevel = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eLevel3;
-            moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eNone;
-#else
-            moduleOptions.optLevel = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eDefault;
-            moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-#endif
-            moduleOptions.maxRegisterCount = OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT;
-            moduleOptions.payloadTypes = {};
+            moduleOptions.boundValueEntries.clear();
             moduleOptions.boundValueEntries.push_back({});
             moduleOptions.boundValueEntries.front().pipelineParamOffsetInBytes = offsetof(Params, flags);
             moduleOptions.boundValueEntries.front().boundValuePtr = &flags;
@@ -1344,31 +1196,14 @@ void RTLibExtOPX7TestApplication::InitSdTreeNeeTracer()
         }
         //Final
         {
-            tracer.pipelines["Final"].compileOptions.usesMotionBlur = false;
-            tracer.pipelines["Final"].compileOptions.traversableGraphFlags = 0;
-            tracer.pipelines["Final"].compileOptions.numAttributeValues = 3;
-            tracer.pipelines["Final"].compileOptions.numPayloadValues = 8;
-            tracer.pipelines["Final"].compileOptions.launchParamsVariableNames = "params";
-            tracer.pipelines["Final"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
-            tracer.pipelines["Final"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
-            tracer.pipelines["Final"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-            tracer.pipelines["Final"].linkOptions.maxTraceDepth = 2;
-
-            auto moduleOptions = RTLib::Ext::OPX7::OPX7ModuleCompileOptions{};
+            tracer.pipelines["Final"].compileOptions = pipelineCompileOptions;
+            tracer.pipelines["Final"].linkOptions = pipelineLinkOptions;
+            auto moduleOptions = moduleCompileOptions; 
             unsigned int flags = PARAM_FLAG_NONE | PARAM_FLAG_BUILD | PARAM_FLAG_FINAL | PARAM_FLAG_NEE;
             if (m_EnableTree) {
                 flags |= PARAM_FLAG_USE_TREE;
             }
-
-#ifdef NDEBUG
-            moduleOptions.optLevel = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eLevel3;
-            moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eNone;
-#else
-            moduleOptions.optLevel = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eDefault;
-            moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-#endif
-            moduleOptions.maxRegisterCount = OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT;
-            moduleOptions.payloadTypes = {};
+            moduleOptions.boundValueEntries.clear();
             moduleOptions.boundValueEntries.push_back({});
             moduleOptions.boundValueEntries.front().pipelineParamOffsetInBytes = offsetof(Params, flags);
             moduleOptions.boundValueEntries.front().boundValuePtr = &flags;
@@ -1391,13 +1226,13 @@ void RTLibExtOPX7TestApplication::InitSdTreeNeeTracer()
         tracer.pipelines[stName].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Occluded.Sphere", "SimpleKernel.PGDEF", "__closesthit__occluded", "", "", "BuiltIn.Sphere.PGDEF", "");
     }
     tracer.pipelines["Build"].InitPipeline(m_Opx7Context.get());
-    tracer.pipelines["Build"].shaderTable = this->NewShaderTable();
+    tracer.pipelines["Build"].shaderTable = rtlib::test::NewShaderTable(m_Opx7Context.get(),m_ShaderTableLayout.get());
 
     tracer.pipelines["Trace"].InitPipeline(m_Opx7Context.get());
-    tracer.pipelines["Trace"].shaderTable = this->NewShaderTable();
+    tracer.pipelines["Trace"].shaderTable = rtlib::test::NewShaderTable(m_Opx7Context.get(),m_ShaderTableLayout.get());
 
     tracer.pipelines["Final"].InitPipeline(m_Opx7Context.get());
-    tracer.pipelines["Final"].shaderTable = this->NewShaderTable();
+    tracer.pipelines["Final"].shaderTable = rtlib::test::NewShaderTable(m_Opx7Context.get(),m_ShaderTableLayout.get());
 
     auto programGroupHGNames = std::vector<std::string>{
         "SimpleKernel.Radiance",
@@ -1483,11 +1318,11 @@ void RTLibExtOPX7TestApplication::InitSdTreeNeeTracer()
             params.accumBuffer = reinterpret_cast<float3*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_AccumBufferCUDA.get()));
             params.seedBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<unsigned int>(m_SeedBufferCUDA.get());
             params.frameBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<uchar4>(frameBuffer);
-            params.width = m_SceneData.config.width;
-            params.height = m_SceneData.config.height;
-            params.maxDepth = m_SceneData.config.maxDepth;
+            params.width = GetTraceConfig().width;
+            params.height = GetTraceConfig().height;
+            params.maxDepth = GetTraceConfig().maxDepth;
             params.samplesForAccum = m_SamplesForAccum;
-            params.samplesForLaunch = m_SceneData.config.samples;
+            params.samplesForLaunch = GetTraceConfig().samples;
             params.debugFrameType = m_DebugFrameType;
             params.gasHandle = m_InstanceASMap["Root"].handle;
             params.lights.count = m_lightBuffer.cpuHandle.size();
@@ -1538,7 +1373,7 @@ void RTLibExtOPX7TestApplication::InitSdTreeNeeTracer()
                 }
             }
             {
-                m_SamplesForAccum += m_SceneData.config.samples;
+                m_SamplesForAccum += GetTraceConfig().samples;
             }
             return shouldSync;
         }
@@ -1548,35 +1383,21 @@ void RTLibExtOPX7TestApplication::InitSdTreeNeeTracer()
 
 void RTLibExtOPX7TestApplication::InitSdTreeRisTracer()
 {
+    constexpr unsigned int maxTraceDepth = 2;
     auto tracer = rtlib::test::TracerData();
     {
+        auto   moduleCompileOptions = rtlib::test::GetDefaultModuleCompileOptions();
+        auto pipelineCompileOptions = rtlib::test::GetDefaultPipelineCompileOptions();
+        auto    pipelineLinkOptions = rtlib::test::GetDefaultPipelineLinkOptions(maxTraceDepth);
         //Build
         {
-            tracer.pipelines["Build"].compileOptions.usesMotionBlur = false;
-            tracer.pipelines["Build"].compileOptions.traversableGraphFlags = 0;
-            tracer.pipelines["Build"].compileOptions.numAttributeValues = 3;
-            tracer.pipelines["Build"].compileOptions.numPayloadValues = 8;
-            tracer.pipelines["Build"].compileOptions.launchParamsVariableNames = "params";
-            tracer.pipelines["Build"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
-            tracer.pipelines["Build"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
-            tracer.pipelines["Build"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-            tracer.pipelines["Build"].linkOptions.maxTraceDepth = 2;
-
-            auto moduleOptions = RTLib::Ext::OPX7::OPX7ModuleCompileOptions{};
+            tracer.pipelines["Build"].compileOptions = pipelineCompileOptions;
+            tracer.pipelines["Build"].linkOptions = pipelineLinkOptions;
+            auto moduleOptions = moduleCompileOptions;
             unsigned int flags = PARAM_FLAG_NONE | PARAM_FLAG_NEE | PARAM_FLAG_RIS;
             if (m_EnableTree) {
                 flags |= PARAM_FLAG_USE_TREE;
             }
-
-#ifdef NDEBUG
-            moduleOptions.optLevel = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eLevel3;
-            moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eNone;
-#else
-            moduleOptions.optLevel = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eDefault;
-            moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-#endif
-            moduleOptions.maxRegisterCount = OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT;
-            moduleOptions.payloadTypes = {};
             moduleOptions.boundValueEntries.push_back({});
             moduleOptions.boundValueEntries.front().pipelineParamOffsetInBytes = offsetof(Params, flags);
             moduleOptions.boundValueEntries.front().boundValuePtr = &flags;
@@ -1587,31 +1408,13 @@ void RTLibExtOPX7TestApplication::InitSdTreeRisTracer()
         }
         //Trace
         {
-            tracer.pipelines["Trace"].compileOptions.usesMotionBlur = false;
-            tracer.pipelines["Trace"].compileOptions.traversableGraphFlags = 0;
-            tracer.pipelines["Trace"].compileOptions.numAttributeValues = 3;
-            tracer.pipelines["Trace"].compileOptions.numPayloadValues = 8;
-            tracer.pipelines["Trace"].compileOptions.launchParamsVariableNames = "params";
-            tracer.pipelines["Trace"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
-            tracer.pipelines["Trace"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
-            tracer.pipelines["Trace"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-            tracer.pipelines["Trace"].linkOptions.maxTraceDepth = 2;
-
-            auto moduleOptions = RTLib::Ext::OPX7::OPX7ModuleCompileOptions{};
+            tracer.pipelines["Trace"].compileOptions = pipelineCompileOptions;
+            tracer.pipelines["Trace"].linkOptions = pipelineLinkOptions;
+            auto moduleOptions = moduleCompileOptions;
             unsigned int flags = PARAM_FLAG_NONE | PARAM_FLAG_BUILD | PARAM_FLAG_NEE | PARAM_FLAG_RIS;
             if (m_EnableTree) {
                 flags |= PARAM_FLAG_USE_TREE;
             }
-
-#ifdef NDEBUG
-            moduleOptions.optLevel = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eLevel3;
-            moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eNone;
-#else
-            moduleOptions.optLevel = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eDefault;
-            moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-#endif
-            moduleOptions.maxRegisterCount = OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT;
-            moduleOptions.payloadTypes = {};
             moduleOptions.boundValueEntries.push_back({});
             moduleOptions.boundValueEntries.front().pipelineParamOffsetInBytes = offsetof(Params, flags);
             moduleOptions.boundValueEntries.front().boundValuePtr = &flags;
@@ -1622,31 +1425,13 @@ void RTLibExtOPX7TestApplication::InitSdTreeRisTracer()
         }
         //Final
         {
-            tracer.pipelines["Final"].compileOptions.usesMotionBlur = false;
-            tracer.pipelines["Final"].compileOptions.traversableGraphFlags = 0;
-            tracer.pipelines["Final"].compileOptions.numAttributeValues = 3;
-            tracer.pipelines["Final"].compileOptions.numPayloadValues = 8;
-            tracer.pipelines["Final"].compileOptions.launchParamsVariableNames = "params";
-            tracer.pipelines["Final"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
-            tracer.pipelines["Final"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
-            tracer.pipelines["Final"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-            tracer.pipelines["Final"].linkOptions.maxTraceDepth = 2;
-
-            auto moduleOptions = RTLib::Ext::OPX7::OPX7ModuleCompileOptions{};
+            tracer.pipelines["Final"].compileOptions = pipelineCompileOptions;
+            tracer.pipelines["Final"].linkOptions = pipelineLinkOptions;
+            auto moduleOptions = moduleCompileOptions;
             unsigned int flags = PARAM_FLAG_NONE | PARAM_FLAG_BUILD | PARAM_FLAG_FINAL | PARAM_FLAG_NEE | PARAM_FLAG_RIS;
             if (m_EnableTree) {
                 flags |= PARAM_FLAG_USE_TREE;
             }
-
-#ifdef NDEBUG
-            moduleOptions.optLevel = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eLevel3;
-            moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eNone;
-#else
-            moduleOptions.optLevel = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eDefault;
-            moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-#endif
-            moduleOptions.maxRegisterCount = OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT;
-            moduleOptions.payloadTypes = {};
             moduleOptions.boundValueEntries.push_back({});
             moduleOptions.boundValueEntries.front().pipelineParamOffsetInBytes = offsetof(Params, flags);
             moduleOptions.boundValueEntries.front().boundValuePtr = &flags;
@@ -1669,13 +1454,13 @@ void RTLibExtOPX7TestApplication::InitSdTreeRisTracer()
         tracer.pipelines[stName].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Occluded.Sphere", "SimpleKernel.PGDEF", "__closesthit__occluded", "", "", "BuiltIn.Sphere.PGDEF", "");
     }
     tracer.pipelines["Build"].InitPipeline(m_Opx7Context.get());
-    tracer.pipelines["Build"].shaderTable = this->NewShaderTable();
+    tracer.pipelines["Build"].shaderTable = rtlib::test::NewShaderTable(m_Opx7Context.get(),m_ShaderTableLayout.get());
 
     tracer.pipelines["Trace"].InitPipeline(m_Opx7Context.get());
-    tracer.pipelines["Trace"].shaderTable = this->NewShaderTable();
+    tracer.pipelines["Trace"].shaderTable = rtlib::test::NewShaderTable(m_Opx7Context.get(),m_ShaderTableLayout.get());
 
     tracer.pipelines["Final"].InitPipeline(m_Opx7Context.get());
-    tracer.pipelines["Final"].shaderTable = this->NewShaderTable();
+    tracer.pipelines["Final"].shaderTable = rtlib::test::NewShaderTable(m_Opx7Context.get(),m_ShaderTableLayout.get());
 
     auto programGroupHGNames = std::vector<std::string>{
         "SimpleKernel.Radiance",
@@ -1759,13 +1544,13 @@ void RTLibExtOPX7TestApplication::InitSdTreeRisTracer()
         [this](RTLib::Ext::CUDA::CUDABuffer* frameBuffer) {
             auto params = Params();
             params.accumBuffer = reinterpret_cast<float3*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_AccumBufferCUDA.get()));
-            params.seedBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<unsigned int>(m_SeedBufferCUDA.get());
+            params.seedBuffer  = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<unsigned int>(m_SeedBufferCUDA.get());
             params.frameBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<uchar4>(frameBuffer);
-            params.width = m_SceneData.config.width;
-            params.height = m_SceneData.config.height;
-            params.maxDepth = m_SceneData.config.maxDepth;
+            params.width = GetTraceConfig().width;
+            params.height = GetTraceConfig().height;
+            params.maxDepth = GetTraceConfig().maxDepth;
             params.samplesForAccum = m_SamplesForAccum;
-            params.samplesForLaunch = m_SceneData.config.samples;
+            params.samplesForLaunch = GetTraceConfig().samples;
             params.debugFrameType = m_DebugFrameType;
             params.gasHandle = m_InstanceASMap["Root"].handle;
             params.lights.count = m_lightBuffer.cpuHandle.size();
@@ -1816,7 +1601,7 @@ void RTLibExtOPX7TestApplication::InitSdTreeRisTracer()
                 }
             }
             {
-                m_SamplesForAccum += m_SceneData.config.samples;
+                m_SamplesForAccum += GetTraceConfig().samples;
             }
             return shouldSync;
         }
@@ -1826,35 +1611,22 @@ void RTLibExtOPX7TestApplication::InitSdTreeRisTracer()
 
 void RTLibExtOPX7TestApplication::InitHashTreeDefTracer()
 {
+    constexpr unsigned int maxTraceDepth = 1;
     auto tracer = rtlib::test::TracerData();
     {
+
+        auto   moduleCompileOptions = rtlib::test::GetDefaultModuleCompileOptions();
+        auto pipelineCompileOptions = rtlib::test::GetDefaultPipelineCompileOptions();
+        auto    pipelineLinkOptions = rtlib::test::GetDefaultPipelineLinkOptions(maxTraceDepth);
         //Locate
         {
-            tracer.pipelines["Locate"].compileOptions.usesMotionBlur = false;
-            tracer.pipelines["Locate"].compileOptions.traversableGraphFlags = 0;
-            tracer.pipelines["Locate"].compileOptions.numAttributeValues = 3;
-            tracer.pipelines["Locate"].compileOptions.numPayloadValues = 8;
-            tracer.pipelines["Locate"].compileOptions.launchParamsVariableNames = "params";
-            tracer.pipelines["Locate"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
-            tracer.pipelines["Locate"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
-            tracer.pipelines["Locate"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-            tracer.pipelines["Locate"].linkOptions.maxTraceDepth = 1;
-
-            auto moduleOptions = RTLib::Ext::OPX7::OPX7ModuleCompileOptions{};
+            tracer.pipelines["Locate"].compileOptions = pipelineCompileOptions;
+            tracer.pipelines["Locate"].linkOptions = pipelineLinkOptions;
+            auto moduleOptions = moduleCompileOptions;
             unsigned int flags = PARAM_FLAG_NONE|PARAM_FLAG_LOCATE;
             if (m_EnableGrid) {
                 flags |= PARAM_FLAG_USE_GRID;
             }
-
-#ifdef NDEBUG
-            moduleOptions.optLevel = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eLevel3;
-            moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eNone;
-#else
-            moduleOptions.optLevel = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eDefault;
-            moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-#endif
-            moduleOptions.maxRegisterCount = OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT;
-            moduleOptions.payloadTypes = {};
             moduleOptions.boundValueEntries.push_back({});
             moduleOptions.boundValueEntries.front().pipelineParamOffsetInBytes = offsetof(Params, flags);
             moduleOptions.boundValueEntries.front().boundValuePtr = &flags;
@@ -1865,31 +1637,13 @@ void RTLibExtOPX7TestApplication::InitHashTreeDefTracer()
         }
         //Build
         {
-            tracer.pipelines["Build"].compileOptions.usesMotionBlur = false;
-            tracer.pipelines["Build"].compileOptions.traversableGraphFlags = 0;
-            tracer.pipelines["Build"].compileOptions.numAttributeValues = 3;
-            tracer.pipelines["Build"].compileOptions.numPayloadValues = 8;
-            tracer.pipelines["Build"].compileOptions.launchParamsVariableNames = "params";
-            tracer.pipelines["Build"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
-            tracer.pipelines["Build"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
-            tracer.pipelines["Build"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-            tracer.pipelines["Build"].linkOptions.maxTraceDepth = 1;
-
-            auto moduleOptions = RTLib::Ext::OPX7::OPX7ModuleCompileOptions{};
+            tracer.pipelines["Build"].compileOptions = pipelineCompileOptions;
+            tracer.pipelines["Build"].linkOptions = pipelineLinkOptions;
+            auto moduleOptions = moduleCompileOptions;
             unsigned int flags = PARAM_FLAG_NONE;
             if (m_EnableGrid) {
                 flags |= PARAM_FLAG_USE_GRID;
             }
-
-#ifdef NDEBUG
-            moduleOptions.optLevel = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eLevel3;
-            moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eNone;
-#else
-            moduleOptions.optLevel = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eDefault;
-            moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-#endif
-            moduleOptions.maxRegisterCount = OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT;
-            moduleOptions.payloadTypes = {};
             moduleOptions.boundValueEntries.push_back({});
             moduleOptions.boundValueEntries.front().pipelineParamOffsetInBytes = offsetof(Params, flags);
             moduleOptions.boundValueEntries.front().boundValuePtr = &flags;
@@ -1900,31 +1654,13 @@ void RTLibExtOPX7TestApplication::InitHashTreeDefTracer()
         }
         //Trace
         {
-            tracer.pipelines["Trace"].compileOptions.usesMotionBlur = false;
-            tracer.pipelines["Trace"].compileOptions.traversableGraphFlags = 0;
-            tracer.pipelines["Trace"].compileOptions.numAttributeValues = 3;
-            tracer.pipelines["Trace"].compileOptions.numPayloadValues = 8;
-            tracer.pipelines["Trace"].compileOptions.launchParamsVariableNames = "params";
-            tracer.pipelines["Trace"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
-            tracer.pipelines["Trace"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
-            tracer.pipelines["Trace"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-            tracer.pipelines["Trace"].linkOptions.maxTraceDepth = 1;
-
-            auto moduleOptions = RTLib::Ext::OPX7::OPX7ModuleCompileOptions{};
+            tracer.pipelines["Trace"].compileOptions = pipelineCompileOptions;
+            tracer.pipelines["Trace"].linkOptions = pipelineLinkOptions;
+            auto moduleOptions = moduleCompileOptions;
             unsigned int flags = PARAM_FLAG_NONE | PARAM_FLAG_BUILD;
             if (m_EnableGrid) {
                 flags |= PARAM_FLAG_USE_GRID;
             }
-
-#ifdef NDEBUG
-            moduleOptions.optLevel = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eLevel3;
-            moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eNone;
-#else
-            moduleOptions.optLevel = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eDefault;
-            moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-#endif
-            moduleOptions.maxRegisterCount = OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT;
-            moduleOptions.payloadTypes = {};
             moduleOptions.boundValueEntries.push_back({});
             moduleOptions.boundValueEntries.front().pipelineParamOffsetInBytes = offsetof(Params, flags);
             moduleOptions.boundValueEntries.front().boundValuePtr = &flags;
@@ -1935,31 +1671,13 @@ void RTLibExtOPX7TestApplication::InitHashTreeDefTracer()
         }
         //Final
         {
-            tracer.pipelines["Final"].compileOptions.usesMotionBlur = false;
-            tracer.pipelines["Final"].compileOptions.traversableGraphFlags = 0;
-            tracer.pipelines["Final"].compileOptions.numAttributeValues = 3;
-            tracer.pipelines["Final"].compileOptions.numPayloadValues = 8;
-            tracer.pipelines["Final"].compileOptions.launchParamsVariableNames = "params";
-            tracer.pipelines["Final"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
-            tracer.pipelines["Final"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
-            tracer.pipelines["Final"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-            tracer.pipelines["Final"].linkOptions.maxTraceDepth = 1;
-
-            auto moduleOptions = RTLib::Ext::OPX7::OPX7ModuleCompileOptions{};
+            tracer.pipelines["Final"].compileOptions = pipelineCompileOptions;
+            tracer.pipelines["Final"].linkOptions = pipelineLinkOptions;
+            auto moduleOptions = moduleCompileOptions;
             unsigned int flags = PARAM_FLAG_NONE | PARAM_FLAG_BUILD | PARAM_FLAG_FINAL;
             if (m_EnableGrid) {
                 flags |= PARAM_FLAG_USE_GRID;
             }
-
-#ifdef NDEBUG
-            moduleOptions.optLevel = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eLevel3;
-            moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eNone;
-#else
-            moduleOptions.optLevel = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eDefault;
-            moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-#endif
-            moduleOptions.maxRegisterCount = OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT;
-            moduleOptions.payloadTypes = {};
             moduleOptions.boundValueEntries.push_back({});
             moduleOptions.boundValueEntries.front().pipelineParamOffsetInBytes = offsetof(Params, flags);
             moduleOptions.boundValueEntries.front().boundValuePtr = &flags;
@@ -1983,16 +1701,16 @@ void RTLibExtOPX7TestApplication::InitHashTreeDefTracer()
     }
 
     tracer.pipelines["Locate"].InitPipeline(m_Opx7Context.get());
-    tracer.pipelines["Locate"].shaderTable = this->NewShaderTable();
+    tracer.pipelines["Locate"].shaderTable = rtlib::test::NewShaderTable(m_Opx7Context.get(),m_ShaderTableLayout.get());
 
     tracer.pipelines["Build"].InitPipeline(m_Opx7Context.get());
-    tracer.pipelines["Build"].shaderTable = this->NewShaderTable();
+    tracer.pipelines["Build"].shaderTable = rtlib::test::NewShaderTable(m_Opx7Context.get(),m_ShaderTableLayout.get());
 
     tracer.pipelines["Trace"].InitPipeline(m_Opx7Context.get());
-    tracer.pipelines["Trace"].shaderTable = this->NewShaderTable();
+    tracer.pipelines["Trace"].shaderTable = rtlib::test::NewShaderTable(m_Opx7Context.get(),m_ShaderTableLayout.get());
 
     tracer.pipelines["Final"].InitPipeline(m_Opx7Context.get());
-    tracer.pipelines["Final"].shaderTable = this->NewShaderTable();
+    tracer.pipelines["Final"].shaderTable = rtlib::test::NewShaderTable(m_Opx7Context.get(),m_ShaderTableLayout.get());
 
     auto programGroupHGNames = std::vector<std::string>{
         "SimpleKernel.Radiance",
@@ -2084,11 +1802,11 @@ void RTLibExtOPX7TestApplication::InitHashTreeDefTracer()
             params.accumBuffer = reinterpret_cast<float3*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_AccumBufferCUDA.get()));
             params.seedBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<unsigned int>(m_SeedBufferCUDA.get());
             params.frameBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<uchar4>(frameBuffer);
-            params.width = m_SceneData.config.width;
-            params.height = m_SceneData.config.height;
-            params.maxDepth = m_SceneData.config.maxDepth;
+            params.width = GetTraceConfig().width;
+            params.height = GetTraceConfig().height;
+            params.maxDepth = GetTraceConfig().maxDepth;
             params.samplesForAccum = m_SamplesForAccum;
-            params.samplesForLaunch = m_SceneData.config.samples;
+            params.samplesForLaunch = GetTraceConfig().samples;
             params.debugFrameType = m_DebugFrameType;
             params.gasHandle = m_InstanceASMap["Root"].handle;
             params.lights.count = m_lightBuffer.cpuHandle.size();
@@ -2144,7 +1862,7 @@ void RTLibExtOPX7TestApplication::InitHashTreeDefTracer()
                 }
             }
             {
-                m_SamplesForAccum += m_SceneData.config.samples;
+                m_SamplesForAccum += GetTraceConfig().samples;
             }
             return shouldSync;
         }
@@ -2154,35 +1872,21 @@ void RTLibExtOPX7TestApplication::InitHashTreeDefTracer()
 
 void RTLibExtOPX7TestApplication::InitHashTreeNeeTracer()
 {
+    constexpr unsigned int maxTraceDepth = 2;
     auto tracer = rtlib::test::TracerData();
     {
+        auto   moduleCompileOptions = rtlib::test::GetDefaultModuleCompileOptions();
+        auto pipelineCompileOptions = rtlib::test::GetDefaultPipelineCompileOptions();
+        auto    pipelineLinkOptions = rtlib::test::GetDefaultPipelineLinkOptions(maxTraceDepth);
         //Locate
         {
-            tracer.pipelines["Locate"].compileOptions.usesMotionBlur        = false;
-            tracer.pipelines["Locate"].compileOptions.traversableGraphFlags = 0;
-            tracer.pipelines["Locate"].compileOptions.numAttributeValues = 3;
-            tracer.pipelines["Locate"].compileOptions.numPayloadValues = 8;
-            tracer.pipelines["Locate"].compileOptions.launchParamsVariableNames = "params";
-            tracer.pipelines["Locate"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
-            tracer.pipelines["Locate"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
-            tracer.pipelines["Locate"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-            tracer.pipelines["Locate"].linkOptions.maxTraceDepth = 2;
-
-            auto moduleOptions = RTLib::Ext::OPX7::OPX7ModuleCompileOptions{};
+            tracer.pipelines["Locate"].compileOptions = pipelineCompileOptions;
+            tracer.pipelines["Locate"].linkOptions = pipelineLinkOptions;
+            auto moduleOptions = moduleCompileOptions;
             unsigned int flags = PARAM_FLAG_NONE | PARAM_FLAG_NEE | PARAM_FLAG_LOCATE;
             if (m_EnableGrid) {
                 flags |= PARAM_FLAG_USE_GRID;
             }
-
-#ifdef NDEBUG
-            moduleOptions.optLevel = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eLevel3;
-            moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eNone;
-#else
-            moduleOptions.optLevel = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eDefault;
-            moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-#endif
-            moduleOptions.maxRegisterCount = OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT;
-            moduleOptions.payloadTypes = {};
             moduleOptions.boundValueEntries.push_back({});
             moduleOptions.boundValueEntries.front().pipelineParamOffsetInBytes = offsetof(Params, flags);
             moduleOptions.boundValueEntries.front().boundValuePtr = &flags;
@@ -2193,31 +1897,13 @@ void RTLibExtOPX7TestApplication::InitHashTreeNeeTracer()
         }
         //Build
         {
-            tracer.pipelines["Build"].compileOptions.usesMotionBlur            = false;
-            tracer.pipelines["Build"].compileOptions.traversableGraphFlags     = 0;
-            tracer.pipelines["Build"].compileOptions.numAttributeValues        = 3;
-            tracer.pipelines["Build"].compileOptions.numPayloadValues          = 8;
-            tracer.pipelines["Build"].compileOptions.launchParamsVariableNames = "params";
-            tracer.pipelines["Build"].compileOptions.usesPrimitiveTypeFlags    = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
-            tracer.pipelines["Build"].compileOptions.exceptionFlags            = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
-            tracer.pipelines["Build"].linkOptions.debugLevel                   = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-            tracer.pipelines["Build"].linkOptions.maxTraceDepth                = 2;
-
-            auto moduleOptions = RTLib::Ext::OPX7::OPX7ModuleCompileOptions{};
+            tracer.pipelines["Build"].compileOptions = pipelineCompileOptions;
+            tracer.pipelines["Build"].linkOptions = pipelineLinkOptions;
+            auto moduleOptions = moduleCompileOptions;
             unsigned int flags = PARAM_FLAG_NONE | PARAM_FLAG_NEE;
             if (m_EnableGrid) {
                 flags |= PARAM_FLAG_USE_GRID;
             }
-
-#ifdef NDEBUG
-            moduleOptions.optLevel = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eLevel3;
-            moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eNone;
-#else
-            moduleOptions.optLevel = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eDefault;
-            moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-#endif
-            moduleOptions.maxRegisterCount = OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT;
-            moduleOptions.payloadTypes = {};
             moduleOptions.boundValueEntries.push_back({});
             moduleOptions.boundValueEntries.front().pipelineParamOffsetInBytes = offsetof(Params, flags);
             moduleOptions.boundValueEntries.front().boundValuePtr = &flags;
@@ -2228,31 +1914,13 @@ void RTLibExtOPX7TestApplication::InitHashTreeNeeTracer()
         }
         //Trace
         {
-            tracer.pipelines["Trace"].compileOptions.usesMotionBlur = false;
-            tracer.pipelines["Trace"].compileOptions.traversableGraphFlags = 0;
-            tracer.pipelines["Trace"].compileOptions.numAttributeValues = 3;
-            tracer.pipelines["Trace"].compileOptions.numPayloadValues = 8;
-            tracer.pipelines["Trace"].compileOptions.launchParamsVariableNames = "params";
-            tracer.pipelines["Trace"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
-            tracer.pipelines["Trace"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
-            tracer.pipelines["Trace"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-            tracer.pipelines["Trace"].linkOptions.maxTraceDepth = 2;
-
-            auto moduleOptions = RTLib::Ext::OPX7::OPX7ModuleCompileOptions{};
+            tracer.pipelines["Trace"].compileOptions = pipelineCompileOptions;
+            tracer.pipelines["Trace"].linkOptions = pipelineLinkOptions;
+            auto moduleOptions = moduleCompileOptions;
             unsigned int flags = PARAM_FLAG_NONE | PARAM_FLAG_BUILD | PARAM_FLAG_NEE;
             if (m_EnableGrid) {
                 flags |= PARAM_FLAG_USE_GRID;
             }
-
-#ifdef NDEBUG
-            moduleOptions.optLevel = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eLevel3;
-            moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eNone;
-#else
-            moduleOptions.optLevel = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eDefault;
-            moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-#endif
-            moduleOptions.maxRegisterCount = OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT;
-            moduleOptions.payloadTypes = {};
             moduleOptions.boundValueEntries.push_back({});
             moduleOptions.boundValueEntries.front().pipelineParamOffsetInBytes = offsetof(Params, flags);
             moduleOptions.boundValueEntries.front().boundValuePtr = &flags;
@@ -2263,31 +1931,13 @@ void RTLibExtOPX7TestApplication::InitHashTreeNeeTracer()
         }
         //Final
         {
-            tracer.pipelines["Final"].compileOptions.usesMotionBlur = false;
-            tracer.pipelines["Final"].compileOptions.traversableGraphFlags = 0;
-            tracer.pipelines["Final"].compileOptions.numAttributeValues = 3;
-            tracer.pipelines["Final"].compileOptions.numPayloadValues = 8;
-            tracer.pipelines["Final"].compileOptions.launchParamsVariableNames = "params";
-            tracer.pipelines["Final"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
-            tracer.pipelines["Final"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
-            tracer.pipelines["Final"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-            tracer.pipelines["Final"].linkOptions.maxTraceDepth = 2;
-
-            auto moduleOptions = RTLib::Ext::OPX7::OPX7ModuleCompileOptions{};
+            tracer.pipelines["Final"].compileOptions = pipelineCompileOptions;
+            tracer.pipelines["Final"].linkOptions = pipelineLinkOptions;
+            auto moduleOptions = moduleCompileOptions;
             unsigned int flags = PARAM_FLAG_NONE | PARAM_FLAG_BUILD | PARAM_FLAG_FINAL | PARAM_FLAG_NEE;
             if (m_EnableGrid) {
                 flags |= PARAM_FLAG_USE_GRID;
             }
-
-#ifdef NDEBUG
-            moduleOptions.optLevel = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eLevel3;
-            moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eNone;
-#else
-            moduleOptions.optLevel = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eDefault;
-            moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-#endif
-            moduleOptions.maxRegisterCount = OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT;
-            moduleOptions.payloadTypes = {};
             moduleOptions.boundValueEntries.push_back({});
             moduleOptions.boundValueEntries.front().pipelineParamOffsetInBytes = offsetof(Params, flags);
             moduleOptions.boundValueEntries.front().boundValuePtr = &flags;
@@ -2310,16 +1960,16 @@ void RTLibExtOPX7TestApplication::InitHashTreeNeeTracer()
         tracer.pipelines[stName].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Occluded.Sphere", "SimpleKernel.PGDEF", "__closesthit__occluded", "", "", "BuiltIn.Sphere.PGDEF", "");
     }
     tracer.pipelines["Locate"].InitPipeline(m_Opx7Context.get());
-    tracer.pipelines["Locate"].shaderTable = this->NewShaderTable();
+    tracer.pipelines["Locate"].shaderTable = rtlib::test::NewShaderTable(m_Opx7Context.get(),m_ShaderTableLayout.get());
 
     tracer.pipelines["Build"].InitPipeline(m_Opx7Context.get());
-    tracer.pipelines["Build"].shaderTable = this->NewShaderTable();
+    tracer.pipelines["Build"].shaderTable = rtlib::test::NewShaderTable(m_Opx7Context.get(),m_ShaderTableLayout.get());
 
     tracer.pipelines["Trace"].InitPipeline(m_Opx7Context.get());
-    tracer.pipelines["Trace"].shaderTable = this->NewShaderTable();
+    tracer.pipelines["Trace"].shaderTable = rtlib::test::NewShaderTable(m_Opx7Context.get(),m_ShaderTableLayout.get());
 
     tracer.pipelines["Final"].InitPipeline(m_Opx7Context.get());
-    tracer.pipelines["Final"].shaderTable = this->NewShaderTable();
+    tracer.pipelines["Final"].shaderTable = rtlib::test::NewShaderTable(m_Opx7Context.get(),m_ShaderTableLayout.get());
 
     auto programGroupHGNames = std::vector<std::string>{
         "SimpleKernel.Radiance",
@@ -2415,11 +2065,11 @@ void RTLibExtOPX7TestApplication::InitHashTreeNeeTracer()
             params.accumBuffer = reinterpret_cast<float3*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_AccumBufferCUDA.get()));
             params.seedBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<unsigned int>(m_SeedBufferCUDA.get());
             params.frameBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<uchar4>(frameBuffer);
-            params.width = m_SceneData.config.width;
-            params.height = m_SceneData.config.height;
-            params.maxDepth = m_SceneData.config.maxDepth;
+            params.width = GetTraceConfig().width;
+            params.height = GetTraceConfig().height;
+            params.maxDepth = GetTraceConfig().maxDepth;
             params.samplesForAccum = m_SamplesForAccum;
-            params.samplesForLaunch = m_SceneData.config.samples;
+            params.samplesForLaunch = GetTraceConfig().samples;
             params.debugFrameType = m_DebugFrameType;
             params.gasHandle = m_InstanceASMap["Root"].handle;
             params.lights.count = m_lightBuffer.cpuHandle.size();
@@ -2477,7 +2127,7 @@ void RTLibExtOPX7TestApplication::InitHashTreeNeeTracer()
                 }
             }
             {
-                m_SamplesForAccum += m_SceneData.config.samples;
+                m_SamplesForAccum += GetTraceConfig().samples;
             }
             return shouldSync;
         }
@@ -2487,34 +2137,21 @@ void RTLibExtOPX7TestApplication::InitHashTreeNeeTracer()
 
 void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
 {
+    constexpr unsigned int maxTraceDepth = 2;
     auto tracer = rtlib::test::TracerData();
     {
+        auto   moduleCompileOptions = rtlib::test::GetDefaultModuleCompileOptions();
+        auto pipelineCompileOptions = rtlib::test::GetDefaultPipelineCompileOptions();
+        auto    pipelineLinkOptions = rtlib::test::GetDefaultPipelineLinkOptions(maxTraceDepth);
         //Locate
         {
-            tracer.pipelines["Locate"].compileOptions.usesMotionBlur = false;
-            tracer.pipelines["Locate"].compileOptions.traversableGraphFlags = 0;
-            tracer.pipelines["Locate"].compileOptions.numAttributeValues = 3;
-            tracer.pipelines["Locate"].compileOptions.numPayloadValues = 8;
-            tracer.pipelines["Locate"].compileOptions.launchParamsVariableNames = "params";
-            tracer.pipelines["Locate"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
-            tracer.pipelines["Locate"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
-            tracer.pipelines["Locate"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-            tracer.pipelines["Locate"].linkOptions.maxTraceDepth = 2;
-
-            auto moduleOptions = RTLib::Ext::OPX7::OPX7ModuleCompileOptions{};
+            tracer.pipelines["Locate"].compileOptions = pipelineCompileOptions;
+            tracer.pipelines["Locate"].linkOptions = pipelineLinkOptions;
+            auto moduleOptions = moduleCompileOptions;
             unsigned int flags = PARAM_FLAG_NONE | PARAM_FLAG_NEE | PARAM_FLAG_RIS | PARAM_FLAG_LOCATE;
             if (m_EnableGrid) {
                 flags |= PARAM_FLAG_USE_GRID;
             }
-
-#ifdef NDEBUG
-            moduleOptions.optLevel = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eLevel3;
-            moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eNone;
-#else
-            moduleOptions.optLevel = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eDefault;
-            moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-#endif
-            moduleOptions.maxRegisterCount = OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT;
             moduleOptions.payloadTypes = {};
             moduleOptions.boundValueEntries.push_back({});
             moduleOptions.boundValueEntries.front().pipelineParamOffsetInBytes = offsetof(Params, flags);
@@ -2526,31 +2163,13 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
         }
         //Build
         {
-            tracer.pipelines["Build"].compileOptions.usesMotionBlur = false;
-            tracer.pipelines["Build"].compileOptions.traversableGraphFlags = 0;
-            tracer.pipelines["Build"].compileOptions.numAttributeValues = 3;
-            tracer.pipelines["Build"].compileOptions.numPayloadValues = 8;
-            tracer.pipelines["Build"].compileOptions.launchParamsVariableNames = "params";
-            tracer.pipelines["Build"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
-            tracer.pipelines["Build"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
-            tracer.pipelines["Build"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-            tracer.pipelines["Build"].linkOptions.maxTraceDepth = 2;
-
-            auto moduleOptions = RTLib::Ext::OPX7::OPX7ModuleCompileOptions{};
+            tracer.pipelines["Build"].compileOptions = pipelineCompileOptions;
+            tracer.pipelines["Build"].linkOptions = pipelineLinkOptions;
+            auto moduleOptions = moduleCompileOptions;
             unsigned int flags = PARAM_FLAG_NONE | PARAM_FLAG_NEE | PARAM_FLAG_RIS;
             if (m_EnableGrid) {
                 flags |= PARAM_FLAG_USE_GRID;
             }
-
-#ifdef NDEBUG
-            moduleOptions.optLevel = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eLevel3;
-            moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eNone;
-#else
-            moduleOptions.optLevel = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eDefault;
-            moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-#endif
-            moduleOptions.maxRegisterCount = OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT;
-            moduleOptions.payloadTypes = {};
             moduleOptions.boundValueEntries.push_back({});
             moduleOptions.boundValueEntries.front().pipelineParamOffsetInBytes = offsetof(Params, flags);
             moduleOptions.boundValueEntries.front().boundValuePtr = &flags;
@@ -2561,30 +2180,13 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
         }
         //Trace
         {
-            tracer.pipelines["Trace"].compileOptions.usesMotionBlur = false;
-            tracer.pipelines["Trace"].compileOptions.traversableGraphFlags = 0;
-            tracer.pipelines["Trace"].compileOptions.numAttributeValues = 3;
-            tracer.pipelines["Trace"].compileOptions.numPayloadValues = 8;
-            tracer.pipelines["Trace"].compileOptions.launchParamsVariableNames = "params";
-            tracer.pipelines["Trace"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
-            tracer.pipelines["Trace"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
-            tracer.pipelines["Trace"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-            tracer.pipelines["Trace"].linkOptions.maxTraceDepth = 2;
-
-            auto moduleOptions = RTLib::Ext::OPX7::OPX7ModuleCompileOptions{};
+            tracer.pipelines["Trace"].compileOptions = pipelineCompileOptions;
+            tracer.pipelines["Trace"].linkOptions = pipelineLinkOptions;
+            auto moduleOptions = moduleCompileOptions;
             unsigned int flags = PARAM_FLAG_NONE | PARAM_FLAG_BUILD | PARAM_FLAG_NEE | PARAM_FLAG_RIS;
             if (m_EnableGrid) {
                 flags |= PARAM_FLAG_USE_GRID;
             }
-
-#ifdef NDEBUG
-            moduleOptions.optLevel = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eLevel3;
-            moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eNone;
-#else
-            moduleOptions.optLevel = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eDefault;
-            moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-#endif
-            moduleOptions.maxRegisterCount = OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT;
             moduleOptions.payloadTypes = {};
             moduleOptions.boundValueEntries.push_back({});
             moduleOptions.boundValueEntries.front().pipelineParamOffsetInBytes = offsetof(Params, flags);
@@ -2596,31 +2198,13 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
         }
         //Final
         {
-            tracer.pipelines["Final"].compileOptions.usesMotionBlur = false;
-            tracer.pipelines["Final"].compileOptions.traversableGraphFlags = 0;
-            tracer.pipelines["Final"].compileOptions.numAttributeValues = 3;
-            tracer.pipelines["Final"].compileOptions.numPayloadValues = 8;
-            tracer.pipelines["Final"].compileOptions.launchParamsVariableNames = "params";
-            tracer.pipelines["Final"].compileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
-            tracer.pipelines["Final"].compileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
-            tracer.pipelines["Final"].linkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-            tracer.pipelines["Final"].linkOptions.maxTraceDepth = 2;
-
-            auto moduleOptions = RTLib::Ext::OPX7::OPX7ModuleCompileOptions{};
+            tracer.pipelines["Final"].compileOptions = pipelineCompileOptions;
+            tracer.pipelines["Final"].linkOptions = pipelineLinkOptions;
+            auto moduleOptions = moduleCompileOptions;
             unsigned int flags = PARAM_FLAG_NONE | PARAM_FLAG_BUILD | PARAM_FLAG_FINAL | PARAM_FLAG_NEE | PARAM_FLAG_RIS;
             if (m_EnableGrid) {
                 flags |= PARAM_FLAG_USE_GRID;
             }
-
-#ifdef NDEBUG
-            moduleOptions.optLevel = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eLevel3;
-            moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eNone;
-#else
-            moduleOptions.optLevel = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eDefault;
-            moduleOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
-#endif
-            moduleOptions.maxRegisterCount = OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT;
-            moduleOptions.payloadTypes = {};
             moduleOptions.boundValueEntries.push_back({});
             moduleOptions.boundValueEntries.front().pipelineParamOffsetInBytes = offsetof(Params, flags);
             moduleOptions.boundValueEntries.front().boundValuePtr = &flags;
@@ -2643,16 +2227,16 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
         tracer.pipelines[stName].SetProgramGroupHG(m_Opx7Context.get(), "SimpleKernel.Occluded.Sphere", "SimpleKernel.PGDEF", "__closesthit__occluded", "", "", "BuiltIn.Sphere.PGDEF", "");
     }
     tracer.pipelines["Locate"].InitPipeline(m_Opx7Context.get());
-    tracer.pipelines["Locate"].shaderTable = this->NewShaderTable();
+    tracer.pipelines["Locate"].shaderTable = rtlib::test::NewShaderTable(m_Opx7Context.get(),m_ShaderTableLayout.get());
 
     tracer.pipelines["Build"].InitPipeline(m_Opx7Context.get());
-    tracer.pipelines["Build"].shaderTable = this->NewShaderTable();
+    tracer.pipelines["Build"].shaderTable = rtlib::test::NewShaderTable(m_Opx7Context.get(),m_ShaderTableLayout.get());
 
     tracer.pipelines["Trace"].InitPipeline(m_Opx7Context.get());
-    tracer.pipelines["Trace"].shaderTable = this->NewShaderTable();
+    tracer.pipelines["Trace"].shaderTable = rtlib::test::NewShaderTable(m_Opx7Context.get(),m_ShaderTableLayout.get());
 
     tracer.pipelines["Final"].InitPipeline(m_Opx7Context.get());
-    tracer.pipelines["Final"].shaderTable = this->NewShaderTable();
+    tracer.pipelines["Final"].shaderTable = rtlib::test::NewShaderTable(m_Opx7Context.get(),m_ShaderTableLayout.get());
 
     auto programGroupHGNames = std::vector<std::string>{
         "SimpleKernel.Radiance",
@@ -2744,11 +2328,11 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
             params.accumBuffer = reinterpret_cast<float3*>(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_AccumBufferCUDA.get()));
             params.seedBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<unsigned int>(m_SeedBufferCUDA.get());
             params.frameBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<uchar4>(frameBuffer);
-            params.width = m_SceneData.config.width;
-            params.height = m_SceneData.config.height;
-            params.maxDepth = m_SceneData.config.maxDepth;
+            params.width = GetTraceConfig().width;
+            params.height = GetTraceConfig().height;
+            params.maxDepth = GetTraceConfig().maxDepth;
             params.samplesForAccum = m_SamplesForAccum;
-            params.samplesForLaunch = m_SceneData.config.samples;
+            params.samplesForLaunch = GetTraceConfig().samples;
             params.debugFrameType = m_DebugFrameType;
             params.gasHandle = m_InstanceASMap["Root"].handle;
             params.lights.count = m_lightBuffer.cpuHandle.size();
@@ -2809,7 +2393,7 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
                 }
             }
             {
-                m_SamplesForAccum += m_SceneData.config.samples;
+                m_SamplesForAccum += GetTraceConfig().samples;
             }
             return shouldSync;
         }
@@ -2828,7 +2412,7 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
 
  void RTLibExtOPX7TestApplication::InitFrameResourceCUDA()
 {
-    size_t pixelSize = m_SceneData.config.width * m_SceneData.config.height;
+    size_t pixelSize = GetTraceConfig().width * GetTraceConfig().height;
     m_AccumBufferCUDA = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(m_Opx7Context->CreateBuffer({ RTLib::Ext::CUDA::CUDAMemoryFlags::eDefault, pixelSize * sizeof(float) * 3, nullptr }));
     m_FrameBufferCUDA = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(m_Opx7Context->CreateBuffer({ RTLib::Ext::CUDA::CUDAMemoryFlags::eDefault, pixelSize * sizeof(uchar4), nullptr }));
     auto rnd = std::random_device();
@@ -2874,10 +2458,10 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
 
  void RTLibExtOPX7TestApplication::InitFrameResourceOGL4()
 {
-    size_t pixelSize = m_SceneData.config.width * m_SceneData.config.height;
+    size_t pixelSize = GetTraceConfig().width * GetTraceConfig().height;
     auto ogl4Context = m_GlfwWindow->GetOpenGLContext();
     m_FrameBufferGL = std::unique_ptr<RTLib::Ext::GL::GLBuffer>(ogl4Context->CreateBuffer(RTLib::Ext::GL::GLBufferCreateDesc{ sizeof(uchar4) * pixelSize, RTLib::Ext::GL::GLBufferUsageImageCopySrc, RTLib::Ext::GL::GLMemoryPropertyDefault, nullptr }));
-    m_FrameTextureGL = rtlib::test::CreateFrameTextureGL(ogl4Context, m_SceneData.config.width, m_SceneData.config.height);
+    m_FrameTextureGL = rtlib::test::CreateFrameTextureGL(ogl4Context, GetTraceConfig().width, GetTraceConfig().height);
 }
 
  void RTLibExtOPX7TestApplication::FreeFrameResourceOGL4()
@@ -2921,7 +2505,7 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
      auto desc = RTLib::Ext::CUDA::CUDABufferCreateDesc();
      desc.sizeInBytes = m_FrameBufferCUDA->GetSizeInBytes();
      auto frameBufferTmp = m_Opx7Context->CreateBuffer(desc);
-     m_TracerMap[m_CurTracerName].TracePipeline(m_Opx7Context.get(), nullptr, frameBufferTmp, m_SceneData.config.width, m_SceneData.config.height);
+     m_TracerMap[m_CurTracerName].TracePipeline(m_Opx7Context.get(), nullptr, frameBufferTmp, GetTraceConfig().width, GetTraceConfig().height);
      m_SamplesForAccum = 0;
      m_TimesForIterations = std::vector<unsigned long long>{ 0 };
      cuMemsetD32(RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_AccumBufferCUDA.get()), m_AccumBufferCUDA->GetSizeInBytes() / sizeof(float), 0);
@@ -2936,11 +2520,11 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
 {
     if (m_EnableVis)
     {
-        return m_GlfwWindow->ShouldClose() || (m_SamplesForAccum >= m_SceneData.config.maxSamples || (m_TimesForAccum >= m_SceneData.config.maxTimes*(1000*1000)));
+        return m_GlfwWindow->ShouldClose() || (m_SamplesForAccum >= GetTraceConfig().maxSamples || (m_TimesForAccum >= GetTraceConfig().maxTimes*(1000*1000)));
     }
     else
     {
-        return (m_SamplesForAccum >= m_SceneData.config.maxSamples) || (m_TimesForAccum >= m_SceneData.config.maxTimes*(1000*1000));
+        return (m_SamplesForAccum >= GetTraceConfig().maxSamples) || (m_TimesForAccum >= GetTraceConfig().maxTimes*(1000*1000));
     }
 }
 
@@ -2966,7 +2550,7 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
         }
         if (m_EventState.isClearFrame)
         {
-            auto zeroClearData = std::vector<float>(m_SceneData.config.width * m_SceneData.config.height * 3, 0.0f);
+            auto zeroClearData = std::vector<float>(GetTraceConfig().width * GetTraceConfig().height * 3, 0.0f);
             m_Opx7Context->CopyMemoryToBuffer(m_AccumBufferCUDA.get(), { { zeroClearData.data(), 0, sizeof(zeroClearData[0]) * zeroClearData.size() } });
             m_SamplesForAccum = 0;
             m_TimesForAccum   = 0;
@@ -2981,7 +2565,7 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
         {
             auto rnd = std::random_device();
             auto mt19937 = std::mt19937(rnd());
-            auto seedData = std::vector<unsigned int>(m_SceneData.config.width * m_SceneData.config.height * sizeof(unsigned int));
+            auto seedData = std::vector<unsigned int>(GetTraceConfig().width * GetTraceConfig().height * sizeof(unsigned int));
             std::generate(std::begin(seedData), std::end(seedData), mt19937);
             m_Opx7Context->CopyMemoryToBuffer(m_SeedBufferCUDA.get(), { { seedData.data(), 0, sizeof(seedData[0]) * std::size(seedData) } });
         }
@@ -3004,12 +2588,12 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
         }
         {
             auto tmpSize = m_GlfwWindow->GetSize();
-            if (m_SceneData.config.width != tmpSize.width || m_SceneData.config.height != tmpSize.height)
+            if (GetTraceConfig().width != tmpSize.width || GetTraceConfig().height != tmpSize.height)
             {
-                std::cout << m_SceneData.config.width << "->" << tmpSize.width << "\n";
-                std::cout << m_SceneData.config.height << "->" << tmpSize.height << "\n";
-                m_SceneData.config.width = tmpSize.width;
-                m_SceneData.config.height = tmpSize.height;
+                std::cout << GetTraceConfig().width << "->" << tmpSize.width << "\n";
+                std::cout << GetTraceConfig().height << "->" << tmpSize.height << "\n";
+                GetTraceConfig().width = tmpSize.width;
+                GetTraceConfig().height = tmpSize.height;
                 m_EventState.isResized = true;
             }
             else
@@ -3196,7 +2780,7 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
     {
         auto  beg = std::chrono::system_clock::now();
         auto frameBufferCUDA = m_FrameBufferCUGL->Map(stream);
-        (void)m_TracerMap[m_CurTracerName].TracePipeline(m_Opx7Context.get(), stream, frameBufferCUDA, m_SceneData.config.width,m_SceneData.config.height);
+        (void)m_TracerMap[m_CurTracerName].TracePipeline(m_Opx7Context.get(), stream, frameBufferCUDA, GetTraceConfig().width,GetTraceConfig().height);
         m_FrameBufferCUGL->Unmap(stream);
         if (stream) {
             RTLIB_CORE_ASSERT_IF_FAILED(stream->Synchronize());
@@ -3205,14 +2789,14 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
         m_TimesForFrame = std::chrono::duration_cast<std::chrono::nanoseconds>(end - beg).count();
         if (m_EventState.isResized)
         {
-            glViewport(0, 0, m_SceneData.config.width, m_SceneData.config.height);
+            glViewport(0, 0, GetTraceConfig().width, GetTraceConfig().height);
         }
         rtlib::test::RenderFrameGL(m_GlfwWindow->GetOpenGLContext(), m_RectRendererGL.get(), m_FrameBufferGL.get(), m_FrameTextureGL.get());
     }
     else
     {
         auto beg = std::chrono::system_clock::now();
-        if (this->m_TracerMap[m_CurTracerName].TracePipeline(m_Opx7Context.get(), stream, m_FrameBufferCUDA.get(),m_SceneData.config.width, m_SceneData.config.height)) {
+        if (this->m_TracerMap[m_CurTracerName].TracePipeline(m_Opx7Context.get(), stream, m_FrameBufferCUDA.get(),GetTraceConfig().width, GetTraceConfig().height)) {
             RTLIB_CORE_ASSERT_IF_FAILED(stream->Synchronize());
         }
         auto end = std::chrono::system_clock::now();
@@ -3220,7 +2804,7 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
     }
     if (m_CurTracerName != "DBG") {
         m_TimesForAccum += m_TimesForFrame;
-        if ((m_SamplesForAccum > 0) && (m_SamplesForAccum % m_SceneData.config.samplesPerSave == 0))
+        if ((m_SamplesForAccum > 0) && (m_SamplesForAccum % GetTraceConfig().samplesPerSave == 0))
         {
             SaveResultImage(stream);
         }
@@ -3243,15 +2827,15 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
 
  void RTLibExtOPX7TestApplication::SaveResultImage(RTLib::Ext::CUDA::CUDAStream* stream)
  {
-     auto baseSavePath = std::filesystem::path(m_SceneData.config.imagePath).make_preferred() / m_TimeStampString;
+     auto baseSavePath = std::filesystem::path(GetTraceConfig().imagePath).make_preferred() / m_TimeStampString;
      if (!std::filesystem::exists(baseSavePath))
      {
          std::filesystem::create_directories(baseSavePath);
          std::filesystem::copy_file(m_ScenePath, baseSavePath / "scene.json");
      }
      auto configData = rtlib::test::ImageConfigData();
-     configData.width = m_SceneData.config.width;
-     configData.height = m_SceneData.config.height;
+     configData.width = GetTraceConfig().width;
+     configData.height = GetTraceConfig().height;
      configData.samples = m_SamplesForAccum;
      configData.time = m_TimesForAccum/(1000*1000);
      configData.enableVis = m_EnableVis;
@@ -3275,7 +2859,7 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
          configFile.close();
      }
 
-     auto pixelSize = m_SceneData.config.width * m_SceneData.config.height;
+     auto pixelSize = GetTraceConfig().width * GetTraceConfig().height;
      auto download_data = std::vector<float>(pixelSize * 3, 0.0f);
      {
          auto memoryCopy = RTLib::Ext::CUDA::CUDABufferMemoryCopy();
@@ -3292,7 +2876,7 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
              hdr_image_data[3 * (pixelSize - 1 - i) + 1] = download_data[3 * i + 1] / static_cast<float>(m_SamplesForAccum);
              hdr_image_data[3 * (pixelSize - 1 - i) + 2] = download_data[3 * i + 2] / static_cast<float>(m_SamplesForAccum);
          }
-         RTLib::Core::SaveExrImage(configData.exrFilePath.c_str(), m_SceneData.config.width, m_SceneData.config.height, hdr_image_data);
+         RTLib::Core::SaveExrImage(configData.exrFilePath.c_str(), GetTraceConfig().width, GetTraceConfig().height, hdr_image_data);
          std::ofstream imageBinFile(configData.binFilePath, std::ios::binary | std::ios::ate);
          imageBinFile.write((char*)hdr_image_data.data(), hdr_image_data.size() * sizeof(hdr_image_data[0]));
          imageBinFile.close();
@@ -3306,6 +2890,6 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
              png_image_data[4 * i + 2] = 255.99f * std::min(RTLib::Ext::CUDA::Math::linear_to_gamma(download_data[3 * (pixelSize - 1 - i) + 2] / static_cast<float>(m_SamplesForAccum)), 1.0f);
              png_image_data[4 * i + 3] = 255;
          }
-         RTLib::Core::SavePngImage(configData.pngFilePath.c_str(), m_SceneData.config.width, m_SceneData.config.height, png_image_data);
+         RTLib::Core::SavePngImage(configData.pngFilePath.c_str(), GetTraceConfig().width, GetTraceConfig().height, png_image_data);
      }
  }

@@ -1710,6 +1710,58 @@ namespace rtlib
             }
             return instanceGeometryDescs;
         }
+
+        inline auto NewShaderTable(RTLib::Ext::OPX7::OPX7Context* opx7Context, RTLib::Ext::OPX7::OPX7ShaderTableLayout* sbtLayout)->std::unique_ptr<RTLib::Ext::OPX7::OPX7ShaderTable>
+        {
+            auto shaderTableDesc = RTLib::Ext::OPX7::OPX7ShaderTableCreateDesc();
+            shaderTableDesc.raygenRecordSizeInBytes = sizeof(RTLib::Ext::OPX7::OPX7ShaderRecord<RayGenData>);
+            shaderTableDesc.missRecordStrideInBytes = sizeof(RTLib::Ext::OPX7::OPX7ShaderRecord<MissData>);
+            shaderTableDesc.missRecordCount = sbtLayout->GetRecordStride();
+            shaderTableDesc.hitgroupRecordStrideInBytes = sizeof(RTLib::Ext::OPX7::OPX7ShaderRecord<HitgroupData>);
+            shaderTableDesc.hitgroupRecordCount = sbtLayout->GetRecordCount();
+            shaderTableDesc.exceptionRecordSizeInBytes = sizeof(RTLib::Ext::OPX7::OPX7ShaderRecord<unsigned int>);
+            return std::unique_ptr<RTLib::Ext::OPX7::OPX7ShaderTable>(opx7Context->CreateOPXShaderTable(shaderTableDesc));
+        }
+        
+        inline auto GetDefaultPipelineCompileOptions()noexcept -> RTLib::Ext::OPX7::OPX7PipelineCompileOptions
+        {
+            auto pipelineCompileOptions = RTLib::Ext::OPX7::OPX7PipelineCompileOptions();
+            pipelineCompileOptions.usesMotionBlur = false;
+            pipelineCompileOptions.traversableGraphFlags = 0;
+            pipelineCompileOptions.numAttributeValues = 3;
+            pipelineCompileOptions.numPayloadValues = 8;
+            pipelineCompileOptions.launchParamsVariableNames = "params";
+            pipelineCompileOptions.usesPrimitiveTypeFlags = RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsTriangle | RTLib::Ext::OPX7::OPX7PrimitiveTypeFlagsSphere;
+            pipelineCompileOptions.exceptionFlags = RTLib::Ext::OPX7::OPX7ExceptionFlagBits::OPX7ExceptionFlagsNone;
+            return pipelineCompileOptions;
+        }
+        
+        inline auto GetDefaultPipelineLinkOptions(unsigned int maxTraceDepth)noexcept ->  RTLib::Ext::OPX7::OPX7PipelineLinkOptions
+        {
+            auto pipelineLinkOptions = RTLib::Ext::OPX7::OPX7PipelineLinkOptions();
+            {
+                pipelineLinkOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
+                pipelineLinkOptions.maxTraceDepth = maxTraceDepth;
+            }
+            return pipelineLinkOptions;
+        }
+
+        inline auto GetDefaultModuleCompileOptions()noexcept -> RTLib::Ext::OPX7::OPX7ModuleCompileOptions {
+
+            auto   moduleCompileOptions = RTLib::Ext::OPX7::OPX7ModuleCompileOptions();
+#ifdef NDEBUG
+            moduleCompileOptions.optLevel = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eLevel3;
+            moduleCompileOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eNone;
+#else
+            moduleCompileOptions.optLevel = RTLib::Ext::OPX7::OPX7CompileOptimizationLevel::eDefault;
+            moduleCompileOptions.debugLevel = RTLib::Ext::OPX7::OPX7CompileDebugLevel::eDefault;
+            moduleCompileOptions.maxRegisterCount = OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT;
+            moduleCompileOptions.payloadTypes = {};
+            moduleCompileOptions.boundValueEntries = {};
+#endif
+            return moduleCompileOptions;
+        }
+        
     }
 }
 #endif

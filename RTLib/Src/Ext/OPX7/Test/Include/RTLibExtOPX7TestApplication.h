@@ -330,18 +330,6 @@ private:
     void TraceFrame(RTLib::Ext::CUDA::CUDAStream* stream);
     void SaveResultImage(RTLib::Ext::CUDA::CUDAStream* stream);
 private:
-    auto NewShaderTable()->std::unique_ptr<RTLib::Ext::OPX7::OPX7ShaderTable>
-    {
-        auto shaderTableDesc = RTLib::Ext::OPX7::OPX7ShaderTableCreateDesc();
-        shaderTableDesc.raygenRecordSizeInBytes = sizeof(RTLib::Ext::OPX7::OPX7ShaderRecord<RayGenData>);
-        shaderTableDesc.missRecordStrideInBytes = sizeof(RTLib::Ext::OPX7::OPX7ShaderRecord<MissData>);
-        shaderTableDesc.missRecordCount = m_ShaderTableLayout->GetRecordStride();
-        shaderTableDesc.hitgroupRecordStrideInBytes = sizeof(RTLib::Ext::OPX7::OPX7ShaderRecord<HitgroupData>);
-        shaderTableDesc.hitgroupRecordCount = m_ShaderTableLayout->GetRecordCount();
-        shaderTableDesc.exceptionRecordSizeInBytes = sizeof(RTLib::Ext::OPX7::OPX7ShaderRecord<unsigned int>);
-        return std::unique_ptr<RTLib::Ext::OPX7::OPX7ShaderTable>(m_Opx7Context->CreateOPXShaderTable(shaderTableDesc));
-    }
-private:
     std::string m_ScenePath;
     rtlib::test::SceneData m_SceneData;
     std::unique_ptr<rtlib::test::KeyBoardStateManager> m_KeyBoardManager;
