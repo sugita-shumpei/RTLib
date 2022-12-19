@@ -1534,12 +1534,12 @@ namespace rtlib
                 auto prvCheckSumGpuAddress = RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(GetPrvCheckSumGpuHandle());
                 if (stream) {
                     auto cuStream = RTLib::Ext::CUDA::CUDANatives::GetCUstream(stream);
-                    cuMemsetD32Async(curCheckSumGpuAddress, checkSumCpuHandle.size(), 0, cuStream);
-                    cuMemsetD32Async(prvCheckSumGpuAddress, checkSumCpuHandle.size(), 0, cuStream);
+                    cuMemsetD32Async(curCheckSumGpuAddress, 0, checkSumCpuHandle.size(), cuStream);
+                    cuMemsetD32Async(prvCheckSumGpuAddress, 0, checkSumCpuHandle.size(), cuStream);
                 }
                 else {
-                    cuMemsetD32(curCheckSumGpuAddress, checkSumCpuHandle.size(), 0);
-                    cuMemsetD32(prvCheckSumGpuAddress, checkSumCpuHandle.size(), 0);
+                    cuMemsetD32(curCheckSumGpuAddress, 0, checkSumCpuHandle.size());
+                    cuMemsetD32(prvCheckSumGpuAddress, 0, checkSumCpuHandle.size());
                 }
             }
             void Update(RTLib::Ext::CUDA::CUDAContext* context, RTLib::Ext::CUDA::CUDAStream* stream = nullptr) {
