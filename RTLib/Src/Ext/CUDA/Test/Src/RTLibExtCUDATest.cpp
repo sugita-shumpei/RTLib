@@ -11,7 +11,11 @@
 #include <RTLib/Ext/CUDA/CUDANatives.h>
 #include <RTLibExtCUDATestConfig.h>
 #include <RTLibExtCUDATest.h>
+#include <chrono>
+#include <algorithm>
+#include <cmath>
 #include <memory>
+#include <numeric>
 #include <cassert>
 #include <iostream>
 template<typename T>
@@ -158,6 +162,95 @@ int main(int argc, const char* argv)
 			ibff->Destroy();
 			obff->Destroy();
 		}
+		unsigned int numBlock = 512;
+		std::vector<unsigned int>  inArray(65536, 1);//128 * 512
+		std::vector<unsigned int> outArray(65536, 0);//128 * 512
+		std::vector<unsigned int> midArray(inArray.size()/ numBlock, 0);
+		std::iota(std::begin(inArray), std::end(inArray),1);
+		std::for_each(std::begin(inArray), std::end(inArray), [](unsigned int& i) { i = 2*i-1; });
+		
+		auto fnc2 = std::unique_ptr<RTLib::Ext::CUDA::CUDAFunction>(mod->LoadFunction("naiveScanKernel_ScanPerThreads"));
+		auto fnc3 = std::unique_ptr<RTLib::Ext::CUDA::CUDAFunction>(mod->LoadFunction("naiveScanKernel_AddPerThreads"));
+		{
+			{
+				auto ibffDesc = RTLib::Ext::CUDA::CUDABufferCreateDesc();
+				{
+					ibffDesc.flags = RTLib::Ext::CUDA::CUDAMemoryFlags::eDefault;
+					ibffDesc.sizeInBytes = std::size(inArray) * sizeof(inArray[0]);
+					ibffDesc.pData = std::data(inArray);
+				}
+				auto ibff = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(ctx.CreateBuffer(ibffDesc));
+				auto obffDesc = RTLib::Ext::CUDA::CUDABufferCreateDesc();
+				{
+					obffDesc.flags = RTLib::Ext::CUDA::CUDAMemoryFlags::eDefault;
+					obffDesc.sizeInBytes = std::size(outArray) * sizeof(outArray[0]);
+					obffDesc.pData = nullptr;
+				}
+				auto obff = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(ctx.CreateBuffer(obffDesc));
+				{
+					obffDesc.flags       = RTLib::Ext::CUDA::CUDAMemoryFlags::eDefault;
+					obffDesc.sizeInBytes = inArray.size() / numBlock * sizeof(outArray[0]);
+					obffDesc.pData       = nullptr;
+				}
+				auto mbff = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(ctx.CreateBuffer(obffDesc));
+				{
+					RTLIB_CORE_ASSERT_IF_FAILED(stream->Synchronize());
+					auto beg = std::chrono::system_clock::now();
+					auto iptr = RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(ibff.get());
+					auto optr = RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(obff.get());
+					auto mptr = RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(mbff.get());
+					{
+						unsigned int stride = 1;
+						unsigned int offset = 0;
+						fnc2->Launch({ (unsigned int)inArray.size() / numBlock,1,1,numBlock,1,1, static_cast<unsigned int>(2 * numBlock * sizeof(unsigned int)) ,{
+						&iptr,
+						&optr,
+						&stride,
+						&offset,
+						&numBlock,
+						}, stream.get() });
+					}
+					{
+						unsigned int stride     = numBlock  ;
+						unsigned int offset     = numBlock-1;
+						unsigned int tmpThreads = inArray.size() / numBlock;
+						fnc2->Launch({ 1,1,1,(unsigned int)tmpThreads,1,1, static_cast<unsigned int>(2 * tmpThreads * sizeof(unsigned int)) ,{
+						&optr,
+						&mptr,
+						&stride,
+						&offset,
+						&tmpThreads,
+						}, stream.get() });
+					}
+					{
+						fnc3->Launch({ (unsigned int)inArray.size() / numBlock,1,1,numBlock,1,1, 0 ,{
+						&mptr,
+						&optr,
+						&numBlock,
+						}, stream.get() });
+					}
+					RTLIB_CORE_ASSERT_IF_FAILED(stream->Synchronize());
+					auto end = std::chrono::system_clock::now();
+					std::cout << "naive kernel: " << std::chrono::duration_cast<std::chrono::microseconds>(end - beg).count() << std::endl;
+					RTLIB_CORE_ASSERT_IF_FAILED(ctx.CopyBufferToMemory(mbff.get(), { {static_cast<void*>(midArray.data()),static_cast<size_t>(0),std::size(midArray) * sizeof(outArray[0])} }));
+					RTLIB_CORE_ASSERT_IF_FAILED(ctx.CopyBufferToMemory(obff.get(), { {static_cast<void*>(outArray.data()),static_cast<size_t>(0),std::size(outArray) * sizeof(outArray[0])} }));
+					ctx.Synchronize();
+					for (int i = 0; i < midArray.size(); ++i)
+					{
+						std::cout << midArray[i] << std::endl;
+					}
+					for (int i = 0; i < outArray.size(); ++i)
+					{
+						std::cout << sqrtf(outArray[i]) << std::endl;
+					}
+				}
+				 ibff->Destroy();
+				 obff->Destroy();
+			     mbff->Destroy();
+			}
+		}
+		fnc3->Destory();
+		fnc2->Destory();
 		fnc->Destory();
 		mod->Destory();
 		stream->Destroy();

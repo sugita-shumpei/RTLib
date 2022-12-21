@@ -2077,8 +2077,9 @@ void RTLibExtOPX7TestApplication::InitHashTreeRisTracer()
                 }
                 if (m_EnableReuse) {
                     params.flags |= PARAM_FLAG_REUSE;
-                    params.curCountBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<unsigned int>(m_CountBuffersCUDA[m_CountBufferCurIndex].get());
-                    params.prvCountBuffer = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<unsigned int>(m_CountBuffersCUDA[(m_CountBufferCurIndex+1)%2].get());
+                    params.maxCountPerGrid = GetTraceConfig().custom.GetUInt32Or("ReservoirReuse.MaxCountPerGrid", 16);
+                    params.curCountBuffer  = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<unsigned int>(m_CountBuffersCUDA[m_CountBufferCurIndex].get());
+                    params.prvCountBuffer  = RTLib::Ext::CUDA::CUDANatives::GetGpuAddress<unsigned int>(m_CountBuffersCUDA[(m_CountBufferCurIndex+1)%2].get());
                 }
                 {
                     params.flags |= PARAM_FLAG_NEE;

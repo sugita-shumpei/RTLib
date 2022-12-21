@@ -21,3 +21,46 @@ extern "C" __global__ void blurKernel(uchar4* inBuffer,uchar4* outBuffer, int wi
        outBuffer[j*width+i] = inBuffer[new_j*width+new_i];
    }
 };
+//1024/32
+extern "C" __global__ void naiveScanKernel_ScanPerThreads(
+    const unsigned int* inBuffer ,
+    unsigned int*       outBuffer,
+    unsigned int        stride,
+    unsigned int        offset,
+    unsigned int        numElem)
+{
+    //1024 * 2 /32 = 64
+    extern __shared__ unsigned int temp[];
+    //blockDim.x = 1024/32
+    unsigned int  off   = blockIdx.x * blockDim.x;
+    unsigned int  thid  = threadIdx.x; 
+    int pout = 0, pin   = 1;
+    temp[thid]           = inBuffer[(off + thid) * stride + offset];
+    temp[numElem + thid] = inBuffer[(off + thid) * stride + offset];
+    __syncthreads();
+    for (unsigned int o = 1; o <= numElem; o<<=1) {
+        pout = 1 - pout; // swap double buffer indices
+        pin  = 1 - pout;
+        if (thid >= o)
+            //temp[pin * numElem]
+            temp[pout * numElem + thid]  = temp[pin * numElem + thid] +temp[pin * numElem + thid - o];
+        else
+            temp[pout * numElem + thid]  = temp[pin * numElem + thid];
+        __syncthreads();
+    }
+    outBuffer[off + thid] = temp[pout * numElem + thid];
+}
+extern "C" __global__ void naiveScanKernel_AddPerThreads(
+    const unsigned int* srcBuffer,
+    unsigned int*       dstBuffer,
+    unsigned int        numBlock ) {
+    unsigned int dstIdx = blockIdx.x * blockDim.x + threadIdx.x;
+    unsigned int srcIdx =(dstIdx)/numBlock;
+    if (srcIdx > 0) {
+        dstBuffer[dstIdx] += srcBuffer[srcIdx - 1];
+    }
+}
+extern "C" __global__ void downSweepScanKernel(unsigned int numElem, const unsigned int* countBuffer, unsigned int* offsetBuffer)
+{
+
+}

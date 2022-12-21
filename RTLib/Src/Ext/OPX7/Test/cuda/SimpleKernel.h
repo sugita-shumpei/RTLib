@@ -152,12 +152,13 @@ enum   DebugFrameType
     DEBUG_FRAME_TYPE_COUNT = 8,
 };
 struct Params {
-    unsigned int* seedBuffer;
-    float3* accumBuffer;
-    uchar4* frameBuffer;
-    float4* diffuseGridBuffer;
+    unsigned int*                   seedBuffer;
+    float3*                        accumBuffer;
+    uchar4*                        frameBuffer;
+    float4*                  diffuseGridBuffer;
     unsigned int*               curCountBuffer;
     unsigned int*               prvCountBuffer;
+    unsigned int               maxCountPerGrid;
     rtlib::test::MortonQTreeWrapper mortonTree;
     unsigned int                         width;
     unsigned int                        height;
