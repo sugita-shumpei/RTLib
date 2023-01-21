@@ -18,6 +18,7 @@
 #include <numeric>
 #include <cassert>
 #include <iostream>
+#include <fstream>
 template<typename T>
 void Show(const std::vector<T>& data){
 	for (auto i = 0; i < 16; ++i) {
@@ -27,6 +28,210 @@ void Show(const std::vector<T>& data){
 		std::cout << std::endl;
 	}
 }
+class PrefixScan
+{
+public:
+	PrefixScan(RTLib::Ext::CUDA::CUDAContext* ctx, unsigned int middleBufferMaxCapacity) noexcept
+	{
+		m_Context = ctx;
+		m_MiddleBufferMaxCapacity = middleBufferMaxCapacity;
+	}
+	~PrefixScan() {}
+
+	void Init()
+	{
+		m_Module = std::unique_ptr<RTLib::Ext::CUDA::CUDAModule>(m_Context->LoadModuleFromFile(RTLIB_EXT_CUDA_TEST_CUDA_PATH"/simpleKernel.ptx"));
+		m_ScanPerThreadsKernel = std::unique_ptr<RTLib::Ext::CUDA::CUDAFunction>(m_Module->LoadFunction("naiveScanKernel_Scan"));
+		m_AddPerThreadsKernel  = std::unique_ptr<RTLib::Ext::CUDA::CUDAFunction>(m_Module->LoadFunction("naiveScanKernel_Add"));
+		m_ScanPerThreadsEffectiveKernel = std::unique_ptr<RTLib::Ext::CUDA::CUDAFunction>(m_Module->LoadFunction("downSweepScanKernel_Scan"));
+		auto obffDesc = RTLib::Ext::CUDA::CUDABufferCreateDesc();
+		{
+			obffDesc.flags = RTLib::Ext::CUDA::CUDAMemoryFlags::eDefault;
+			obffDesc.sizeInBytes = m_MiddleBufferMaxCapacity;
+			obffDesc.pData = nullptr;
+		}
+		m_MiddleBuffer = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(m_Context->CreateBuffer(obffDesc));
+	}
+	void Free()
+	{
+		m_MiddleBuffer->Destroy();
+		m_ScanPerThreadsKernel->Destory();
+		m_AddPerThreadsKernel->Destory();
+		m_ScanPerThreadsEffectiveKernel->Destory();
+		m_Module->Destory();
+	}
+
+	void Execute_Naive(
+		RTLib::Ext::CUDA::CUDAStream*  stream,
+		RTLib::Ext::CUDA::CUDABuffer*  inBuffer,
+		RTLib::Ext::CUDA::CUDABuffer*  outBuffer,
+		unsigned int                   numElement,
+		unsigned int                   maxBlocks,
+		unsigned int                   maxSharedMemorySizesPerBlock = 32*1024) noexcept {
+		//1023 -> 1024
+		//16
+		//| | | | | |...| |
+		maxBlocks = (maxBlocks / 2) * 2;
+		unsigned int numGrids = (numElement + maxBlocks - 1) / (maxBlocks);
+
+		RTLIB_CORE_ASSERT_IF_FAILED(LaunchScan(
+			stream,
+			RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(inBuffer),
+			RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(outBuffer),
+			1,
+			0,
+			numElement,
+			numGrids,
+			maxBlocks,
+			sizeof(unsigned int) * 2 * maxBlocks
+		));
+
+		RTLIB_CORE_ASSERT_IF_FAILED(LaunchScan(
+			stream,
+			RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(outBuffer),
+			RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_MiddleBuffer.get()),
+			maxBlocks,
+			maxBlocks-1,
+			numElement,
+			1,
+			numGrids,
+			sizeof(unsigned int) * 2 * numGrids
+		));
+
+		RTLIB_CORE_ASSERT_IF_FAILED(LaunchAdd(
+			stream,
+			RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_MiddleBuffer.get()),
+			RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(outBuffer),
+			numElement,
+			numGrids,
+			maxBlocks
+		));
+
+	}
+
+	void Execute_Effective(
+		RTLib::Ext::CUDA::CUDAStream* stream,
+		RTLib::Ext::CUDA::CUDABuffer* inBuffer,
+		RTLib::Ext::CUDA::CUDABuffer* outBuffer,
+		unsigned int                   numElement,
+		unsigned int                   maxBlocks,
+		unsigned int                   maxSharedMemorySizesPerBlock = 32 * 1024) noexcept {
+		//1023 -> 1024
+		//16
+		//| | | | | |...| |
+		maxBlocks = (maxBlocks / 2) * 2;
+		unsigned int numGrids = (numElement + 2 * maxBlocks - 1) / (2 * maxBlocks);// numGrids*maxBlocks ~numElement/2
+
+		RTLIB_CORE_ASSERT_IF_FAILED(LaunchScan_Effective(
+			stream,
+			RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(inBuffer),
+			RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(outBuffer),
+			1,
+			0,
+			numElement,
+			numGrids,
+			maxBlocks,
+			sizeof(unsigned int) * 2 * maxBlocks
+		));
+
+		RTLIB_CORE_ASSERT_IF_FAILED(LaunchScan_Effective(
+			stream,
+			RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(outBuffer),
+			RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_MiddleBuffer.get()),
+			maxBlocks,
+			maxBlocks - 1,
+			numElement,
+			1,
+			(numGrids/2),
+			sizeof(unsigned int) * numGrids
+		));
+
+		RTLIB_CORE_ASSERT_IF_FAILED(LaunchAdd(
+			stream,
+			RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(m_MiddleBuffer.get()),
+			RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(outBuffer),
+			numElement,
+			numGrids,
+			maxBlocks
+		));
+
+	}
+private:
+	bool LaunchScan(
+		RTLib::Ext::CUDA::CUDAStream* stream,
+		CUdeviceptr         inBufferAddress,
+		CUdeviceptr         outBufferAddress,
+		unsigned int        stride,
+		unsigned int        offset,
+		unsigned int        maxRangeInBuffers,
+		unsigned int        numGrids,
+		unsigned int        numBlocks,
+		unsigned int        sharedMemorySizePerGrid)
+	{
+		return m_ScanPerThreadsKernel->Launch({ numGrids,1,1,numBlocks,1,1,sharedMemorySizePerGrid ,
+			{
+				&inBufferAddress,
+				&outBufferAddress,
+				&stride,
+				&offset,
+				&numBlocks,
+				&maxRangeInBuffers
+			},
+			stream
+		});
+	}
+
+	bool LaunchScan_Effective(
+		RTLib::Ext::CUDA::CUDAStream* stream,
+		CUdeviceptr         inBufferAddress,
+		CUdeviceptr         outBufferAddress,
+		unsigned int        stride,
+		unsigned int        offset,
+		unsigned int        maxRangeInBuffers,
+		unsigned int        numGrids,
+		unsigned int        numBlocks,
+		unsigned int        sharedMemorySizePerGrid)
+	{
+		return m_ScanPerThreadsKernel->Launch({ numGrids,1,1,numBlocks,1,1,sharedMemorySizePerGrid ,
+			{
+				&inBufferAddress,
+				&outBufferAddress,
+				&stride,
+				&offset,
+				&numBlocks,
+				&maxRangeInBuffers
+			},
+				stream
+			});
+	}
+	bool LaunchAdd(
+		RTLib::Ext::CUDA::CUDAStream* stream,
+		CUdeviceptr          inBufferAddress,
+		CUdeviceptr         outBufferAddress,
+		unsigned int      maxRangeOutBuffers,
+		unsigned int                numGrids,
+		unsigned int               numBlocks
+	) {
+		return m_AddPerThreadsKernel->Launch({ numGrids,1,1,numBlocks,1,1,0 ,
+			{
+				&inBufferAddress,
+				&outBufferAddress,
+				&numBlocks,
+				&maxRangeOutBuffers,
+			},
+			stream
+		});
+	}
+private:
+	RTLib::Ext::CUDA::CUDAContext*                   m_Context;
+	std::unique_ptr<RTLib::Ext::CUDA::CUDAModule>    m_Module;
+	std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>    m_MiddleBuffer;
+	std::unique_ptr<RTLib::Ext::CUDA::CUDAFunction>  m_ScanPerThreadsKernel;
+	std::unique_ptr<RTLib::Ext::CUDA::CUDAFunction>  m_ScanPerThreadsEffectiveKernel;
+	std::unique_ptr<RTLib::Ext::CUDA::CUDAFunction>  m_AddPerThreadsKernel;
+	size_t                                           m_MiddleBufferMaxCapacity;
+
+};
 int main(int argc, const char* argv)
 {
 	auto ctx = RTLib::Ext::CUDA::CUDAContext();
@@ -162,15 +367,13 @@ int main(int argc, const char* argv)
 			ibff->Destroy();
 			obff->Destroy();
 		}
-		unsigned int numBlock = 512;
-		std::vector<unsigned int>  inArray(65536, 1);//128 * 512
-		std::vector<unsigned int> outArray(65536, 0);//128 * 512
+		unsigned int numBlock   = 512;
+		unsigned int numElement = 65536;
+		std::vector<unsigned int>  inArray(numElement, 1);//128 * 512
+		std::vector<unsigned int> outArray(numElement, 0);//128 * 512
 		std::vector<unsigned int> midArray(inArray.size()/ numBlock, 0);
-		std::iota(std::begin(inArray), std::end(inArray),1);
-		std::for_each(std::begin(inArray), std::end(inArray), [](unsigned int& i) { i = 2*i-1; });
-		
-		auto fnc2 = std::unique_ptr<RTLib::Ext::CUDA::CUDAFunction>(mod->LoadFunction("naiveScanKernel_ScanPerThreads"));
-		auto fnc3 = std::unique_ptr<RTLib::Ext::CUDA::CUDAFunction>(mod->LoadFunction("naiveScanKernel_AddPerThreads"));
+		std::iota(std::begin(inArray), std::end(inArray),0);
+		std::for_each(std::begin(inArray), std::end(inArray), [](unsigned int& i) { if (i != 0) { i = 2 * i - 1; } });
 		{
 			{
 				auto ibffDesc = RTLib::Ext::CUDA::CUDABufferCreateDesc();
@@ -187,70 +390,57 @@ int main(int argc, const char* argv)
 					obffDesc.pData = nullptr;
 				}
 				auto obff = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(ctx.CreateBuffer(obffDesc));
-				{
-					obffDesc.flags       = RTLib::Ext::CUDA::CUDAMemoryFlags::eDefault;
-					obffDesc.sizeInBytes = inArray.size() / numBlock * sizeof(outArray[0]);
-					obffDesc.pData       = nullptr;
+				PrefixScan scan(&ctx, 1024 * 1024);
+				
+				scan.Init();
+				auto naiveArray = std::vector<unsigned long long>();
+				auto effecArray = std::vector<unsigned long long>();
+				for (int i = 0; i < 100;++i) {
+					
+					{
+						auto beg = std::chrono::system_clock::now();
+						scan.Execute_Naive(stream.get(), ibff.get(), obff.get(), numElement, 512);
+						RTLIB_CORE_ASSERT_IF_FAILED(stream->Synchronize());
+						auto end = std::chrono::system_clock::now();
+						naiveArray.push_back(std::chrono::duration_cast<std::chrono::microseconds>(end - beg).count());
+						RTLIB_CORE_ASSERT_IF_FAILED(ctx.CopyBufferToMemory(obff.get(), { {static_cast<void*>(outArray.data()),static_cast<size_t>(0),outArray.size() * sizeof(unsigned)} }));
+						ctx.Synchronize();
+					}
+					{
+						auto beg = std::chrono::system_clock::now();
+						scan.Execute_Effective(stream.get(), ibff.get(), obff.get(), numElement, 512);
+						RTLIB_CORE_ASSERT_IF_FAILED(stream->Synchronize());
+						auto end = std::chrono::system_clock::now();
+						effecArray.push_back(std::chrono::duration_cast<std::chrono::microseconds>(end - beg).count());
+						RTLIB_CORE_ASSERT_IF_FAILED(ctx.CopyBufferToMemory(obff.get(), { {static_cast<void*>(outArray.data()),static_cast<size_t>(0),outArray.size() * sizeof(unsigned)} }));
+						ctx.Synchronize();
+					}
+
+
 				}
-				auto mbff = std::unique_ptr<RTLib::Ext::CUDA::CUDABuffer>(ctx.CreateBuffer(obffDesc));
-				{
-					RTLIB_CORE_ASSERT_IF_FAILED(stream->Synchronize());
-					auto beg = std::chrono::system_clock::now();
-					auto iptr = RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(ibff.get());
-					auto optr = RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(obff.get());
-					auto mptr = RTLib::Ext::CUDA::CUDANatives::GetCUdeviceptr(mbff.get());
-					{
-						unsigned int stride = 1;
-						unsigned int offset = 0;
-						fnc2->Launch({ (unsigned int)inArray.size() / numBlock,1,1,numBlock,1,1, static_cast<unsigned int>(2 * numBlock * sizeof(unsigned int)) ,{
-						&iptr,
-						&optr,
-						&stride,
-						&offset,
-						&numBlock,
-						}, stream.get() });
-					}
-					{
-						unsigned int stride     = numBlock  ;
-						unsigned int offset     = numBlock-1;
-						unsigned int tmpThreads = inArray.size() / numBlock;
-						fnc2->Launch({ 1,1,1,(unsigned int)tmpThreads,1,1, static_cast<unsigned int>(2 * tmpThreads * sizeof(unsigned int)) ,{
-						&optr,
-						&mptr,
-						&stride,
-						&offset,
-						&tmpThreads,
-						}, stream.get() });
-					}
-					{
-						fnc3->Launch({ (unsigned int)inArray.size() / numBlock,1,1,numBlock,1,1, 0 ,{
-						&mptr,
-						&optr,
-						&numBlock,
-						}, stream.get() });
-					}
-					RTLIB_CORE_ASSERT_IF_FAILED(stream->Synchronize());
-					auto end = std::chrono::system_clock::now();
-					std::cout << "naive kernel: " << std::chrono::duration_cast<std::chrono::microseconds>(end - beg).count() << std::endl;
-					RTLIB_CORE_ASSERT_IF_FAILED(ctx.CopyBufferToMemory(mbff.get(), { {static_cast<void*>(midArray.data()),static_cast<size_t>(0),std::size(midArray) * sizeof(outArray[0])} }));
-					RTLIB_CORE_ASSERT_IF_FAILED(ctx.CopyBufferToMemory(obff.get(), { {static_cast<void*>(outArray.data()),static_cast<size_t>(0),std::size(outArray) * sizeof(outArray[0])} }));
-					ctx.Synchronize();
-					for (int i = 0; i < midArray.size(); ++i)
-					{
-						std::cout << midArray[i] << std::endl;
-					}
-					for (int i = 0; i < outArray.size(); ++i)
-					{
-						std::cout << sqrtf(outArray[i]) << std::endl;
-					}
+				for (auto& naive : naiveArray) {
+					std::cout << "Naive: " << naive << std::endl;
 				}
-				 ibff->Destroy();
-				 obff->Destroy();
-			     mbff->Destroy();
+				for (auto& effec : effecArray) {
+					std::cout << "Effec: " << effec << std::endl;
+				}
+
+				
+				scan.Free();
+			}
+			{
+
+				std::ofstream file(RTLIB_EXT_CUDA_TEST_CUDA_PATH"\\result.bin");
+				if (file.is_open()) {
+					for (auto& val : outArray)
+					{
+
+						file << std::sqrtf(val) << std::endl;
+					}
+					file.close();
+				}
 			}
 		}
-		fnc3->Destory();
-		fnc2->Destory();
 		fnc->Destory();
 		mod->Destory();
 		stream->Destroy();

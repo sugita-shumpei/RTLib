@@ -45,6 +45,12 @@ set(RTLIB_EXT_OPX7_SOURCES
 
     ${CMAKE_CURRENT_BINARY_DIR}/OPX7UtilsMortonBuild.ptx.h
     
+    ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/OPX7/Utils/OPX7UtilsScan.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Src/Utils/OPX7UtilsScan.cpp
+    
+    ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/OPX7/Utils/OPX7UtilsScanBuild.cu
+    ${CMAKE_CURRENT_BINARY_DIR}/OPX7UtilsScanBuild.ptx.h
+    
     ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/OPX7/Utils/OPX7UtilsReSTIR.h
 )
 
@@ -54,6 +60,10 @@ add_library(RTLib-Ext-OPX7
 add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/OPX7UtilsMortonBuild.ptx.h PRE_BUILD
     COMMAND ${CUDAToolkit_NVCC_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/OPX7/Utils/OPX7UtilsMortonBuild.cu -arch compute_75 -use_fast_math -lineinfo -rdc true -m64 --std c++17 -ptx -o ${CMAKE_CURRENT_BINARY_DIR}/OPX7UtilsMortonBuild.ptx
     COMMAND ${CUDAToolkit_BIN_DIR}\\bin2c --const -st --name OPX7UtilsMortonBuildPtxBinary ${CMAKE_CURRENT_BINARY_DIR}/OPX7UtilsMortonBuild.ptx > ${CMAKE_CURRENT_BINARY_DIR}/OPX7UtilsMortonBuild.ptx.h
+)
+add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/OPX7UtilsScanBuild.ptx.h PRE_BUILD
+    COMMAND ${CUDAToolkit_NVCC_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Ext/OPX7/Utils/OPX7UtilsScanBuild.cu -arch compute_75 -use_fast_math -lineinfo -rdc true -m64 --std c++17 -ptx -o ${CMAKE_CURRENT_BINARY_DIR}/OPX7UtilsScanBuild.ptx
+    COMMAND ${CUDAToolkit_BIN_DIR}\\bin2c --const -st --name OPX7UtilsScanBuildPtxBinary ${CMAKE_CURRENT_BINARY_DIR}/OPX7UtilsScanBuild.ptx > ${CMAKE_CURRENT_BINARY_DIR}/OPX7UtilsScanBuild.ptx.h
 )
 
 target_include_directories(RTLib-Ext-OPX7 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Include PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
