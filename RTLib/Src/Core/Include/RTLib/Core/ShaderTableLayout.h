@@ -1,5 +1,6 @@
 #ifndef RTLIB_CORE_SHADER_LAYOUT_H
 #define RTLIB_CORE_SHADER_LAYOUT_H
+#include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <array>

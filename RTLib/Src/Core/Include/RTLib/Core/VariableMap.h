@@ -1,5 +1,6 @@
 #ifndef RTLIB_CORE_VARIABLE_MAP_H
 #define RTLIB_CORE_VARIABLE_MAP_H
+#include <string>
 #include <array>
 #include <unordered_map>
 #include <memory>
