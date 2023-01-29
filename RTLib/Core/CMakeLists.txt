@@ -1,4 +1,10 @@
 add_library(RTLib-Core STATIC
+${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Core/RTUuid.h
+${CMAKE_CURRENT_SOURCE_DIR}/Src/RTUuid.cpp
+
+${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Core/RTSession.h
+${CMAKE_CURRENT_SOURCE_DIR}/Src/RTSession.cpp
+
 ${CMAKE_CURRENT_SOURCE_DIR}/Include/RTLib/Core/RTActor.h
 ${CMAKE_CURRENT_SOURCE_DIR}/Src/RTActor.cpp
 
