@@ -9,6 +9,8 @@ tinyexr/1.0.0
 openexr/3.1.5
 stduuid/1.2.2
 nlohmann_json/3.10.5
+assimp/5.2.2
+zlib/1.2.13
 [generators]
 CMakeDeps
 CMakeToolchain
