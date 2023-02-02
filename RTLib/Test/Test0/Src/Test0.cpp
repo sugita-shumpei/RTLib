@@ -253,10 +253,12 @@ public:
 
 	auto Position()const noexcept -> glm::vec3 { return m_Position; }
 	void Position(const glm::vec3& position);
-
+	//等方性Scalingであれば問題なく, Local Rotation -> Global Rotation
+	//異方性Scalingの場合, どうなるかは不明(S2*R2*S1* R1->S*Rにできない)
+	//R=R2*R1 S=S2*S1, S * (S1^-1 * R2 * R1^-1 * S1 * R2^-1 -  I) * R
 	auto Rotation()const noexcept -> glm::quat { return m_Rotation; }
 	void Rotation(const glm::quat& rotation);
-
+	//
 	auto LossyScale()const noexcept -> glm::vec3 { return m_LossyScale; }
 
 	auto LocalPosition()const noexcept -> glm::vec3 { return m_LocalPosition; }
@@ -306,6 +308,11 @@ private:
 	glm::vec3 m_LocalPosition;
 	glm::quat m_LocalRotation;
 	glm::vec3 m_LocalScale;
+	
+	glm::mat4x4  m_InverseLocalToWorldMatrix;
+	glm::mat4x4         m_LocalToWorldMatrix;
+
+	glm::mat4x4        m_LocalToParentMatrix;
 };
 
 template<typename ComponentDerived, bool Cond>
