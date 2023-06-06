@@ -1,6 +1,3 @@
-[submodule "RTLib/thirdparty/optix-toolkit"]
-	path = RTLib/thirdparty/optix-toolkit
-	url = https://github.com/NVIDIA/optix-toolkit.git
 [submodule "Ext/optix-toolkit"]
 	path = Ext/optix-toolkit
 	url = https://github.com/NVIDIA/optix-toolkit.git
