@@ -1,5 +1,4 @@
 find_package(CUDAToolkit REQUIRED)
-find_package(OptiX       REQUIRED)
 find_package(glad        REQUIRED)
 find_package(glfw3       REQUIRED)
 find_package(glm         REQUIRED)

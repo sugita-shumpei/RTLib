@@ -3,7 +3,7 @@ embree3/3.13.3
 glad/0.1.35
 glfw/3.3.7
 tinyobjloader/1.0.6
-stb/cci.20210910
+stb/cci.20220909
 imgui/cci.20220207+1.87.docking
 tinyexr/1.0.0
 openexr/3.1.5
@@ -11,9 +11,10 @@ stduuid/1.2.2
 nlohmann_json/3.10.5
 assimp/5.2.2
 zlib/1.2.13
+glm/cci.20230113
 [generators]
 CMakeDeps
 CMakeToolchain
 [options]
-glad:gl_profile=core
-glad:gl_version=4.6
+glad/0.1.35:gl_profile=core
+glad/0.1.35:gl_version=4.6
