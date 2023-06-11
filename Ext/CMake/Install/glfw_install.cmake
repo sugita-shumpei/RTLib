@@ -1,0 +1,18 @@
+set(GLFW_SOURCE_DIR     ${CMAKE_CURRENT_LIST_DIR}/../glfw)
+set(GLFW_BINARY_DIR     ${CMAKE_CURRENT_LIST_DIR}/../../build/glfw)
+set(GLFW_INSTALL_PREFIX ${CMAKE_CURRENT_LIST_DIR}/../../install)
+
+
+message(STATUS GLFW_SOURCE_DIR=${GLFW_SOURCE_DIR})
+message(STATUS GLFW_BINARY_DIR=${GLFW_BINARY_DIR})
+message(STATUS GLFW_BINARY_DIR=${GLFW_INSTALL_PREFIX})
+
+execute_process(COMMAND 
+    ${CMAKE_COMMAND} -S ${GLFW_SOURCE_DIR} -B ${GLFW_BINARY_DIR} -DCMAKE_INSTALL_PREFIX=${GLFW_INSTALL_PREFIX} 
+)
+execute_process(COMMAND
+    ${CMAKE_COMMAND} --build ${GLFW_BINARY_DIR} --config Release
+)
+execute_process(COMMAND
+    ${CMAKE_COMMAND} --install ${GLFW_BINARY_DIR} --config Release
+)

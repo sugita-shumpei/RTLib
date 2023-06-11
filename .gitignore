@@ -3,4 +3,6 @@
 /Data 
 /Result 
 /Result_Archeive 
-/RTLib/thirdparty/build 
+/Ext/build 
+/Ext/install
+/.vs
