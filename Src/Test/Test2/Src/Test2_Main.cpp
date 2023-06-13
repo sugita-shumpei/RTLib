@@ -1,40 +1,47 @@
-#include <Test1_Main.h>
+#include <Test2_Main.h>
 int main()
 {
 	auto context = std::make_unique<TestLib::Context>();
 	context->init();
 
-	auto pipelineGroup      = Test1::init_pipeline_group(context.get());
-	auto shaderBindingTable = Test1::init_shader_binding_table(pipelineGroup.get());
+	auto pipelineGroup = Test2::init_pipeline_group(context.get());
+	auto shaderBindingTable = Test2::init_shader_binding_table(pipelineGroup.get());
 
-	auto vertexBuffer = std::make_unique<otk::SyncVector<float3>>(3);
+	auto vertexBuffer = std::make_unique<otk::SyncVector<float3>>(1);
 	{
-		vertexBuffer->at(0) = make_float3(+0.5f, -0.5f, -1.0f);
-		vertexBuffer->at(1) = make_float3(-0.5f, -0.5f, -1.0f);
-		vertexBuffer->at(2) = make_float3( 0.0f, +0.5f, -1.0f);
-
+		vertexBuffer->at(0) = make_float3(0.0f, 0.0f, -2.0f);
 		vertexBuffer->copyToDevice();
 	}
+
+	auto radiusBuffer = std::make_unique<otk::SyncVector<float>>(1);
+	{
+		radiusBuffer->at(0) = 0.5f;
+		radiusBuffer->copyToDevice();
+	}
+
 	auto tempBuffer = std::make_unique<otk::DeviceBuffer>(1024);
 
-	auto blas       = OptixTraversableHandle();
+	auto blas = OptixTraversableHandle();
 	auto blasBuffer = std::make_unique<otk::DeviceBuffer>();
 	{
 		OptixAccelBuildOptions options = {};
-		options.operation  = OPTIX_BUILD_OPERATION_BUILD;
-		options.buildFlags = OPTIX_BUILD_FLAG_PREFER_FAST_TRACE | OPTIX_BUILD_FLAG_ALLOW_DISABLE_OPACITY_MICROMAPS;
+		options.operation = OPTIX_BUILD_OPERATION_BUILD;
+		options.buildFlags = OPTIX_BUILD_FLAG_PREFER_FAST_TRACE | OPTIX_BUILD_FLAG_ALLOW_RANDOM_VERTEX_ACCESS;
 
 		OptixBuildInput buildInputs[1] = {};
 		CUdeviceptr vertexBuffers[1] = { reinterpret_cast<CUdeviceptr>(vertexBuffer->devicePtr()) };
-		buildInputs[0].type = OPTIX_BUILD_INPUT_TYPE_TRIANGLES;
-		buildInputs[0].triangleArray.vertexBuffers = vertexBuffers;
-
+		CUdeviceptr radiusBuffers[1] = { reinterpret_cast<CUdeviceptr>(radiusBuffer->devicePtr()) };
 		unsigned int flags[1] = { OPTIX_GEOMETRY_FLAG_NONE };
-		buildInputs[0].triangleArray.vertexFormat = OPTIX_VERTEX_FORMAT_FLOAT3;
-		buildInputs[0].triangleArray.numVertices = 3;
-		buildInputs[0].triangleArray.vertexStrideInBytes = 0;
-		buildInputs[0].triangleArray.flags = flags;
-		buildInputs[0].triangleArray.numSbtRecords = 1;
+
+		buildInputs[0].type                            = OPTIX_BUILD_INPUT_TYPE_SPHERES;
+		buildInputs[0].sphereArray.vertexBuffers       = vertexBuffers;
+		buildInputs[0].sphereArray.vertexStrideInBytes = 0;
+		buildInputs[0].sphereArray.numVertices         = 1;
+		buildInputs[0].sphereArray.radiusBuffers       = radiusBuffers;
+		buildInputs[0].sphereArray.radiusStrideInBytes = 0;
+		buildInputs[0].sphereArray.numSbtRecords       = 1;
+		buildInputs[0].sphereArray.singleRadius        = false;
+		buildInputs[0].sphereArray.flags               = flags;
 
 		OptixAccelBufferSizes bufferSizes = {};
 		OTK_ERROR_CHECK(optixAccelComputeMemoryUsage(
@@ -57,11 +64,9 @@ int main()
 			blasBuffer->size(),
 			&blas, nullptr, 0
 		));
-
-
 	}
 
-	auto tlas       = OptixTraversableHandle();
+	auto tlas = OptixTraversableHandle();
 	auto instBuffer = std::make_unique<otk::SyncVector<OptixInstance>>(1);
 	auto tlasBuffer = std::make_unique<otk::DeviceBuffer>();
 	{
@@ -82,7 +87,7 @@ int main()
 
 		OptixAccelBuildOptions options = {};
 		options.operation = OPTIX_BUILD_OPERATION_BUILD;
-		options.buildFlags = OPTIX_BUILD_FLAG_PREFER_FAST_TRACE ;
+		options.buildFlags = OPTIX_BUILD_FLAG_PREFER_FAST_TRACE;
 
 		OptixBuildInput buildInputs[1] = {};
 		otk::BuildInputBuilder buildInputBuilder(buildInputs);
@@ -111,30 +116,30 @@ int main()
 		));
 	}
 
-	auto pipeline   = pipelineGroup->get_pipeline("Test1");
+	auto pipeline = pipelineGroup->get_pipeline("Test2");
 	pipeline->set_max_traversable_graph_depth(2);
 	pipeline->compute_stack_sizes(0, 0);
 	pipeline->update();
 
-	unsigned int width  = 800; 
+	unsigned int width = 800;
 	unsigned int height = 600;
-	
+
 	glfwInit();
-	auto window = Test1::create_glfw_window(width, height, "title");
+	auto window = Test2::create_glfw_window(width, height, "title");
 
 	int fbWidth; int fbHeight;
 	glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
 
 	auto camera = TestLib::Camera(
-		make_float3(0.0f, 0.0f, 0.0f), 
-		make_float3(0.0f, 0.0f, -1.0f), 
+		make_float3(0.0f, 0.0f, 0.0f),
+		make_float3(0.0f, 0.0f, -1.0f),
 		make_float3(0.0f, 1.0f, 0.0f),
-		(float)fbWidth / (float)fbHeight, 
-		60.0f, 
+		(float)fbWidth / (float)fbHeight,
+		60.0f,
 		1.0e-3f
 	);
 
-	auto frameBuffer  = std::make_unique<otk::DeviceBuffer>(fbWidth * fbHeight * sizeof(uchar4)); 
+	auto frameBuffer = std::make_unique<otk::DeviceBuffer>(fbWidth * fbHeight * sizeof(uchar4));
 	auto paramsBuffer = std::make_unique<otk::SyncVector<Params>>(1);
 
 	{
@@ -150,16 +155,16 @@ int main()
 				size_t framebufferSize = 0;
 				{
 					auto [u, v, w] = camera.get_uvw();
-					auto& params   = paramsBuffer->at(0);
-					params.tlas    = tlas;
-					params.width   = fbWidth;
-					params.height  = fbHeight;
+					auto& params = paramsBuffer->at(0);
+					params.tlas = tlas;
+					params.width = fbWidth;
+					params.height = fbHeight;
 					params.framebuffer = reinterpret_cast<uchar4*>(pboCUGL->map(nullptr, framebufferSize));
 					params.bgColor = make_float3(0, 0, 1);
-					params.camEye  = camera.get_eye();
-					params.camU    = u;
-					params.camV    = v;
-					params.camW    = w;
+					params.camEye = camera.get_eye();
+					params.camU = u;
+					params.camV = v;
+					params.camW = w;
 
 					paramsBuffer->copyToDeviceAsync(nullptr);
 				}
@@ -184,6 +189,7 @@ int main()
 	glfwTerminate();
 
 	vertexBuffer.reset();
+	radiusBuffer.reset();
 
 	blasBuffer.reset();
 	tlasBuffer.reset();

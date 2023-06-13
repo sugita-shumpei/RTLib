@@ -1,5 +1,5 @@
-#ifndef TEST_TEST1_CONTEXT__H
-#define TEST_TEST1_CONTEXT__H
+#ifndef TEST_TESTLIB_CONTEXT__H
+#define TEST_TESTLIB_CONTEXT__H
 #include <OptiXToolkit/Error/ErrorCheck.h>
 #include <OptiXToolkit/Error/optixErrorCheck.h>
 #include <OptiXToolkit/Error/cudaErrorCheck.h>
@@ -7,7 +7,7 @@
 #include <iostream>
 #include <optix.h>
 #include <cuda.h>
-namespace Test1
+namespace TestLib
 {
 	struct Context
 	{

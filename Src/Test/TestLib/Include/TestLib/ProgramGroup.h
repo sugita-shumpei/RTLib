@@ -1,8 +1,8 @@
-#ifndef TEST_TEST1_PROGRAM_GROUP__H
-#define TEST_TEST1_PROGRAM_GROUP__H
+#ifndef TEST_TESTLIB_PROGRAM_GROUP__H
+#define TEST_TESTLIB_PROGRAM_GROUP__H
 #include <optix.h>
 #include <string>
-namespace Test1
+namespace TestLib
 {
 	struct Context;
 	struct Module;
@@ -24,6 +24,7 @@ namespace Test1
 		auto get_pipeline_group() const noexcept -> PipelineGroup*;
 
 		virtual auto get_opx7_program_group() const noexcept -> OptixProgramGroup = 0;
+		virtual auto get_stack_sizes() const noexcept -> OptixStackSizes = 0;
 
 	private:
 		PipelineGroup* m_PipelineGroup;
@@ -36,23 +37,16 @@ namespace Test1
 
 		virtual ~ProgramGroupRaygen();
 
-		virtual auto get_opx7_program_group() const noexcept -> OptixProgramGroup override
-		{
-			return m_Opx7ProgramGroup;
-		}
+		virtual auto get_opx7_program_group() const noexcept -> OptixProgramGroup override { return m_Opx7ProgramGroup; }
+		virtual auto get_stack_sizes() const noexcept -> OptixStackSizes override { return m_StackSizes; }
+		auto get_entry_function_name() const noexcept -> const char* { return m_EntryFunctionName.c_str(); }
 
-		auto get_entry_function_name() const noexcept -> const char* {
-			return m_EntryFunctionName.c_str();
-		}
-
-		auto get_module() const->Module*
-		{
-			return m_Module;
-		}
+		auto get_module() const->Module* { return m_Opx7Module; }
 	private:
 		OptixProgramGroup m_Opx7ProgramGroup;
-		Module* m_Module;
+		Module* m_Opx7Module;
 		std::string m_EntryFunctionName;
+		OptixStackSizes m_StackSizes;
 	};
 	struct ProgramGroupMiss :public ProgramGroup
 	{
@@ -60,23 +54,16 @@ namespace Test1
 
 		virtual ~ProgramGroupMiss();
 
-		virtual auto get_opx7_program_group() const noexcept -> OptixProgramGroup override
-		{
-			return m_Opx7ProgramGroup;
-		}
+		virtual auto get_opx7_program_group() const noexcept -> OptixProgramGroup override { return m_Opx7ProgramGroup; }
+		virtual auto get_stack_sizes() const noexcept -> OptixStackSizes override { return m_StackSizes; }
+		auto get_entry_function_name() const noexcept -> const char* { return m_EntryFunctionName.c_str(); }
 
-		auto get_entry_function_name() const noexcept -> const char* {
-			return m_EntryFunctionName.c_str();
-		}
-
-		auto get_module() const->Module*
-		{
-			return m_Module;
-		}
+		auto get_module() const->Module* { return m_Opx7Module; }
 	private:
 		OptixProgramGroup m_Opx7ProgramGroup;
-		Module* m_Module;
+		Module* m_Opx7Module;
 		std::string m_EntryFunctionName;
+		OptixStackSizes m_StackSizes;
 	};
 	struct ProgramGroupHitgroup :public ProgramGroup
 	{
@@ -88,33 +75,16 @@ namespace Test1
 
 		virtual ~ProgramGroupHitgroup();
 
-		virtual auto get_opx7_program_group() const noexcept -> OptixProgramGroup override
-		{
-			return m_Opx7ProgramGroup;
-		}
+		virtual auto get_opx7_program_group() const noexcept -> OptixProgramGroup override { return m_Opx7ProgramGroup; }
+		virtual auto get_stack_sizes() const noexcept -> OptixStackSizes override { return m_StackSizes; }
 
-		auto get_entry_function_name_ch() const noexcept -> const char* {
-			return m_EntryFunctionNameCH.c_str();
-		}
-		auto get_entry_function_name_ah() const noexcept -> const char* {
-			return m_EntryFunctionNameAH.c_str();
-		}
-		auto get_entry_function_name_is() const noexcept -> const char* {
-			return m_EntryFunctionNameIS.c_str();
-		}
+		auto get_entry_function_name_ch() const noexcept -> const char* { return m_EntryFunctionNameCH.c_str(); }
+		auto get_entry_function_name_ah() const noexcept -> const char* { return m_EntryFunctionNameAH.c_str(); }
+		auto get_entry_function_name_is() const noexcept -> const char* { return m_EntryFunctionNameIS.c_str(); }
 
-		auto get_module_ch() const->Module*
-		{
-			return m_ModuleCH;
-		}
-		auto get_module_ah() const->Module*
-		{
-			return m_ModuleAH;
-		}
-		auto get_module_is() const->Module*
-		{
-			return m_ModuleIS;
-		}
+		auto get_module_ch() const->Module* { return m_ModuleCH; }
+		auto get_module_ah() const->Module* { return m_ModuleAH; }
+		auto get_module_is() const->Module* { return m_ModuleIS; }
 	private:
 		OptixProgramGroup m_Opx7ProgramGroup;
 
@@ -125,32 +95,26 @@ namespace Test1
 		std::string m_EntryFunctionNameCH;
 		std::string m_EntryFunctionNameAH;
 		std::string m_EntryFunctionNameIS;
+		OptixStackSizes m_StackSizes;
 	};
 	struct ProgramGroupCallable : public ProgramGroup
 	{
 		ProgramGroupCallable(std::string name, PipelineGroup* pipelineGroup, Module* module, std::string entryFunctionName, bool supportTrace = false);
 		virtual ~ProgramGroupCallable() noexcept;
 
-		virtual auto get_opx7_program_group() const noexcept -> OptixProgramGroup override
-		{
-			return m_Opx7ProgramGroup;
-		}
+		virtual auto get_opx7_program_group() const noexcept -> OptixProgramGroup override { return m_Opx7ProgramGroup; }
+		virtual auto get_stack_sizes() const noexcept -> OptixStackSizes override { return m_StackSizes; }
+		auto get_entry_function_name() const noexcept -> const char* { return m_EntryFunctionName.c_str(); }
 
-		auto get_entry_function_name() const noexcept -> const char* {
-			return m_EntryFunctionName.c_str();
-		}
-
-		auto get_module() const->Module*
-		{
-			return m_Module;
-		}
+		auto get_module() const->Module* { return m_Opx7Module; }
 
 		bool support_trace() const noexcept { return m_SupportTrace; }
 	private:
 		OptixProgramGroup m_Opx7ProgramGroup;
-		Module* m_Module;
+		Module* m_Opx7Module;
 		std::string m_EntryFunctionName;
 		bool m_SupportTrace;
+		OptixStackSizes m_StackSizes;
 	};
 }
 #endif

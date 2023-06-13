@@ -1,31 +1,31 @@
-#include <Test1_PipelineGroup.h>
-#include <Test1_Module.h>
-#include <Test1_ProgramGroup.h>
-#include <Test1_Pipeline.h>
+#include <TestLib/PipelineGroup.h>
+#include <TestLib/Module.h>
+#include <TestLib/ProgramGroup.h>
+#include <TestLib/Pipeline.h>
 
-Test1::PipelineGroup::PipelineGroup(const Test1::Context* context, const OptixPipelineCompileOptions& options)
+TestLib::PipelineGroup::PipelineGroup(const TestLib::Context* context, const OptixPipelineCompileOptions& options)
 	:m_Context{context},m_Options{ options }
 {
 }
 
-Test1::PipelineGroup::~PipelineGroup()
+TestLib::PipelineGroup::~PipelineGroup()
 {
 	m_Modules.clear();
 }
 
-auto Test1::PipelineGroup::get_context() const noexcept -> const Test1::Context*
+auto TestLib::PipelineGroup::get_context() const noexcept -> const TestLib::Context*
 {
 	// TODO: return ステートメントをここに挿入します
 	return m_Context;
 }
 
-auto Test1::PipelineGroup::get_options() const noexcept -> const OptixPipelineCompileOptions&
+auto TestLib::PipelineGroup::get_options() const noexcept -> const OptixPipelineCompileOptions&
 {
 	// TODO: return ステートメントをここに挿入します
 	return m_Options;
 }
 
-bool Test1::PipelineGroup::load_module(std::string name, const ModuleOptions& options, const char* ptx, size_t ptxSize)
+bool TestLib::PipelineGroup::load_module(std::string name, const ModuleOptions& options, const char* ptx, size_t ptxSize)
 {
 	try {
 		m_Modules[name] = std::unique_ptr<Module>(new Module(name,this, options, ptx, ptxSize));
@@ -38,7 +38,20 @@ bool Test1::PipelineGroup::load_module(std::string name, const ModuleOptions& op
 	}
 }
 
-auto Test1::PipelineGroup::get_module(std::string name) const noexcept -> Module*
+bool TestLib::PipelineGroup::load_builtin_is_module(std::string name, const ModuleOptions& options, const OptixBuiltinISOptions& builtinIsOptions)
+{
+	try {
+		m_Modules[name] = std::unique_ptr<Module>(new Module(name, this, options, builtinIsOptions));
+		return true;
+	}
+	catch (std::runtime_error& err)
+	{
+		std::cerr << "Failed To Load Module: " << name << std::endl;
+		return false;
+	}
+}
+
+auto TestLib::PipelineGroup::get_module(std::string name) const noexcept -> Module*
 {
 	if (m_Modules.count(name) == 0) {
 		return nullptr;
@@ -46,12 +59,12 @@ auto Test1::PipelineGroup::get_module(std::string name) const noexcept -> Module
 	return m_Modules.at(name).get();
 }
 
-bool Test1::PipelineGroup::has_module(std::string name) const noexcept
+bool TestLib::PipelineGroup::has_module(std::string name) const noexcept
 {
 	return m_Modules.count(name) != 0;
 }
 
-bool Test1::PipelineGroup::load_program_group_rg(std::string pgName, std::string moduleName, std::string entryName)
+bool TestLib::PipelineGroup::load_program_group_rg(std::string pgName, std::string moduleName, std::string entryName)
 {
 	auto module = get_module(moduleName);
 	if (!module) { return false; }
@@ -68,7 +81,7 @@ bool Test1::PipelineGroup::load_program_group_rg(std::string pgName, std::string
 	return true;
 }
 
-bool Test1::PipelineGroup::load_program_group_ms(std::string pgName, std::string moduleName, std::string entryName)
+bool TestLib::PipelineGroup::load_program_group_ms(std::string pgName, std::string moduleName, std::string entryName)
 {
 	auto module = get_module(moduleName);
 	if (!module) { return false; }
@@ -85,7 +98,7 @@ bool Test1::PipelineGroup::load_program_group_ms(std::string pgName, std::string
 	return true;
 }
 
-bool Test1::PipelineGroup::load_program_group_hg(std::string pgName, std::string moduleNameCh, std::string entryNameCh, std::string moduleNameAh, std::string entryNameAh, std::string moduleNameIs, std::string entryNameIs)
+bool TestLib::PipelineGroup::load_program_group_hg(std::string pgName, std::string moduleNameCh, std::string entryNameCh, std::string moduleNameAh, std::string entryNameAh, std::string moduleNameIs, std::string entryNameIs)
 {
 
 	OptixProgramGroupDesc desc = {};
@@ -97,7 +110,9 @@ bool Test1::PipelineGroup::load_program_group_hg(std::string pgName, std::string
 	}
 	else
 	{
-		entryNameCh = "__closesthit__" + entryNameCh;
+		if (!entryNameCh.empty()) {
+			entryNameCh = "__closesthit__" + entryNameCh;
+		}
 	}
 
 	auto moduleAh = get_module(moduleNameAh);
@@ -106,17 +121,20 @@ bool Test1::PipelineGroup::load_program_group_hg(std::string pgName, std::string
 	}
 	else
 	{
-		entryNameAh = "__anyhit__" + entryNameAh;
+		if (!entryNameAh.empty()) {
+			entryNameAh = "__anyhit__" + entryNameAh;
+		}
 	}
 
 	auto moduleIs = get_module(moduleNameIs);
-	auto opx7ModuleIs = OptixModule(nullptr);
 	if (!moduleIs) {
 		entryNameIs = "";
 	}
 	else
 	{
-		entryNameIs = "__intersection__" + entryNameIs;
+		if (!entryNameIs.empty()) {
+			entryNameIs = "__intersection__" + entryNameIs;
+		}
 	}
 
 	m_ProgramGroupsHG[pgName].reset(new ProgramGroupHitgroup(pgName,this, moduleCh, entryNameCh,moduleAh,entryNameAh,moduleIs,entryNameIs));
@@ -124,7 +142,7 @@ bool Test1::PipelineGroup::load_program_group_hg(std::string pgName, std::string
 	return true;
 }
 
-bool Test1::PipelineGroup::load_program_group_dc(std::string pgName, std::string moduleName, std::string entryName)
+bool TestLib::PipelineGroup::load_program_group_dc(std::string pgName, std::string moduleName, std::string entryName)
 {
 	auto module = get_module(moduleName);
 	if (!module) { return false; }
@@ -136,7 +154,7 @@ bool Test1::PipelineGroup::load_program_group_dc(std::string pgName, std::string
 	return true;
 }
 
-bool Test1::PipelineGroup::load_program_group_cc(std::string pgName, std::string moduleName, std::string entryName)
+bool TestLib::PipelineGroup::load_program_group_cc(std::string pgName, std::string moduleName, std::string entryName)
 {
 	auto module = get_module(moduleName);
 	if (!module) { return false; }
@@ -150,63 +168,63 @@ bool Test1::PipelineGroup::load_program_group_cc(std::string pgName, std::string
 	return true;
 }
 
-auto Test1::PipelineGroup::get_program_group_rg(std::string pgName) const noexcept -> ProgramGroup*
+auto TestLib::PipelineGroup::get_program_group_rg(std::string pgName) const noexcept -> ProgramGroup*
 {
 	if (m_ProgramGroupsRG.count(pgName) == 0) { return nullptr; }
 	return m_ProgramGroupsRG.at(pgName).get();
 }
 
-auto Test1::PipelineGroup::get_program_group_ms(std::string pgName) const noexcept -> ProgramGroup*
+auto TestLib::PipelineGroup::get_program_group_ms(std::string pgName) const noexcept -> ProgramGroup*
 {
 
 	if (m_ProgramGroupsMS.count(pgName) == 0) { return nullptr; }
 	return m_ProgramGroupsMS.at(pgName).get();
 }
 
-auto Test1::PipelineGroup::get_program_group_hg(std::string pgName) const noexcept -> ProgramGroup*
+auto TestLib::PipelineGroup::get_program_group_hg(std::string pgName) const noexcept -> ProgramGroup*
 {
 	if (m_ProgramGroupsHG.count(pgName) == 0) { return nullptr; }
 	return m_ProgramGroupsHG.at(pgName).get();
 }
 
-auto Test1::PipelineGroup::get_program_group_dc(std::string pgName) const noexcept -> ProgramGroup*
+auto TestLib::PipelineGroup::get_program_group_dc(std::string pgName) const noexcept -> ProgramGroup*
 {
 	if (m_ProgramGroupsDC.count(pgName) == 0) { return nullptr; }
 	return m_ProgramGroupsDC.at(pgName).get();
 }
 
-auto Test1::PipelineGroup::get_program_group_cc(std::string pgName) const noexcept -> ProgramGroup*
+auto TestLib::PipelineGroup::get_program_group_cc(std::string pgName) const noexcept -> ProgramGroup*
 {
 	if (m_ProgramGroupsCC.count(pgName) == 0) { return nullptr; }
 	return m_ProgramGroupsCC.at(pgName).get();
 }
 
-bool Test1::PipelineGroup::has_program_group_rg(std::string pgName) const noexcept
+bool TestLib::PipelineGroup::has_program_group_rg(std::string pgName) const noexcept
 {
 	return m_ProgramGroupsRG.count(pgName)!=0;
 }
 
-bool Test1::PipelineGroup::has_program_group_ms(std::string pgName) const noexcept
+bool TestLib::PipelineGroup::has_program_group_ms(std::string pgName) const noexcept
 {
 	return m_ProgramGroupsMS.count(pgName) != 0;
 }
 
-bool Test1::PipelineGroup::has_program_group_hg(std::string pgName) const noexcept
+bool TestLib::PipelineGroup::has_program_group_hg(std::string pgName) const noexcept
 {
 	return m_ProgramGroupsHG.count(pgName) != 0;
 }
 
-bool Test1::PipelineGroup::has_program_group_dc(std::string pgName) const noexcept
+bool TestLib::PipelineGroup::has_program_group_dc(std::string pgName) const noexcept
 {
 	return m_ProgramGroupsDC.count(pgName) != 0;
 }
 
-bool Test1::PipelineGroup::has_program_group_cc(std::string pgName) const noexcept
+bool TestLib::PipelineGroup::has_program_group_cc(std::string pgName) const noexcept
 {
 	return m_ProgramGroupsCC.count(pgName) != 0;
 }
 
-bool Test1::PipelineGroup::load_pipeline(std::string pipelineName, std::string pgNameRg, const std::vector<std::string>& pgNamesMs, const std::vector<std::string>& pgNamesHg, const std::vector<std::string>& pgNamesDc, const std::vector<std::string>& pgNamesCc, OptixCompileDebugLevel debugLevel, unsigned int maxTraceDepth)
+bool TestLib::PipelineGroup::load_pipeline(std::string pipelineName, std::string pgNameRg, const std::vector<std::string>& pgNamesMs, const std::vector<std::string>& pgNamesHg, const std::vector<std::string>& pgNamesDc, const std::vector<std::string>& pgNamesCc, OptixCompileDebugLevel debugLevel, unsigned int maxTraceDepth)
 {
 	
 	ProgramGroup* programGroupRg = nullptr;
@@ -253,13 +271,13 @@ bool Test1::PipelineGroup::load_pipeline(std::string pipelineName, std::string p
 
 }
 
-auto Test1::PipelineGroup::get_pipeline(std::string pipelineName) const noexcept -> Pipeline*
+auto TestLib::PipelineGroup::get_pipeline(std::string pipelineName) const noexcept -> Pipeline*
 {
 	if (m_Pipelines.count(pipelineName) == 0) { return nullptr; }
 	return m_Pipelines.at(pipelineName).get();
 }
 
-bool Test1::PipelineGroup::has_pipeline(std::string pipelineName) const noexcept
+bool TestLib::PipelineGroup::has_pipeline(std::string pipelineName) const noexcept
 {
 	return m_Pipelines.count(pipelineName) != 0;
 }

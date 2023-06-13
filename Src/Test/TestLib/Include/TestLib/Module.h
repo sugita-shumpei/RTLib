@@ -1,11 +1,11 @@
-#ifndef TEST_TEST1_MODULE__H
-#define TEST_TEST1_MODULE__H
-#include <Test1_PipelineGroup.h>
+#ifndef TEST_TESTLIB_MODULE__H
+#define TEST_TESTLIB_MODULE__H
+#include <TestLib/PipelineGroup.h>
 #include <iostream>
 #include <vector>
 #include <optix.h>
 #include <cuda.h>
-namespace Test1
+namespace TestLib
 {
 	//struct ModuleBoundValueEntry
 	//{
@@ -55,7 +55,8 @@ namespace Test1
 
 	struct Module
 	{
-		 Module(std::string name, Test1::PipelineGroup* pipeline_group, const ModuleOptions& options, const char* ptx, size_t ptxSize);
+		 Module(std::string name, TestLib::PipelineGroup* pipelineGroup, const ModuleOptions& options, const char* ptx, size_t ptxSize);
+		 Module(std::string name, TestLib::PipelineGroup* pipelineGroup, const ModuleOptions& options, const OptixBuiltinISOptions& builtinIsOptions);
 		~Module();
 
 		Module(const Module&) = delete;
@@ -64,6 +65,7 @@ namespace Test1
 		auto get_name() const noexcept -> const char*;
 
 		auto get_pipeline_group() const noexcept -> const PipelineGroup*;
+
 		auto get_pipeline_group() noexcept -> PipelineGroup*;
 
 		auto get_context() const noexcept -> const Context*;
@@ -71,9 +73,10 @@ namespace Test1
 		auto get_options() const noexcept -> const ModuleOptions&;
 
 		auto get_opx7_module() const noexcept -> OptixModule;
+
 	private:
-		Test1::PipelineGroup* m_PipelineGroup;
-		OptixModule m_Module;
+		TestLib::PipelineGroup* m_PipelineGroup;
+		OptixModule m_Opx7Module;
 		ModuleOptions m_Options;
 		std::string m_Name;
 	};

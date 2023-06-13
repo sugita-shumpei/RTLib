@@ -1,11 +1,11 @@
-#ifndef TEST_TEST1_CAMERA__H
-#define TEST_TEST1_CAMERA__H
+#ifndef TEST_TESTLIB_CAMERA__H
+#define TEST_TESTLIB_CAMERA__H
 #include <OptiXToolkit/ShaderUtil/vec_math.h>
 #include <glm/glm.hpp>
 #include <tuple>
 #include <array>
 #include <string>
-namespace Test1
+namespace TestLib
 {
 	struct Camera
 	{
@@ -24,11 +24,23 @@ namespace Test1
 
 		auto get_eye   () const noexcept -> float3;
 		auto get_lookat() const noexcept -> float3;
-		auto get_vup   () const noexcept -> float3;
+
+		// (front, up)
+		// 
+		// vup * front -> right
+		// front * right->up
 
 		void set_eye   (float3    eye) noexcept;
 		void set_lookat(float3 lookat) noexcept;
-		void set_vup   (float3     up) noexcept;
+		void set_vup   (float3    vup) noexcept;
+
+		auto get_front () const noexcept -> float3;
+		auto get_right () const noexcept -> float3;
+		auto get_up    () const noexcept -> float3;
+		
+		void set_front (float3  front) noexcept;
+		void set_right (float3  right) noexcept;
+		void set_up    (float3     up) noexcept;
 
 		auto get_aspect() const noexcept -> float ;
 		auto get_fovy  () const noexcept -> float ;
@@ -41,13 +53,17 @@ namespace Test1
 		void set_zfar  (float zfar  ) noexcept;
 
 	private:
-		float3    m_Eye   ;
-		float3    m_Lookat;
-		float3    m_Vup    ;
-		float     m_Aspect;
-		float     m_Fovy  ;
-		float     m_ZNear ;
-		float     m_ZFar  ;
+	private:
+		float3 m_Eye   ;
+		float3 m_Lookat;
+
+		float3 m_Right ;
+		float3 m_Up    ;
+
+		float  m_Aspect;
+		float  m_Fovy  ;
+		float  m_ZNear ;
+		float  m_ZFar  ;
 	};
 }
 #endif

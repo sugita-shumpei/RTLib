@@ -1,9 +1,9 @@
-#ifndef TEST_TEST1_OGL4_RENDERER__H
-#define TEST_TEST1_OGL4_RENDERER__H
+#ifndef TEST_TESTLIB_OGL4_RENDERER__H
+#define TEST_TESTLIB_OGL4_RENDERER__H
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
 #include <memory>
-namespace Test1
+namespace TestLib
 {
 	struct OGL4Renderer 
 	{

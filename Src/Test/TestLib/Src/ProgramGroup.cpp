@@ -1,22 +1,27 @@
-#include <Test1_ProgramGroup.h>
-#include <Test1_PipelineGroup.h>
-#include <Test1_Module.h>
+#include <TestLib/ProgramGroup.h>
+#include <TestLib/PipelineGroup.h>
+#include <TestLib/Module.h>
 #include <iostream>
 #include <optix_stubs.h>
 
 
-Test1::ProgramGroup::ProgramGroup(std::string name, PipelineGroup* pipelineGroup, OptixProgramGroupKind kind)
-	:m_Name{name},m_PipelineGroup{pipelineGroup},m_Kind{kind}
+TestLib::ProgramGroup::ProgramGroup(std::string name, PipelineGroup* pipelineGroup, OptixProgramGroupKind kind)
+	:m_Name{name},
+	m_PipelineGroup{pipelineGroup},
+	m_Kind{kind}
 {
 }
 
-Test1::ProgramGroup::~ProgramGroup()
+TestLib::ProgramGroup::~ProgramGroup()
 {
 }
 
 
-Test1::ProgramGroupRaygen::ProgramGroupRaygen(std::string name, PipelineGroup* pipelineGroup, Module* module, std::string entryFunctionName)
-	:ProgramGroup(name, pipelineGroup, OPTIX_PROGRAM_GROUP_KIND_RAYGEN),m_EntryFunctionName{entryFunctionName},m_Module{module}
+TestLib::ProgramGroupRaygen::ProgramGroupRaygen(std::string name, PipelineGroup* pipelineGroup, Module* module, std::string entryFunctionName)
+	:ProgramGroup(name, pipelineGroup, OPTIX_PROGRAM_GROUP_KIND_RAYGEN), 
+	m_EntryFunctionName{ entryFunctionName }, 
+	m_Opx7Module{ module }, 
+	m_StackSizes{}
 {
 	auto context = pipelineGroup->get_context();
 	auto opx7_context = context->get_opx7_device_context();
@@ -25,7 +30,7 @@ Test1::ProgramGroupRaygen::ProgramGroupRaygen(std::string name, PipelineGroup* p
 
 	desc.kind = OPTIX_PROGRAM_GROUP_KIND_RAYGEN;
 	desc.raygen.entryFunctionName = m_EntryFunctionName.c_str();
-	desc.raygen.module = m_Module->get_opx7_module();
+	desc.raygen.module = m_Opx7Module->get_opx7_module();
 
 	OptixProgramGroupOptions options = {};
 
@@ -36,16 +41,19 @@ Test1::ProgramGroupRaygen::ProgramGroupRaygen(std::string name, PipelineGroup* p
 	if (logSize != sizeof(log)) {
 		std::cout << log << std::endl;
 	}
-
+	OTK_ERROR_CHECK(optixProgramGroupGetStackSize(m_Opx7ProgramGroup, &m_StackSizes));
 }
 
-Test1::ProgramGroupRaygen::~ProgramGroupRaygen() {
+TestLib::ProgramGroupRaygen::~ProgramGroupRaygen() {
 	OTK_ERROR_CHECK(optixProgramGroupDestroy(m_Opx7ProgramGroup));
 	m_Opx7ProgramGroup = nullptr;
 }
 
-Test1::ProgramGroupMiss::ProgramGroupMiss(std::string name,PipelineGroup* pipelineGroup, Module* module, std::string entryFunctionName)
-	:ProgramGroup(name,pipelineGroup, OPTIX_PROGRAM_GROUP_KIND_MISS), m_EntryFunctionName{ entryFunctionName }, m_Module{ module }
+TestLib::ProgramGroupMiss::ProgramGroupMiss(std::string name,PipelineGroup* pipelineGroup, Module* module, std::string entryFunctionName)
+	:ProgramGroup(name,pipelineGroup, OPTIX_PROGRAM_GROUP_KIND_MISS), 
+	m_EntryFunctionName{ entryFunctionName }, 
+	m_Opx7Module{ module }, 
+	m_StackSizes{}
 {
 	auto context = pipelineGroup->get_context();
 	auto opx7_context = context->get_opx7_device_context();
@@ -54,7 +62,7 @@ Test1::ProgramGroupMiss::ProgramGroupMiss(std::string name,PipelineGroup* pipeli
 
 	desc.kind = OPTIX_PROGRAM_GROUP_KIND_MISS;
 	desc.miss.entryFunctionName = m_EntryFunctionName.c_str();
-	desc.miss.module = m_Module->get_opx7_module();
+	desc.miss.module = m_Opx7Module->get_opx7_module();
 
 	OptixProgramGroupOptions options = {};
 
@@ -65,15 +73,16 @@ Test1::ProgramGroupMiss::ProgramGroupMiss(std::string name,PipelineGroup* pipeli
 	if (logSize != sizeof(log)) {
 		std::cout << log << std::endl;
 	}
+	OTK_ERROR_CHECK(optixProgramGroupGetStackSize(m_Opx7ProgramGroup, &m_StackSizes));
 
 }
 
-Test1::ProgramGroupMiss::~ProgramGroupMiss() {
+TestLib::ProgramGroupMiss::~ProgramGroupMiss() {
 	OTK_ERROR_CHECK(optixProgramGroupDestroy(m_Opx7ProgramGroup));
 	m_Opx7ProgramGroup = nullptr;
 }
 
-Test1::ProgramGroupHitgroup::ProgramGroupHitgroup(
+TestLib::ProgramGroupHitgroup::ProgramGroupHitgroup(
 	std::string name, PipelineGroup* pipelineGroup,
 	Module* moduleCh, std::string entryFunctionNameCh,
 	Module* moduleAh, std::string entryFunctionNameAh,
@@ -84,7 +93,8 @@ Test1::ProgramGroupHitgroup::ProgramGroupHitgroup(
 	m_ModuleIS{ nullptr },
 	m_EntryFunctionNameCH{ "" },
 	m_EntryFunctionNameAH{ "" },
-	m_EntryFunctionNameIS{ "" }
+	m_EntryFunctionNameIS{ "" }, 
+	m_StackSizes{}
 {
 	auto context = pipelineGroup->get_context();
 	auto opx7_context = context->get_opx7_device_context();
@@ -106,8 +116,10 @@ Test1::ProgramGroupHitgroup::ProgramGroupHitgroup(
 		m_EntryFunctionNameAH = entryFunctionNameAh;
 		m_ModuleAH = moduleAh;
 	}
-	if (!entryFunctionNameIs.empty() && moduleIs) {
-		desc.hitgroup.entryFunctionNameIS = entryFunctionNameIs.c_str();
+	if (moduleIs) {
+		if (entryFunctionNameIs != "") {
+			desc.hitgroup.entryFunctionNameIS = entryFunctionNameIs.c_str();
+		}
 		desc.hitgroup.moduleIS = moduleIs->get_opx7_module();
 
 		m_EntryFunctionNameIS = entryFunctionNameIs;
@@ -123,17 +135,22 @@ Test1::ProgramGroupHitgroup::ProgramGroupHitgroup(
 	if (logSize != sizeof(log)) {
 		std::cout << log << std::endl;
 	}
+	OTK_ERROR_CHECK(optixProgramGroupGetStackSize(m_Opx7ProgramGroup, &m_StackSizes));
 
 }
 
-Test1::ProgramGroupHitgroup::~ProgramGroupHitgroup()
+TestLib::ProgramGroupHitgroup::~ProgramGroupHitgroup()
 {
 	OTK_ERROR_CHECK(optixProgramGroupDestroy(m_Opx7ProgramGroup));
 	m_Opx7ProgramGroup = nullptr;
 }
 
-Test1::ProgramGroupCallable::ProgramGroupCallable(std::string name, PipelineGroup* pipelineGroup, Module* module, std::string entryFunctionName, bool supportTrace)
-	:ProgramGroup(name, pipelineGroup, OPTIX_PROGRAM_GROUP_KIND_CALLABLES), m_EntryFunctionName{ entryFunctionName }, m_Module{ module },m_SupportTrace{supportTrace}
+TestLib::ProgramGroupCallable::ProgramGroupCallable(std::string name, PipelineGroup* pipelineGroup, Module* module, std::string entryFunctionName, bool supportTrace)
+	:ProgramGroup(name, pipelineGroup, OPTIX_PROGRAM_GROUP_KIND_CALLABLES), 
+	m_EntryFunctionName{ entryFunctionName }, 
+	m_Opx7Module{ module },
+	m_SupportTrace{supportTrace}, 
+	m_StackSizes{}
 {
 	auto context = pipelineGroup->get_context();
 	auto opx7_context = context->get_opx7_device_context();
@@ -143,11 +160,11 @@ Test1::ProgramGroupCallable::ProgramGroupCallable(std::string name, PipelineGrou
 	desc.kind = OPTIX_PROGRAM_GROUP_KIND_CALLABLES;
 	if (!supportTrace) {
 		desc.callables.entryFunctionNameDC = m_EntryFunctionName.c_str();
-		desc.callables.moduleDC = m_Module->get_opx7_module();
+		desc.callables.moduleDC = m_Opx7Module->get_opx7_module();
 	}
 	else {
 		desc.callables.entryFunctionNameCC = m_EntryFunctionName.c_str();
-		desc.callables.moduleCC = m_Module->get_opx7_module();
+		desc.callables.moduleCC = m_Opx7Module->get_opx7_module();
 	}
 
 	OptixProgramGroupOptions options = {};
@@ -158,10 +175,11 @@ Test1::ProgramGroupCallable::ProgramGroupCallable(std::string name, PipelineGrou
 	if (logSize != sizeof(log)) {
 		std::cout << log << std::endl;
 	}
+	OTK_ERROR_CHECK(optixProgramGroupGetStackSize(m_Opx7ProgramGroup, &m_StackSizes));
 
 }
 
-Test1::ProgramGroupCallable::~ProgramGroupCallable() {
+TestLib::ProgramGroupCallable::~ProgramGroupCallable() {
 	OTK_ERROR_CHECK(optixProgramGroupDestroy(m_Opx7ProgramGroup));
 	m_Opx7ProgramGroup = nullptr;
 }

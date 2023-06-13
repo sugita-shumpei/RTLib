@@ -1,12 +1,12 @@
-#ifndef TEST1_SHADER_BINDING_TABLE__H
-#define TEST1_SHADER_BINDING_TABLE__H
+#ifndef TESTLIB_SHADER_BINDING_TABLE__H
+#define TESTLIB_SHADER_BINDING_TABLE__H
 #include <OptiXToolkit/OptixMemory/SyncRecord.h>
 #include <OptiXToolkit/OptixMemory/Record.h>
-#include <Test1_ProgramGroup.h>
+#include <TestLib/ProgramGroup.h>
 #include <optix.h>
 #include <cuda.h>
 #include <memory>
-namespace Test1
+namespace TestLib
 {
 	struct ProgramGroup;
 	struct ShaderRecord

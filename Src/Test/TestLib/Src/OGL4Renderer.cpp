@@ -1,4 +1,4 @@
-#include <Test1_OGL4Renderer.h>
+#include <TestLib/OGL4Renderer.h>
 #include <glm/vec4.hpp>
 #include <condition_variable>
 #include <unordered_map>
@@ -38,7 +38,7 @@ inline static constexpr char fsSource[] =
 "	fragColor = texture(tex,fragCoord); \n"
 "}\n";
 
-Test1::OGL4Renderer:: OGL4Renderer(GLFWwindow* window)
+TestLib::OGL4Renderer:: OGL4Renderer(GLFWwindow* window)
 	:m_Window{window},m_GladContext{std::make_unique<GladGLContext>()}
 {
 	glfwGetFramebufferSize(m_Window, &m_FbWidth, &m_FbHeight);
@@ -48,12 +48,12 @@ Test1::OGL4Renderer:: OGL4Renderer(GLFWwindow* window)
 	}
 }
 
-Test1::OGL4Renderer::~OGL4Renderer()
+TestLib::OGL4Renderer::~OGL4Renderer()
 {
 	m_GladContext.reset();
 }
 
-void Test1::OGL4Renderer::init()
+void TestLib::OGL4Renderer::init()
 {
 	glfwMakeContextCurrent(m_Window);
 	init_vbo();
@@ -64,7 +64,7 @@ void Test1::OGL4Renderer::init()
 	init_prg();
 }
 
-void Test1::OGL4Renderer::free()
+void TestLib::OGL4Renderer::free()
 {
 	glfwMakeContextCurrent(m_Window);
 	free_prg();
@@ -75,7 +75,7 @@ void Test1::OGL4Renderer::free()
 	free_vbo();
 }
 
-void Test1::OGL4Renderer::render()
+void TestLib::OGL4Renderer::render()
 {
 	glfwMakeContextCurrent(m_Window);
 	m_GladContext->Clear(GL_COLOR_BUFFER_BIT);
@@ -99,39 +99,39 @@ void Test1::OGL4Renderer::render()
 	m_GladContext->DrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
 }
 
-auto Test1::OGL4Renderer::get_window() const noexcept -> GLFWwindow* { return m_Window; }
+auto TestLib::OGL4Renderer::get_window() const noexcept -> GLFWwindow* { return m_Window; }
 
-auto Test1::OGL4Renderer::get_pbo() const noexcept -> GLuint { return m_Pbo; }
+auto TestLib::OGL4Renderer::get_pbo() const noexcept -> GLuint { return m_Pbo; }
 
-void Test1::OGL4Renderer::set_current() { glfwMakeContextCurrent(m_Window); }
+void TestLib::OGL4Renderer::set_current() { glfwMakeContextCurrent(m_Window); }
 
-void Test1::OGL4Renderer::init_vbo() 
+void TestLib::OGL4Renderer::init_vbo() 
 {
 	m_GladContext->GenBuffers(1, &m_Vbo);
 	m_GladContext->BindBuffer(GL_ARRAY_BUFFER, m_Vbo);
 	m_GladContext->BufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 }
 
-void Test1::OGL4Renderer::free_vbo() 
+void TestLib::OGL4Renderer::free_vbo() 
 {
 	m_GladContext->DeleteBuffers(1, &m_Vbo);
 	m_Vbo = 0;
 }
 
-void Test1::OGL4Renderer::init_ibo() 
+void TestLib::OGL4Renderer::init_ibo() 
 {
 	m_GladContext->GenBuffers(1, &m_Ibo);
 	m_GladContext->BindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_Ibo);
 	m_GladContext->BufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
 }
-void Test1::OGL4Renderer::free_ibo() 
+void TestLib::OGL4Renderer::free_ibo() 
 {
 	m_GladContext->DeleteBuffers(1, &m_Ibo);
 	m_Ibo = 0;
 }
 
-void Test1::OGL4Renderer::init_vao() 
+void TestLib::OGL4Renderer::init_vao() 
 {
 	m_GladContext->GenVertexArrays(1, &m_Vao);
 	m_GladContext->BindVertexArray(m_Vao);
@@ -151,26 +151,26 @@ void Test1::OGL4Renderer::init_vao()
 	m_GladContext->BindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
 }
-void Test1::OGL4Renderer::free_vao() 
+void TestLib::OGL4Renderer::free_vao() 
 {
 	m_GladContext->DeleteVertexArrays(1, &m_Vao);
 	m_Vao = 0;
 }
 
-void Test1::OGL4Renderer::init_pbo() 
+void TestLib::OGL4Renderer::init_pbo() 
 {
 	m_GladContext->GenBuffers(1, &m_Pbo);
 	m_GladContext->BindBuffer(GL_PIXEL_UNPACK_BUFFER, m_Pbo);
 	m_GladContext->BufferData(GL_PIXEL_UNPACK_BUFFER, m_FbWidth*m_FbHeight*4, nullptr, GL_STREAM_DRAW);
 	m_GladContext->BindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
 }
-void Test1::OGL4Renderer::free_pbo() 
+void TestLib::OGL4Renderer::free_pbo() 
 {
 	m_GladContext->DeleteBuffers(1, &m_Pbo);
 	m_Pbo = 0;
 }
 
-void Test1::OGL4Renderer::init_tex() 
+void TestLib::OGL4Renderer::init_tex() 
 {
 	m_GladContext->GenTextures(1, &m_Tex);
 	m_GladContext->BindTexture(GL_TEXTURE_2D, m_Tex);
@@ -180,13 +180,13 @@ void Test1::OGL4Renderer::init_tex()
 	m_GladContext->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	m_GladContext->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 }
-void Test1::OGL4Renderer::free_tex() 
+void TestLib::OGL4Renderer::free_tex() 
 {
 	m_GladContext->DeleteTextures(1, &m_Tex);
 	m_Tex = 0;
 }
 
-void Test1::OGL4Renderer::init_prg() 
+void TestLib::OGL4Renderer::init_prg() 
 {
 	m_Prg = m_GladContext->CreateProgram();
 	GLint len;
@@ -267,14 +267,14 @@ void Test1::OGL4Renderer::init_prg()
 	}
 	m_TexLoc = m_GladContext->GetUniformLocation(m_Prg,"tex");
 }
-void Test1::OGL4Renderer::free_prg() 
+void TestLib::OGL4Renderer::free_prg() 
 {
 	m_GladContext->DeleteProgram(m_Prg);
 	m_Prg = 0;
 	m_TexLoc = 0;
 }
 
-bool Test1::OGL4Renderer::resize(int fb_width, int fb_height)
+bool TestLib::OGL4Renderer::resize(int fb_width, int fb_height)
 {
 	if ((m_FbWidth != fb_width) || (m_FbHeight != fb_height))
 	{
