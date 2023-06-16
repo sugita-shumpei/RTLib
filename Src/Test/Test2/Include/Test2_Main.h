@@ -21,6 +21,11 @@
 #include <glm/gtx/string_cast.hpp>
 namespace Test2
 {
+	template <typename T>
+	inline constexpr auto compute_aligned_size(T size, T alignment) -> T
+	{
+		return ((size + alignment - static_cast<T>(1)) / alignment) * alignment;
+	}
 	auto create_glfw_window(int width, int height, const char* title) -> GLFWwindow*
 	{
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
@@ -120,9 +125,111 @@ namespace Test2
 
 		return shaderBindingTable;
 	}
-	//auto init_camera() -> std::unique_ptr<TestLib::PerspectiveCamera>
-	//{
-	//	return std::make_unique<TestLib::PerspectiveCamera>("camera",45.0f,1.0f,1e-5f,1e+5f);
-	//}
+	void build_acceleration_structure(
+		TestLib::Context* context, CUstream stream,
+		const std::vector<OptixBuildInput>& buildInputs,
+		OptixAccelBuildOptions accelOptions,
+		otk::DeviceBuffer* pTempBuffer,
+		otk::DeviceBuffer& outputBuffer,
+		OptixTraversableHandle& outputHandle) {
+
+		accelOptions.operation = OPTIX_BUILD_OPERATION_BUILD;
+		OptixAccelBufferSizes bufferSizes = {};
+		OTK_ERROR_CHECK(optixAccelComputeMemoryUsage(
+			context->get_opx7_device_context(), &accelOptions, buildInputs.data(), buildInputs.size(), &bufferSizes
+		));
+
+		bool allowCompaction = (accelOptions.buildFlags & OPTIX_BUILD_FLAG_ALLOW_COMPACTION)==OPTIX_BUILD_FLAG_ALLOW_COMPACTION;
+		;
+		size_t tempBufferSize      = compute_aligned_size(bufferSizes.tempSizeInBytes  , OPTIX_ACCEL_BUFFER_BYTE_ALIGNMENT);
+		size_t outputBufferSize    = compute_aligned_size(bufferSizes.outputSizeInBytes, OPTIX_ACCEL_BUFFER_BYTE_ALIGNMENT);
+		size_t descBufferSize      = sizeof(uint64_t);
+		size_t totalTempBufferSize = tempBufferSize;
+
+		if (!allowCompaction) {
+			outputBuffer.resize(outputBufferSize);
+		}
+		else {
+			totalTempBufferSize += (outputBufferSize + descBufferSize);
+		}
+
+		
+
+		bool allocTempBuffer = !pTempBuffer;
+		if (allocTempBuffer) {
+			pTempBuffer = new otk::DeviceBuffer(totalTempBufferSize);
+		}
+		else {
+			if (pTempBuffer->size() < totalTempBufferSize) {
+				pTempBuffer->resize(totalTempBufferSize);
+			}
+		}
+
+		auto outputBufferPtr = static_cast<CUdeviceptr>(0);
+		auto tempBufferPtr   = static_cast<CUdeviceptr>(0);
+		auto descBufferPtr   = static_cast<CUdeviceptr>(0);
+
+		if (allowCompaction)
+		{
+			tempBufferPtr   = reinterpret_cast<CUdeviceptr>(pTempBuffer->devicePtr());
+			outputBufferPtr = tempBufferPtr   + static_cast<CUdeviceptr>(tempBufferSize);
+			descBufferPtr   = outputBufferPtr + static_cast<CUdeviceptr>(outputBufferSize);
+
+		}
+		else {
+			tempBufferPtr   = reinterpret_cast<CUdeviceptr>(pTempBuffer->devicePtr());
+			outputBufferPtr = reinterpret_cast<CUdeviceptr>(outputBuffer.devicePtr());
+			descBufferPtr = 0;
+
+		}
+
+		OptixAccelEmitDesc emitDescs[1] = {};
+		emitDescs[0].type   = OPTIX_PROPERTY_TYPE_COMPACTED_SIZE;
+		emitDescs[0].result = descBufferPtr;
+
+		OptixTraversableHandle tempHandle = 0;
+
+		OTK_ERROR_CHECK(optixAccelBuild(
+			context->get_opx7_device_context(),
+			stream,
+			&accelOptions,
+			buildInputs.data(), buildInputs.size(),
+			tempBufferPtr,
+			bufferSizes.tempSizeInBytes,
+			outputBufferPtr,
+			bufferSizes.outputSizeInBytes,
+			&tempHandle, 
+			allowCompaction?emitDescs:nullptr,
+			allowCompaction?1:0
+		));
+
+		if (allowCompaction)
+		{
+			uint64_t compactionSize = 0;
+			OTK_ERROR_CHECK(cuMemcpyDtoHAsync(&compactionSize, descBufferPtr, sizeof(uint64_t), stream));
+			if (compactionSize < outputBufferSize)
+			{
+				outputBuffer.resize(compactionSize);
+				outputBufferPtr = reinterpret_cast<CUdeviceptr>(outputBuffer.devicePtr());
+
+				OTK_ERROR_CHECK(optixAccelCompact(
+					context->get_opx7_device_context(),
+					stream, 
+					tempHandle,
+					outputBufferPtr,
+					outputBufferSize,
+					&outputHandle
+				));
+			}
+		}
+		else
+		{
+			outputHandle = tempHandle;
+		}
+		if (allocTempBuffer) {
+			delete pTempBuffer;
+		}
+	}
+
 }
 #endif

@@ -4,10 +4,9 @@ int main()
 	auto context = std::make_unique<TestLib::Context>();
 	context->init();
 
-	auto pipelineGroup = Test2::init_pipeline_group(context.get());
+	auto pipelineGroup      = Test2::init_pipeline_group(context.get());
 	auto shaderBindingTable = Test2::init_shader_binding_table(pipelineGroup.get());
-
-	auto vertexBuffer = std::make_unique<otk::SyncVector<float3>>(1);
+	auto vertexBuffer       = std::make_unique<otk::SyncVector<float3>>(1);
 	{
 		vertexBuffer->at(0) = make_float3(0.0f, 0.0f, -2.0f);
 		vertexBuffer->copyToDevice();
@@ -26,7 +25,7 @@ int main()
 	{
 		OptixAccelBuildOptions options = {};
 		options.operation = OPTIX_BUILD_OPERATION_BUILD;
-		options.buildFlags = OPTIX_BUILD_FLAG_PREFER_FAST_TRACE | OPTIX_BUILD_FLAG_ALLOW_RANDOM_VERTEX_ACCESS;
+		options.buildFlags = OPTIX_BUILD_FLAG_PREFER_FAST_TRACE | OPTIX_BUILD_FLAG_ALLOW_COMPACTION | OPTIX_BUILD_FLAG_ALLOW_RANDOM_VERTEX_ACCESS;
 
 		OptixBuildInput buildInputs[1] = {};
 		CUdeviceptr vertexBuffers[1] = { reinterpret_cast<CUdeviceptr>(vertexBuffer->devicePtr()) };
@@ -43,27 +42,7 @@ int main()
 		buildInputs[0].sphereArray.singleRadius        = false;
 		buildInputs[0].sphereArray.flags               = flags;
 
-		OptixAccelBufferSizes bufferSizes = {};
-		OTK_ERROR_CHECK(optixAccelComputeMemoryUsage(
-			context->get_opx7_device_context(), &options, buildInputs, 1, &bufferSizes
-		));
-
-		blasBuffer->allocate(bufferSizes.outputSizeInBytes);
-		if (tempBuffer->size() < bufferSizes.tempSizeInBytes) {
-			tempBuffer->resize(bufferSizes.tempSizeInBytes);
-		}
-
-		OTK_ERROR_CHECK(optixAccelBuild(
-			context->get_opx7_device_context(),
-			nullptr,
-			&options,
-			buildInputs, 1,
-			reinterpret_cast<CUdeviceptr>(tempBuffer->devicePtr()),
-			tempBuffer->size(),
-			reinterpret_cast<CUdeviceptr>(blasBuffer->devicePtr()),
-			blasBuffer->size(),
-			&blas, nullptr, 0
-		));
+		Test2::build_acceleration_structure(context.get(), nullptr, { buildInputs[0] }, options, tempBuffer.get(), *blasBuffer.get(), blas);
 	}
 
 	auto tlas = OptixTraversableHandle();
@@ -87,33 +66,13 @@ int main()
 
 		OptixAccelBuildOptions options = {};
 		options.operation = OPTIX_BUILD_OPERATION_BUILD;
-		options.buildFlags = OPTIX_BUILD_FLAG_PREFER_FAST_TRACE;
+		options.buildFlags = OPTIX_BUILD_FLAG_PREFER_FAST_TRACE | OPTIX_BUILD_FLAG_ALLOW_COMPACTION;
 
 		OptixBuildInput buildInputs[1] = {};
 		otk::BuildInputBuilder buildInputBuilder(buildInputs);
 		buildInputBuilder.instanceArray(static_cast<CUdeviceptr>(*instBuffer), instBuffer->size());
 
-		OptixAccelBufferSizes bufferSizes = {};
-		OTK_ERROR_CHECK(optixAccelComputeMemoryUsage(
-			context->get_opx7_device_context(), &options, buildInputs, 1, &bufferSizes
-		));
-
-		tlasBuffer->allocate(bufferSizes.outputSizeInBytes);
-		if (tempBuffer->size() < bufferSizes.tempSizeInBytes) {
-			tempBuffer->resize(bufferSizes.tempSizeInBytes);
-		}
-
-		OTK_ERROR_CHECK(optixAccelBuild(
-			context->get_opx7_device_context(),
-			nullptr,
-			&options,
-			buildInputs, 1,
-			reinterpret_cast<CUdeviceptr>(tempBuffer->devicePtr()),
-			tempBuffer->size(),
-			reinterpret_cast<CUdeviceptr>(tlasBuffer->devicePtr()),
-			tlasBuffer->size(),
-			&tlas, nullptr, 0
-		));
+		Test2::build_acceleration_structure(context.get(), nullptr, { buildInputs[0] }, options, tempBuffer.get(), *tlasBuffer.get(), tlas);
 	}
 
 	auto pipeline = pipelineGroup->get_pipeline("Test2");
@@ -121,7 +80,7 @@ int main()
 	pipeline->compute_stack_sizes(0, 0);
 	pipeline->update();
 
-	unsigned int width = 800;
+	unsigned int width  = 800;
 	unsigned int height = 600;
 
 	glfwInit();
@@ -131,9 +90,9 @@ int main()
 	glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
 
 	auto camera = TestLib::Camera(
-		make_float3(0.0f, 0.0f, 0.0f),
+		make_float3(0.0f, 0.0f,  0.0f),
 		make_float3(0.0f, 0.0f, -1.0f),
-		make_float3(0.0f, 1.0f, 0.0f),
+		make_float3(0.0f, 1.0f,  0.0f),
 		(float)fbWidth / (float)fbHeight,
 		60.0f,
 		1.0e-3f
