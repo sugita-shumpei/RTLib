@@ -7,7 +7,6 @@ extern "C" {
 __forceinline__ __device__ auto generate_ray(float2 d)  noexcept -> float3
 {
 	using namespace otk;
-
 	return normalize(params.camU * d.x + params.camV * d.y + params.camW - params.camEye);
 }
 

@@ -139,8 +139,7 @@ namespace Test2
 			context->get_opx7_device_context(), &accelOptions, buildInputs.data(), buildInputs.size(), &bufferSizes
 		));
 
-		bool allowCompaction = (accelOptions.buildFlags & OPTIX_BUILD_FLAG_ALLOW_COMPACTION)==OPTIX_BUILD_FLAG_ALLOW_COMPACTION;
-		;
+		bool allowCompaction = (accelOptions.buildFlags&OPTIX_BUILD_FLAG_ALLOW_COMPACTION)==OPTIX_BUILD_FLAG_ALLOW_COMPACTION;;
 		size_t tempBufferSize      = compute_aligned_size(bufferSizes.tempSizeInBytes  , OPTIX_ACCEL_BUFFER_BYTE_ALIGNMENT);
 		size_t outputBufferSize    = compute_aligned_size(bufferSizes.outputSizeInBytes, OPTIX_ACCEL_BUFFER_BYTE_ALIGNMENT);
 		size_t descBufferSize      = sizeof(uint64_t);
@@ -174,7 +173,6 @@ namespace Test2
 			tempBufferPtr   = reinterpret_cast<CUdeviceptr>(pTempBuffer->devicePtr());
 			outputBufferPtr = tempBufferPtr   + static_cast<CUdeviceptr>(tempBufferSize);
 			descBufferPtr   = outputBufferPtr + static_cast<CUdeviceptr>(outputBufferSize);
-
 		}
 		else {
 			tempBufferPtr   = reinterpret_cast<CUdeviceptr>(pTempBuffer->devicePtr());

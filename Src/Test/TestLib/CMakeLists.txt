@@ -5,6 +5,8 @@ find_package(glm REQUIRED)
 find_package(assimp REQUIRED)
 find_package(glfw3 REQUIRED)
 add_library(RTLib-Test-TestLib STATIC
+	${CMAKE_CURRENT_SOURCE_DIR}/Include/TestLib/AccelerationStructure.h
+	${CMAKE_CURRENT_SOURCE_DIR}/Include/TestLib/BufferView.h
 	${CMAKE_CURRENT_SOURCE_DIR}/Include/TestLib/Context.h
 	${CMAKE_CURRENT_SOURCE_DIR}/Include/TestLib/Camera.h
 	${CMAKE_CURRENT_SOURCE_DIR}/Include/TestLib/CUGL.h
@@ -15,7 +17,9 @@ add_library(RTLib-Test-TestLib STATIC
 	${CMAKE_CURRENT_SOURCE_DIR}/Include/TestLib/ShaderBindingTable.h
 	${CMAKE_CURRENT_SOURCE_DIR}/Include/TestLib/OGL4Renderer.h
 	${CMAKE_CURRENT_SOURCE_DIR}/Include/TestLib/Utils.h
-
+	
+	${CMAKE_CURRENT_SOURCE_DIR}/Src/AccelerationStructure.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/Src/BufferView.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/Src/Camera.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/Src/Context.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/Src/CUGL.cpp

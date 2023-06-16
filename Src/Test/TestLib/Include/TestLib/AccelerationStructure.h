@@ -1,0 +1,7 @@
+#ifndef TEST_TESTLIB_ACCELERATION_STRUCTURE__H
+#define TEST_TESTLIB_ACCELERATION_STRUCTURE__H
+namespace TestLib
+{
+
+}
+#endif
