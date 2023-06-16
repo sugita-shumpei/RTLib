@@ -1,4 +1,4 @@
-set(GLFW_SOURCE_DIR     ${CMAKE_CURRENT_LIST_DIR}/../glfw)
+set(GLFW_SOURCE_DIR     ${CMAKE_CURRENT_LIST_DIR}/../../Lib/glfw)
 set(GLFW_BINARY_DIR     ${CMAKE_CURRENT_LIST_DIR}/../../build/glfw)
 set(GLFW_INSTALL_PREFIX ${CMAKE_CURRENT_LIST_DIR}/../../install)
 

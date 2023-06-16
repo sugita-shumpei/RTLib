@@ -1,4 +1,4 @@
-set(GLI_SOURCE_DIR     ${CMAKE_CURRENT_LIST_DIR}/../gli)
+set(GLI_SOURCE_DIR     ${CMAKE_CURRENT_LIST_DIR}/../../Lib/gli)
 set(GLI_BINARY_DIR     ${CMAKE_CURRENT_LIST_DIR}/../../Build/gli)
 set(GLI_INSTALL_PREFIX ${CMAKE_CURRENT_LIST_DIR}/../../Install)
 

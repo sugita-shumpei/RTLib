@@ -6,3 +6,4 @@
 /Ext/build 
 /Ext/install
 /.vs
+/CMakeSettings.json

@@ -1,4 +1,4 @@
-set(ASSIMP_SOURCE_DIR     ${CMAKE_CURRENT_LIST_DIR}/../assimp)
+set(ASSIMP_SOURCE_DIR     ${CMAKE_CURRENT_LIST_DIR}/../../Lib/assimp)
 set(ASSIMP_BINARY_DIR     ${CMAKE_CURRENT_LIST_DIR}/../../Build/assimp)
 set(ASSIMP_INSTALL_PREFIX ${CMAKE_CURRENT_LIST_DIR}/../../Install)
 
