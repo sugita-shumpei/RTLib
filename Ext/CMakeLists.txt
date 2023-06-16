@@ -5,7 +5,7 @@ set(                  glm_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Install/lib/cmake/glm 
 set(                Imath_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Install/lib/cmake/Imath                    CACHE STRING                 "Imath Config Directory")
 set(              OpenEXR_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Install/lib/cmake/OpenEXR                  CACHE STRING               "OpenEXR Config Directory")
 #set(VulkanMemoryAllocator_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Install/lib/cmake/VulkanMemoryAllocator    CACHE STRING "VulkanMemoryAllocator Config Directory")
-#set(              stduuid_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Install/lib/cmake/stduuid                  CACHE STRING               "stduuid Config Directory")
+set(              stduuid_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Install/lib/cmake/stduuid                  CACHE STRING               "stduuid Config Directory")
 set(        nlohmann_json_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Install/share/cmake/nlohmann_json          CACHE STRING         "nlohmann_json Config Directory")
 #set(                 SDL3_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Install/cmake                              CACHE STRING                  "SDL3 Config Directory")
 #set(        tinyobjloader_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Install/lib/tinyobjloader/cmake            CACHE STRING         "tinyobjloader Config Directory")

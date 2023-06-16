@@ -21,4 +21,5 @@
 	url = https://github.com/mariusbancila/stduuid
 [submodule "Ext/Lib/openexr"]
 	path = Ext/Lib/openexr
-	url = https://github.com/AcademySoftwareFoundation/openexr.git
+	url = https://github.com/AcademySoftwareFoundation/openexr
+

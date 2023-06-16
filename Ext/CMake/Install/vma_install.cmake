@@ -1,4 +1,4 @@
-set(VMA_SOURCE_DIR     ${CMAKE_CURRENT_LIST_DIR}/../../VulkanMemoryAllocator)
+set(VMA_SOURCE_DIR     ${CMAKE_CURRENT_LIST_DIR}/../../Lib/VulkanMemoryAllocator)
 set(VMA_BINARY_DIR     ${CMAKE_CURRENT_LIST_DIR}/../../Build/VulkanMemoryAllocator)
 set(VMA_INSTALL_PREFIX ${CMAKE_CURRENT_LIST_DIR}/../../Install)
 
