@@ -20,12 +20,13 @@ int main()
 
 	auto tempBuffer = std::make_unique<otk::DeviceBuffer>(1024);
 
-	auto blas = OptixTraversableHandle();
-	auto blasBuffer = std::make_unique<otk::DeviceBuffer>();
+	auto blas = std::make_unique<TestLib::AccelerationStructure>(context.get());
 	{
 		OptixAccelBuildOptions options = {};
 		options.operation = OPTIX_BUILD_OPERATION_BUILD;
 		options.buildFlags = OPTIX_BUILD_FLAG_PREFER_FAST_TRACE | OPTIX_BUILD_FLAG_ALLOW_COMPACTION | OPTIX_BUILD_FLAG_ALLOW_RANDOM_VERTEX_ACCESS;
+		
+		blas->set_options(options);
 
 		OptixBuildInput buildInputs[1] = {};
 		CUdeviceptr vertexBuffers[1] = { reinterpret_cast<CUdeviceptr>(vertexBuffer->devicePtr()) };
@@ -42,12 +43,13 @@ int main()
 		buildInputs[0].sphereArray.singleRadius        = false;
 		buildInputs[0].sphereArray.flags               = flags;
 
-		Test2::build_acceleration_structure(context.get(), nullptr, { buildInputs[0] }, options, tempBuffer.get(), *blasBuffer.get(), blas);
+		blas->set_num_build_inputs(1);
+		blas->set_build_input(0, buildInputs[0]);
+		blas->build_async(nullptr, tempBuffer.get());
 	}
 
-	auto tlas = OptixTraversableHandle();
+	auto tlas = std::make_unique<TestLib::AccelerationStructure>(context.get());
 	auto instBuffer = std::make_unique<otk::SyncVector<OptixInstance>>(1);
-	auto tlasBuffer = std::make_unique<otk::DeviceBuffer>();
 	{
 		float transforms[12] = {
 			1.0f,0.0f,0.0f,0.0f,
@@ -55,24 +57,28 @@ int main()
 			0.0f,0.0f,1.0f,0.0f
 		};
 
-		instBuffer->at(0).traversableHandle = blas;
+		instBuffer->at(0).traversableHandle = blas->get_opx7_traversable_handle();
 		instBuffer->at(0).instanceId = 0;
 		instBuffer->at(0).sbtOffset = 0;
 		instBuffer->at(0).visibilityMask = OptixVisibilityMask(255);
 		instBuffer->at(0).flags = OPTIX_INSTANCE_FLAG_NONE;
 		std::memcpy(instBuffer->at(0).transform, transforms, sizeof(transforms));
 
-		instBuffer->copyToDevice();
+		instBuffer->copyToDeviceAsync(nullptr);
 
 		OptixAccelBuildOptions options = {};
 		options.operation = OPTIX_BUILD_OPERATION_BUILD;
 		options.buildFlags = OPTIX_BUILD_FLAG_PREFER_FAST_TRACE | OPTIX_BUILD_FLAG_ALLOW_COMPACTION;
 
+		tlas->set_options(options);
+
 		OptixBuildInput buildInputs[1] = {};
 		otk::BuildInputBuilder buildInputBuilder(buildInputs);
 		buildInputBuilder.instanceArray(static_cast<CUdeviceptr>(*instBuffer), instBuffer->size());
 
-		Test2::build_acceleration_structure(context.get(), nullptr, { buildInputs[0] }, options, tempBuffer.get(), *tlasBuffer.get(), tlas);
+		tlas->set_num_build_inputs(1);
+		tlas->set_build_input(0, buildInputs[0]);
+		tlas->build_async(nullptr, tempBuffer.get());
 	}
 
 	auto pipeline = pipelineGroup->get_pipeline("Test2");
@@ -115,7 +121,7 @@ int main()
 				{
 					auto [u, v, w] = camera.get_uvw();
 					auto& params = paramsBuffer->at(0);
-					params.tlas = tlas;
+					params.tlas = tlas->get_opx7_traversable_handle();
 					params.width = fbWidth;
 					params.height = fbHeight;
 					params.framebuffer = reinterpret_cast<uchar4*>(pboCUGL->map(nullptr, framebufferSize));
@@ -150,10 +156,10 @@ int main()
 	vertexBuffer.reset();
 	radiusBuffer.reset();
 
-	blasBuffer.reset();
-	tlasBuffer.reset();
-	instBuffer.reset();
+	blas.reset();
+	tlas.reset();
 
+	instBuffer.reset();
 	tempBuffer.reset();
 
 	paramsBuffer.reset();

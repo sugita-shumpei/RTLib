@@ -15,5 +15,10 @@ namespace TestLib
 		res.cssCC = std::max(v1.cssCC, v2.cssCC);
 		return res;
 	}
+	template <typename T>
+	inline constexpr auto compute_aligned_size(T size, T alignment) -> T
+	{
+		return ((size + alignment - static_cast<T>(1)) / alignment) * alignment;
+	}
 }
 #endif

@@ -1,6 +1,7 @@
 #ifndef TEST_TEST3_MAIN__H
 #define TEST_TEST3_MAIN__H
 #include <Test3_OPX7.h>
+#include <TestLib/AccelerationStructure.h>
 #include <TestLib/Context.h>
 #include <TestLib/PipelineGroup.h>
 #include <TestLib/Module.h>
@@ -46,8 +47,13 @@ namespace Test3
 		{
 			auto moduleCompileOptions = TestLib::ModuleOptions{};
 			moduleCompileOptions.maxRegisterCount = OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT;
-			moduleCompileOptions.debugLevel       = OPTIX_COMPILE_DEBUG_LEVEL_DEFAULT;
-			moduleCompileOptions.optLevel         = OPTIX_COMPILE_OPTIMIZATION_DEFAULT;
+#ifndef NDEBUG
+			moduleCompileOptions.debugLevel = OPTIX_COMPILE_DEBUG_LEVEL_DEFAULT;
+			moduleCompileOptions.optLevel = OPTIX_COMPILE_OPTIMIZATION_DEFAULT;
+#else
+			moduleCompileOptions.debugLevel = OPTIX_COMPILE_DEBUG_LEVEL_MINIMAL;
+			moduleCompileOptions.optLevel = OPTIX_COMPILE_OPTIMIZATION_LEVEL_3;
+#endif
 			// Module
 			if (!pipelineGroup->load_module(
 				"Test3",
@@ -96,7 +102,12 @@ namespace Test3
 				/*Hitg*/{ "Test3" },
 				/*CCallable*/{},
 				/*DCallable*/{},
+
+#ifndef NDEBUG
 				OPTIX_COMPILE_DEBUG_LEVEL_DEFAULT,
+#else
+				OPTIX_COMPILE_DEBUG_LEVEL_MINIMAL,
+#endif
 				1)) {
 				throw std::runtime_error("Failed To Load Pipeline: Test3");
 			}

@@ -1,4 +1,4 @@
-#include <Test3_Main.h>
+#include <Test4_Main.h>
 int main()
 {
 	auto context = std::make_unique<TestLib::Context>();
@@ -7,8 +7,8 @@ int main()
 	auto stream = CUstream(nullptr);
 	OTK_ERROR_CHECK(cuStreamCreate(&stream, 0));
 
-	auto pipelineGroup      = Test3::init_pipeline_group(context.get());
-	auto shaderBindingTable = Test3::init_shader_binding_table(pipelineGroup.get());
+	auto pipelineGroup      = Test4::init_pipeline_group(context.get());
+	auto shaderBindingTable = Test4::init_shader_binding_table(pipelineGroup.get());
 
 	auto vertexBuffer = std::make_unique<otk::SyncVector<float3>>(2);
 	{
@@ -76,7 +76,7 @@ int main()
 		tlas->build_async(stream, tempBuffer.get());
 	}
 
-	auto pipeline = pipelineGroup->get_pipeline("Test3");
+	auto pipeline = pipelineGroup->get_pipeline("Test4");
 	pipeline->set_max_traversable_graph_depth(2);
 	pipeline->compute_stack_sizes(0, 0);
 	pipeline->update();
@@ -85,7 +85,7 @@ int main()
 	unsigned int height = 600;
 
 	glfwInit();
-	auto window = Test3::create_glfw_window(width, height, "title");
+	auto window = Test4::create_glfw_window(width, height, "title");
 
 	int fbWidth; int fbHeight;
 	glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
@@ -101,7 +101,7 @@ int main()
 
 	auto frameBuffer = std::make_unique<otk::DeviceBuffer>(fbWidth * fbHeight * sizeof(uchar4));
 	auto seedBuffer  = std::make_unique<otk::SyncVector<unsigned int>>(fbWidth * fbHeight);
-	Test3::init_seed_buffer(seedBuffer.get());
+	Test4::init_seed_buffer(seedBuffer.get());
 
 	auto paramsBuffer = std::make_unique<otk::SyncVector<Params>>(1);
 
@@ -129,7 +129,7 @@ int main()
 					frameBuffer->resize(fbWidth* fbHeight * sizeof(uchar4));
 
 					seedBuffer->resize(fbWidth * fbHeight);
-					Test3::init_seed_buffer(seedBuffer.get());
+					Test4::init_seed_buffer(seedBuffer.get());
 				}
 				size_t framebufferSize = 0;
 				{

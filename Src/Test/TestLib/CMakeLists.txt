@@ -17,6 +17,7 @@ add_library(RTLib-Test-TestLib STATIC
 	${CMAKE_CURRENT_SOURCE_DIR}/Include/TestLib/ShaderBindingTable.h
 	${CMAKE_CURRENT_SOURCE_DIR}/Include/TestLib/OGL4Renderer.h
 	${CMAKE_CURRENT_SOURCE_DIR}/Include/TestLib/Utils.h
+	${CMAKE_CURRENT_SOURCE_DIR}/Include/TestLib/CornelBox.h
 	
 	${CMAKE_CURRENT_SOURCE_DIR}/Src/AccelerationStructure.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/Src/BufferView.cpp
