@@ -24,7 +24,7 @@ namespace TestLib
 
 		auto get_eye   () const noexcept -> float3;
 		auto get_lookat() const noexcept -> float3;
-
+		auto get_vup   () const noexcept -> float3;
 		// (front, up)
 		// 
 		// vup * front -> right
@@ -59,6 +59,7 @@ namespace TestLib
 
 		float3 m_Right ;
 		float3 m_Up    ;
+		float3 m_Vup   ;
 
 		float  m_Aspect;
 		float  m_Fovy  ;

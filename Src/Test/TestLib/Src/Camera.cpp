@@ -3,7 +3,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 TestLib::Camera::Camera(const float3& eye, const float3& lookat, const float3& vup, float aspect, float fovy, float znear, float zfar) noexcept
-	:m_Eye{eye},m_Lookat{lookat},m_Aspect{aspect},m_Fovy{fovy},m_ZNear{znear},m_ZFar{zfar},m_Right{1,0,0},m_Up{0,1,0}
+	:m_Eye{eye},m_Lookat{lookat},m_Aspect{aspect},m_Fovy{fovy},m_ZNear{znear},m_ZFar{zfar},m_Right{1,0,0},m_Up{0,1,0},m_Vup{vup}
 {
 	set_vup(vup);
 }
@@ -19,14 +19,14 @@ auto TestLib::Camera::get_uvw() const noexcept -> std::tuple<float3, float3, flo
 	auto right = get_right();// x
 	auto up    = get_up();// y
 	
-	auto range = m_ZNear * std::tanf(glm::radians(m_Fovy * 0.5f));
+	auto range = length(front) * std::tanf(glm::radians(m_Fovy * 0.5f));
 
 	auto w = m_Aspect * range;
 	auto h = range;
 
 	right *= w;
 	up    *= h;
-	front *= m_ZNear;
+	//front *= m_ZNear;
 
 	return std::make_tuple(right, up, front);
 }
@@ -41,9 +41,28 @@ auto TestLib::Camera::get_lookat() const noexcept -> float3
 	return m_Lookat;
 }
 
+auto TestLib::Camera::get_vup() const noexcept -> float3
+{
+	return m_Vup;
+}
+
 void TestLib::Camera::set_eye(float3 eye) noexcept
 {
+	using namespace otk;
+
+	auto front = get_front();
+
 	m_Eye = eye;
+	m_Lookat = eye + front;
+
+	auto lenR = length(m_Right);
+	auto lenU = length(m_Up);
+
+	m_Right = normalize(cross(m_Vup, front));
+	m_Up = normalize(cross(front, m_Right));
+	m_Right *= lenR;
+	m_Up *= lenU;
+	//m_Lookat = eye + front;
 }
 
 void TestLib::Camera::set_lookat(float3 lookat) noexcept
@@ -54,6 +73,7 @@ void TestLib::Camera::set_lookat(float3 lookat) noexcept
 void TestLib::Camera::set_vup(float3 vup) noexcept
 {
 	using namespace otk;
+	m_Vup = vup;
 
 	auto lenR = length(m_Right);
 	auto lenU = length(m_Up);

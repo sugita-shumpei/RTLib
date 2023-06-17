@@ -18,6 +18,7 @@ struct Params {
 	unsigned int           width;
 	unsigned int           height;
 	unsigned int           samples;
+	unsigned int           depth;
 	float3                 bgColor;
 	float3                 camEye;
 	float3                 camU;
@@ -29,12 +30,22 @@ struct Params {
 	{
 		using namespace otk;
 
-		return normalize(camU * d.x + camV * d.y + camW - camEye);
+		return normalize(camU * d.x + camV * d.y + camW);
 	}
 #endif
 
 };
 
+struct HitgroupData {
+	float4 diffuse ;
+	float4 emission;
+};
+
+struct float3x3 {
+	float3 row0;
+	float3 row1;
+	float3 row2;
+};
 
 OTK_INLINE OTK_DEVICE unsigned int xorshift32(unsigned int& seed)
 {
@@ -58,7 +69,25 @@ OTK_INLINE OTK_DEVICE float xorshift32_f32_01(unsigned int& seed)
 }
 
 #ifdef __CUDACC__
-OTK_INLINE OTK_DEVICE float4 get_sphere_data(float tMax)
+OTK_INLINE OTK_DEVICE float3x3 get_triangle_data(float time)
+{
+	auto primitiveIndex = optixGetPrimitiveIndex();
+	auto gas = optixGetGASTraversableHandle();
+	auto sbtGasIndex = optixGetSbtGASIndex();
+
+	float3 vertices[3];
+	optixGetTriangleVertexData(
+		gas, 
+		primitiveIndex,
+		sbtGasIndex,
+		time, 
+		vertices
+	);
+
+	float3x3 res = { vertices[0],vertices[1],vertices[2] };
+	return res;
+}
+OTK_INLINE OTK_DEVICE float4 get_sphere_data(float time)
 {
 	auto primitiveIndex = optixGetPrimitiveIndex();
 	auto gas = optixGetGASTraversableHandle();
@@ -69,7 +98,7 @@ OTK_INLINE OTK_DEVICE float4 get_sphere_data(float tMax)
 		gas,
 		primitiveIndex,
 		sbtGasIndex,
-		tMax,
+		time,
 		sphereData
 	);
 	return sphereData[0];

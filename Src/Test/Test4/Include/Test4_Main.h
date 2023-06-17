@@ -11,6 +11,7 @@
 #include <TestLib/OGL4Renderer.h>
 #include <TestLib/CUGL.h>
 #include <TestLib/CornelBox.h>
+#include <TestLib/BufferView.h>
 #include <OptiXToolkit/OptiXMemory/Builders.h>
 #include <RTLib-Test-Test4-OPX7-ptx-generated.h>
 #include <RTLib-Test-Test4-OPX7-optixir-generated.h>
@@ -41,7 +42,7 @@ namespace Test4
 			pipelineGroupOptions.numAttributeValues = 3;
 			pipelineGroupOptions.numPayloadValues = 3;
 			pipelineGroupOptions.traversableGraphFlags = OPTIX_TRAVERSABLE_GRAPH_FLAG_ALLOW_SINGLE_LEVEL_INSTANCING;
-			pipelineGroupOptions.usesPrimitiveTypeFlags = OPTIX_PRIMITIVE_TYPE_FLAGS_SPHERE;
+			pipelineGroupOptions.usesPrimitiveTypeFlags = OPTIX_PRIMITIVE_TYPE_FLAGS_TRIANGLE;
 			pipelineGroupOptions.exceptionFlags = OPTIX_EXCEPTION_FLAG_NONE;
 		}
 		auto pipelineGroup = std::make_unique<TestLib::PipelineGroup>(ctx, pipelineGroupOptions);
@@ -65,12 +66,12 @@ namespace Test4
 			}
 
 			OptixBuiltinISOptions builtinISOptions = {};
-			builtinISOptions.builtinISModuleType = OPTIX_PRIMITIVE_TYPE_SPHERE;
+			builtinISOptions.builtinISModuleType = OPTIX_PRIMITIVE_TYPE_TRIANGLE;
 
 			if (!pipelineGroup->load_builtin_is_module(
-				"BuiltinIs.Sphere", moduleCompileOptions, builtinISOptions)
+				"BuiltinIs.Triangle", moduleCompileOptions, builtinISOptions)
 				) {
-				throw std::runtime_error("BuiltinIs.Sphere");
+				throw std::runtime_error("BuiltinIs.Triangle");
 			}
 			// ProgramGroup:Raygen
 			if (!pipelineGroup->load_program_group_rg(
@@ -91,7 +92,7 @@ namespace Test4
 				/*Key*/"Test4",
 				/*ModuleCh*/"Test4", /*EntryCh*/"Test4",
 				/*ModuleAh*/"", /*EntryAh*/"",
-				/*ModuleIs*/"BuiltinIs.Sphere", /*EntryIs*/"")
+				/*ModuleIs*/"BuiltinIs.Triangle", /*EntryIs*/"")
 				) {
 				throw std::runtime_error("Failed To Load Program Group Miss: Test4");
 			}

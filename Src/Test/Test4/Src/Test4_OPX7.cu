@@ -59,16 +59,23 @@ extern "C" __global__ void __miss__Test4()
 	optixSetPayload_0(__float_as_int(color.x));
 	optixSetPayload_1(__float_as_int(color.y));
 	optixSetPayload_2(__float_as_int(color.z));
+
 }
 
 extern "C" __global__ void __closesthit__Test4()
 {
-	using namespace otk;
-	auto sphereData = get_sphere_data(0.0f);
-	auto worldPos   = optixGetWorldRayOrigin() + optixGetRayTmax() * optixGetWorldRayDirection();
-	auto objectPos  = optixTransformPointFromWorldToObjectSpace(worldPos);
+	auto hgData = reinterpret_cast<HitgroupData*>(optixGetSbtDataPointer());
 
-	auto c = 0.5f * (objectPos - make_float3(sphereData.x, sphereData.y, sphereData.z))/ sphereData.w + make_float3(0.5f, 0.5f, 0.5f);
+	using namespace otk;
+	auto vertices= get_triangle_data(0.0f);
+	auto worldPos= optixGetWorldRayOrigin() + optixGetRayTmax() * optixGetWorldRayDirection();
+
+	auto worldV0 = optixTransformPointFromWorldToObjectSpace(vertices.row0);
+	auto worldV1 = optixTransformPointFromWorldToObjectSpace(vertices.row1);
+	auto worldV2 = optixTransformPointFromWorldToObjectSpace(vertices.row2);
+	auto worldVN = otk::normalize(otk::cross(worldV1 - worldV0, worldV2 - worldV0));
+
+	auto c = hgData->diffuse;
 
 	optixSetPayload_0(__float_as_int(c.x));
 	optixSetPayload_1(__float_as_int(c.y));

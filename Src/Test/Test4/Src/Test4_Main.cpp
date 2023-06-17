@@ -7,24 +7,29 @@ int main()
 	auto stream = CUstream(nullptr);
 	OTK_ERROR_CHECK(cuStreamCreate(&stream, 0));
 
-	auto pipelineGroup      = Test4::init_pipeline_group(context.get());
-	auto shaderBindingTable = Test4::init_shader_binding_table(pipelineGroup.get());
+	auto pipelineGroup = Test4::init_pipeline_group(context.get());
 
-	auto vertexBuffer = std::make_unique<otk::SyncVector<float3>>(2);
-	{
-		vertexBuffer->at(0) = make_float3(0.0f, 0.5f, -2.0f);
-		vertexBuffer->at(1) = make_float3(0.0f,-100.0f, -2.0f);
-		vertexBuffer->copyToDeviceAsync(stream);
-	}
+	TestLib::CornelBox cornelbox;
 
-	auto radiusBuffer = std::make_unique<otk::SyncVector<float>>(2);
-	{
-		radiusBuffer->at(0) = 0.5f;
-		radiusBuffer->at(1) = 100.0f;
-		radiusBuffer->copyToDeviceAsync(stream);
-	}
+	cornelbox.add_Backwall();
+	cornelbox.add_Ceiling();
+	cornelbox.add_Floor();
+	cornelbox.add_Leftwall();
+	cornelbox.add_Rightwall();
+	cornelbox.add_Shortbox();
+	cornelbox.add_Tallbox();
+	cornelbox.add_Light();
+
+	auto vertexBuffer     = std::make_unique<otk::DeviceBuffer>(sizeof(float3) * cornelbox.vertices.size());
+	auto vertexBufferView = TestLib::BufferView(*vertexBuffer, sizeof(float3));
+	vertexBufferView.copy_to_device_async(stream, cornelbox.vertices.data());
+
+	auto indexBuffer = std::make_unique<otk::DeviceBuffer>(sizeof(uint3) * cornelbox.indices.size());
+	auto indexBufferView = TestLib::BufferView(*indexBuffer, sizeof(uint3));
+	indexBufferView.copy_to_device_async(stream, cornelbox.indices.data());
 
 	auto tempBuffer = std::make_unique<otk::DeviceBuffer>(1024);
+
 
 	auto blas = std::make_unique<TestLib::AccelerationStructure>(context.get());
 	{
@@ -33,15 +38,37 @@ int main()
 		options.buildFlags = OPTIX_BUILD_FLAG_PREFER_FAST_TRACE | OPTIX_BUILD_FLAG_ALLOW_COMPACTION | OPTIX_BUILD_FLAG_ALLOW_RANDOM_VERTEX_ACCESS;
 		blas->set_options(options);
 
-		std::vector<OptixBuildInput> buildInputs(1);
+		OptixBuildInput buildInput = {};
 
-		CUdeviceptr vertexBuffers[1] = { reinterpret_cast<CUdeviceptr>(vertexBuffer->devicePtr()) };
-		CUdeviceptr radiusBuffers[1] = { reinterpret_cast<CUdeviceptr>(radiusBuffer->devicePtr()) };
-		unsigned int flags[1] = { OPTIX_GEOMETRY_FLAG_NONE };
+		CUdeviceptr vertexBuffers[1] = {};
+		unsigned int flags[1] = { OPTIX_GEOMETRY_FLAG_DISABLE_TRIANGLE_FACE_CULLING };
 
-		auto buildInputBuilder = otk::BuildInputBuilder(buildInputs.data(), buildInputs.size()).spheres(vertexBuffers,2,radiusBuffers,flags,1);
+		buildInput.type                               = OPTIX_BUILD_INPUT_TYPE_TRIANGLES;
+		buildInput.triangleArray.vertexBuffers        = vertexBuffers;
+		buildInput.triangleArray.vertexFormat         = OPTIX_VERTEX_FORMAT_FLOAT3;
+		buildInput.triangleArray.vertexStrideInBytes  = vertexBufferView.strideInBytes;
+		buildInput.triangleArray.indexFormat          = OPTIX_INDICES_FORMAT_UNSIGNED_INT3;
+		buildInput.triangleArray.indexStrideInBytes   = indexBufferView.strideInBytes;
+		buildInput.triangleArray.opacityMicromap      = {};
+		buildInput.triangleArray.preTransform         = 0;
+		buildInput.triangleArray.transformFormat      = OPTIX_TRANSFORM_FORMAT_NONE;
+		buildInput.triangleArray.primitiveIndexOffset = 0;
+		buildInput.triangleArray.flags                = flags;
+		buildInput.triangleArray.numSbtRecords        = 1;
 
-		blas->set_build_inputs(buildInputs);
+		blas->set_num_build_inputs(cornelbox.groupNames.size());
+		{
+			size_t i = 0;
+			for (auto& name : cornelbox.groupNames) {
+				vertexBuffers[0]                          = vertexBufferView.devicePtr + cornelbox.verticesMap[name].x * vertexBufferView.strideInBytes;
+				buildInput.triangleArray.numVertices      = cornelbox.verticesMap[name].y;
+				buildInput.triangleArray.indexBuffer      = indexBufferView.devicePtr + cornelbox.indicesMap[name].x * indexBufferView.strideInBytes;
+				buildInput.triangleArray.numIndexTriplets = cornelbox.indicesMap[name].y;
+				blas->set_build_input(i, buildInput);
+
+				++i;
+			}
+		}
 		blas->build_async(stream, tempBuffer.get());
 	}
 
@@ -76,6 +103,28 @@ int main()
 		tlas->build_async(stream, tempBuffer.get());
 	}
 
+	auto shaderBindingTable = std::make_unique<TestLib::ShaderBindingTable>();
+	{
+		shaderBindingTable->raygen = std::make_shared<TestLib::TypeShaderRecord<otk::EmptyData>>(1);
+		shaderBindingTable->raygen->pack_header(pipelineGroup->get_program_group_rg("Test4"));
+		shaderBindingTable->raygen->copy_to_device_async(stream);
+
+		shaderBindingTable->miss = std::make_shared<TestLib::TypeShaderRecord<otk::EmptyData>>(1);
+		shaderBindingTable->miss->pack_header(pipelineGroup->get_program_group_ms("Test4"));
+		shaderBindingTable->miss->copy_to_device_async(stream);
+
+		auto hitgroupSbt = std::make_shared<TestLib::TypeShaderRecord<HitgroupData>>(blas->get_num_build_inputs());
+		hitgroupSbt->pack_header(pipelineGroup->get_program_group_hg("Test4"));
+
+		for (size_t i = 0; i < cornelbox.groupNames.size(); ++i) {
+			hitgroupSbt->data[i].diffuse  = make_float4(cornelbox.diffuses[i].x, cornelbox.diffuses[i].y, cornelbox.diffuses[i].z,1.0f);
+			hitgroupSbt->data[i].emission = make_float4(cornelbox.emissions[i].x, cornelbox.emissions[i].y, cornelbox.emissions[i].z, 1.0f);
+		}
+		shaderBindingTable->hitgroup = hitgroupSbt;
+		shaderBindingTable->hitgroup->copy_to_device_async(stream);
+	}
+
+
 	auto pipeline = pipelineGroup->get_pipeline("Test4");
 	pipeline->set_max_traversable_graph_depth(2);
 	pipeline->compute_stack_sizes(0, 0);
@@ -91,12 +140,12 @@ int main()
 	glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
 
 	auto camera = TestLib::Camera(
-		make_float3(0.0f, 0.0f,  0.0f),
-		make_float3(0.0f, 0.0f, -1.0f),
+		make_float3(0.0f, 1.0f,  3.0f),
+		make_float3(0.0f, 1.0f,  2.0f),
 		make_float3(0.0f, 1.0f,  0.0f),
 		(float)fbWidth / (float)fbHeight,
 		60.0f,
-		1.0e-3f
+		1.0f
 	);
 
 	auto frameBuffer = std::make_unique<otk::DeviceBuffer>(fbWidth * fbHeight * sizeof(uchar4));
@@ -139,9 +188,10 @@ int main()
 					params.width       = fbWidth;
 					params.height      = fbHeight;
 					params.samples     = 10;
+					params.depth       = 2;
 					params.framebuffer = reinterpret_cast<uchar4*>(pboCUGL->map(stream, framebufferSize));
 					params.seedbuffer  = seedBuffer->typedDevicePtr();
-					params.bgColor     = make_float3(0, 0, 1);
+					params.bgColor     = make_float3(0, 0, 0);
 					params.camEye      = camera.get_eye();
 					params.camU        = u;
 					params.camV        = v;
@@ -166,15 +216,62 @@ int main()
 			glfwSwapBuffers(window);
 			glfwPollEvents();
 			glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
-
+			
 			if (renderer.resize(fbWidth, fbHeight)) {
 				isResized = true;
 			}
 			else {
 				isResized = false;
 			}
-		}
+			{
+				auto eye   = camera.get_eye();
+				auto front = camera.get_front();
+				auto right = camera.get_right();
+				auto up    = camera.get_up();
+				if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+				{
+					std::cout << eye.x << "," << eye.y << "," << eye.z << std::endl;
+					using namespace otk;
+					camera.set_eye(eye+0.1f * front);
+				}
+				if ((glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)||
+					(glfwGetKey(window, GLFW_KEY_LEFT)==GLFW_PRESS))
+				{
+					std::cout << eye.x << "," << eye.y << "," << eye.z << std::endl;
+					using namespace otk;
+					camera.set_eye(eye - 0.1f * right);
 
+				}
+				if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+				{
+					std::cout << eye.x << "," << eye.y << "," << eye.z << std::endl;
+
+					using namespace otk;
+					camera.set_eye(eye - 0.1f * front);
+				}
+				if ((glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) ||
+					(glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS))
+				{
+					std::cout << eye.x << "," << eye.y << "," << eye.z << std::endl;
+					using namespace otk;
+					camera.set_eye(eye + 0.1f * right);
+				}
+				if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+				{
+					std::cout << eye.x << "," << eye.y << "," << eye.z << std::endl;
+
+					using namespace otk;
+					camera.set_eye(eye + 0.1f * up);
+				}
+				if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+				{
+					std::cout << eye.x << "," << eye.y << "," << eye.z << std::endl;
+
+					using namespace otk;
+					camera.set_eye(eye - 0.1f * up);
+				}
+			}
+		}
 		OTK_ERROR_CHECK(cuEventDestroy(begEvent));
 		OTK_ERROR_CHECK(cuEventDestroy(endEvent));
 
@@ -186,7 +283,7 @@ int main()
 	glfwTerminate();
 
 	vertexBuffer.reset();
-	radiusBuffer.reset();
+	indexBuffer.reset();
 
 	blas.reset();
 	tlas.reset();
