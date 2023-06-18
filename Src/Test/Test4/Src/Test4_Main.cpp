@@ -187,8 +187,8 @@ int main()
 					params.tlas        = tlas->get_opx7_traversable_handle();
 					params.width       = fbWidth;
 					params.height      = fbHeight;
-					params.samples     = 10;
-					params.depth       = 2;
+					params.samples     = 100;
+					params.depth       = 3;
 					params.framebuffer = reinterpret_cast<uchar4*>(pboCUGL->map(stream, framebufferSize));
 					params.seedbuffer  = seedBuffer->typedDevicePtr();
 					params.bgColor     = make_float3(0, 0, 0);
