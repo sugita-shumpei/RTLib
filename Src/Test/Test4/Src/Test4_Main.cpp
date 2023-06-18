@@ -30,7 +30,6 @@ int main()
 
 	auto tempBuffer = std::make_unique<otk::DeviceBuffer>(1024);
 
-
 	auto blas = std::make_unique<TestLib::AccelerationStructure>(context.get());
 	{
 		OptixAccelBuildOptions options = {};
@@ -149,11 +148,11 @@ int main()
 	);
 
 	auto frameBuffer = std::make_unique<otk::DeviceBuffer>(fbWidth * fbHeight * sizeof(uchar4));
+	auto accumBuffer = std::make_unique<otk::DeviceBuffer>(fbWidth * fbHeight * sizeof(float4));
 	auto seedBuffer  = std::make_unique<otk::SyncVector<unsigned int>>(fbWidth * fbHeight);
 	Test4::init_seed_buffer(seedBuffer.get());
 
 	auto paramsBuffer = std::make_unique<otk::SyncVector<Params>>(1);
-
 	{
 		auto renderer = TestLib::OGL4Renderer(window);
 
@@ -162,7 +161,7 @@ int main()
 		
 		auto pboCUGL = std::make_unique<TestLib::BufferCUGL>(renderer.get_pbo(), CU_GRAPHICS_MAP_RESOURCE_FLAGS_WRITE_DISCARD);
 		bool isResized = false;
-
+		bool isMoved   = false;
 
 		CUevent begEvent, endEvent;
 		OTK_ERROR_CHECK(cuEventCreate(&begEvent, 0));
@@ -171,14 +170,18 @@ int main()
 			{
 				if (isResized) {
 					camera.set_aspect(static_cast<float>(fbWidth) / static_cast<float>(fbHeight));
-					
 					pboCUGL.reset();
 					pboCUGL = std::make_unique<TestLib::BufferCUGL>(renderer.get_pbo(), CU_GRAPHICS_MAP_RESOURCE_FLAGS_WRITE_DISCARD);
 					
-					frameBuffer->resize(fbWidth* fbHeight * sizeof(uchar4));
+					frameBuffer->resize(fbWidth * fbHeight * sizeof(uchar4));
+					accumBuffer->resize(fbWidth * fbHeight * sizeof(float4));
+					OTK_ERROR_CHECK(cuMemsetD32Async(reinterpret_cast<CUdeviceptr>(accumBuffer->devicePtr()), 0, accumBuffer->size() / 4, stream));
 
 					seedBuffer->resize(fbWidth * fbHeight);
 					Test4::init_seed_buffer(seedBuffer.get());
+				}
+				if (isMoved) {
+					OTK_ERROR_CHECK(cuMemsetD32Async(reinterpret_cast<CUdeviceptr>(accumBuffer->devicePtr()), 0, accumBuffer->size() / 4, stream));
 				}
 				size_t framebufferSize = 0;
 				{
@@ -187,16 +190,16 @@ int main()
 					params.tlas        = tlas->get_opx7_traversable_handle();
 					params.width       = fbWidth;
 					params.height      = fbHeight;
-					params.samples     = 100;
+					params.samples     = 1;
 					params.depth       = 3;
 					params.framebuffer = reinterpret_cast<uchar4*>(pboCUGL->map(stream, framebufferSize));
+					params.accumbuffer = static_cast<float4*>(accumBuffer->devicePtr());
 					params.seedbuffer  = seedBuffer->typedDevicePtr();
 					params.bgColor     = make_float3(0, 0, 0);
 					params.camEye      = camera.get_eye();
 					params.camU        = u;
 					params.camV        = v;
 					params.camW        = w;
-
 					paramsBuffer->copyToDeviceAsync(stream);
 				}
 				OTK_ERROR_CHECK(cuEventRecord(begEvent, stream));
@@ -208,76 +211,21 @@ int main()
 				std::string durationStr = "duration: " + std::to_string(milliseconds) + "ms";
 				glfwSetWindowTitle(window, durationStr.c_str());
 			}
-			OTK_ERROR_CHECK(cuStreamSynchronize(stream));
+
 			pboCUGL->unmap(stream);
-
 			renderer.render();
-
 			glfwSwapBuffers(window);
 			glfwPollEvents();
 			glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
 			
-			if (renderer.resize(fbWidth, fbHeight)) {
-				isResized = true;
-			}
-			else {
-				isResized = false;
-			}
-			{
-				auto eye   = camera.get_eye();
-				auto front = camera.get_front();
-				auto right = camera.get_right();
-				auto up    = camera.get_up();
-				if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-				{
-					std::cout << eye.x << "," << eye.y << "," << eye.z << std::endl;
-					using namespace otk;
-					camera.set_eye(eye+0.1f * front);
-				}
-				if ((glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)||
-					(glfwGetKey(window, GLFW_KEY_LEFT)==GLFW_PRESS))
-				{
-					std::cout << eye.x << "," << eye.y << "," << eye.z << std::endl;
-					using namespace otk;
-					camera.set_eye(eye - 0.1f * right);
-
-				}
-				if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-				{
-					std::cout << eye.x << "," << eye.y << "," << eye.z << std::endl;
-
-					using namespace otk;
-					camera.set_eye(eye - 0.1f * front);
-				}
-				if ((glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) ||
-					(glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS))
-				{
-					std::cout << eye.x << "," << eye.y << "," << eye.z << std::endl;
-					using namespace otk;
-					camera.set_eye(eye + 0.1f * right);
-				}
-				if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
-				{
-					std::cout << eye.x << "," << eye.y << "," << eye.z << std::endl;
-
-					using namespace otk;
-					camera.set_eye(eye + 0.1f * up);
-				}
-				if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
-				{
-					std::cout << eye.x << "," << eye.y << "," << eye.z << std::endl;
-
-					using namespace otk;
-					camera.set_eye(eye - 0.1f * up);
-				}
-			}
+			isResized = renderer.resize(fbWidth, fbHeight);
+			isMoved   = Test4::move_camera(camera, window);
 		}
 		OTK_ERROR_CHECK(cuEventDestroy(begEvent));
 		OTK_ERROR_CHECK(cuEventDestroy(endEvent));
 
 		renderer.free();
 	}
-
 
 	glfwDestroyWindow(window);
 	glfwTerminate();
@@ -294,6 +242,7 @@ int main()
 
 	paramsBuffer.reset();
 	frameBuffer.reset();
+	accumBuffer.reset();
 	seedBuffer.reset();
 
 	pipelineGroup.reset();

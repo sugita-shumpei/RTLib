@@ -6,6 +6,7 @@ find_package(assimp REQUIRED)
 find_package(glfw3 REQUIRED)
 add_library(RTLib-Test-TestLib STATIC
 	${CMAKE_CURRENT_SOURCE_DIR}/Include/TestLib/AccelerationStructure.h
+	
 	${CMAKE_CURRENT_SOURCE_DIR}/Include/TestLib/BufferView.h
 	${CMAKE_CURRENT_SOURCE_DIR}/Include/TestLib/Context.h
 	${CMAKE_CURRENT_SOURCE_DIR}/Include/TestLib/Camera.h
@@ -18,8 +19,10 @@ add_library(RTLib-Test-TestLib STATIC
 	${CMAKE_CURRENT_SOURCE_DIR}/Include/TestLib/OGL4Renderer.h
 	${CMAKE_CURRENT_SOURCE_DIR}/Include/TestLib/Utils.h
 	${CMAKE_CURRENT_SOURCE_DIR}/Include/TestLib/CornelBox.h
+	${CMAKE_CURRENT_SOURCE_DIR}/Include/TestLib/Denoiser.h
 	
 	${CMAKE_CURRENT_SOURCE_DIR}/Src/AccelerationStructure.cpp
+	
 	${CMAKE_CURRENT_SOURCE_DIR}/Src/BufferView.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/Src/Camera.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/Src/Context.cpp
@@ -30,6 +33,7 @@ add_library(RTLib-Test-TestLib STATIC
 	${CMAKE_CURRENT_SOURCE_DIR}/Src/ProgramGroup.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/Src/ShaderBindingTable.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/Src/OGL4Renderer.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/Src/Denoiser.cpp
 )
 target_include_directories(RTLib-Test-TestLib PUBLIC Include)
 target_link_libraries(RTLib-Test-TestLib PUBLIC 

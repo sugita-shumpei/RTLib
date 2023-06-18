@@ -35,33 +35,7 @@ namespace Test4
 		return glfwCreateWindow(width, height, title, nullptr, nullptr);
 	}
 	auto init_pipeline_group(TestLib::Context* ctx) -> std::unique_ptr<TestLib::PipelineGroup>
-	{			// p0, p1, p2: RG_R  | CH_W
-			// p3, p4, p5: RG_R  | CH_W
-			// p6, p7, p8: RG_RW | MS_W  | CH_W
-			// p9,p10.p11: RG_RW | MS_RW | CH_RW
-			// p12       : RG_RW | CH_RW 
-			// p13       : RG_RW | MS_W  | CH_W
-		//unsigned int payloadTypes[] = {
-		//	OPTIX_PAYLOAD_SEMANTICS_TRACE_CALLER_READ | OPTIX_PAYLOAD_SEMANTICS_CH_WRITE,
-		//	OPTIX_PAYLOAD_SEMANTICS_TRACE_CALLER_READ | OPTIX_PAYLOAD_SEMANTICS_CH_WRITE,
-		//	OPTIX_PAYLOAD_SEMANTICS_TRACE_CALLER_READ | OPTIX_PAYLOAD_SEMANTICS_CH_WRITE,
-
-		//	OPTIX_PAYLOAD_SEMANTICS_TRACE_CALLER_READ | OPTIX_PAYLOAD_SEMANTICS_CH_WRITE,
-		//	OPTIX_PAYLOAD_SEMANTICS_TRACE_CALLER_READ | OPTIX_PAYLOAD_SEMANTICS_CH_WRITE,
-		//	OPTIX_PAYLOAD_SEMANTICS_TRACE_CALLER_READ | OPTIX_PAYLOAD_SEMANTICS_CH_WRITE,
-
-		//	OPTIX_PAYLOAD_SEMANTICS_TRACE_CALLER_READ_WRITE | OPTIX_PAYLOAD_SEMANTICS_MS_WRITE | OPTIX_PAYLOAD_SEMANTICS_CH_WRITE,
-		//	OPTIX_PAYLOAD_SEMANTICS_TRACE_CALLER_READ_WRITE | OPTIX_PAYLOAD_SEMANTICS_MS_WRITE | OPTIX_PAYLOAD_SEMANTICS_CH_WRITE,
-		//	OPTIX_PAYLOAD_SEMANTICS_TRACE_CALLER_READ_WRITE | OPTIX_PAYLOAD_SEMANTICS_MS_WRITE | OPTIX_PAYLOAD_SEMANTICS_CH_WRITE,
-
-		//	OPTIX_PAYLOAD_SEMANTICS_TRACE_CALLER_READ_WRITE | OPTIX_PAYLOAD_SEMANTICS_MS_READ_WRITE | OPTIX_PAYLOAD_SEMANTICS_CH_READ_WRITE,
-		//	OPTIX_PAYLOAD_SEMANTICS_TRACE_CALLER_READ_WRITE | OPTIX_PAYLOAD_SEMANTICS_MS_READ_WRITE | OPTIX_PAYLOAD_SEMANTICS_CH_READ_WRITE,
-		//	OPTIX_PAYLOAD_SEMANTICS_TRACE_CALLER_READ_WRITE | OPTIX_PAYLOAD_SEMANTICS_MS_READ_WRITE | OPTIX_PAYLOAD_SEMANTICS_CH_READ_WRITE,
-
-		//	OPTIX_PAYLOAD_SEMANTICS_TRACE_CALLER_READ_WRITE | OPTIX_PAYLOAD_SEMANTICS_CH_READ_WRITE,
-		//	OPTIX_PAYLOAD_SEMANTICS_TRACE_CALLER_READ_WRITE | OPTIX_PAYLOAD_SEMANTICS_MS_WRITE     | OPTIX_PAYLOAD_SEMANTICS_CH_WRITE,
-		//};
-
+	{	
 		auto pipelineGroupOptions = OptixPipelineCompileOptions{};
 		{
 			pipelineGroupOptions.pipelineLaunchParamsVariableName = "params";
@@ -176,5 +150,52 @@ namespace Test4
 	//{
 	//	return std::make_unique<TestLib::PerspectiveCamera>("camera",45.0f,1.0f,1e-5f,1e+5f);
 	//}
+	bool move_camera(TestLib::Camera& camera, GLFWwindow* window){
+		auto eye = camera.get_eye();
+		auto front = camera.get_front();
+		auto right = camera.get_right();
+		auto up = camera.get_up();
+		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+		{
+			using namespace otk;
+			camera.set_eye(eye + 0.1f * front);
+			return true;
+		}
+		if ((glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) ||
+			(glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS))
+		{
+			using namespace otk;
+			camera.set_eye(eye - 0.1f * right);
+			return true;
+
+		}
+		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+		{
+
+			using namespace otk;
+			camera.set_eye(eye - 0.1f * front);
+			return true;
+		}
+		if ((glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) ||
+			(glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS))
+		{
+			using namespace otk;
+			camera.set_eye(eye + 0.1f * right);
+			return true;
+		}
+		if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+		{
+			using namespace otk;
+			camera.set_eye(eye + 0.1f * up);
+			return true;
+		}
+		if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+		{
+			using namespace otk;
+			camera.set_eye(eye - 0.1f * up);
+			return true;
+		}
+		return false;
+	}
 }
 #endif

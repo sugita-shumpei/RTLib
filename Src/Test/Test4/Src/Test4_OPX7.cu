@@ -9,7 +9,6 @@ extern "C" {
 // p9,p10.p11: RG_RW | MS_RW | CH_RW ->2
 // p12       : RG_RW | CH_RW         ->3
 // p13       : RG_RW | MS_W  | CH_W  ->4
-
 // RG
 // p0, p1, p2: R
 // p3, p4, p5: R
@@ -83,17 +82,22 @@ extern "C" __global__ void __raygen__Test4()
 			rayDirection = unpack_float3(p3, p4, p5);
 			radiance     = unpack_float3(p6, p7, p8);
 			attenuation  = unpack_float3(p9,p10,p11);
-			seed = p12;
-			done = p13;
+			seed         = p12;
+			done         = p13;
 
 			result += radiance;
 		}
 	}
 
-	result /= static_cast<float>(params.samples);
+	float4 accumData   = params.accumbuffer[pixelIdx];
+	float3 accumColor  = make_float3(accumData.x, accumData.y, accumData.z);
+	float  accumSample = accumData.w;
+	accumColor  += result;
+	accumSample += (params.samples);
+	params.accumbuffer[pixelIdx] = make_float4(accumColor.x, accumColor.y, accumColor.z, accumSample);
 
 	params.seedbuffer[pixelIdx]  = seed;
-	params.framebuffer[pixelIdx] = make_color(result);
+	params.framebuffer[pixelIdx] = make_color(accumColor/accumSample);
 }
 
 // p6 p7  p8  -> MS W
@@ -104,7 +108,7 @@ extern "C" __global__ void __miss__Test4()
 	using namespace otk;
 	optixSetPayloadTypes(OPTIX_PAYLOAD_TYPE_ID_0);
 
-	unsigned int p9 = optixGetPayload_9();
+	unsigned int p9  = optixGetPayload_9();
 	unsigned int p10 = optixGetPayload_10();
 	unsigned int p11 = optixGetPayload_11();
 

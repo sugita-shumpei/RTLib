@@ -15,6 +15,7 @@
 struct Params {
 	OptixTraversableHandle tlas;
 	uchar4*                framebuffer;
+	float4*                accumbuffer;
 	unsigned int*          seedbuffer;
 	unsigned int           width;
 	unsigned int           height;
@@ -57,7 +58,7 @@ OTK_INLINE OTK_DEVICE unsigned int xorshift32(unsigned int& seed)
 	return seed = x;
 }
 
-OTK_INLINE OTK_DEVICE float  xorshift32_f32_01(unsigned int& seed)
+OTK_INLINE OTK_DEVICE float  xorshift32_f32_01  (unsigned int& seed)
 {
 	unsigned int uv = xorshift32(seed) >> static_cast<unsigned int>(9) | static_cast<unsigned int>(0x3f800000);
 #ifdef __CUDACC__

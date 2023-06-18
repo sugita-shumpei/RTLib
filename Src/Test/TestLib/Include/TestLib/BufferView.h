@@ -67,6 +67,38 @@ namespace TestLib
 			OTK_ERROR_CHECK(cuMemcpyDtoHAsync(pData, devicePtr, sizeInBytes, stream));
 		}
 
+		void clear_8u(unsigned char   v) {
+			OTK_ERROR_CHECK(cuMemsetD8(devicePtr, v, sizeInBytes / sizeof(unsigned char)));
+		}
+		void clear_8u_async(CUstream stream, unsigned char   v) {
+			OTK_ERROR_CHECK(cuMemsetD8Async(devicePtr, v, sizeInBytes / sizeof(unsigned char), stream));
+		}
+
+		void clear_16u(unsigned short v) {
+			OTK_ERROR_CHECK(cuMemsetD16(devicePtr, v, sizeInBytes / sizeof(unsigned short)));
+		}
+		void clear_16u_async(CUstream stream, unsigned short v) {
+			OTK_ERROR_CHECK(cuMemsetD16Async(devicePtr, v, sizeInBytes / sizeof(unsigned short), stream));
+		}
+
+		void clear_32u(unsigned int   v) {
+			OTK_ERROR_CHECK(cuMemsetD32(devicePtr, v, sizeInBytes / sizeof(unsigned int)));
+		}
+		void clear_32u_async(CUstream stream, unsigned int  v) {
+			OTK_ERROR_CHECK(cuMemsetD32Async(devicePtr, v, sizeInBytes / sizeof(unsigned int), stream));
+		}
+
+		void clear_32f(float          v) {
+			unsigned int uv;
+			std::memcpy(&uv, &v, sizeof(float));
+			clear_32u(uv);
+		}
+		void clear_32f_async(CUstream stream, float         v) {
+			unsigned int uv;
+			std::memcpy(&uv, &v, sizeof(float));
+			clear_32u_async(stream, uv);
+		}
+
 		CUdeviceptr devicePtr;
 		size_t sizeInBytes;
 		size_t strideInBytes;

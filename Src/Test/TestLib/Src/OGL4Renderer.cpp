@@ -81,6 +81,7 @@ void TestLib::OGL4Renderer::render()
 	m_GladContext->Clear(GL_COLOR_BUFFER_BIT);
 
 	m_GladContext->ClearColor(0, 0, 0, 0);
+	m_GladContext->Viewport(0, 0, m_FbWidth, m_FbHeight);
 
 	m_GladContext->UseProgram(m_Prg);
 
