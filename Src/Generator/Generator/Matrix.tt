@@ -1,0 +1,27 @@
+﻿<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".h" #>
+#ifndef RTLIB_CORE_MATRIX__H
+#define RTLIB_CORE_MATRIX__H
+#include <RTLib/Core/Vector.h>
+namespace RTLib
+{
+	namespace Core
+	{
+<#
+	var dims = new int[]{2,3,4};
+#>
+<#
+	for (var i = 0;i<3;i++){	
+#>
+		template <typename T> struct Matrix<#=Convert.ToString(dims[i])+"x"+Convert.ToString(dims[i])#>;
+<#
+	}
+#>
+	
+	}
+}
+#endif

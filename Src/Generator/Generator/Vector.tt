@@ -1,0 +1,48 @@
+﻿<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".h" #>
+#ifndef RTLIB_CORE_VECTOR__H
+#define RTLIB_CORE_VECTOR__H
+namespace RTLib
+{
+	namespace Core
+	{
+<#
+	var accs = new string[] { "x","y","z","w"};
+#>
+<#
+	foreach (int d in Enumerable.Range(2, 3)){	
+		var d_str = Convert.ToString(d);
+#>
+		template <typename T> struct Vector<#=d_str#>;
+<#
+	}
+#>
+		
+<#
+	foreach (int d in Enumerable.Range(2, 3)){	
+		var d_str = Convert.ToString(d);
+#>
+		template <typename T> struct Vector<#=d_str#>
+		{
+			constexpr Vector<#=d_str#>() noexcept;
+			constexpr Vector<#=d_str#>(const Vector<#=d_str#>&) noexcept = default;
+			constexpr Vector<#=d_str#>& operator=(const Vector<#=d_str#>&) noexcept = default;
+			constexpr Vector<#=d_str#>(<#=#>);
+<#	foreach (var acc_idx in Enumerable.Range(0,d)){
+#>
+			T <#=accs[acc_idx]#>;
+<#
+	}
+#>
+		};
+<#
+	}
+#>
+	}
+}
+
+#endif
