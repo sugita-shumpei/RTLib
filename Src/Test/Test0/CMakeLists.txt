@@ -5,6 +5,7 @@ find_package(glm REQUIRED)
 find_package(assimp REQUIRED)
 find_package(nlohmann_json REQUIRED)
 find_package(OptiX REQUIRED)
+find_package(stduuid REQUIRED)
 
 embed_ptx(CONST RELOCATABLE 
 	OUTPUT_TARGET RTLib-Test-Test0-OPX7 
@@ -28,6 +29,7 @@ target_link_libraries(RTLib-Test-Test0 PUBLIC
 	nlohmann_json::nlohmann_json 
 	glfw 
 	glm::glm 
+	stduuid
 	assimp::assimp 
 	glad_gl_core_46 
 )

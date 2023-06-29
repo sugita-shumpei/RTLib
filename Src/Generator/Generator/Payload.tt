@@ -1,0 +1,80 @@
+<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".h" #>
+<# 
+var uints = new string [4]{"unsigned int","uint2","uint3","uint4"};
+var floats = new string [4]{"float","float2","float3","float4"};
+var accs = new string[4]{"x","y","z","w"};
+#>
+<#foreach (var d in Enumerable.Range(1,4)){ #>
+template<unsigned int I>
+OTK_INLINE OTK_DEVICE void set_payload_uint<#=$"{d}"#>(<#=uints[d-1]#> p)
+{
+<#foreach (var i in Enumerable.Range(0,33-d)){ #>
+	if constexpr (I == <#=$"{i}"#>)
+	{
+<#if(d==1){#>
+		optixSetPayload_<#=$"{i}"#>(p);
+<#}else{#>
+<#foreach (var o in Enumerable.Range(0,d)){ #>
+		optixSetPayload_<#=$"{i+o}"#>(p.<#=accs[o]#>);
+<#}#>
+<#}#>
+	}
+<#}#>
+}
+
+template<unsigned int I>
+OTK_INLINE OTK_DEVICE auto get_payload_uint<#=$"{d}"#>()-><#=uints[d-1]#>
+{
+<#foreach (var i in Enumerable.Range(0,33-d)){ #>
+	if constexpr (I == <#=$"{i}"#>)
+	{
+<#if(d==1){#>
+		return optixGetPayload_<#=$"{i}"#>();
+<#}else{#>
+		return { <#=string.Join(",",Enumerable.Range(0,d).Select(o=>$"optixGetPayload_{i+o}()"))#>};
+<#}#>
+	}
+<#}#>
+	return {};
+}
+<#}#>
+
+<#foreach (var d in Enumerable.Range(1,4)){ #>
+template<unsigned int I>
+OTK_INLINE OTK_DEVICE void set_payload_float<#=$"{d}"#>(<#=floats[d-1]#> p)
+{
+<#foreach (var i in Enumerable.Range(0,33-d)){ #>
+	if constexpr (I == <#=$"{i}"#>)
+	{
+<#if(d==1){#>
+		optixSetPayload_<#=$"{i}"#>(__float_as_uint(p));
+<#}else{#>
+<#foreach (var o in Enumerable.Range(0,d)){ #>
+		optixSetPayload_<#=$"{i+o}"#>(__float_as_uint(p.<#=accs[o]#>));
+<#}#>
+<#}#>
+	}
+<#}#>
+}
+
+template<unsigned int I>
+OTK_INLINE OTK_DEVICE auto get_payload_float<#=$"{d}"#>()-><#=floats[d-1]#>
+{
+<#foreach (var i in Enumerable.Range(0,33-d)){ #>
+	if constexpr (I == <#=$"{i}"#>)
+	{
+<#if(d==1){#>
+		return __uint_as_float(optixGetPayload_<#=$"{i}"#>());
+<#}else{#>
+		return { <#=string.Join(",",Enumerable.Range(0,d).Select(o=>$"__uint_as_float(optixGetPayload_{i+o}())"))#>};
+<#}#>
+	}
+<#}#>
+	return {};
+}
+<#}#>

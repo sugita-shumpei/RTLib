@@ -6,12 +6,19 @@
 <#@ output extension=".h" #>
 #ifndef RTLIB_CORE_VECTOR__H
 #define RTLIB_CORE_VECTOR__H
+#include <RTLib/Core/DataTypes.h>
 namespace RTLib
 {
 	namespace Core
 	{
 <#
 	var accs = new string[] { "x","y","z","w"};
+	var opes = new string[] { "+","-","*","/"};
+	string define_args_1(int dim){ return string.Join(",",Enumerable.Range(0,dim).Select(i => "T "+accs[i]+"_"));}
+	string define_init_1(int dim){ return string.Join(",",Enumerable.Range(0,dim).Select(i => accs[i]+"{"+accs[i]+"_}"));}
+	string define_init_2(int dim){ return string.Join(",",Enumerable.Range(0,dim).Select(i => accs[i]+"{s}"));}
+	string define_retr_3(int dim){ return string.Join("+",Enumerable.Range(0,dim).Select(i => accs[i]+"*v."+accs[i]));}
+	string define_retr_4(int dim, int dim2){ return string.Join(",",Enumerable.Range(0,dim).Select(i => accs[i]+ ((i!=dim2)?"{static_cast<T>(v."+accs[i]+")}":"{static_cast<T>(0)}")));}
 #>
 <#
 	foreach (int d in Enumerable.Range(2, 3)){	
@@ -30,8 +37,40 @@ namespace RTLib
 		{
 			constexpr Vector<#=d_str#>() noexcept;
 			constexpr Vector<#=d_str#>(const Vector<#=d_str#>&) noexcept = default;
+
 			constexpr Vector<#=d_str#>& operator=(const Vector<#=d_str#>&) noexcept = default;
-			constexpr Vector<#=d_str#>(<#=#>);
+
+			constexpr Vector<#=d_str#>(<#=define_args_1(d)#>) noexcept:<#=define_init_1(d)#>{}
+			constexpr Vector<#=d_str#>(T s) noexcept:<#=define_init_2(d)#>{}
+
+<#
+	foreach (int i in Enumerable.Range(2, d-1)){	
+		var i_str = Convert.ToString(i);
+		var u_is_init = (i==d)?"U    ":"U = T";
+#>
+			template <typename <#=u_is_init#>> explicit constexpr Vector<#=d_str#>(const Vector<#=i_str#><U>& v) noexcept:<#=define_retr_4(d,i)#>{}
+<#
+	}
+#>
+
+			constexpr Bool operator==(const Vector<#=d_str#>& v) const noexcept;
+			constexpr Bool operator!=(const Vector<#=d_str#>& v) const noexcept { return !(*this==v); }
+
+<#
+	foreach (string ope in opes){
+#>
+			constexpr Vector<#=d_str#>& operator<#=ope#>=(const Vector<#=d_str#>&) noexcept;
+<#
+	}
+#>
+			
+			constexpr Vector<#=d_str#>& operator*=(T s) noexcept;
+			constexpr Vector<#=d_str#>& operator/=(T s) noexcept;
+
+			constexpr T dot(const Vector<#=d_str#>& v) const noexcept{ return <#=define_retr_3(d)#>; }
+			constexpr T length_sqr() const noexcept { return dot(v); }
+			T length() const noexcept { return RTLib::Core::sqrt(length_sqr()); }
+
 <#	foreach (var acc_idx in Enumerable.Range(0,d)){
 #>
 			T <#=accs[acc_idx]#>;
@@ -40,6 +79,131 @@ namespace RTLib
 #>
 		};
 <#
+	}
+#>
+
+<#
+	// Iterate By d
+	foreach (int d in Enumerable.Range(2, 3)){	
+		var d_str = Convert.ToString(d);
+#>
+<#
+		// Iterate By Operators
+		foreach (string ope in opes){
+#>
+		template<typename T> constexpr Vector<#=d_str#><T>& Vector<#=d_str#><T>::operator<#=ope#>=(const Vector<#=d_str#><T>& v) noexcept
+		{
+<#
+			foreach (int acc_idx in Enumerable.Range(0,d)){
+#>
+			<#=accs[acc_idx]+ope#>=v.<#=accs[acc_idx]#>;
+<#
+			}
+#>
+			return *this;
+		}
+<#
+		// Iterate By Operators
+		}
+#>
+		
+<#
+	// Iterate By d
+	}
+#>
+<#
+	// Iterate By d
+	foreach (int d in Enumerable.Range(2, 3)){	
+		var d_str = Convert.ToString(d);
+#>
+		template<typename T> constexpr Vector<#=d_str#><T>& Vector<#=d_str#><T>::operator*=(T s) noexcept
+		{
+<#
+			foreach (int acc_idx in Enumerable.Range(0,d)){
+#>
+			<#=accs[acc_idx]#>*=s;
+<#
+			}
+#>
+			return *this;
+		}
+		template<typename T> constexpr Vector<#=d_str#><T>& Vector<#=d_str#><T>::operator/=(T s) noexcept
+		{
+<#
+			foreach (int acc_idx in Enumerable.Range(0,d)){
+#>
+			<#=accs[acc_idx]#>/=s;
+<#
+			}
+#>
+			return *this;
+		}
+
+<#
+	// Iterate By d
+	}
+#>
+<#
+	// Iterate By d
+	foreach (int d in Enumerable.Range(2, 3)){	
+		var d_str = Convert.ToString(d);
+#>
+<#
+		// Iterate By Operators
+		foreach (string ope in opes){
+#>
+		template<typename T> constexpr Vector<#=d_str#><T> operator<#=ope#>(const Vector<#=d_str#><T>& v0, const Vector<#=d_str#><T>& v1) noexcept
+		{
+			return Vector<#=d_str#><T>(v0)<#=ope#>=v1;
+		}
+<#
+		}
+#>
+		
+<#
+	}
+#>
+<#
+	// Iterate By d
+	foreach (int d in Enumerable.Range(2, 3)){	
+		var d_str = Convert.ToString(d);
+#>
+		template<typename T> constexpr Vector<#=d_str#><T> operator*=(const Vector<#=d_str#><T>& v0, T v1) noexcept
+		{
+			return Vector<#=d_str#><T>(v0)*=v1;
+		}
+		template<typename T> constexpr Vector<#=d_str#><T> operator*=(T v0, const Vector<#=d_str#><T>& v1) noexcept
+		{
+			return Vector<#=d_str#><T>(v1)*=v0;
+		}
+		template<typename T> constexpr Vector<#=d_str#><T> operator/=(const Vector<#=d_str#><T>& v0, T v1) noexcept
+		{
+			return Vector<#=d_str#><T>(v0)/=v1;
+		}
+
+<#
+	}
+#>
+
+<#
+	// Iterate By d
+	foreach (int d in Enumerable.Range(2, 3)){	
+		var d_str = Convert.ToString(d);
+#>
+		template<typename T> T dot(const Vector<#=d_str#>& v0, const Vector<#=d_str#>& v1) noexcept
+		{
+			return v0.dot(v1);
+		}
+		template<typename T> constexpr T length_sqr(const Vector<#=d_str#>& v) noexcept
+		{
+			return v.length_sqr();
+		}
+		template<typename T> T length(const Vector<#=d_str#>& v) noexcept
+		{
+			return v.length();
+		}
+
+<#  
 	}
 #>
 	}

@@ -23,3 +23,6 @@
 	path = Ext/Lib/openexr
 	url = https://github.com/AcademySoftwareFoundation/openexr
 
+[submodule "Ext/Lib/DirectXTex"]
+	path = Ext/Lib/DirectXTex
+	url = https://github.com/Microsoft/DirectXTex.git

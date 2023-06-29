@@ -48,11 +48,6 @@
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>Matrix.h</LastGenOutput>
     </None>
-    <None Update="Payload.h">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Payload.tt</DependentUpon>
-    </None>
     <None Update="Payload.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>Payload.h</LastGenOutput>

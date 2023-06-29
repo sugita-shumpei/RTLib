@@ -13,15 +13,852 @@ namespace RTLib
 	{
 <#
 	var dims = new int[]{2,3,4};
+	var accs = new string[] { "x","y","z","w"};
+	var opes = new string[] { "+","-","*","/"};
+	string define_args_1(int dim1, int dim2){ 
+		var str = string.Join(",",Enumerable.Range(0,dim2).Select(
+			d2 => string.Join(",", Enumerable.Range(0,dim1).Select(d1 => $"T m{d1}{d2}")
+		)));
+		return str;
+	}
+	string define_args_2(int dim1, int dim2){ 
+		var str = string.Join(",",Enumerable.Range(0,dim2).Select(
+			d2 => $"const Vector{dim1}<T>& col{d2}_"
+		));
+		return str;
+	}
+	string define_init_0(int dim1, int dim2){ 
+		var str = string.Join(",",Enumerable.Range(0,dim2).Select(
+			d2 => $"col{d2}"+"{}"
+		));
+		return str;
+	}
+	string define_init_1(int dim1, int dim2){ 
+		var str = string.Join(",",Enumerable.Range(0,dim2).Select(
+			d2 => $"col{d2}"+"{"+string.Join(",", Enumerable.Range(0,dim1).Select(d1 => 
+				$"m{d1}{d2}"
+			))+"}"
+		));
+		return str;
+	}
+	string define_init_2(int dim1, int dim2){ 
+		var str = string.Join(",",Enumerable.Range(0,dim2).Select(
+			d2 => $"col{d2}"+"{"+$"col{d2}"+"_}"
+		));
+		return str;
+	}
+	string define_init_3(int dim1, int dim2){ 
+		var str = string.Join(",",Enumerable.Range(0,dim2).Select(
+			d2 => $"col{d2}"+"{"+string.Join(",", Enumerable.Range(0,dim1).Select(d1 => 
+				(d1==d2)?"static_cast<T>(s)":"static_cast<T>(0)"
+			))+"}"
+		));
+		return str;
+	}
+	// a_i_j * b_j_k
+	// a.col[j][i] * b.col[k][j]
+	string define_mul_ope_0(
+		string var1, int row1, int col1,
+		string var2, int col2
+	)
+	{
+		if (var1 != ""){
+			var1 = var1 + ".";
+		}
+		if (var2 != ""){
+			var2 = var2 + ".";
+		}
+		return var1+$"col{col1}."+accs[row1]+"*"+var2+$"col{col2}."+accs[col1];
+	}
+	string define_mul_sum_0(
+		string var1, 
+		string var2, 
+		int row1,
+		int col2, 
+		int col_dim1
+	){
+		return string.Join("+",Enumerable.Range(0,col_dim1).Select(c1=>define_mul_ope_0(var1,row1,c1,var2,col2)));
+	}
+	string define_mul_ope_1(
+		string var1, int row1, int col1,
+		string var2
+	)
+	{
+		if (var1 != ""){
+			var1 = var1 + ".";
+		}
+		if (var2 != ""){
+			var2 = var2 + ".";
+		}
+		return var1+$"col{col1}."+accs[row1]+"*"+var2+accs[col1];
+	}
+	string define_mul_sum_1(
+		string var1, 
+		string var2, 
+		int row1,
+		int col_dim1
+	){
+		return string.Join("+",Enumerable.Range(0,col_dim1).Select(c1=>define_mul_ope_1(var1,row1,c1,var2)));
+	}
+	string define_mul_ope_2(
+		string var1, int row1, int col1,
+		string var2
+	)
+	{
+		if (var1 != ""){
+			var1 = var1 + ".";
+		}
+		if (var2 != ""){
+			var2 = var2 + ".";
+		}
+		return var1+$"col{col1}."+accs[row1]+"*"+var2+accs[row1];
+	}
+	string define_mul_sum_2(
+		string var1, 
+		string var2, 
+		int col1,
+		int row_dim1
+	){
+		return string.Join("+",Enumerable.Range(0,row_dim1).Select(r1=>define_mul_ope_2(var1,r1,col1,var2)));
+	}
+	// m00 m01 m02
+	// m10 m11 m12
+	// m20 m21 m22
+
+
+	string define_cross_3(int r, int c){
+		int rA = (r+1)%3;
+		int rB = (r+2)%3;
+
+		int cA = (c+1)%3;
+		int cB = (c+2)%3;
+
+		int r0 = Math.Min(rA,rB);
+		int r1 = Math.Max(rA,rB);
+
+		int c0 = Math.Min(cA,cB);
+		int c1 = Math.Max(cA,cB);
+
+		return $"col{c0}.{accs[r0]} * col{c1}.{accs[r1]} - col{c0}.{accs[r1]} * col{c1}.{accs[r0]}";
+	}
+	string define_det_inc_3(int c)
+	{
+		int c0 = c;
+		
+		int c1 = (c+1)%3;
+
+		int c2 = (c+2)%3;
+
+		return $"col{c0}.x * col{c1}.y * col{c2}.z";
+	}
+	string define_det_dec_3(int c)
+	{
+		int c0 = c;
+		
+		int c1 = (c+2)%3;
+
+		int c2 = (c+1)%3;
+		
+		return $"col{c0}.x * col{c1}.y * col{c2}.z";
+	}
+	string define_det_3(){
+		return define_det_inc_3(0)+"+"+define_det_inc_3(1)+"+"+define_det_inc_3(2)+"-"+ 
+			   define_det_dec_3(0)+"-"+define_det_dec_3(1)+"-"+define_det_dec_3(2);
+	}
+	var mat3_inverse_str = 
+	"			T invDet = static_cast<T>(1)/(" + define_det_3() + ");\r\n"+
+	"			return Matrix3x3<T>(\r\n			"+
+	String.Join(",\r\n			",Enumerable.Range(0,3).Select(r=>
+			String.Join(",\r\n			",Enumerable.Range(0,3).Select(c=>
+			(((c+r)%2)==0?"+":"-")+"invDet * ("+define_cross_3(r,c)+")"
+		))
+	))+");"
+
+	;
+	var mat3_inversed_str = 
+	"			T invDet = static_cast<T>(1)/(" + define_det_3() + ");\r\n"+
+	"			"+
+	String.Join(";\r\n			",Enumerable.Range(0,3).Select(r=>
+			String.Join(";\r\n			",Enumerable.Range(0,3).Select(c=>
+			$"T m{r}{c} = "+ (((c+r)%2)==0?"+":"-")+"invDet * ("+define_cross_3(r,c)+")"
+		))
+	))+";\r\n"+
+	String.Join(";\r\n",Enumerable.Range(0,3).Select(r=>
+			String.Join("; ",Enumerable.Range(0,3).Select(c=>
+			$"col{c}.{accs[r]} = m{r}{c}"
+		))
+	))+";";
+	var mat3_inverse_transpose_str = 
+	"			T invDet = static_cast<T>(1)/(" + define_det_3() + ");\r\n"+
+	"			return Matrix3x3<T>(\r\n			"+
+	String.Join(",\r\n			",Enumerable.Range(0,3).Select(c=>
+			String.Join(",\r\n			",Enumerable.Range(0,3).Select(r=>
+			(((c+r)%2)==0?"+":"-")+"invDet * ("+define_cross_3(r,c)+")"
+		))
+	))+");"
+
+	;
+	var mat3_inverse_transposed_str = 
+	"			T invDet = static_cast<T>(1)/(" + define_det_3() + ");\r\n"+
+	"			"+
+	String.Join(";\r\n			",Enumerable.Range(0,3).Select(c=>
+			String.Join(";\r\n			",Enumerable.Range(0,3).Select(r=>
+			$"T m{r}{c} = "+ (((c+r)%2)==0?"+":"-")+"invDet * ("+define_cross_3(r,c)+")"
+		))
+	))+";\r\n"+
+	String.Join(";\r\n",Enumerable.Range(0,3).Select(r=>
+			String.Join("; ",Enumerable.Range(0,3).Select(c=>
+			$"col{c}.{accs[r]} = m{r}{c}"
+		))
+	))+";";
+	var mat4_regex = new System.Text.RegularExpressions.Regex("col([0-9])([0-9])");
+	var mat4_inverse_str = @"
+			T A2323 = col22 * col33 - col23 * col32 ;
+			T A1323 = col21 * col33 - col23 * col31 ;
+			T A1223 = col21 * col32 - col22 * col31 ;
+			T A0323 = col20 * col33 - col23 * col30 ;
+			T A0223 = col20 * col32 - col22 * col30 ;
+			T A0123 = col20 * col31 - col21 * col30 ;
+			T A2313 = col12 * col33 - col13 * col32 ;
+			T A1313 = col11 * col33 - col13 * col31 ;
+			T A1213 = col11 * col32 - col12 * col31 ;
+			T A2312 = col12 * col23 - col13 * col22 ;
+			T A1312 = col11 * col23 - col13 * col21 ;
+			T A1212 = col11 * col22 - col12 * col21 ;
+			T A0313 = col10 * col33 - col13 * col30 ;
+			T A0213 = col10 * col32 - col12 * col30 ;
+			T A0312 = col10 * col23 - col13 * col20 ;
+			T A0212 = col10 * col22 - col12 * col20 ;
+			T A0113 = col10 * col31 - col11 * col30 ;
+			T A0112 = col10 * col21 - col11 * col20 ;
+
+			T det = col00 * ( col11 * A2323 - col12 * A1323 + col13 * A1223 ) 
+			- col01 * ( col10 * A2323 - col12 * A0323 + col13 * A0223 ) 
+			+ col02 * ( col10 * A1323 - col11 * A0323 + col13 * A0123 ) 
+			- col03 * ( col10 * A1223 - col11 * A0223 + col12 * A0123 ) ;
+			det = 1 / det;
+
+			return Matrix4x4<T>(
+				det *   ( col11 * A2323 - col12 * A1323 + col13 * A1223 ),
+				det * - ( col10 * A2323 - col12 * A0323 + col13 * A0223 ),
+				det *   ( col10 * A1323 - col11 * A0323 + col13 * A0123 ),
+				det * - ( col10 * A1223 - col11 * A0223 + col12 * A0123 ),
+				
+				det * - ( col01 * A2323 - col02 * A1323 + col03 * A1223 ),
+				det *   ( col00 * A2323 - col02 * A0323 + col03 * A0223 ),
+				det * - ( col00 * A1323 - col01 * A0323 + col03 * A0123 ),
+				det *   ( col00 * A1223 - col01 * A0223 + col02 * A0123 ),
+				
+				det *   ( col01 * A2313 - col02 * A1313 + col03 * A1213 ),
+				det * - ( col00 * A2313 - col02 * A0313 + col03 * A0213 ),
+				det *   ( col00 * A1313 - col01 * A0313 + col03 * A0113 ),
+				det * - ( col00 * A1213 - col01 * A0213 + col02 * A0113 ),
+
+				det * - ( col01 * A2312 - col02 * A1312 + col03 * A1212 ),
+				det *   ( col00 * A2312 - col02 * A0312 + col03 * A0212 ),
+				det * - ( col00 * A1312 - col01 * A0312 + col03 * A0112 ),
+				det *   ( col00 * A1212 - col01 * A0212 + col02 * A0112 )
+			);";
+	var mat4_inversed_str = @"
+			T A2323 = col22 * col33 - col23 * col32 ;
+			T A1323 = col21 * col33 - col23 * col31 ;
+			T A1223 = col21 * col32 - col22 * col31 ;
+			T A0323 = col20 * col33 - col23 * col30 ;
+			T A0223 = col20 * col32 - col22 * col30 ;
+			T A0123 = col20 * col31 - col21 * col30 ;
+			T A2313 = col12 * col33 - col13 * col32 ;
+			T A1313 = col11 * col33 - col13 * col31 ;
+			T A1213 = col11 * col32 - col12 * col31 ;
+			T A2312 = col12 * col23 - col13 * col22 ;
+			T A1312 = col11 * col23 - col13 * col21 ;
+			T A1212 = col11 * col22 - col12 * col21 ;
+			T A0313 = col10 * col33 - col13 * col30 ;
+			T A0213 = col10 * col32 - col12 * col30 ;
+			T A0312 = col10 * col23 - col13 * col20 ;
+			T A0212 = col10 * col22 - col12 * col20 ;
+			T A0113 = col10 * col31 - col11 * col30 ;
+			T A0112 = col10 * col21 - col11 * col20 ;
+
+			T det = col00 * ( col11 * A2323 - col12 * A1323 + col13 * A1223 ) 
+			- col01 * ( col10 * A2323 - col12 * A0323 + col13 * A0223 ) 
+			+ col02 * ( col10 * A1323 - col11 * A0323 + col13 * A0123 ) 
+			- col03 * ( col10 * A1223 - col11 * A0223 + col12 * A0123 ) ;
+			det = 1 / det;
+
+			col0.x = det *   ( col11 * A2323 - col12 * A1323 + col13 * A1223 );
+			col0.y = det * - ( col10 * A2323 - col12 * A0323 + col13 * A0223 );
+			col0.z = det *   ( col10 * A1323 - col11 * A0323 + col13 * A0123 );
+			col0.w = det * - ( col10 * A1223 - col11 * A0223 + col12 * A0123 );
+				
+			col1.x = det * - ( col01 * A2323 - col02 * A1323 + col03 * A1223 );
+			col1.y = det *   ( col00 * A2323 - col02 * A0323 + col03 * A0223 );
+			col1.z = det * - ( col00 * A1323 - col01 * A0323 + col03 * A0123 );
+			col1.w = det *   ( col00 * A1223 - col01 * A0223 + col02 * A0123 );
+				
+			col2.x = det *   ( col01 * A2313 - col02 * A1313 + col03 * A1213 );
+			col2.y = det * - ( col00 * A2313 - col02 * A0313 + col03 * A0213 );
+			col2.z = det *   ( col00 * A1313 - col01 * A0313 + col03 * A0113 );
+			col2.w = det * - ( col00 * A1213 - col01 * A0213 + col02 * A0113 );
+
+			col3.x = det * - ( col01 * A2312 - col02 * A1312 + col03 * A1212 );
+			col3.y = det *   ( col00 * A2312 - col02 * A0312 + col03 * A0212 );
+			col3.z = det * - ( col00 * A1312 - col01 * A0312 + col03 * A0112 );
+			col3.w = det *   ( col00 * A1212 - col01 * A0212 + col02 * A0112 );
+			;";
+	var mat4_inverse_str_1 = mat4_regex.Replace(mat4_inverse_str, m => $"col{m.Groups[2].Value}.{accs[Convert.ToInt32(m.Groups[1].Value)]}");
+	var mat4_inverse_transpose_str = @"
+			T A2323 = col22 * col33 - col23 * col32 ;
+			T A1323 = col21 * col33 - col23 * col31 ;
+			T A1223 = col21 * col32 - col22 * col31 ;
+			T A0323 = col20 * col33 - col23 * col30 ;
+			T A0223 = col20 * col32 - col22 * col30 ;
+			T A0123 = col20 * col31 - col21 * col30 ;
+			T A2313 = col12 * col33 - col13 * col32 ;
+			T A1313 = col11 * col33 - col13 * col31 ;
+			T A1213 = col11 * col32 - col12 * col31 ;
+			T A2312 = col12 * col23 - col13 * col22 ;
+			T A1312 = col11 * col23 - col13 * col21 ;
+			T A1212 = col11 * col22 - col12 * col21 ;
+			T A0313 = col10 * col33 - col13 * col30 ;
+			T A0213 = col10 * col32 - col12 * col30 ;
+			T A0312 = col10 * col23 - col13 * col20 ;
+			T A0212 = col10 * col22 - col12 * col20 ;
+			T A0113 = col10 * col31 - col11 * col30 ;
+			T A0112 = col10 * col21 - col11 * col20 ;
+
+			T det = col00 * ( col11 * A2323 - col12 * A1323 + col13 * A1223 ) 
+			- col01 * ( col10 * A2323 - col12 * A0323 + col13 * A0223 ) 
+			+ col02 * ( col10 * A1323 - col11 * A0323 + col13 * A0123 ) 
+			- col03 * ( col10 * A1223 - col11 * A0223 + col12 * A0123 ) ;
+			det = 1 / det;
+
+			return Matrix4x4<T>(
+			det *   ( col11 * A2323 - col12 * A1323 + col13 * A1223 ),
+			det * - ( col01 * A2323 - col02 * A1323 + col03 * A1223 ),
+			det *   ( col01 * A2313 - col02 * A1313 + col03 * A1213 ),
+			det * - ( col01 * A2312 - col02 * A1312 + col03 * A1212 ),
+
+			det * - ( col10 * A2323 - col12 * A0323 + col13 * A0223 ),
+			det *   ( col00 * A2323 - col02 * A0323 + col03 * A0223 ),
+			det * - ( col00 * A2313 - col02 * A0313 + col03 * A0213 ),
+			det *   ( col00 * A2312 - col02 * A0312 + col03 * A0212 ),
+
+			det *   ( col10 * A1323 - col11 * A0323 + col13 * A0123 ),
+			det * - ( col00 * A1323 - col01 * A0323 + col03 * A0123 ),
+			det *   ( col00 * A1313 - col01 * A0313 + col03 * A0113 ),
+			det * - ( col00 * A1312 - col01 * A0312 + col03 * A0112 ),
+
+			det * - ( col10 * A1223 - col11 * A0223 + col12 * A0123 ),
+			det *   ( col00 * A1223 - col01 * A0223 + col02 * A0123 ),
+			det * - ( col00 * A1213 - col01 * A0213 + col02 * A0113 ),
+			det *   ( col00 * A1212 - col01 * A0212 + col02 * A0112 )
+			);";
+	var mat4_inverse_transposed_str = @"
+			T A2323 = col22 * col33 - col23 * col32 ;
+			T A1323 = col21 * col33 - col23 * col31 ;
+			T A1223 = col21 * col32 - col22 * col31 ;
+			T A0323 = col20 * col33 - col23 * col30 ;
+			T A0223 = col20 * col32 - col22 * col30 ;
+			T A0123 = col20 * col31 - col21 * col30 ;
+			T A2313 = col12 * col33 - col13 * col32 ;
+			T A1313 = col11 * col33 - col13 * col31 ;
+			T A1213 = col11 * col32 - col12 * col31 ;
+			T A2312 = col12 * col23 - col13 * col22 ;
+			T A1312 = col11 * col23 - col13 * col21 ;
+			T A1212 = col11 * col22 - col12 * col21 ;
+			T A0313 = col10 * col33 - col13 * col30 ;
+			T A0213 = col10 * col32 - col12 * col30 ;
+			T A0312 = col10 * col23 - col13 * col20 ;
+			T A0212 = col10 * col22 - col12 * col20 ;
+			T A0113 = col10 * col31 - col11 * col30 ;
+			T A0112 = col10 * col21 - col11 * col20 ;
+
+			T det = col00 * ( col11 * A2323 - col12 * A1323 + col13 * A1223 ) 
+			- col01 * ( col10 * A2323 - col12 * A0323 + col13 * A0223 ) 
+			+ col02 * ( col10 * A1323 - col11 * A0323 + col13 * A0123 ) 
+			- col03 * ( col10 * A1223 - col11 * A0223 + col12 * A0123 ) ;
+			det = 1 / det;
+
+			col0.x = det *   ( col11 * A2323 - col12 * A1323 + col13 * A1223 );
+			col0.y = det * - ( col01 * A2323 - col02 * A1323 + col03 * A1223 );
+			col0.z = det *   ( col01 * A2313 - col02 * A1313 + col03 * A1213 );
+			col0.w = det * - ( col01 * A2312 - col02 * A1312 + col03 * A1212 );
+
+			col1.x = det * - ( col10 * A2323 - col12 * A0323 + col13 * A0223 );
+			col1.y = det *   ( col00 * A2323 - col02 * A0323 + col03 * A0223 );
+			col1.z = det * - ( col00 * A2313 - col02 * A0313 + col03 * A0213 );
+			col1.w = det *   ( col00 * A2312 - col02 * A0312 + col03 * A0212 );
+
+			col2.x = det *   ( col10 * A1323 - col11 * A0323 + col13 * A0123 );
+			col2.y = det * - ( col00 * A1323 - col01 * A0323 + col03 * A0123 );
+			col2.z = det *   ( col00 * A1313 - col01 * A0313 + col03 * A0113 );
+			col2.w = det * - ( col00 * A1312 - col01 * A0312 + col03 * A0112 );
+
+			col3.x = det * - ( col10 * A1223 - col11 * A0223 + col12 * A0123 );
+			col3.y = det *   ( col00 * A1223 - col01 * A0223 + col02 * A0123 );
+			col3.z = det * - ( col00 * A1213 - col01 * A0213 + col02 * A0113 );
+			col3.w = det *   ( col00 * A1212 - col01 * A0212 + col02 * A0112 );
+			;";
+			
+	var mat4_inverse_transpose_str_1 = mat4_regex.Replace(mat4_inverse_transpose_str, m => $"col{m.Groups[2].Value}.{accs[Convert.ToInt32(m.Groups[1].Value)]}");
 #>
 <#
-	for (var i = 0;i<3;i++){	
+	foreach (int d in Enumerable.Range(2, 3)){	
+		var d_str = Convert.ToString(d);
+		var d_str2= d_str+"x"+d_str;
 #>
-		template <typename T> struct Matrix<#=Convert.ToString(dims[i])+"x"+Convert.ToString(dims[i])#>;
+		template <typename T> struct Matrix<#=d_str2#>;
 <#
 	}
 #>
+
+<#
+	foreach (int d in Enumerable.Range(2, 3)){	
+		var d_str = Convert.ToString(d);
+		var d_str2= d_str+"x"+d_str;
+#>
+		template <typename T> struct Matrix<#=d_str2#>
+		{
+			constexpr Matrix<#=d_str2#>() noexcept;
+			constexpr Matrix<#=d_str2#>(const Matrix<#=d_str2#>& ) = default;
+			constexpr Matrix<#=d_str2#>& operator=(const Matrix<#=d_str2#>& ) = default;
+
+			constexpr Matrix<#=d_str2#>(T s) noexcept;
+			constexpr Matrix<#=d_str2#>(<#=define_args_1(d,d)#>) noexcept;
+			constexpr Matrix<#=d_str2#>(<#=define_args_2(d,d)#>) noexcept;
+
+			constexpr Matrix<#=d_str2#> operator+() const noexcept;
+			constexpr Matrix<#=d_str2#> operator-() const noexcept;
+
+			constexpr T operator()(Int32 r, Int32 c) const noexcept;
+
+<#
+	foreach (string ope in opes){
+		if (ope == "/") { continue;}
+#>
+			constexpr Matrix<#=d_str2#> operator<#=ope#>(const Matrix<#=d_str2#>&) const noexcept;
+<#
+	}
+#>
+<#
+	foreach (string ope in opes){
+		if (ope == "+" || ope == "-" ) { continue;}
+#>
+			constexpr Matrix<#=d_str2#> operator<#=ope#>(T s) const noexcept;
+<#
+	}
+#>
+			constexpr Vector<#=d_str#><T> operator*(const Vector<#=d_str#><T>& v) const noexcept;
+
+<#
+	foreach (string ope in opes){
+#>
+			constexpr Matrix<#=d_str2#>& operator<#=ope#>=(const Matrix<#=d_str2#>&) noexcept;
+<#
+	}
+#>
+<#
+	foreach (string ope in opes){
+		if (ope == "+" || ope == "-" ) { continue;}
+#>
+			constexpr Matrix<#=d_str2#>& operator<#=ope#>=(T s) noexcept;
+<#
+	}
+#>
+
+			constexpr Bool operator==(const Matrix<#=d_str2#>& m) const noexcept;
+			constexpr Bool operator!=(const Matrix<#=d_str2#>& m) const noexcept;
+			
+			constexpr T determinant() const noexcept;
+			
+			constexpr Matrix<#=d_str2#> inverse() const noexcept;
+			constexpr Matrix<#=d_str2#>& inversed() noexcept;
+
+			constexpr Matrix<#=d_str2#> transpose() const noexcept;
+			constexpr Matrix<#=d_str2#>& transposed() noexcept;
+
+			constexpr Matrix<#=d_str2#> inverse_transpose() const noexcept;
+			constexpr Matrix<#=d_str2#>& inverse_transposed() noexcept;
+
+			static constexpr Matrix<#=d_str2#> identity() noexcept;
+			static constexpr Matrix<#=d_str2#> zeros() noexcept;
+<#if (d!=2) { #>
+			static constexpr Matrix<#=d_str2#> from_scale(const Vector<#=$"{d-1}"#><T>& v) noexcept;
+			static constexpr Matrix<#=d_str2#> from_translate(const Vector<#=$"{d-1}"#><T>& v) noexcept;
+<# } #>
+			
+<#
+		foreach (int i in Enumerable.Range(0, d)){	
+			var i_str = Convert.ToString(i);
+#>
+			RTLib::Core::Vector<#=d_str#><T> col<#=i#>;
+<#
+		}
+#>
+		};
+<#
+	}
+#>
+
+<#
+	foreach (int d in Enumerable.Range(2, 3)){	
+		var d_str = Convert.ToString(d);
+		var d_str2= d_str+"x"+d_str;
+#>
+		template<typename T> constexpr Vector<#=d_str#><T> operator*(const Vector<#=d_str#><T>& v, const Matrix<#=d_str2#><T>& m) noexcept;
+		template<typename T> constexpr Matrix<#=d_str2#><T> operator*(T s, const Matrix<#=d_str2#><T>& m) noexcept;
+<#
+	}
+#>
+
+<#
+	foreach (int d in Enumerable.Range(2, 3)){	
+		var d_str = Convert.ToString(d);
+		var d_str2= d_str+"x"+d_str;
+#>
+		template<typename T> constexpr Matrix<#=d_str2#><T>::Matrix<#=d_str2#>() noexcept: <#=define_init_0(d,d)#>{}
+		template<typename T> constexpr Matrix<#=d_str2#><T>::Matrix<#=d_str2#>(<#=define_args_1(d,d)#>) noexcept: <#=define_init_1(d,d)#>{}
+		template<typename T> constexpr Matrix<#=d_str2#><T>::Matrix<#=d_str2#>(<#=define_args_2(d,d)#>) noexcept: <#=define_init_2(d,d)#>{}
+		template<typename T> constexpr Matrix<#=d_str2#><T>::Matrix<#=d_str2#>(T s) noexcept: <#=define_init_3(d,d)#>{}
+<#
+	}
+#>
+
+<#
+	foreach (int d in Enumerable.Range(2, 3)){	
+		var d_str = Convert.ToString(d);
+		var d_str2= d_str+"x"+d_str;
+#>
+		template<typename T> constexpr Matrix<#=d_str2#><T> Matrix<#=d_str2#><T>::operator+() const noexcept { return *this; }
+		template<typename T> constexpr Matrix<#=d_str2#><T> Matrix<#=d_str2#><T>::operator-() const noexcept { 
+			return Matrix<#=d_str2#><T>(
+			<#=string.Join(",\r\n			",Enumerable.Range(0,d).Select(c=>string.Join(",\r\n			",Enumerable.Range(0,d).Select(r=>$"-col{c}.{accs[r]}"))))#>
+			);
+		}
+<#}#>
 	
+<#
+	foreach (int d in Enumerable.Range(2, 3)){	
+		var d_str = Convert.ToString(d);
+		var d_str2= d_str+"x"+d_str;
+#>
+		template<typename T> constexpr T Matrix<#=d_str2#><T>::operator()(Int32 r, Int32 c) const noexcept {
+			switch (c){
+<#
+	foreach (int c1 in Enumerable.Range(0,d)){
+#>
+			case <#=$"{c1}"#>: 
+				return get_by_index(col<#=$"{c1}"#>,r);
+<#}#>
+			default:
+				return static_cast<T>(0);
+			}
+		}
+<#}#>
+	
+<#
+	foreach (int d in Enumerable.Range(2, 3)){	
+		var d_str = Convert.ToString(d);
+		var d_str2= d_str+"x"+d_str;
+#>
+<#
+	foreach (string ope in opes){
+		if (ope == "/"){ continue;}
+#>
+		template<typename T> constexpr Matrix<#=d_str2#><T> Matrix<#=d_str2#><T>::operator<#=ope#>(const Matrix<#=d_str2#><T>& v) const noexcept
+		{
+<# if (ope == "*"){ #>
+			return Matrix<#=d_str2#><T>(
+			<#=string.Join(",\r\n			",Enumerable.Range(0,d).Select(c=>string.Join(",\r\n			",Enumerable.Range(0,d).Select(r=>define_mul_sum_0("","v",r,c,d)))))#>);
+<#}else{#>
+			return Matrix<#=d_str2#><T>(
+			<#=string.Join(",\r\n			",Enumerable.Range(0,d).Select(c=>string.Join(",\r\n			",Enumerable.Range(0,d).Select(r=>$"col{c}.{accs[r]} {ope} v.col{c}.{accs[r]}"))))#>
+			);
+<#}#>
+		}
+<#
+	}
+#>
+<#
+	foreach (string ope in opes){
+		if (ope == "+" || ope == "-"){ continue;}
+#>
+		template<typename T> constexpr Matrix<#=d_str2#><T> Matrix<#=d_str2#><T>::operator<#=ope#>(T s) const noexcept{
+			return Matrix<#=d_str2#><T>(<#=string.Join(",",Enumerable.Range(0,d).Select(c=>string.Join(",",Enumerable.Range(0,d).Select(r=>$"col{c}.{accs[r]}{ope}s"))))#>);
+		}
+<#}#>
+		template<typename T> constexpr Vector<#=d_str#><T> Matrix<#=d_str2#><T>::operator*(const Vector<#=d_str#><T>& v) const noexcept{
+			Vector<#=d_str#><T> res = {};
+			<#=string.Join(";\r\n			",Enumerable.Range(0,d).Select(r=>$"res.{accs[r]} = " + define_mul_sum_1("","v",r,d)))#>;
+			return res;
+		}
+
+<#
+	}
+#>
+
+<#
+	foreach (int d in Enumerable.Range(2, 3)){	
+		var d_str = Convert.ToString(d);
+		var d_str2= d_str+"x"+d_str;
+#>
+<#
+	foreach (string ope in opes){
+		if (ope == "/"){ continue;}
+#>
+		template<typename T> constexpr Matrix<#=d_str2#><T>& Matrix<#=d_str2#><T>::operator<#=ope#>=(const Matrix<#=d_str2#><T>& v) noexcept
+		{
+<# if (ope == "*"){ #>
+			<#=string.Join(";\r\n			",Enumerable.Range(0,d).Select(c=>string.Join(";\r\n			",Enumerable.Range(0,d).Select(r=>$"T m{r}{c} = " + define_mul_sum_0("","v",r,c,d)))))#>;
+			<#=string.Join(";\r\n			",Enumerable.Range(0,d).Select(c=>string.Join(";\r\n			",Enumerable.Range(0,d).Select(r=>$"col{c}.{accs[r]} = m{r}{c}"))))#>;
+<# }#>
+			<#=string.Join(";\r\n			",Enumerable.Range(0,d).Select(c=>string.Join(";\r\n			",Enumerable.Range(0,d).Select(r=>$"col{c}.{accs[r]}{ope}=v.col{c}.{accs[r]}"))))#>;
+			return *This;
+		}
+<#
+	}
+#>
+<#
+	foreach (string ope in opes){
+		if (ope == "+" || ope == "-"){ continue;}
+#>
+		template<typename T> constexpr Matrix<#=d_str2#><T>& Matrix<#=d_str2#><T>::operator<#=ope#>=(T s) noexcept
+		{
+			<#=string.Join(";\r\n			",Enumerable.Range(0,d).Select(c=>string.Join(";\r\n			",Enumerable.Range(0,d).Select(r=>$"col{c}.{accs[r]}{ope}=s"))))#>;
+			return *This;
+		}
+<#}#>
+
+<#
+	}
+#>
+
+<#
+	foreach (int d in Enumerable.Range(2, 3)){	
+		var d_str = Convert.ToString(d);
+		var d_str2= d_str+"x"+d_str;
+#>
+		template<typename T> constexpr Bool Matrix<#=d_str2#><T>::operator==(const Matrix<#=d_str2#>& m) const noexcept {
+			return <#=string.Join("&&",Enumerable.Range(0,d).Select(c=>$"(col{c}==m.col{c})"))#>;
+		}
+		template<typename T> constexpr Bool Matrix<#=d_str2#><T>::operator!=(const Matrix<#=d_str2#>& m) const noexcept {
+			return !(*this==m);
+		}
+
+<#
+	}
+#>
+
+<#
+	foreach (int d in Enumerable.Range(2, 3)){	
+		var d_str = Convert.ToString(d);
+		var d_str2= d_str+"x"+d_str;
+#>
+		template<typename T> constexpr Vector<#=d_str#><T> operator*(const Vector<#=d_str#><T>& v, const Matrix<#=d_str2#><T>& m) noexcept{
+			Vector<#=d_str#><T> res = {};
+			<#=string.Join(";\r\n			",Enumerable.Range(0,d).Select(r=>$"res.{accs[r]} = " + define_mul_sum_2("m","v",r,d)))#>;
+			return res;
+		}
+		template<typename T> constexpr Matrix<#=d_str2#><T> operator*(T s, const Matrix<#=d_str2#><T>& m) noexcept {
+			return m * s;
+		}
+<#
+	}
+#>
+
+<#
+	foreach (int d in Enumerable.Range(2, 3)){	
+		var d_str = Convert.ToString(d);
+		var d_str2= d_str+"x"+d_str;
+#>
+		template<typename T> constexpr T Matrix<#=d_str2#><T>::determinant() const noexcept{
+<#if (d==2) {#>
+			return col0.x * col1.y - col0.y * col1.x;
+<#}#>		
+<#if (d==3) {#>
+			return <#=define_det_3()#>;
+<#}#>
+<#if (d==4) {#>
+			T A2323 = col2.z * col3.w - col3.z * col2.w ;
+			T A1323 = col1.z * col3.w - col3.z * col1.w ;
+			T A1223 = col1.z * col2.w - col2.z * col1.w ;
+			T A0323 = col0.z * col3.w - col3.z * col0.w ;
+			T A0223 = col0.z * col2.w - col2.z * col0.w ;
+			T A0123 = col0.z * col1.w - col1.z * col0.w ;
+
+			return col0.x * ( col1.y * A2323 - col2.y * A1323 + col3.y * A1223 ) 
+			- col1.x * ( col0.y * A2323 - col2.y * A0323 + col3.y * A0223 ) 
+			+ col2.x * ( col0.y * A1323 - col1.y * A0323 + col3.y * A0123 ) 
+			- col3.x * ( col0.y * A1223 - col1.y * A0223 + col2.y * A0123 ) ;
+<#}#>
+		}
+<#}#>
+
+<#
+	foreach (int d in Enumerable.Range(2, 3)){	
+		var d_str = Convert.ToString(d);
+		var d_str2= d_str+"x"+d_str;
+#>
+		template<typename T> constexpr Matrix<#=d_str2#><T> Matrix<#=d_str2#><T>::inverse() const noexcept{
+		<# if (d==2){#>
+			T invDet = static_cast<T>(1)/(col0.x*col1.y-col0.y*col1.x);
+			return Matrix2x2<T>(invDet*col1.y,-invDet*col0.y,-invDet*col1.x,invDet*col0.x);
+		<# } #>
+		<# if (d==3){#>
+	<#=mat3_inverse_str#>
+		<# }#>
+		<# if (d==4){#>
+			<#=mat4_regex.Replace(mat4_inverse_str, m => $"col{m.Groups[2].Value}.{accs[Convert.ToInt32(m.Groups[1].Value)]}")#>
+		<# }#>
+		}
+		template<typename T> constexpr Matrix<#=d_str2#><T>& Matrix<#=d_str2#><T>::inversed() noexcept{
+		<# if (d==2){#>
+			T invDet = static_cast<T>(1)/(col0.x*col1.y-col0.y*col1.x);
+			T m00 = invDet*col1.y;
+			T m10 =-invDet*col0.y;
+			T m01 =-invDet*col1.x;
+			T m11 = invDet*col0.x;
+			col0.x = m00; col0.y = m10;
+			col1.x = m01; col1.y = m11;
+		<# } #>
+		<# if (d==3){#>
+			<#=mat3_inversed_str#>
+		<# }#>
+		<# if (d==4){#>
+			<#=mat4_regex.Replace(mat4_inversed_str, m => $"col{m.Groups[2].Value}.{accs[Convert.ToInt32(m.Groups[1].Value)]}")#>
+		<# }#>
+	return *this;
+		}
+<#}#>
+		
+<#
+	foreach (int d in Enumerable.Range(2, 3)){	
+		var d_str = Convert.ToString(d);
+		var d_str2= d_str+"x"+d_str;
+#>
+		template<typename T> constexpr Matrix<#=d_str2#><T> Matrix<#=d_str2#><T>::transpose() const noexcept
+		{
+			return Matrix<#=d_str2#><T>(<#=string.Join(",",Enumerable.Range(0,d).Select(c=>string.Join(",",Enumerable.Range(0,d).Select(r=>$"col{r}.{accs[c]}"))))#>);
+		}
+		template<typename T> constexpr Matrix<#=d_str2#><T>& Matrix<#=d_str2#><T>::transposed() noexcept
+		{
+			<#=string.Join(";\r\n			",Enumerable.Range(0,d).Select(c=>string.Join(";",Enumerable.Range(0,d).Select(r=>$"T m{r}{c} = col{r}.{accs[c]}"))))#>;
+			<#=string.Join(";\r\n			",Enumerable.Range(0,d).Select(c=>string.Join(";",Enumerable.Range(0,d).Select(r=>$"col{c}.{accs[r]} = m{r}{c}"))))#>;
+			return *this;
+		}
+<#}#>
+
+<#
+	foreach (int d in Enumerable.Range(2, 3)){	
+		var d_str = Convert.ToString(d);
+		var d_str2= d_str+"x"+d_str;
+#>
+		template<typename T> constexpr Matrix<#=d_str2#><T> Matrix<#=d_str2#><T>::inverse_transpose() const noexcept{
+		<# if (d==2){#>
+			T invDet = static_cast<T>(1)/(col0.x*col1.y-col0.y*col1.x);
+			return Matrix2x2<T>(invDet*col1.y,-invDet*col1.x,-invDet*col0.y,invDet*col0.x);
+		<# } #>
+		<# if (d==3){#>
+	<#=mat3_inverse_transpose_str#>
+		<# }#>
+		<# if (d==4){#>
+			<#=mat4_regex.Replace(mat4_inverse_transpose_str, m => $"col{m.Groups[2].Value}.{accs[Convert.ToInt32(m.Groups[1].Value)]}")#>
+		<# }#>
+		}
+		template<typename T> constexpr Matrix<#=d_str2#><T>& Matrix<#=d_str2#><T>::inverse_transposed() noexcept{
+		<# if (d==2){#>
+			T invDet = static_cast<T>(1)/(col0.x*col1.y-col0.y*col1.x);
+			T m00 = invDet*col1.y;
+			T m01 =-invDet*col0.y;
+			T m10 =-invDet*col1.x;
+			T m11 = invDet*col0.x;
+			col0.x = m00; col0.y = m10;
+			col1.x = m01; col1.y = m11;
+		<# } #>
+		<# if (d==3){#>
+			<#=mat3_inverse_transposed_str#>
+		<# }#>
+		<# if (d==4){#>
+			<#=mat4_regex.Replace(mat4_inverse_transposed_str, m => $"col{m.Groups[2].Value}.{accs[Convert.ToInt32(m.Groups[1].Value)]}")#>
+		<# }#>
+	return *this;
+		}
+<#}#>
+
+<#
+	foreach (int d in Enumerable.Range(2, 3)){	
+		var d_str = Convert.ToString(d);
+		var d_str2= d_str+"x"+d_str;
+#>
+		template<typename T> constexpr Matrix<#=d_str2#><T> Matrix<#=d_str2#><T>::identity() noexcept
+		{
+			return Matrix<#=d_str2#>(static_cast<T>(1));
+		}
+		template<typename T> constexpr Matrix<#=d_str2#><T> Matrix<#=d_str2#><T>::zeros() noexcept
+		{
+			return Matrix<#=d_str2#>();
+		}
+<# if (d==2) { continue; } #>
+		template<typename T> constexpr Matrix<#=d_str2#><T> Matrix<#=d_str2#><T>::from_scale(const Vector<#=$"{d-1}"#><T>& v) noexcept
+		{
+			return Matrix<#=d_str2#><T>(
+			<#=string.Join(",\r\n			",Enumerable.Range(0,d).Select(c=>string.Join(",\r\n			",Enumerable.Range(0,d).Select(
+				r=>(r==c)?((r!=d-1)?$"v.{accs[r]}":"static_cast<T>(1)"):"static_cast<T>(0)"
+			))))#>
+			);
+		}
+		template<typename T> constexpr Matrix<#=d_str2#><T> Matrix<#=d_str2#><T>::from_translate(const Vector<#=$"{d-1}"#><T>& v) noexcept
+		{
+			return Matrix<#=d_str2#><T>(
+			<#=string.Join(",\r\n			",Enumerable.Range(0,d).Select(c=>string.Join(",\r\n			",Enumerable.Range(0,d).Select(
+				r=>(c==d-1)?((r!=d-1)?$"v.{accs[r]}":"static_cast<T>(1)"):((r==c)?"static_cast<T>(1)":"static_cast<T>(0)")
+			))))#>
+			);
+		}
+
+<#}#>
+
+		using Matrix2x2_I8  = Matrix2x2<Int8 >;
+		using Matrix2x2_I16 = Matrix2x2<Int16>;
+		using Matrix2x2_I32 = Matrix2x2<Int32>;
+		using Matrix2x2_I64 = Matrix2x2<Int64>;
+
+		using Matrix2x2_U8  = Matrix2x2<UInt8>;
+		using Matrix2x2_U16 = Matrix2x2<UInt16>;
+		using Matrix2x2_U32 = Matrix2x2<UInt32>;
+		using Matrix2x2_U64 = Matrix2x2<UInt64>;
+
+		using Matrix2x2_F16 = Matrix2x2<Float16>;
+		using Matrix2x2_F32 = Matrix2x2<Float32>;
+		using Matrix2x2_F64 = Matrix2x2<Float64>;
+
+		using Matrix3x3_I8  = Matrix3x3<Int8 >;
+		using Matrix3x3_I16 = Matrix3x3<Int16>;
+		using Matrix3x3_I32 = Matrix3x3<Int32>;
+		using Matrix3x3_I64 = Matrix3x3<Int64>;
+
+		using Matrix3x3_U8 = Matrix3x3<UInt8>;
+		using Matrix3x3_U16 = Matrix3x3<UInt16>;
+		using Matrix3x3_U32 = Matrix3x3<UInt32>;
+		using Matrix3x3_U64 = Matrix3x3<UInt64>;
+
+		using Matrix3x3_F16 = Matrix3x3<Float16>;
+		using Matrix3x3_F32 = Matrix3x3<Float32>;
+		using Matrix3x3_F64 = Matrix3x3<Float64>;
+
+		using Matrix4x4_I8  = Matrix4x4<Int8 >;
+		using Matrix4x4_I16 = Matrix4x4<Int16>;
+		using Matrix4x4_I32 = Matrix4x4<Int32>;
+		using Matrix4x4_I64 = Matrix4x4<Int64>;
+
+		using Matrix4x4_U8  = Matrix4x4<UInt8>;
+		using Matrix4x4_U16 = Matrix4x4<UInt16>;
+		using Matrix4x4_U32 = Matrix4x4<UInt32>;
+		using Matrix4x4_U64 = Matrix4x4<UInt64>;
+
+		using Matrix4x4_F16 = Matrix4x4<Float16>;
+		using Matrix4x4_F32 = Matrix4x4<Float32>;
+		using Matrix4x4_F64 = Matrix4x4<Float64>;
 	}
 }
 #endif

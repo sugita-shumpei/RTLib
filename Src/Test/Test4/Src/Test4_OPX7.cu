@@ -16,6 +16,66 @@ extern "C" {
 // p9,p10.p11: RW
 // p12: RW
 // p13: RW
+
+static __forceinline__ __device__ void load_ray_origin(float3& rayOrigin){	       rayOrigin = get_payload_float3<0>();}
+static __forceinline__ __device__ void store_ray_origin(const float3& rayOrigin){  set_payload_float3<0>(rayOrigin);   }
+
+static __forceinline__ __device__ void load_ray_direction(float3& rayDirection) { rayDirection = get_payload_float3<3>(); }
+static __forceinline__ __device__ void store_ray_direction(const float3& rayDirection) { set_payload_float3<3>(rayDirection); }
+
+static __forceinline__ __device__ void load_radiance(float3& radiance) { radiance = get_payload_float3<6>(); }
+static __forceinline__ __device__ void store_radiance(const float3& radiance) { set_payload_float3<6>(radiance); }
+
+static __forceinline__ __device__ void load_attenuation(float3& attenuation) { attenuation = get_payload_float3<9>(); }
+static __forceinline__ __device__ void store_attenuation(const float3& attenuation) { set_payload_float3<9>(attenuation); }
+
+static __forceinline__ __device__ void load_seed(unsigned int& seed) { seed = get_payload_uint1<12>(); }
+static __forceinline__ __device__ void store_seed(unsigned int  seed) { set_payload_uint1<12>(seed); }
+
+static __forceinline__ __device__ void load_done(unsigned int& done) { done = get_payload_uint1<13>(); }
+static __forceinline__ __device__ void store_done(unsigned int done) { set_payload_uint1<13>(done); }
+
+static __forceinline__ __device__ void TraceRadiance(float3& rayOrigin, float3& rayDirection, float3& radiance, float3& attenuation, unsigned int& seed, unsigned int& done)
+{
+	unsigned int p0 , p1 , p2 ;// ray origin
+	unsigned int p3 , p4 , p5 ;// ray direction
+	unsigned int p6 , p7 , p8 ;// radiance
+	unsigned int p9 , p10, p11;// attenuation 
+	unsigned int p12, p13, p14;// seed done depth
+
+	pack_float3(radiance, p6, p7, p8);
+	pack_float3(attenuation, p9, p10, p11);
+	p12 = seed;
+	p13 = done;
+
+	optixTrace(
+		OPTIX_PAYLOAD_TYPE_ID_0,
+		params.tlas,
+		rayOrigin,
+		rayDirection,
+		0.0f,
+		1e16f,
+		0.0f,
+		OptixVisibilityMask(255),
+		OPTIX_RAY_FLAG_NONE,
+		0,
+		1,
+		0,
+		p0, p1, p2,
+		p3, p4, p5,
+		p6, p7, p8,
+		p9, p10, p11,
+		p12, p13
+	);
+
+	rayOrigin    = unpack_float3(p0, p1, p2);
+	rayDirection = unpack_float3(p3, p4, p5);
+	radiance     = unpack_float3(p6, p7, p8);
+	attenuation  = unpack_float3(p9, p10,p11);
+	seed         = p12;
+	done         = p13;
+}
+
 extern "C" __global__ void __raygen__Test4()
 {
 	using namespace otk;
@@ -41,50 +101,12 @@ extern "C" __global__ void __raygen__Test4()
 		auto attenuation  = make_float3(1.0f,1.0f,1.0f);
 		unsigned int done = 0;
 
-		unsigned int p0, p1, p2;//ray origin
-		unsigned int p3, p4, p5;//ray direction
-		unsigned int p6, p7, p8;//radiance
-		unsigned int p9, p10, p11;//attenuation 
-		unsigned int p12, p13, p14;//seed done depth
-
 		for (unsigned int j = 0; j < params.depth; ++j)
 		{
-			pack_float3(radiance, p6, p7, p8);
-			pack_float3(attenuation, p9, p10, p11);
-			p12 = seed;
-			p13 = done;
-
 			if (done) {
 				break;
 			}
-
-			optixTrace(
-				OPTIX_PAYLOAD_TYPE_ID_0,
-				params.tlas,
-				rayOrigin,
-				rayDirection,
-				0.0f,
-				1e16f,
-				0.0f,
-				OptixVisibilityMask(255),
-				OPTIX_RAY_FLAG_NONE,
-				0,
-				1,
-				0,
-				p0, p1, p2,
-				p3, p4, p5,
-				p6, p7, p8, 
-				p9, p10, p11,
-				p12, p13
-			);
-
-			rayOrigin    = unpack_float3(p0, p1, p2);
-			rayDirection = unpack_float3(p3, p4, p5);
-			radiance     = unpack_float3(p6, p7, p8);
-			attenuation  = unpack_float3(p9,p10,p11);
-			seed         = p12;
-			done         = p13;
-
+			TraceRadiance(rayOrigin, rayDirection, radiance, attenuation, seed, done);
 			result += radiance;
 		}
 	}
@@ -92,6 +114,7 @@ extern "C" __global__ void __raygen__Test4()
 	float4 accumData   = params.accumbuffer[pixelIdx];
 	float3 accumColor  = make_float3(accumData.x, accumData.y, accumData.z);
 	float  accumSample = accumData.w;
+
 	accumColor  += result;
 	accumSample += (params.samples);
 	params.accumbuffer[pixelIdx] = make_float4(accumColor.x, accumColor.y, accumColor.z, accumSample);
@@ -108,22 +131,13 @@ extern "C" __global__ void __miss__Test4()
 	using namespace otk;
 	optixSetPayloadTypes(OPTIX_PAYLOAD_TYPE_ID_0);
 
-	unsigned int p9  = optixGetPayload_9();
-	unsigned int p10 = optixGetPayload_10();
-	unsigned int p11 = optixGetPayload_11();
+	float3 attenuation;
+	load_attenuation(attenuation);
 
-	float3 attenuation = unpack_float3(p9, p10, p11);
 	unsigned int done  = 1;
 
-	unsigned int p6, p7, p8;
-	float3 radiance = attenuation * params.bgColor;
-	pack_float3(radiance, p6, p7, p8);
-
-	unsigned int p13 = done;
-	optixSetPayload_6(p6);
-	optixSetPayload_7(p7);
-	optixSetPayload_8(p8);
-	optixSetPayload_13(p13);
+	store_radiance(attenuation * params.bgColor);
+	store_done(done);
 }
 // p0 p1  p2  -> CH W
 // p3 p4  p5  -> CH W
@@ -138,14 +152,11 @@ extern "C" __global__ void __closesthit__Test4()
 
 	auto hgData = reinterpret_cast<HitgroupData*>(optixGetSbtDataPointer());
 
-	unsigned int p9  = optixGetPayload_9 ();
-	unsigned int p10 = optixGetPayload_10();
-	unsigned int p11 = optixGetPayload_11();
-
-	unsigned int p12 = optixGetPayload_12();
-
-	float3 attenuation = unpack_float3(p9, p10, p11);
-	unsigned int seed = p12;
+	float3 attenuation;	
+	unsigned int seed;
+	
+	load_attenuation(attenuation);
+	load_seed(seed);
 
 	auto vertices = get_triangle_data(0.0f);
 	auto worldDir = optixGetWorldRayDirection();
@@ -181,35 +192,10 @@ extern "C" __global__ void __closesthit__Test4()
 		done = 1;
 	}
 
-	unsigned int p0, p1, p2;
-	unsigned int p3, p4, p5;
-	pack_float3(worldPos + 0.01f * worldVN, p0, p1, p2);
-	pack_float3(newDir, p3, p4, p5);
-
-	unsigned int p6, p7, p8;
-	pack_float3(radiance, p6, p7, p8);
-	pack_float3(attenuation, p9, p10, p11);
-	unsigned int p13;
-
-	p12 = seed;
-	p13 = done;
-
-	optixSetPayload_0(p0);
-	optixSetPayload_1(p1);
-	optixSetPayload_2(p2);
-
-	optixSetPayload_3(p3);
-	optixSetPayload_4(p4);
-	optixSetPayload_5(p5);
-
-	optixSetPayload_6(p6);
-	optixSetPayload_7(p7);
-	optixSetPayload_8(p8);
-
-	optixSetPayload_9(p9);
-	optixSetPayload_10(p10);
-	optixSetPayload_11(p11);
-
-	optixSetPayload_12(p12);
-	optixSetPayload_13(p13);
+	store_ray_origin(worldPos + 0.01f * worldVN);
+	store_ray_direction(newDir);
+	store_radiance(radiance);
+	store_attenuation(attenuation);
+	store_seed(seed);
+	store_done(done);
 }

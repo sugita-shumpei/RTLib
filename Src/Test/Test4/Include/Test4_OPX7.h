@@ -7,6 +7,7 @@
 #include <OptiXToolkit/ShaderUtil/color.h>
 #include <cuda_runtime.h>
 #include <optix.h>
+#include <Test4_Payload.h>
 
 #ifndef __CUDACC__
 #include <cstring>
@@ -14,9 +15,9 @@
 
 struct Params {
 	OptixTraversableHandle tlas;
-	uchar4*                framebuffer;
-	float4*                accumbuffer;
-	unsigned int*          seedbuffer;
+	uchar4* framebuffer;
+	float4* accumbuffer;
+	unsigned int* seedbuffer;
 	unsigned int           width;
 	unsigned int           height;
 	unsigned int           samples;
@@ -39,7 +40,7 @@ struct Params {
 };
 
 struct HitgroupData {
-	float4 diffuse ;
+	float4 diffuse;
 	float4 emission;
 };
 
@@ -54,11 +55,11 @@ OTK_INLINE OTK_DEVICE unsigned int xorshift32(unsigned int& seed)
 	unsigned int x = seed;
 	x ^= (x << 13);
 	x ^= (x >> 17);
-	x ^= (x <<  5);
+	x ^= (x << 5);
 	return seed = x;
 }
 
-OTK_INLINE OTK_DEVICE float  xorshift32_f32_01  (unsigned int& seed)
+OTK_INLINE OTK_DEVICE float  xorshift32_f32_01(unsigned int& seed)
 {
 	unsigned int uv = xorshift32(seed) >> static_cast<unsigned int>(9) | static_cast<unsigned int>(0x3f800000);
 #ifdef __CUDACC__
@@ -92,7 +93,7 @@ OTK_INLINE OTK_DEVICE float3 xorshift32_cosine_distribution(unsigned int& seed)
 	using namespace otk;
 	float sint = sqrtf(xorshift32_f32_01(seed));
 	float cost = sqrtf(fmaxf(1.0f - sint, 0.0f));
-	float p    = 2.0f * M_PIf * xorshift32_f32_01(seed);
+	float p = 2.0f * M_PIf * xorshift32_f32_01(seed);
 	float cosp = cosf(p);
 	float sinp = sinf(p);
 	return make_float3(sint * cosp, sint * sinp, cost);
@@ -108,10 +109,10 @@ OTK_INLINE OTK_DEVICE float3x3 get_triangle_data(float time)
 
 	float3 vertices[3];
 	optixGetTriangleVertexData(
-		gas, 
+		gas,
 		primitiveIndex,
 		sbtGasIndex,
-		time, 
+		time,
 		vertices
 	);
 
@@ -136,9 +137,9 @@ OTK_INLINE OTK_DEVICE float4 get_sphere_data(float time)
 }
 
 OTK_INLINE OTK_DEVICE void pack_float3(
-	float3 v, 
-	unsigned int& p0, 
-	unsigned int& p1, 
+	float3 v,
+	unsigned int& p0,
+	unsigned int& p1,
 	unsigned int& p2)
 {
 	p0 = __float_as_uint(v.x);
@@ -157,7 +158,5 @@ OTK_INLINE OTK_DEVICE auto unpack_float3(
 		__uint_as_float(p2)
 	);
 }
-
 #endif
-
 #endif

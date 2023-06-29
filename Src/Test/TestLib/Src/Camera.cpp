@@ -67,7 +67,18 @@ void TestLib::Camera::set_eye(float3 eye) noexcept
 
 void TestLib::Camera::set_lookat(float3 lookat) noexcept
 {
+	using namespace otk;
+
 	m_Lookat = lookat;
+	auto front = get_front();
+
+	auto lenR = length(m_Right);
+	auto lenU = length(m_Up);
+
+	m_Right = normalize(cross(m_Vup, front));
+	m_Up = normalize(cross(front, m_Right));
+	m_Right *= lenR;
+	m_Up *= lenU;
 }
 
 void TestLib::Camera::set_vup(float3 vup) noexcept

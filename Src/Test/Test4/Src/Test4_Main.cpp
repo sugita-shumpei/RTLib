@@ -8,9 +8,7 @@ int main()
 	OTK_ERROR_CHECK(cuStreamCreate(&stream, 0));
 
 	auto pipelineGroup = Test4::init_pipeline_group(context.get());
-
 	TestLib::CornelBox cornelbox;
-
 	cornelbox.add_Backwall();
 	cornelbox.add_Ceiling();
 	cornelbox.add_Floor();
@@ -19,6 +17,43 @@ int main()
 	cornelbox.add_Shortbox();
 	cornelbox.add_Tallbox();
 	cornelbox.add_Light();
+	{
+		auto sbtLayoutInput = TestLib::ShaderBindingTableLayoutDesc();
+
+		sbtLayoutInput.rootIndex = 0;
+		sbtLayoutInput.sbtStride = 1;
+		
+		sbtLayoutInput.geometryAccelerationStructures.emplace_back("cornelbox");//8
+		sbtLayoutInput.geometryAccelerationStructures.back().geometries.emplace_back("backwall" , 1);
+		sbtLayoutInput.geometryAccelerationStructures.back().geometries.emplace_back("ceiling"  , 1);
+		sbtLayoutInput.geometryAccelerationStructures.back().geometries.emplace_back("floor"    , 1);
+		sbtLayoutInput.geometryAccelerationStructures.back().geometries.emplace_back("leftwall" , 1);
+		sbtLayoutInput.geometryAccelerationStructures.back().geometries.emplace_back("rightwall", 1);
+		sbtLayoutInput.geometryAccelerationStructures.back().geometries.emplace_back("shortbox" , 1);
+		sbtLayoutInput.geometryAccelerationStructures.back().geometries.emplace_back("tallbox"  , 1);
+		sbtLayoutInput.geometryAccelerationStructures.back().geometries.emplace_back("light"    , 1);
+
+		sbtLayoutInput.instanceAccelerationStructureOrArrays.emplace_back("instanceAS0");//16
+		sbtLayoutInput.instanceAccelerationStructureOrArrays.back().instances.emplace_back("cornelbox0", TestLib::AccelerationStructureType::eGeometry, 0);//0
+		sbtLayoutInput.instanceAccelerationStructureOrArrays.back().instances.emplace_back("cornelbox1", TestLib::AccelerationStructureType::eGeometry, 0);//8
+
+		sbtLayoutInput.instanceAccelerationStructureOrArrays.emplace_back("instanceAS1");//16+16=32
+		sbtLayoutInput.instanceAccelerationStructureOrArrays.back().instances.emplace_back("instanceAS0", TestLib::AccelerationStructureType::eInstance, 0);//0
+		sbtLayoutInput.instanceAccelerationStructureOrArrays.back().instances.emplace_back("cornelbox0" , TestLib::AccelerationStructureType::eGeometry, 0); //16
+		sbtLayoutInput.instanceAccelerationStructureOrArrays.back().instances.emplace_back("cornelbox1" , TestLib::AccelerationStructureType::eGeometry, 0); //24
+
+		sbtLayoutInput.instanceAccelerationStructureOrArrays.emplace_back("root");//16+32=48
+		sbtLayoutInput.instanceAccelerationStructureOrArrays.back().instances.emplace_back("instanceAS0", TestLib::AccelerationStructureType::eInstance, 0);//0
+		sbtLayoutInput.instanceAccelerationStructureOrArrays.back().instances.emplace_back("instanceAS1", TestLib::AccelerationStructureType::eInstance, 1);//16
+
+		sbtLayoutInput.rootIndex = 2;
+
+		auto sbtLayout       = TestLib::ShaderBindingTableLayout(sbtLayoutInput);
+		auto geometryCeiling = sbtLayout.find_geometry("cornelbox/ceiling");
+
+		
+
+	}
 
 	auto vertexBuffer     = std::make_unique<otk::DeviceBuffer>(sizeof(float3) * cornelbox.vertices.size());
 	auto vertexBufferView = TestLib::BufferView(*vertexBuffer, sizeof(float3));
@@ -59,12 +94,11 @@ int main()
 		{
 			size_t i = 0;
 			for (auto& name : cornelbox.groupNames) {
-				vertexBuffers[0]                          = vertexBufferView.devicePtr + cornelbox.verticesMap[name].x * vertexBufferView.strideInBytes;
+				vertexBuffers[0]                          = vertexBufferView.get_sub_view(1, cornelbox.verticesMap[name].x).devicePtr;
 				buildInput.triangleArray.numVertices      = cornelbox.verticesMap[name].y;
-				buildInput.triangleArray.indexBuffer      = indexBufferView.devicePtr + cornelbox.indicesMap[name].x * indexBufferView.strideInBytes;
+				buildInput.triangleArray.indexBuffer      = indexBufferView.get_sub_view(1,cornelbox.indicesMap[name].x).devicePtr;
 				buildInput.triangleArray.numIndexTriplets = cornelbox.indicesMap[name].y;
 				blas->set_build_input(i, buildInput);
-
 				++i;
 			}
 		}

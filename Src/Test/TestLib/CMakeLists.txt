@@ -16,13 +16,13 @@ add_library(RTLib-Test-TestLib STATIC
 	${CMAKE_CURRENT_SOURCE_DIR}/Include/TestLib/PipelineGroup.h
 	${CMAKE_CURRENT_SOURCE_DIR}/Include/TestLib/ProgramGroup.h
 	${CMAKE_CURRENT_SOURCE_DIR}/Include/TestLib/ShaderBindingTable.h
+	${CMAKE_CURRENT_SOURCE_DIR}/Include/TestLib/ShaderBindingTableLayout.h
 	${CMAKE_CURRENT_SOURCE_DIR}/Include/TestLib/OGL4Renderer.h
 	${CMAKE_CURRENT_SOURCE_DIR}/Include/TestLib/Utils.h
 	${CMAKE_CURRENT_SOURCE_DIR}/Include/TestLib/CornelBox.h
 	${CMAKE_CURRENT_SOURCE_DIR}/Include/TestLib/Denoiser.h
 	
 	${CMAKE_CURRENT_SOURCE_DIR}/Src/AccelerationStructure.cpp
-	
 	${CMAKE_CURRENT_SOURCE_DIR}/Src/BufferView.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/Src/Camera.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/Src/Context.cpp
@@ -32,6 +32,7 @@ add_library(RTLib-Test-TestLib STATIC
 	${CMAKE_CURRENT_SOURCE_DIR}/Src/PipelineGroup.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/Src/ProgramGroup.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/Src/ShaderBindingTable.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/Src/ShaderBindingTableLayout.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/Src/OGL4Renderer.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/Src/Denoiser.cpp
 )

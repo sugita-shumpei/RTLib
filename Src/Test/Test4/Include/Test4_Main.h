@@ -6,6 +6,7 @@
 #include <TestLib/PipelineGroup.h>
 #include <TestLib/Module.h>
 #include <TestLib/ShaderBindingTable.h>
+#include <TestLib/ShaderBindingTableLayout.h>
 #include <TestLib/Pipeline.h>
 #include <TestLib/Camera.h>
 #include <TestLib/OGL4Renderer.h>
@@ -23,6 +24,7 @@
 #include <cudaGL.h>
 #include <glm/glm.hpp>
 #include <glm/gtx/string_cast.hpp>
+#include <glm/gtx/quaternion.hpp>
 namespace Test4
 {
 	auto create_glfw_window(int width, int height, const char* title) -> GLFWwindow*
@@ -162,7 +164,7 @@ namespace Test4
 			return true;
 		}
 		if ((glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) ||
-			(glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS))
+		   (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS))
 		{
 			using namespace otk;
 			camera.set_eye(eye - 0.1f * right);
@@ -177,7 +179,7 @@ namespace Test4
 			return true;
 		}
 		if ((glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) ||
-			(glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS))
+	       (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS))
 		{
 			using namespace otk;
 			camera.set_eye(eye + 0.1f * right);
