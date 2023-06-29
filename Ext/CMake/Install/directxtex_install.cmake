@@ -19,6 +19,7 @@ execute_process(COMMAND
 execute_process(COMMAND
     ${CMAKE_COMMAND} --install ${DIRECTXTEX_BINARY_DIR} --config Debug
 )
+## PATCH: デフォルトだとDebug用のlibとRelease用のlibが衝突するので名前を変更
 execute_process(COMMAND 
     ${CMAKE_COMMAND} -E rename ${DIRECTXTEX_INSTALL_PREFIX}/lib/DirectXTex.lib ${DIRECTXTEX_INSTALL_PREFIX}/lib/DirectXTexd.lib 
 )
@@ -29,7 +30,7 @@ execute_process(COMMAND
 execute_process(COMMAND
     ${CMAKE_COMMAND} --install ${DIRECTXTEX_BINARY_DIR} --config Release
 )
-
+## PATCH: 偏光した名前に対応して, ターゲット名も変更
 set(DIRECTXTEX_TARGETS_DEBUG_CMAKE "")
 file(READ ${DIRECTXTEX_INSTALL_PREFIX}/share/directxtex/DirectXTex-targets-debug.cmake DIRECTXTEX_TARGETS_DEBUG_CMAKE)
 string(REPLACE "DirectXTex.lib" "DirectXTexd.lib" DIRECTXTEX_TARGETS_DEBUG_CMAKE ${DIRECTXTEX_TARGETS_DEBUG_CMAKE})
