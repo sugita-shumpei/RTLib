@@ -10,19 +10,19 @@
       "buildCommandArgs": "",
       "ctestCommandArgs": "",
       "inheritEnvironments": [ "msvc_x64_x64" ],
-      "cmakeExecutable": "D:\\program files\\CMake\\bin\\cmake.exe"
+      "cmakeExecutable": "C:\\program files\\CMake\\bin\\cmake.exe"
     },
     {
       "name": "x64-Release",
       "generator": "Visual Studio 17 2022 Win64",
-      "configurationType": "RelWithDebInfo",
+      "configurationType": "Release",
       "buildRoot": "${projectDir}\\build\\${name}",
       "installRoot": "${projectDir}\\install\\${name}",
       "cmakeCommandArgs": "",
       "buildCommandArgs": "",
       "ctestCommandArgs": "",
       "inheritEnvironments": [ "msvc_x64_x64" ],
-      "cmakeExecutable": "D:\\program files\\CMake\\bin\\cmake.exe"
+      "cmakeExecutable": "C:\\program files\\CMake\\bin\\cmake.exe"
     }
   ],
   "environments": [

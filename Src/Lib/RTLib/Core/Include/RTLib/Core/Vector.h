@@ -5,6 +5,8 @@
 #ifndef __CUDACC__
 #include <glm/glm.hpp>
 #include <RTLib/Core/Json.h>
+#else
+#include <OptiXToolkit/ShaderUtil/vec_math.h>
 #endif
 namespace RTLib
 {

@@ -64,7 +64,7 @@ constexpr char* aiblend_mode_to_string(aiBlendMode blendMode)
 		break;
 	}
 }
-std::string aiuvtransform_to_string(aiUVTransform transform)
+std::string     aiuvtransform_to_string(aiUVTransform transform)
 {
 	std::string res = "(";
 	res = res + "rot=" + std::to_string(transform.mRotation) + ",";
@@ -72,7 +72,6 @@ std::string aiuvtransform_to_string(aiUVTransform transform)
 	res = res + "tra=[" + std::to_string(transform.mTranslation.x) + "," + std::to_string(transform.mTranslation.y) + "])";
 	return res;
 }
-
 RTLib::Camera   aicamera_to_camera(const aiCamera& camera) {
 	auto position = RTLib::Vector3(camera.mPosition.x, camera.mPosition.y, camera.mPosition.z);
 	auto vup      = RTLib::Vector3(camera.mUp.x      , camera.mUp.y      , camera.mUp.z      );
@@ -99,7 +98,6 @@ RTLib::Camera   aicamera_to_camera(const aiCamera& camera) {
 
 	return RTLib::Camera(scaling, rotation, position, fovY, aspect, zNear, zFar);
 }
-
 struct Mesh
 {
 
@@ -109,7 +107,6 @@ struct Scene
 	RTLib::Camera camera;
 
 };
-
 int main()
 {
 	using namespace nlohmann;
@@ -123,6 +120,7 @@ int main()
 	std::cout << RTLib::Core::Json(camera) << std::endl;
 
 	auto data_path = SAMPLE_SAMPLE0_DATA_PATH"\\Models\\Bistro_v5_2\\BistroExterior.fbx";
+	auto data_root = SAMPLE_SAMPLE0_DATA_PATH"\\Models\\Bistro_v5_2";
 	auto importer = Assimp::Importer();
 	unsigned int flag = 0;
 	flag |= aiProcess_Triangulate;
@@ -141,256 +139,51 @@ int main()
 	}
 	else
 	{
+		std::cout << "scene.name="         << std::string(scene->mName.C_Str())     << std::endl;
+		std::cout << "scene.numMeshes="    << std::to_string(scene->mNumMeshes)     << std::endl;
+		std::cout << "scene.numCameras="   << std::to_string(scene->mNumCameras)    << std::endl;
+		std::cout << "scene.numLights="    << std::to_string(scene->mNumLights)     << std::endl;
+		std::cout << "scene.numMaterials=" << std::to_string(scene->mNumMaterials)  << std::endl;
+		std::cout << "scene.numTextures="  << std::to_string(scene->mNumTextures)   << std::endl;
+		std::cout << "scene.numSkeletons=" << std::to_string(scene->mNumSkeletons)  << std::endl;
+		std::cout << "scene.numAnimations="<< std::to_string(scene->mNumAnimations)<< std::endl;
+
 		for (size_t i = 0; i < scene->mNumMeshes; ++i)
 		{
 			const auto pMesh = scene->mMeshes[i];
+			std::cout << "meshes[" << i << "].name="          << std::string(pMesh->mName.C_Str())        << std::endl;
+			std::cout << "meshes[" << i << "].aabb=["         << pMesh->mAABB.mMin[0] << "," << pMesh->mAABB.mMin[1] \
+													          << pMesh->mAABB.mMax[0] << "," << pMesh->mAABB.mMax[1] << "]" << std::endl;
 
-		}
-		for (size_t i = 0; i < scene->mNumMaterials; ++i)
-		{
-			const auto pMaterial = scene->mMaterials[i];
+			std::cout << "meshes[" << i << "].numVertices="   << std::to_string(pMesh->mNumVertices)      << std::endl;
+			std::cout << "meshes[" << i << "].numFaces="      << std::to_string(pMesh->mNumFaces)         << std::endl;
+			std::cout << "meshes[" << i << "].numBones="      << std::to_string(pMesh->mNumBones)         << std::endl;
+			std::cout << "meshes[" << i << "].numAnimMeshes=" << std::to_string(pMesh->mNumAnimMeshes)    << std::endl;
 
-			aiString       matName;
-			aiShadingMode  shadingMode;
-			aiBlendMode    blendFunc;
-
-			aiColor3D      colorBase;
-			aiColor3D      colorAmbi;
-			aiColor3D      colorDiff;
-			aiColor3D      colorSpec;
-			aiColor3D      colorEmit;
-			aiColor3D      colorTran;
-			aiColor3D      colorRefl;
-			RTLib::Float32 transmit;
-			RTLib::Float32 shininess;
-			RTLib::Float32 shininessStrength;
-			RTLib::Float32 roughness;
-			RTLib::Float32 reflectivity;
-			RTLib::Float32 opacity;
-			RTLib::Float32 ior;
-			RTLib::Float32 bumpScaling;
-			RTLib::Float32 dispScaling;
-
-			aiString       texAmbi;
-			RTLib::Float32 texBlendAmbi;
-			RTLib::Int32   uvwSrcAmbi;
-			aiUVTransform  uvTranAmbi;
-
-			aiString       texDiff;
-			RTLib::Float32 texBlendDiff;
-			RTLib::Int32   uvwSrcDiff;
-			aiUVTransform  uvTranDiff;
-
-			aiString       texSpec;
-			RTLib::Float32 texBlendSpec;
-			RTLib::Int32   uvwSrcSpec;
-			aiUVTransform  uvTranSpec;
-
-			aiString       texEmit;
-			RTLib::Float32 texBlendEmit;
-			RTLib::Int32   uvwSrcEmit;
-			aiUVTransform  uvTranEmit;
-
-			aiString       texShin;
-			RTLib::Float32 texBlendShin;
-			RTLib::Int32   uvwSrcShin;
-			aiUVTransform  uvTranShin;
-
-			aiString       texRough;
-			RTLib::Float32 texBlendRough;
-			RTLib::Int32   uvwSrcRough;
-			aiUVTransform  uvTranRough;
-
-			aiString       texNorm;
-			RTLib::Float32 texBlendNorm;
-			RTLib::Int32   uvwSrcNorm;
-			aiUVTransform  uvTranNorm;
-
-			aiString       texRefl;
-			RTLib::Float32 texBlendRefl;
-			RTLib::Int32   uvwSrcRefl;
-			aiUVTransform  uvTranRefl;
-
-			if (pMaterial->Get(AI_MATKEY_NAME, matName) == aiReturn_SUCCESS) {
-				std::cout << "materials[" << i << "].name = " << matName.C_Str() << std::endl;
-			}
-
-			if (pMaterial->Get(AI_MATKEY_SHADING_MODEL, shadingMode) == aiReturn_SUCCESS)
+			pMesh->mVertices[0];
+			if (pMesh->HasNormals())
 			{
-				std::cout << "materials[" << i << "].shadingMode = " << aishading_model_to_string(shadingMode) << std::endl;
+
+				pMesh->mNormals[0];
 			}
-			if (pMaterial->Get(AI_MATKEY_BLEND_FUNC, blendFunc) == aiReturn_SUCCESS)
+			if (pMesh->HasTangentsAndBitangents())
 			{
-				std::cout << "materials[" << i << "].blendMode = " << aiblend_mode_to_string(blendFunc) << std::endl;
+
+				pMesh->mTangents[0];
+				pMesh->mBitangents[0];
 			}
-			// COLOR
-			if (pMaterial->Get(AI_MATKEY_BASE_COLOR, colorBase) == aiReturn_SUCCESS)
+			if (pMesh->HasTextureCoords(0))
 			{
-				std::cout << "materials[" << i << "].base=[" << colorBase[0] << "," << colorBase[1] << "," << colorBase[2] << "]" << std::endl;
+				pMesh->mTextureCoords[0][0];
 			}
-			if (pMaterial->Get(AI_MATKEY_COLOR_AMBIENT, colorAmbi) == aiReturn_SUCCESS)
+			if (pMesh->HasVertexColors(0))
 			{
-				std::cout << "materials[" << i << "].ambi=[" << colorAmbi[0] << "," << colorAmbi[1] << "," << colorAmbi[2] << "]" << std::endl;
+				pMesh->mColors[0];
 			}
-			if (pMaterial->Get(AI_MATKEY_COLOR_DIFFUSE, colorDiff) == aiReturn_SUCCESS) {
-				std::cout << "materials[" << i << "].diff=[" << colorDiff[0] << "," << colorDiff[1] << "," << colorDiff[2] << "]" << std::endl;
+			if (pMesh->HasBones())
+			{
+				
 			}
-			if (pMaterial->Get(AI_MATKEY_COLOR_SPECULAR, colorSpec) == aiReturn_SUCCESS) {
-				std::cout << "materials[" << i << "].spec=[" << colorSpec[0] << "," << colorSpec[1] << "," << colorSpec[2] << "]" << std::endl;
-			}
-			if (pMaterial->Get(AI_MATKEY_COLOR_EMISSIVE, colorEmit) == aiReturn_SUCCESS) {
-				std::cout << "materials[" << i << "].emit=[" << colorEmit[0] << "," << colorEmit[1] << "," << colorEmit[2] << "]" << std::endl;
-			}
-			if (pMaterial->Get(AI_MATKEY_COLOR_TRANSPARENT, colorTran) == aiReturn_SUCCESS) {
-				std::cout << "materials[" << i << "].tran=[" << colorTran[0] << "," << colorTran[1] << "," << colorTran[2] << "]" << std::endl;
-			}
-			if (pMaterial->Get(AI_MATKEY_COLOR_REFLECTIVE, colorRefl) == aiReturn_SUCCESS) {
-				std::cout << "materials[" << i << "].refl=[" << colorRefl[0] << "," << colorRefl[1] << "," << colorRefl[2] << "]" << std::endl;
-			}
-			if (pMaterial->Get(AI_MATKEY_TRANSMISSION_FACTOR, transmit) == aiReturn_SUCCESS) {
-				std::cout << "materials[" << i << "].tranFact=" << transmit << std::endl;
-			}
-
-			if (pMaterial->Get(AI_MATKEY_SHININESS, shininess) == aiReturn_SUCCESS) {
-				std::cout << "materials[" << i << "].shin=" << shininess << std::endl;
-			}
-			if (pMaterial->Get(AI_MATKEY_SHININESS_STRENGTH, shininessStrength) == aiReturn_SUCCESS) {
-				std::cout << "materials[" << i << "].shinStrn=" << shininessStrength << std::endl;
-			}
-			if (pMaterial->Get(AI_MATKEY_ROUGHNESS_FACTOR, roughness) == aiReturn_SUCCESS) {
-				std::cout << "materials[" << i << "].roug=" << roughness << std::endl;
-			}
-			if (pMaterial->Get(AI_MATKEY_OPACITY, opacity) == aiReturn_SUCCESS) {
-				std::cout << "materials[" << i << "].opac=" << opacity << std::endl;
-			}
-			if (pMaterial->Get(AI_MATKEY_REFRACTI, ior) == aiReturn_SUCCESS) {
-				std::cout << "materials[" << i << "].ior =" << ior << std::endl;
-			}
-			if (pMaterial->Get(AI_MATKEY_REFLECTIVITY, reflectivity) == aiReturn_SUCCESS) {
-				std::cout << "materials[" << i << "].reflectivity =" << reflectivity << std::endl;
-			}
-			if (pMaterial->Get(AI_MATKEY_BUMPSCALING, bumpScaling) == aiReturn_SUCCESS) {
-				std::cout << "materials[" << i << "].bumpScaling =" << bumpScaling << std::endl;
-			}
-			// TEX
-			if (pMaterial->Get(AI_MATKEY_TEXTURE_AMBIENT(0), texAmbi) == aiReturn_SUCCESS) {
-				std::cout << "materials[" << i << "].tex_ambi[0]=" << texAmbi.C_Str() << std::endl;
-			}
-			if (pMaterial->Get(AI_MATKEY_TEXTURE_DIFFUSE(0), texDiff) == aiReturn_SUCCESS) {
-				std::cout << "materials[" << i << "].tex_diff[0]=" << texDiff.C_Str() << std::endl;
-			}
-			if (pMaterial->Get(AI_MATKEY_TEXTURE_SPECULAR(0), texSpec) == aiReturn_SUCCESS) {
-				std::cout << "materials[" << i << "].tex_spec[0]=" << texSpec.C_Str() << std::endl;
-			}
-			if (pMaterial->Get(AI_MATKEY_TEXTURE_EMISSIVE(0), texEmit) == aiReturn_SUCCESS) {
-				std::cout << "materials[" << i << "].tex_emit[0]=" << texEmit.C_Str() << std::endl;
-			}
-			if (pMaterial->Get(AI_MATKEY_TEXTURE_SHININESS(0), texShin) == aiReturn_SUCCESS) {
-				std::cout << "materials[" << i << "].tex_shin[0]=" << texShin.C_Str() << std::endl;
-			}
-			if (pMaterial->Get(AI_MATKEY_TRANSMISSION_FACTOR, transmit) == aiReturn_SUCCESS) {
-				std::cout << "materials[" << i << "].tex_shin[0]=" << texShin.C_Str() << std::endl;
-			}
-			if (pMaterial->Get(AI_MATKEY_TEXTURE_NORMALS(0), texNorm) == aiReturn_SUCCESS) {
-				std::cout << "materials[" << i << "].tex_norm[0]=" << texNorm.C_Str() << std::endl;
-			}
-			// TEX_BLEND
-			if (pMaterial->Get(AI_MATKEY_TEXBLEND_AMBIENT(0), texBlendAmbi) == aiReturn_SUCCESS) {
-				std::cout << "materials[" << i << "].tex_blend_ambi[0]=" << texBlendAmbi << std::endl;
-			}
-			if (pMaterial->Get(AI_MATKEY_TEXBLEND_DIFFUSE(0), texBlendDiff) == aiReturn_SUCCESS) {
-				std::cout << "materials[" << i << "].tex_blend_diff[0]=" << texBlendDiff << std::endl;
-			}
-			if (pMaterial->Get(AI_MATKEY_TEXBLEND_SPECULAR(0), texBlendSpec) == aiReturn_SUCCESS) {
-				std::cout << "materials[" << i << "].tex_blend_spec[0]=" << texBlendSpec << std::endl;
-			}
-			if (pMaterial->Get(AI_MATKEY_TEXBLEND_EMISSIVE(0), texBlendEmit) == aiReturn_SUCCESS) {
-				std::cout << "materials[" << i << "].tex_blend_emit[0]=" << texBlendEmit << std::endl;
-			}
-			if (pMaterial->Get(AI_MATKEY_TEXBLEND_SHININESS(0), texBlendShin) == aiReturn_SUCCESS) {
-				std::cout << "materials[" << i << "].tex_blend_shin[0]=" << texBlendShin << std::endl;
-			}
-			if (pMaterial->Get(AI_MATKEY_TEXBLEND_NORMALS(0), texBlendNorm) == aiReturn_SUCCESS) {
-				std::cout << "materials[" << i << "].tex_blend_norm[0]=" << texBlendNorm << std::endl;
-			}
-			if (pMaterial->Get(AI_MATKEY_TEXBLEND_REFLECTION(0), texBlendRefl) == aiReturn_SUCCESS) {
-				std::cout << "materials[" << i << "].tex_blend_refl[0]=" << texBlendRefl << std::endl;
-			}
-			// UVW Src
-			if (pMaterial->Get(AI_MATKEY_UVWSRC_AMBIENT(0), uvwSrcAmbi) == aiReturn_SUCCESS) {
-				std::cout << "materials[" << i << "].uvw_src_ambi[0]=" << uvwSrcAmbi << std::endl;
-			}
-			if (pMaterial->Get(AI_MATKEY_UVWSRC_DIFFUSE(0), uvwSrcDiff) == aiReturn_SUCCESS) {
-				std::cout << "materials[" << i << "].uvw_src_diff[0]=" << uvwSrcDiff << std::endl;
-			}
-			if (pMaterial->Get(AI_MATKEY_UVWSRC_SPECULAR(0), uvwSrcSpec) == aiReturn_SUCCESS) {
-				std::cout << "materials[" << i << "].uvw_src_spec[0]=" << uvwSrcSpec << std::endl;
-			}
-			if (pMaterial->Get(AI_MATKEY_UVWSRC_EMISSIVE(0), uvwSrcEmit) == aiReturn_SUCCESS) {
-				std::cout << "materials[" << i << "].uvw_src_emit[0]=" << uvwSrcEmit << std::endl;
-			}
-			if (pMaterial->Get(AI_MATKEY_UVWSRC_SHININESS(0), uvwSrcShin) == aiReturn_SUCCESS) {
-				std::cout << "materials[" << i << "].uvw_src_shin[0]=" << uvwSrcShin << std::endl;
-			}
-			if (pMaterial->Get(AI_MATKEY_UVWSRC_NORMALS(0), uvwSrcNorm) == aiReturn_SUCCESS) {
-				std::cout << "materials[" << i << "].uvw_src_norm[0]=" << uvwSrcNorm << std::endl;
-			}
-			if (pMaterial->Get(AI_MATKEY_UVWSRC_REFLECTION(0), uvwSrcRefl) == aiReturn_SUCCESS) {
-				std::cout << "materials[" << i << "].uvw_src_refl[0]=" << uvwSrcRefl << std::endl;
-			}
-			// UVTransform
-			if (pMaterial->Get(AI_MATKEY_UVTRANSFORM_AMBIENT(0), uvTranAmbi) == aiReturn_SUCCESS) {
-				std::cout << "materials[" << i << "].uv_transform_ambi[0]=" << aiuvtransform_to_string(uvTranAmbi) << std::endl;
-			}
-			if (pMaterial->Get(AI_MATKEY_UVTRANSFORM_DIFFUSE(0), uvTranDiff) == aiReturn_SUCCESS) {
-				std::cout << "materials[" << i << "].uv_transform_diff[0]=" << aiuvtransform_to_string(uvTranDiff) << std::endl;
-			}
-			if (pMaterial->Get(AI_MATKEY_UVTRANSFORM_SPECULAR(0), uvTranSpec) == aiReturn_SUCCESS) {
-				std::cout << "materials[" << i << "].uv_transform_spec[0]=" << aiuvtransform_to_string(uvTranSpec) << std::endl;
-			}
-			if (pMaterial->Get(AI_MATKEY_UVTRANSFORM_EMISSIVE(0), uvTranEmit) == aiReturn_SUCCESS) {
-				std::cout << "materials[" << i << "].uv_transform_emit[0]=" << aiuvtransform_to_string(uvTranEmit) << std::endl;
-			}
-			if (pMaterial->Get(AI_MATKEY_UVTRANSFORM_SHININESS(0), uvTranShin) == aiReturn_SUCCESS) {
-				std::cout << "materials[" << i << "].uv_transform_shin[0]=" << aiuvtransform_to_string(uvTranShin) << std::endl;
-			}
-			if (pMaterial->Get(AI_MATKEY_UVTRANSFORM_NORMALS(0), uvTranNorm) == aiReturn_SUCCESS) {
-				std::cout << "materials[" << i << "].uv_transform_norm[0]=" << aiuvtransform_to_string(uvTranNorm) << std::endl;
-			}
-			if (pMaterial->Get(AI_MATKEY_UVTRANSFORM_REFLECTION(0), uvTranRefl) == aiReturn_SUCCESS) {
-				std::cout << "materials[" << i << "].uv_transform_refl[0]=" << aiuvtransform_to_string(uvTranRefl) << std::endl;
-			}
-			////for (auto i = 0; i < pMaterial->mNumProperties; ++i)
-			////{
-			////	std::cout << pMaterial->mProperties[i]->mKey.C_Str() << std::endl;
-			////}
-			std::cout << std::endl;
-
-		}
-	}
-
-	{
-		aiString texDiffPath;
-		if (scene->mMaterials[0]->Get(AI_MATKEY_TEXTURE_DIFFUSE(0), texDiffPath) != aiReturn_SUCCESS) {
-			return -1;
-		}
-
-		auto prev_loc = std::setlocale(LC_ALL, nullptr);
-		if (!prev_loc) {
-			std::cout << "Failed To Load " << std::endl;
-			return -1;
-		}
-		auto cTexDiffPath = std::filesystem::path(std::string(data_path) + "\\" + std::string(texDiffPath.C_Str())).make_preferred();
-		auto wTexDiffPath = cTexDiffPath.wstring();
-
-		std::wcout << wTexDiffPath << std::endl;
-
-		DirectX::TexMetadata metadata;
-		DirectX::ScratchImage scratchImg;
-
-		if (FAILED(DirectX::LoadFromDDSFile(cTexDiffPath.c_str(), DirectX::DDS_FLAGS_NONE, &metadata, scratchImg)))
-		{
-			return -1;
 		}
 	}
 	
