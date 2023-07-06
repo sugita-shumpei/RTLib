@@ -1,191 +1,368 @@
 #include <RTLib/Core/Vector.h>
 #include <RTLib/Core/Matrix.h>
 #include <RTLib/Core/Camera.h>
-#include <RTLib/Core/Material.h>
 #include <RTLib/Core/Json.h>
-#include <glm/gtx/string_cast.hpp>
+#include <RTLib/Core/Mesh.h>
+
+#include <RTLib/Scene/Object.h>
+#include <RTLib/Scene/Transform.h>
+#include <RTLib/Scene/TransformGraph.h>
+#include <RTLib/Scene/Camera.h>
+#include <RTLib/Scene/Mesh.h>
+#include <RTLib/Core/Quaternion.h>
 //Assimp 
+#include <assimp/config.h>
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
 #include <assimp/GenericProperty.h>
 #include <assimp/scene.h>
-//Texture Loading Library
+//glm
+#include <glm/gtx/string_cast.hpp>
+#include <glm/gtc/matrix_integer.hpp>
+//glfw
+#include <glad/gl.h>
+#include <GLFW/glfw3.h>
+//Texture
 #include <DirectXTex.h>
 #include <Sample0Config.h>
 #include <optional>
+#include <random>
 #include <filesystem>
+#include <stdexcept>
 #include <string>
 #include <cstdlib>
+#include <stack>
+#include <functional>
 
-constexpr char* aishading_model_to_string(aiShadingMode shadingModel)
+int main(int argc, const char** argv)
 {
-	switch (shadingModel)
-	{
-	case aiShadingMode_Flat:
-		return "ShadingMode::Flat";
-	case aiShadingMode_Gouraud:
-		return "ShadingMode::Gouraud";
-	case aiShadingMode_Phong:
-		return "ShadingMode::Phong";
-	case aiShadingMode_Blinn:
-		return "ShadingMode::Blinn";
-	case aiShadingMode_Toon:
-		return "ShadingMode::Toon";
-	case aiShadingMode_OrenNayar:
-		return "ShadingMode::OrenNayar";
-	case aiShadingMode_Minnaert:
-		return "ShadingMode::Minnaert";
-	case aiShadingMode_CookTorrance:
-		return "ShadingMode::CookTorrance";
-	case aiShadingMode_NoShading:
-		return "ShadingMode::NoShading";
-	case aiShadingMode_Fresnel:
-		return "ShadingMode::Fresnel";
-	case aiShadingMode_PBR_BRDF:
-		return "ShadingMode::PBR_BRDF";
-	case _aiShadingMode_Force32Bit:
-		return "ShadingMode::Force32Bit";
-	default:
-		return "ShadingMode::Unknown";
-		break;
-	}
-}
-constexpr char* aiblend_mode_to_string(aiBlendMode blendMode)
-{
-	switch (blendMode)
-	{
-	case aiBlendMode_Default: return "aiBlendMode::Default";
-		break;
-	case aiBlendMode_Additive:return "aiBlendMode::Additive";
-		break;
-	case _aiBlendMode_Force32Bit:return "aiBlendMode::Force32Bit";
-		break; 
-	default:return "aiBlendMode::Unknown";
-		break;
-	}
-}
-std::string     aiuvtransform_to_string(aiUVTransform transform)
-{
-	std::string res = "(";
-	res = res + "rot=" + std::to_string(transform.mRotation) + ",";
-	res = res + "scl=[" + std::to_string(transform.mScaling.x)+"," + std::to_string(transform.mScaling.y) + "],";
-	res = res + "tra=[" + std::to_string(transform.mTranslation.x) + "," + std::to_string(transform.mTranslation.y) + "])";
-	return res;
-}
-RTLib::Camera   aicamera_to_camera(const aiCamera& camera) {
-	auto position = RTLib::Vector3(camera.mPosition.x, camera.mPosition.y, camera.mPosition.z);
-	auto vup      = RTLib::Vector3(camera.mUp.x      , camera.mUp.y      , camera.mUp.z      );
-	// T * R * S
-	auto front    = RTLib::Vector3(camera.mLookAt.x  , camera.mLookAt.y  , camera.mLookAt.z  );
-	auto right    = RTLib::cross(vup, front); // y * z -> x
-	auto up       = vup;
+	auto importer = Assimp::Importer();
+	importer.SetPropertyBool(AI_CONFIG_IMPORT_FBX_PRESERVE_PIVOTS, false);
 
-	auto frontLen = RTLib::length(front);
-	auto rightLen = RTLib::length(right);
-	auto    upLen = RTLib::length(up);
-
-	front         = RTLib::normalize(front);
-	right         = RTLib::normalize(right);
-	up            = RTLib::normalize(up);
-
-	auto aspect   = camera.mAspect;
-	auto fovY     = camera.mHorizontalFOV;
-	auto zNear    = camera.mClipPlaneNear;
-	auto zFar     = camera.mClipPlaneFar;
-
-	auto rotation = RTLib::Core::toQuat(RTLib::Matrix3x3(right, up, front));
-	auto scaling  = RTLib::Core::Vector3(1.0f);
-
-	return RTLib::Camera(scaling, rotation, position, fovY, aspect, zNear, zFar);
-}
-struct Mesh
-{
-
-};
-struct Scene
-{
-	RTLib::Camera camera;
-
-};
-int main()
-{
-	using namespace nlohmann;
-
-	auto camera = RTLib::Camera()
-		.set_position({ 1.0f,2.0f,3.0f })
-		.set_fovy(30.0f)
-		.set_aspect(1.0f)
-		.set_front({ 0.0f,0.0f,1.0f });
-
-	std::cout << RTLib::Core::Json(camera) << std::endl;
 
 	auto data_path = SAMPLE_SAMPLE0_DATA_PATH"\\Models\\Bistro_v5_2\\BistroExterior.fbx";
-	auto data_root = SAMPLE_SAMPLE0_DATA_PATH"\\Models\\Bistro_v5_2";
-	auto importer = Assimp::Importer();
+	auto data_root = SAMPLE_SAMPLE0_DATA_PATH"\\Models\\ZeroDay";
+
 	unsigned int flag = 0;
-	flag |= aiProcess_Triangulate;
 	flag |= aiProcess_PreTransformVertices;
-	flag |= aiProcess_CalcTangentSpace;
+	flag |= aiProcess_Triangulate;
 	flag |= aiProcess_GenSmoothNormals;
 	flag |= aiProcess_GenUVCoords;
 	flag |= aiProcess_GenBoundingBoxes;
-	flag |= aiProcess_RemoveRedundantMaterials;
 	flag |= aiProcess_OptimizeMeshes;
 
-	auto scene = importer.ReadFile(data_path, flag);
-	if (scene == nullptr)
+	auto scene = importer.ReadFile(data_path,flag);
+	
+	RTLib::Int32 width  = 800;
+	RTLib::Int32 height = 0;
+
+	std::unordered_map<aiNode*, aiMatrix4x4> modelMatrixMap = {};
+	std::vector<GLuint> meshVaos = {};
+	std::vector<GLuint> meshVbos = {};
+	std::vector<std::pair<GLuint,GLsizei>> meshIbos = {};
 	{
-		std::cout << importer.GetErrorString() << std::endl;
-	}
-	else
-	{
-		std::cout << "scene.name="         << std::string(scene->mName.C_Str())     << std::endl;
-		std::cout << "scene.numMeshes="    << std::to_string(scene->mNumMeshes)     << std::endl;
-		std::cout << "scene.numCameras="   << std::to_string(scene->mNumCameras)    << std::endl;
-		std::cout << "scene.numLights="    << std::to_string(scene->mNumLights)     << std::endl;
-		std::cout << "scene.numMaterials=" << std::to_string(scene->mNumMaterials)  << std::endl;
-		std::cout << "scene.numTextures="  << std::to_string(scene->mNumTextures)   << std::endl;
-		std::cout << "scene.numSkeletons=" << std::to_string(scene->mNumSkeletons)  << std::endl;
-		std::cout << "scene.numAnimations="<< std::to_string(scene->mNumAnimations)<< std::endl;
+		std::stack<aiNode*> nodes = {};
+		nodes.push(scene->mRootNode);
+		modelMatrixMap[scene->mRootNode] = scene->mRootNode->mTransformation;
 
-		for (size_t i = 0; i < scene->mNumMeshes; ++i)
-		{
-			const auto pMesh = scene->mMeshes[i];
-			std::cout << "meshes[" << i << "].name="          << std::string(pMesh->mName.C_Str())        << std::endl;
-			std::cout << "meshes[" << i << "].aabb=["         << pMesh->mAABB.mMin[0] << "," << pMesh->mAABB.mMin[1] \
-													          << pMesh->mAABB.mMax[0] << "," << pMesh->mAABB.mMax[1] << "]" << std::endl;
-
-			std::cout << "meshes[" << i << "].numVertices="   << std::to_string(pMesh->mNumVertices)      << std::endl;
-			std::cout << "meshes[" << i << "].numFaces="      << std::to_string(pMesh->mNumFaces)         << std::endl;
-			std::cout << "meshes[" << i << "].numBones="      << std::to_string(pMesh->mNumBones)         << std::endl;
-			std::cout << "meshes[" << i << "].numAnimMeshes=" << std::to_string(pMesh->mNumAnimMeshes)    << std::endl;
-
-			pMesh->mVertices[0];
-			if (pMesh->HasNormals())
-			{
-
-				pMesh->mNormals[0];
-			}
-			if (pMesh->HasTangentsAndBitangents())
-			{
-
-				pMesh->mTangents[0];
-				pMesh->mBitangents[0];
-			}
-			if (pMesh->HasTextureCoords(0))
-			{
-				pMesh->mTextureCoords[0][0];
-			}
-			if (pMesh->HasVertexColors(0))
-			{
-				pMesh->mColors[0];
-			}
-			if (pMesh->HasBones())
-			{
-				
-			}
+		while (!nodes.empty()) {
+			auto node = nodes.top();
+			nodes.pop();
+			auto numChildren = node->mNumChildren;
+			for (auto i = 0; i < numChildren; ++i) {
+				auto child = node->mChildren[i];
+				auto parentTransform  = modelMatrixMap.at(node);
+				auto childTransform   = child->mTransformation;
+				modelMatrixMap.insert({ child, childTransform * parentTransform });
+				nodes.push(child);
+			}	
 		}
 	}
-	
+	glfwInit();
+	{
+		auto camera = scene->mCameras[0];
+		height = width / camera->mAspect;
+
+		glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
+		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+		glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+		glfwWindowHint(GLFW_VERSION_MAJOR, 3);
+		glfwWindowHint(GLFW_VERSION_MINOR, 3);
+		auto window = glfwCreateWindow(width, height, camera->mName.C_Str(), nullptr, nullptr);
+		if (!window) { return -1; }
+
+		glfwMakeContextCurrent(window);
+		auto gl = std::make_unique<GladGLContext>();
+		if (!gladLoadGLContext(gl.get(), (GLADloadfunc)glfwGetProcAddress)) {
+			throw std::runtime_error("Failed To Load GL Context!");
+		}
+		{
+			meshVaos.resize(scene->mNumMeshes);
+			meshIbos.resize(scene->mNumMeshes);
+			meshVbos.resize(scene->mNumMeshes);
+			for (RTLib::UInt64 i = 0; i < scene->mNumMeshes; ++i) {
+				auto mesh = scene->mMeshes[i];
+				std::vector<RTLib::Float32> vertices(mesh->mNumVertices*8);
+				std::vector<RTLib::UInt32>  indices(mesh->mNumFaces * 3);
+				for (RTLib::UInt64 j = 0; j < mesh->mNumVertices; ++j) {
+					vertices[8 * j + 0] = mesh->mVertices[j][0];
+					vertices[8 * j + 1] = mesh->mVertices[j][1];
+					vertices[8 * j + 2] = mesh->mVertices[j][2];
+					if (mesh->HasNormals())
+					{
+						vertices[8 * j + 3] = mesh->mNormals[j][0];
+						vertices[8 * j + 4] = mesh->mNormals[j][1];
+						vertices[8 * j + 5] = mesh->mNormals[j][2];
+					}
+					if (mesh->HasTextureCoords(0))
+					{
+						vertices[8 * j + 6] = mesh->mTextureCoords[0][j][0];
+						vertices[8 * j + 7] = mesh->mTextureCoords[0][j][1];
+					}
+				}
+				for (RTLib::UInt64 j = 0; j < mesh->mNumFaces; ++j) {
+					indices[3 * j + 0] = mesh->mFaces[j].mIndices[0];
+					indices[3 * j + 1] = mesh->mFaces[j].mIndices[1];
+					indices[3 * j + 2] = mesh->mFaces[j].mIndices[2];
+				}
+				
+				GLuint vao;
+				gl->GenVertexArrays(1,&vao);
+				GLuint bff[2];
+				gl->GenBuffers(2, bff);
+
+				meshVaos[i] = vao;
+				meshVbos[i] =   bff[0];
+				meshIbos[i] = { bff[1],mesh->mNumFaces * 3 };
+
+				gl->BindBuffer(GL_ARRAY_BUFFER, bff[0]);
+				gl->BufferData(GL_ARRAY_BUFFER, mesh->mNumVertices * sizeof(RTLib::Float32)*8, vertices.data(), GL_STATIC_DRAW);
+
+				gl->BindBuffer(GL_ELEMENT_ARRAY_BUFFER, bff[1]);
+				gl->BufferData(GL_ELEMENT_ARRAY_BUFFER, mesh->mNumFaces * 3 * sizeof(RTLib::UInt32), indices.data(), GL_STATIC_DRAW);
+
+				gl->BindVertexArray(vao);
+				gl->BindBuffer(GL_ARRAY_BUFFER, bff[0]);
+				gl->BindBuffer(GL_ELEMENT_ARRAY_BUFFER, bff[1]);
+				auto offset = static_cast<GLintptr>(0);
+				gl->VertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(RTLib::Float32) * 8, reinterpret_cast<void*>(offset));
+				gl->EnableVertexAttribArray(0);
+				offset = static_cast<GLintptr>(sizeof(RTLib::Float32) * 3);
+				gl->VertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(RTLib::Float32) * 8, reinterpret_cast<void*>(offset));
+				gl->EnableVertexAttribArray(1);
+				offset = static_cast<GLintptr>(sizeof(RTLib::Float32) * 6);
+				gl->VertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(RTLib::Float32) * 8, reinterpret_cast<void*>(offset));
+				gl->EnableVertexAttribArray(2);
+				gl->BindVertexArray(0);
+				gl->BindBuffer(GL_ARRAY_BUFFER, 0);
+				gl->BindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+			}
+		}
+
+		auto prg = gl->CreateProgram();
+		{
+			constexpr RTLib::Char vsSource[] =
+				"#version 460 core\n"
+				"layout (location = 0) in vec3 position;\n"
+				"layout (location = 1) in vec3 normal;\n"
+				"layout (location = 2) in vec2 uv;\n"
+				"uniform mat4 model;\n"
+				"uniform mat4 viewProj;\n"
+				"out vec3 outNormal;\n"
+				"void main(){\n"
+				"	gl_Position = viewProj * model * vec4(position,1.0);\n"
+				"	outNormal = normalize(normal);\n"
+				"}\n";
+			constexpr RTLib::Char fsSource[] =
+				"#version 460 core\n"
+				"in vec3 outNormal;\n"
+				"uniform vec4 color;\n"
+				"layout (location = 0) out vec4 fragColor;\n"
+				"void main(){\n"
+				"	fragColor = vec4(color);\n"
+				"}\n";
+			const RTLib::Char* pVsSource = vsSource;
+			const RTLib::Char* pFsSource = fsSource;
+
+			auto vs = gl->CreateShader(GL_VERTEX_SHADER);
+			gl->ShaderSource(vs, 1, &pVsSource, nullptr);
+			gl->CompileShader(vs);
+			gl->AttachShader(prg,vs);
+			{
+				RTLib::Int32 status;
+				RTLib::Int32 length;
+				gl->GetShaderiv(vs, GL_COMPILE_STATUS,  &status);
+				gl->GetShaderiv(vs, GL_INFO_LOG_LENGTH, &length);
+				std::vector<RTLib::Char> log(length + 1, '\0');
+				gl->GetShaderInfoLog(vs, length, nullptr, log.data());
+				if (status != GL_TRUE) {
+					std::cerr << "VS Log: " << log.data() << std::endl;
+				}
+			}
+			auto fs = gl->CreateShader(GL_FRAGMENT_SHADER);
+			gl->ShaderSource(fs, 1, &pFsSource, nullptr);
+			gl->CompileShader(fs);
+			gl->AttachShader(prg,fs);
+			{
+				RTLib::Int32 status;
+				RTLib::Int32 length;
+				gl->GetShaderiv(fs, GL_COMPILE_STATUS,  &status);
+				gl->GetShaderiv(fs, GL_INFO_LOG_LENGTH, &length);
+				std::vector<RTLib::Char> log(length + 1, '\0');
+				gl->GetShaderInfoLog(fs, length, nullptr, log.data());
+				if (status != GL_TRUE) {
+					std::cerr << "FS Log: " << log.data() << std::endl;
+				}
+			}
+
+			gl->LinkProgram(prg);
+			{
+				RTLib::Int32 status;
+				RTLib::Int32 length;
+				gl->GetProgramiv(prg, GL_LINK_STATUS, &status);
+				gl->GetProgramiv(prg, GL_INFO_LOG_LENGTH, &length);
+				std::vector<RTLib::Char> log(length + 1, '\0');
+				gl->GetProgramInfoLog(prg, length, nullptr, log.data());
+				if (status != GL_TRUE) {
+					std::cerr << "Program Log: " << log.data() << std::endl;
+				}
+			}
+			gl->DetachShader(prg, vs);
+			gl->DetachShader(prg, fs);
+		}
+
+		auto modelPos = gl->GetUniformLocation(prg, "model");
+		auto viewProjPos = gl->GetUniformLocation(prg, "viewProj");
+		auto colorPos = gl->GetUniformLocation(prg, "color");
+
+		auto cameraNode = scene->mRootNode->FindNode(scene->mCameras[0]->mName.C_Str());
+
+		auto viewMatrix = RTLib::Matrix4x4();
+		auto tmp = aiMatrix4x4();
+		camera->GetCameraMatrix(tmp);
+		auto tmp2 = modelMatrixMap[cameraNode] ;
+		std::memcpy(&viewMatrix, &tmp2, sizeof(tmp2));
+
+		viewMatrix = glm::inverse(glm::transpose(viewMatrix));
+		auto projMatrix = glm::perspective(
+			camera->mHorizontalFOV, camera->mAspect, camera->mClipPlaneNear, camera->mClipPlaneFar
+		);
+		auto viewProjMatrix = RTLib::Core::Matrix4x4();
+		{
+			viewMatrix = glm::lookAt(
+				glm::vec3(camera->mPosition[0], camera->mPosition[1], camera->mPosition[2]),
+				glm::normalize(glm::vec3(camera->mLookAt[0], camera->mLookAt[1], camera->mLookAt[2])),
+				glm::normalize(glm::vec3(camera->mUp[0], camera->mUp[1], camera->mUp[2]))
+			);
+
+			viewProjMatrix = projMatrix * viewMatrix;
+			std::cout << glm::to_string(viewProjMatrix) << std::endl;
+		}
+
+		gl->Enable(GL_DEPTH_TEST);
+		gl->DepthFunc(GL_LESS);
+		gl->DepthRangef(-1.0f, 1.0f);
+		gl->DepthMask(GL_FALSE);
+		gl->Enable(GL_CULL_FACE_MODE);
+		while (!glfwWindowShouldClose(window))
+		{
+			gl->Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			gl->ClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+			gl->ClearDepth(1.0f);
+			gl->Viewport(0,0,width,height);
+			gl->UseProgram(prg);
+			gl->UniformMatrix4fv(viewProjPos, 1, GL_FALSE, &viewProjMatrix[0][0]);
+			for (auto& [node,model]:modelMatrixMap)
+			{
+				gl->UniformMatrix4fv(modelPos, 1, GL_FALSE, &model[0][0]);
+				for (auto i = 0; i < node->mNumMeshes; ++i) {
+
+					RTLib::UInt32 meshIdx = node->mMeshes[i];
+					std::mt19937 mt1(meshIdx);
+					std::mt19937 mt(mt1);
+					std::uniform_real_distribution<float> uni(0.0f,1.0f);
+					RTLib::Vector4 vec(uni(mt), uni(mt), uni(mt), 1.0f);
+					GLuint vao = meshVaos.at(meshIdx);
+					GLuint cnt = meshIbos.at(meshIdx).second;
+					gl->Uniform4fv(colorPos, 1, &vec[0]);
+					gl->BindVertexArray(vao);
+					gl->DrawElements(GL_TRIANGLES, scene->mMeshes[meshIdx]->mNumFaces*3, GL_UNSIGNED_INT, 0);
+				}
+			}
+			glfwSwapBuffers(window);
+			glfwPollEvents();
+			{
+				if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+				{
+					camera->mPosition += camera->mLookAt;
+
+				}
+				if ((glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) ||
+					(glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS))
+				{
+
+					auto right = camera->mUp ^ camera->mLookAt;
+					camera->mPosition -= 5.0f*right;
+
+				}
+				if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+				{
+					camera->mPosition -= 0.1f * camera->mLookAt;
+				}
+				if ((glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) ||
+					(glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS))
+				{
+					auto right = camera->mUp ^ camera->mLookAt;
+					camera->mPosition += 5.0f*right;
+				}
+				if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+				{
+					camera->mPosition += camera->mUp;
+				}
+				if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+				{
+					camera->mPosition -= camera->mUp;
+				}
+				{
+					viewMatrix = RTLib::Matrix4x4();
+					auto tmp = aiMatrix4x4();
+					camera->GetCameraMatrix(tmp);
+					auto tmp2 = modelMatrixMap[cameraNode];
+					std::memcpy(&viewMatrix, &tmp2, sizeof(tmp2));
+
+					viewMatrix = glm::inverse(glm::transpose(viewMatrix));
+					viewMatrix = glm::lookAt(
+						glm::vec3(camera->mPosition[0], camera->mPosition[1], camera->mPosition[2]),
+						glm::normalize(glm::vec3(camera->mLookAt[0], camera->mLookAt[1], camera->mLookAt[2])),
+						glm::normalize(glm::vec3(camera->mUp[0], camera->mUp[1], camera->mUp[2]))
+					);
+
+					projMatrix = glm::perspective(
+						camera->mHorizontalFOV, camera->mAspect, camera->mClipPlaneNear, camera->mClipPlaneFar
+					);
+
+					viewProjMatrix = RTLib::Core::Matrix4x4();
+					viewProjMatrix = projMatrix * viewMatrix;
+					std::cout << glm::to_string(viewProjMatrix) << std::endl;
+				}
+			}
+		}
+		{
+			gl->DeleteVertexArrays(meshVaos.size(), meshVaos.data());
+			gl->DeleteBuffers(meshVbos.size(), meshVbos.data());
+			for (auto& [ibo, cnt] : meshIbos) {
+				gl->DeleteBuffers(1,&ibo);
+			}
+		}
+		gl->DeleteProgram(prg);
+		glfwDestroyWindow(window);
+		window = nullptr;
+		glfwTerminate();
+	}
+	glfwTerminate();
+
 	return 0;
 }

@@ -1,121 +1,108 @@
 #ifndef RTLIB_CORE_QUATERNION__H
 #define RTLIB_CORE_QUATERNION__H
-
+#include <RTLib/Core/DataTypes.h>
+#include <RTLib/Core/Preprocessor.h>
 #include <RTLib/Core/Vector.h>
-#include <RTLib/Core/Json.h>
-
 #ifndef __CUDACC__
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
+#else
+#include <OptiXToolkit/ShaderUtil/vec_math.h>
 #endif
-
 namespace RTLib
 {
-	namespace Core
+	inline namespace Core
 	{
 #ifndef __CUDACC__
-		using Quat     = glm::quat;
 		using Quat_F32 = glm::f32quat;
 		using Quat_F64 = glm::f64quat;
 #else
-		template<typename T>
-		struct BasicQuatTraits;
-		template<>
-		struct BasicQuatTraits<RTLib::Core::Float32>
+		namespace internals
 		{
-			using Vec3 = RTLib::Core::Vector3_F32;
-			using Vec4 = RTLib::Core::Vector3_F64;
-		};
-		template<>
-		struct BasicQuatTraits<RTLib::Core::Float32>
-		{
-			using Vec3 = RTLib::Core::Vector3_F64;
-			using Vec4 = RTLib::Core::Vector3_F64;
-		};
-
-		template<typename T>
-		struct BasicQuat {
-			using Vec3 = typename BasicQuatTraits<T>::Vec3;
-			using Vec4 = typename BasicQuatTraits<T>::Vec4;
-
-			BasicQuat(const BasicQuat&) = default;
-			BasicQuat& operator=(const BasicQuat&) = default;
-
-			auto operator+(const BasicQuat& q) const noexcept -> BasicQuat
+			template<typename T>
+			struct Quat
 			{
-				return BasicQuat{ x + q.x,y + q.y,z + q.z,w + q.w };
-			}
+				RTLIB_DEVICE Quat(T w_ = static_cast<T>(0), T x_ = static_cast<T>(0), T y_ = static_cast<T>(0), T z_ = static_cast<T>(0))noexcept
+					:x{x_},y{y_},z{z_},w{w_}{}
 
-			auto operator-(const BasicQuat& q) const noexcept -> BasicQuat
-			{
-				return BasicQuat{ x - q.x,y - q.y,z - q.z,w - q.w };
-			}
+				RTLIB_DEVICE Quat(const Quat&) noexcept = default;
+				RTLIB_DEVICE Quat& operator=(const Quat&) noexcept = default;
 
-			auto operator*(const BasicQuat& q) const noexcept -> BasicQuat {
-				// i * j = k
-				// j * k = i
-				// k * i = j
-				BasicQuat res;
-				res.x = (w * q.x + x * q.w) + (y * q.z - z * q.y);
-				res.y = (w * q.y + y * q.w) + (z * q.x - x * q.z);
-				res.z = (w * q.z + z * q.w) + (x * q.y - y * q.x);
-				res.w = (w * q.w - x * q.x - y * q.y - z * q.z);
-				return res;
-			}
+				RTLIB_DEVICE Quat operator+(const Quat& q) const noexcept
+				{
+					return Quat(x + q.x, y + q.y, z + q.z, w + q.w);
+				}
 
-			auto operator*(const Vec3& v) const noexcept-> Vec3 {
-				using namespace otk;
-				// i * j = k
-				// j * k = i
-				// k * i = j
-				auto r = Vec3{ x,y,z };
-				return (w * w - dot(r,r)) * v + static_cast<T>(2) * dot(v,r) * v + w * cross(v,r);
-			}
+				RTLIB_DEVICE Quat operator-(const Quat& q) const noexcept
+				{
+					return Quat(x - q.x, y - q.y, z - q.z, w - q.w);
+				}
 
-			auto operator*(T s) const noexcept -> BasicQuat {
-				return { w * s, x * s, y * s, z * s };
-			}
+				RTLIB_DEVICE Quat operator*(const Quat& q) const noexcept
+				{
+					return Quat(
+						w * q.w - x * q.x - y * q.y - z * q.z,
+						y * q.z - z * q.y + w * q.x + x * q.w,
+						z * q.x - x * q.z + w * q.y + y * q.w,
+						x * q.y - y * q.x + w * q.z + z * q.w
+					);
+				}
 
-			auto operator/(const BasicQuat& q) const noexcept -> BasicQuat {
-				// i * j = k
-				// j * k = i
-				// k * i = j
-				T invDet = static_cast<T>(1)/(q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w);
-				BasicQuat res;
-				res.x = ((-w * q.x + x * q.w) + (-y * q.z + z * q.y)) * invDet;
-				res.y = ((-w * q.y + y * q.w) + (-z * q.x + x * q.z)) * invDet;
-				res.z = ((-w * q.z + z * q.w) + (-x * q.y + y * q.x)) * invDet;
-				res.w = (( w * q.w + x * q.x  +   y * q.y + z * q.z)) * invDet;
-				return res;
-			}
+				RTLIB_DEVICE Quat operator/(const Quat& q) const noexcept
+				{
+					T invDet = static_cast<T>(1) / (q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w);
+					return Quat(
+						( w * q.w + x * q.x + y * q.y + z * q.z)* invDet,
+						(-y * q.z + z * q.y - w * q.x + x * q.w)* invDet,
+						(-z * q.x + x * q.z - w * q.y + y * q.w)* invDet,
+						(-x * q.y + y * q.x - w * q.z + z * q.w)* invDet
+					);
+				}
 
-			auto operator/(T s) const noexcept -> BasicQuat {
-				return { w / s, x / s, y / s, z / s };
-			}
+				RTLIB_DEVICE auto operator*(const MathVector3<T>& v) const noexcept -> MathVector3<T>
+				{
+					auto qv = make_vector3(x, y,z);
+					return (w * w - x * x - y * y - z * z) * v + 2 * dot(qv, v) * qv + 2 * w * otk::cross(qv, v);
+				}
 
-			auto conjugate() const noexcept -> BasicQuat
-			{
-				return { w , -x, -y, -z };
-			}
+				RTLIB_DEVICE Quat operator*(T s) const noexcept
+				{
+					return Quat(x * s, y * s, z * s, w * s);
+				}
 
-			auto inverse() const noexcept -> BasicQuat
-			{
-				T invDet = static_cast<T>(1) / (q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w);
-				return { w* invDet, -x* invDet, -y* invDet, -z* invDet };
-			}
+				RTLIB_DEVICE Quat operator/(T s) const noexcept
+				{
+					return Quat(x / s, y / s, z / s, w / s);
+				}
 
-			T w; T x; T y; T z;
-		};
+				T w;
+				T x;
+				T y;
+				T z;
+			};
+		}
+		using Quat_F32 = internals::Quat<Float32>;
+		using Quat_F64 = internals::Quat<Float64>;
 #endif
 
+		using Quat = Quat_F32;
+
+		template<typename T>
+		struct MathQuatTraits;
+
+		template<>
+		struct MathQuatTraits<Float32> {
+			using type = Quat_F32;
+		};
+
+		template<>
+		struct MathQuatTraits<Float64> {
+			using type = Quat_F64;
+		};
+
+		template<typename T>
+		using MathQuat = typename MathQuatTraits<T>::type;
 	}
-}
-#ifndef __CUDACC__
-namespace glm
-{
-	void to_json(RTLib::Core::Json& json, const RTLib::Core::Quat& q);
-	void from_json(const RTLib::Core::Json& json, RTLib::Core::Quat& q);
-}
-#endif
 
+}
 #endif
