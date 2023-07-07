@@ -40,7 +40,7 @@ int main(int argc, const char** argv)
 	importer.SetPropertyBool(AI_CONFIG_IMPORT_FBX_PRESERVE_PIVOTS, false);
 
 
-	auto data_path = SAMPLE_SAMPLE0_DATA_PATH"\\Models\\Bistro_v5_2\\BistroExterior.fbx";
+	auto data_path = SAMPLE_SAMPLE0_DATA_PATH"\\Models\\Box\\box.fbx";
 	auto data_root = SAMPLE_SAMPLE0_DATA_PATH"\\Models\\ZeroDay";
 
 	unsigned int flag = 0;
@@ -53,7 +53,7 @@ int main(int argc, const char** argv)
 
 	auto scene = importer.ReadFile(data_path,flag);
 	
-	RTLib::Int32 width  = 800;
+	RTLib::Int32 width  = 1024;
 	RTLib::Int32 height = 0;
 
 	std::unordered_map<aiNode*, aiMatrix4x4> modelMatrixMap = {};
@@ -241,36 +241,64 @@ int main(int argc, const char** argv)
 		auto cameraNode = scene->mRootNode->FindNode(scene->mCameras[0]->mName.C_Str());
 
 		auto viewMatrix = RTLib::Matrix4x4();
-		auto tmp = aiMatrix4x4();
-		camera->GetCameraMatrix(tmp);
-		auto tmp2 = modelMatrixMap[cameraNode] ;
-		std::memcpy(&viewMatrix, &tmp2, sizeof(tmp2));
+		//auto tmp = aiMatrix4x4();
+		//camera->GetCameraMatrix(tmp);
+		//auto tmp2 = modelMatrixMap[cameraNode] ;
+		//std::memcpy(&viewMatrix, &tmp2, sizeof(tmp2));
 
-		viewMatrix = glm::inverse(glm::transpose(viewMatrix));
-		auto projMatrix = glm::perspective(
-			camera->mHorizontalFOV, camera->mAspect, camera->mClipPlaneNear, camera->mClipPlaneFar
-		);
+		//viewMatrix = glm::inverse(viewMatrix);
+		auto projMatrix = glm::perspective(camera->mHorizontalFOV*2.0f, camera->mAspect, camera->mClipPlaneNear, camera->mClipPlaneFar);
 		auto viewProjMatrix = RTLib::Core::Matrix4x4();
 		{
-			viewMatrix = glm::lookAt(
-				glm::vec3(camera->mPosition[0], camera->mPosition[1], camera->mPosition[2]),
-				glm::normalize(glm::vec3(camera->mLookAt[0], camera->mLookAt[1], camera->mLookAt[2])),
-				glm::normalize(glm::vec3(camera->mUp[0], camera->mUp[1], camera->mUp[2]))
-			);
+			// Position
+			//               X     Y      Z
+			// BLENDERの結果 7.35 -6.9258 4.9583
+			// ASSIMP の結果 735   495    6.92
+			//               XYZ   ->     XZ -Y
+			viewMatrix =  glm::lookAt(
+				glm::vec3(camera->mPosition[0], camera->mPosition[1], camera->mPosition[2])/100.0f,
+				glm::vec3(camera->mPosition[0], camera->mPosition[1], camera->mPosition[2])/100.0f +
+				glm::vec3(camera->mLookAt[0]  , camera->mLookAt[1]  , camera->mLookAt[2])/100.0f ,
+				glm::vec3(camera->mUp[0]      , camera->mUp[1]      , camera->mUp[2]      )/100.0f
+			) ;
+			std::cout << "Position: " << glm::to_string(glm::vec3(camera->mPosition[0], camera->mPosition[1], camera->mPosition[2])) << std::endl;
+			std::cout << "LookAt  : " << glm::to_string(glm::vec3(camera->mLookAt  [0], camera->mLookAt  [1], camera->mLookAt  [2])) << std::endl;
+			std::cout << "Up      : " << glm::to_string(glm::vec3(camera->mUp      [0], camera->mUp      [1], camera->mUp      [2])) << std::endl;
+			// 100
+			std::cout << glm::length(glm::vec3(camera->mLookAt[0], camera->mLookAt[1], camera->mLookAt[2])) << std::endl;
+			// 100
+			std::cout << glm::length(glm::vec3(camera->mUp[0]    , camera->mUp[1]    , camera->mUp[2]    )) << std::endl;
+			// Field Of View
+			// BLENDERの結果 39.6
+			// ASSIMP の結果 39.6
+			auto fovy  = glm::degrees(camera->mHorizontalFOV);
+			auto quat  = glm::toQuat(glm::mat3(viewMatrix));
+			auto euler = glm::degrees(glm::eulerAngles(quat));
+			// ROTATION
+			// BLENDERの結果 63.6 0.0 46.7
+			auto mat4 = glm::mat4(glm::quat(glm::radians(glm::vec3(63.6, 0.0f, 46.7))));
+			auto trnx = mat4 * glm::vec4(1.0f, 0.0f, 0.0f, 1.0f);
+			//BLENDER = {x=0.323593438,y=0.304939032,z=0.895711720 }
+			//UP      = {x=-32.4013519 y=89.5395813, z=-30.5420818 }
+			auto trny = mat4 * glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
+			//BLENDER ={x=0.651874602 y=-0.614295542z=0.444635272 }
+			//LOOKAT  = x=-65.1557999 y=-44.5271378 z=-61.4170685 }
+			//XYZ -> -X-ZY
+			auto trnz = mat4 * glm::vec4(0.0f, 0.0f, 1.0f, 1.0f);
+
 
 			viewProjMatrix = projMatrix * viewMatrix;
-			std::cout << glm::to_string(viewProjMatrix) << std::endl;
+			
 		}
 
 		gl->Enable(GL_DEPTH_TEST);
 		gl->DepthFunc(GL_LESS);
 		gl->DepthRangef(-1.0f, 1.0f);
-		gl->DepthMask(GL_FALSE);
 		gl->Enable(GL_CULL_FACE_MODE);
 		while (!glfwWindowShouldClose(window))
 		{
 			gl->Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-			gl->ClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+			gl->ClearColor(1.0f, 0.0f, 1.0f, 1.0f);
 			gl->ClearDepth(1.0f);
 			gl->Viewport(0,0,width,height);
 			gl->UseProgram(prg);
@@ -326,28 +354,7 @@ int main(int argc, const char** argv)
 				{
 					camera->mPosition -= camera->mUp;
 				}
-				{
-					viewMatrix = RTLib::Matrix4x4();
-					auto tmp = aiMatrix4x4();
-					camera->GetCameraMatrix(tmp);
-					auto tmp2 = modelMatrixMap[cameraNode];
-					std::memcpy(&viewMatrix, &tmp2, sizeof(tmp2));
 
-					viewMatrix = glm::inverse(glm::transpose(viewMatrix));
-					viewMatrix = glm::lookAt(
-						glm::vec3(camera->mPosition[0], camera->mPosition[1], camera->mPosition[2]),
-						glm::normalize(glm::vec3(camera->mLookAt[0], camera->mLookAt[1], camera->mLookAt[2])),
-						glm::normalize(glm::vec3(camera->mUp[0], camera->mUp[1], camera->mUp[2]))
-					);
-
-					projMatrix = glm::perspective(
-						camera->mHorizontalFOV, camera->mAspect, camera->mClipPlaneNear, camera->mClipPlaneFar
-					);
-
-					viewProjMatrix = RTLib::Core::Matrix4x4();
-					viewProjMatrix = projMatrix * viewMatrix;
-					std::cout << glm::to_string(viewProjMatrix) << std::endl;
-				}
 			}
 		}
 		{
