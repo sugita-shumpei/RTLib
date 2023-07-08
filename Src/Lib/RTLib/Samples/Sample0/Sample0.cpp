@@ -34,19 +34,29 @@
 #include <cstdlib>
 #include <stack>
 #include <functional>
+#include <fstream>
 #include <unordered_set>
+#include "Sample0.h"
+
+struct Vertex
+{
+	RTLib::Vector3 position;
+	RTLib::Vector3 normal;
+	RTLib::Vector2 uv;
+};
 
 int main(int argc, const char** argv)
 {
+
 	auto importer = Assimp::Importer();
 	//importer.SetPropertyBool(AI_CONFIG_IMPORT_FBX_PRESERVE_PIVOTS, false);
 	importer.SetPropertyFloat(AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY, 0.01f);
-	auto data_path = SAMPLE_SAMPLE0_DATA_PATH"\\Models\\ZeroDay\\MEASURE_ONE\\MEASURE_ONE.fbx";
-	//auto data_path = SAMPLE_SAMPLE0_DATA_PATH"\\Models\\Bistro_v5_2\\BistroExterior.fbx";
+	//auto data_path = SAMPLE_SAMPLE0_DATA_PATH"\\Models\\ZeroDay\\MEASURE_ONE\\MEASURE_ONE.fbx";
+	auto data_path = SAMPLE_SAMPLE0_DATA_PATH"\\Models\\Bistro_v5_2\\BistroExterior.fbx";
 	auto data_root = SAMPLE_SAMPLE0_DATA_PATH"\\Models\\ZeroDay";
 
 	unsigned int flag = 0;
-	flag |= aiProcess_PreTransformVertices;
+	//flag |= aiProcess_PreTransformVertices;
 	flag |= aiProcess_Triangulate;
 	//flag |= aiProcess_GenSmoothNormals;
 	flag |= aiProcess_GenUVCoords;
@@ -55,34 +65,54 @@ int main(int argc, const char** argv)
 
 	auto scene = importer.ReadFile(data_path, flag);
 
+	auto rootNode = std::shared_ptr<RootNode>(new RootNode(scene->mRootNode));
+	{
+		auto cameras = std::vector<aiCamera*>(scene->mCameras, scene->mCameras + scene->mNumCameras);
+		//auto cameraNode = rootNode->find_node(cameras[0]->mName.C_Str());
+		auto sceneMeta = scene->mMetaData;
+
+		for (auto camera : cameras) {
+			auto cameraName = camera->mName;
+			auto cameraNode = rootNode->find_node(cameraName.C_Str());
+			auto nextKey = cameraNode.lock()->m_Parent.lock()->m_Node;
+			bool isDone = false;
+			while (!isDone) {
+				auto& parentTrans = rootNode->nodeMap.at(nextKey);
+				auto parentNode = parentTrans.node.lock();
+				auto parentName = std::string(parentNode->m_Node->mName.C_Str());
+				auto baseName   = std::string(cameraName.C_Str()) + "_$AssimpFbx$_";
+				if (parentName.size() < baseName.size()) {
+					isDone = true;
+					break;
+				}
+				parentName = parentName.substr(0, baseName.size());
+				if (parentName != baseName) {
+					isDone = true;
+					break;
+				}
+				parentNode->m_LocalPosition = RTLib::Vector3(0.0f);
+				parentNode->m_LocalRotation = RTLib::Quat(1.0f,0.0f,0.0f,0.0f);
+				parentNode->m_LocalScaling  = RTLib::Vector3(1.0f);
+				parentNode->m_Dirty         = true;
+
+				nextKey = parentNode->m_Parent.lock()->m_Node;
+			}
+		}
+	}
+	auto animation = std::shared_ptr<Animation>(new Animation(scene->mAnimations[0], rootNode));
+	
+
+	animation->update_frames(0.0);
+
+	scene->mCameras[0]->mAspect = 16.0f / 9.0f;
+
 	RTLib::Int32 width = 1024;
 	RTLib::Int32 height = 0;
 
-	std::unordered_map<aiNode*, RTLib::Matrix4x4> modelMatrixMap = {};
 	std::vector<GLuint> meshVaos = {};
 	std::vector<GLuint> meshVbos = {};
 	std::vector<std::pair<GLuint, GLsizei>> meshIbos = {};
 
-	{
-		std::stack<aiNode*> nodes = {};
-		nodes.push(scene->mRootNode);
-		modelMatrixMap[scene->mRootNode] = glm::transpose(std::_Bit_cast<RTLib::Matrix4x4>(scene->mRootNode->mTransformation));
-
-		while (!nodes.empty()) {
-			auto node = nodes.top();
-			nodes.pop();
-			auto numChildren = node->mNumChildren;
-			for (auto i = 0; i < numChildren; ++i) {
-				auto child = node->mChildren[i];
-				auto parentTransform = modelMatrixMap.at(node);
-				auto childTransform  = glm::transpose(std::_Bit_cast<RTLib::Matrix4x4>(child->mTransformation));
-				modelMatrixMap.insert({ child, parentTransform * childTransform });
-				nodes.push(child);
-			}
-		}
-
-
-	}
 	glfwInit();
 	{
 		auto camera = scene->mCameras[0];
@@ -109,37 +139,38 @@ int main(int argc, const char** argv)
 			meshVbos.resize(scene->mNumMeshes);
 			for (RTLib::UInt64 i = 0; i < scene->mNumMeshes; ++i) {
 				auto mesh = scene->mMeshes[i];
-				std::vector<RTLib::Float32> vertices(mesh->mNumVertices * 8);
+				std::vector<Vertex> vertices(mesh->mNumVertices);
 				std::vector<RTLib::UInt32>  indices(mesh->mNumFaces * 3);
 				for (RTLib::UInt64 j = 0; j < mesh->mNumVertices; ++j) {
-					vertices[8 * j + 0] = mesh->mVertices[j][0];
-					vertices[8 * j + 1] = mesh->mVertices[j][1];
-					vertices[8 * j + 2] = mesh->mVertices[j][2];
+					vertices[j].position.x = mesh->mVertices[j][0];
+					vertices[j].position.y = mesh->mVertices[j][1];
+					vertices[j].position.z = mesh->mVertices[j][2];
 					if (mesh->HasNormals())
 					{
-						vertices[8 * j + 3] = mesh->mNormals[j][0];
-						vertices[8 * j + 4] = mesh->mNormals[j][1];
-						vertices[8 * j + 5] = mesh->mNormals[j][2];
+						vertices[j].normal.x = mesh->mNormals[j][0];
+						vertices[j].normal.y = mesh->mNormals[j][1];
+						vertices[j].normal.z = mesh->mNormals[j][2];
 					}
 					else {
 
-						vertices[8 * j + 3] = 0.0f;
-						vertices[8 * j + 4] = 0.0f;
-						vertices[8 * j + 5] = 0.0f;
+						vertices[j].normal.x = 0.0f;
+						vertices[j].normal.y = 0.0f;
+						vertices[j].normal.z = 1.0f;
 					}
 					if (mesh->HasTextureCoords(0))
 					{
-						vertices[8 * j + 6] = mesh->mTextureCoords[0][j][0];
-						vertices[8 * j + 7] = mesh->mTextureCoords[0][j][1];
+						vertices[j].uv.x = mesh->mTextureCoords[0][j][0];
+						vertices[j].uv.y = mesh->mTextureCoords[0][j][1];
 					}
 					else {
 
-						vertices[8 * j + 6] = 0.5f;
-						vertices[8 * j + 7] = 0.5f;
+						vertices[j].uv.x = 0.5f;
+						vertices[j].uv.y = 0.5f;
 					}
 					//std::cout << "V: " << vertices[8 * j + 0] << "," << vertices[8 * j + 1] << "," << vertices[8 * j + 2] << std::endl;
 				}
 				for (RTLib::UInt64 j = 0; j < mesh->mNumFaces; ++j) {
+					assert(mesh->mFaces[j].mNumIndices == 3);
 					indices[3 * j + 0] = mesh->mFaces[j].mIndices[0];
 					indices[3 * j + 1] = mesh->mFaces[j].mIndices[1];
 					indices[3 * j + 2] = mesh->mFaces[j].mIndices[2];
@@ -154,6 +185,7 @@ int main(int argc, const char** argv)
 				meshVbos[i] = bff[0];
 				meshIbos[i] = { bff[1],mesh->mNumFaces * 3 };
 
+
 				gl->BindBuffer(GL_ARRAY_BUFFER, bff[0]);
 				gl->BufferData(GL_ARRAY_BUFFER, mesh->mNumVertices * sizeof(RTLib::Float32) * 8, vertices.data(), GL_STATIC_DRAW);
 
@@ -163,18 +195,19 @@ int main(int argc, const char** argv)
 				gl->BindVertexArray(vao);
 				gl->BindBuffer(GL_ARRAY_BUFFER, bff[0]);
 				gl->BindBuffer(GL_ELEMENT_ARRAY_BUFFER, bff[1]);
-				auto offset = static_cast<GLintptr>(0);
-				gl->VertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(RTLib::Float32) * 8, reinterpret_cast<void*>(offset));
+
+				gl->VertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof Vertex, reinterpret_cast<void*>(&static_cast<Vertex*>(nullptr)->position));
 				gl->EnableVertexAttribArray(0);
-				offset = static_cast<GLintptr>(sizeof(RTLib::Float32) * 3);
-				gl->VertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(RTLib::Float32) * 8, reinterpret_cast<void*>(offset));
+				gl->VertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof Vertex, reinterpret_cast<void*>(&static_cast<Vertex*>(nullptr)->normal));
 				gl->EnableVertexAttribArray(1);
-				offset = static_cast<GLintptr>(sizeof(RTLib::Float32) * 6);
-				gl->VertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(RTLib::Float32) * 8, reinterpret_cast<void*>(offset));
+				gl->VertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof Vertex, reinterpret_cast<void*>(&static_cast<Vertex*>(nullptr)->uv));
 				gl->EnableVertexAttribArray(2);
+
 				gl->BindVertexArray(0);
 				gl->BindBuffer(GL_ARRAY_BUFFER, 0);
 				gl->BindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+				gl->ObjectLabel(GL_VERTEX_ARRAY, vao, -1, mesh->mName.C_Str());
 			}
 		}
 
@@ -186,19 +219,23 @@ int main(int argc, const char** argv)
 				"layout (location = 1) in vec3 normal;\n"
 				"layout (location = 2) in vec2 uv;\n"
 				"uniform mat4 model;\n"
-				"uniform mat4 viewProj;\n"
+				"uniform mat4 view;\n"
+				"uniform mat4 proj;\n"
 				"out vec3 outNormal;\n"
+				"out vec2 outUv;\n"
 				"void main(){\n"
-				"	gl_Position = viewProj * model * vec4(position,1.0);\n"
+				"	gl_Position = proj * view * model * vec4(position,1.0);\n"
 				"	outNormal = normalize(normal);\n"
+				"	outUv = uv;\n"
 				"}\n";
 			constexpr RTLib::Char fsSource[] =
 				"#version 460 core\n"
 				"in vec3 outNormal;\n"
+				"in vec2 outUv;\n"
 				"uniform vec4 color;\n"
 				"layout (location = 0) out vec4 fragColor;\n"
 				"void main(){\n"
-				"	fragColor = vec4(0.5*outNormal+0.5,1.0);\n"
+				"	fragColor = vec4(outUv,1.0-dot(outUv,vec2(0.5)),1.0);\n"
 				"}\n";
 			const RTLib::Char* pVsSource = vsSource;
 			const RTLib::Char* pFsSource = fsSource;
@@ -251,36 +288,13 @@ int main(int argc, const char** argv)
 		}
 
 		auto modelPos    = gl->GetUniformLocation(prg, "model");
-		auto viewProjPos = gl->GetUniformLocation(prg, "viewProj");
+		auto viewPos     = gl->GetUniformLocation(prg, "view");
+		auto projPos     = gl->GetUniformLocation(prg, "proj");
 		auto colorPos    = gl->GetUniformLocation(prg, "color");
-
-		auto cameraNode = scene->mRootNode->FindNode(scene->mCameras[0]->mName.C_Str());
-		auto lookAtLen  = camera->mLookAt.Length();
-		auto upLen      = camera->mUp.Length();
-		auto viewMatrix = glm::lookAt(
-			glm::vec3(camera->mPosition[0], camera->mPosition[1], camera->mPosition[2]),
-			glm::vec3(camera->mPosition[0], camera->mPosition[1], camera->mPosition[2]) +
-			glm::vec3(camera->mLookAt[0]  , camera->mLookAt[1]  , camera->mLookAt[2]  ),
-			glm::vec3(camera->mUp[0]      , camera->mUp[1]      , camera->mUp[2]      )
-		);
-		auto cameraLocalMatrixXLen = glm::length(glm::vec3(viewMatrix[0]));
-		auto cameraLocalMatrixYLen = glm::length(glm::vec3(viewMatrix[1]));
-		auto cameraLocalMatrixZLen = glm::length(glm::vec3(viewMatrix[2]));
-
-		auto viewMatrixBase = glm::inverse(modelMatrixMap.at(cameraNode));
-
-		auto cameraPrarentMatrix = glm::transpose(std::_Bit_cast<RTLib::Core::Matrix4x4>(cameraNode->mTransformation));
-
-		auto cameraParentMatrixXLen = glm::length(glm::vec3(cameraPrarentMatrix[0]));
-		auto cameraParentMatrixYLen = glm::length(glm::vec3(cameraPrarentMatrix[1]));
-		auto cameraParentMatrixZLen = glm::length(glm::vec3(cameraPrarentMatrix[2]));
-
-		viewMatrix = viewMatrix * viewMatrixBase;
-
-		auto cameraMatrixXLen = glm::length(glm::vec3(viewMatrix[0]));
-		auto cameraMatrixYLen = glm::length(glm::vec3(viewMatrix[1]));
-		auto cameraMatrixZLen = glm::length(glm::vec3(viewMatrix[2]));
-
+		auto cameraName = scene->mCameras[0]->mName;
+		auto cameraNode = rootNode->find_node(cameraName.C_Str()).lock();
+		auto cameraParent = cameraNode->m_Parent.lock();
+		
 		// OPENGLが想定しているFOVはY軸まわり, 一方でASSIMPが想定しているFOVはX軸まわり
 		// なので結果を変える必要有
 		// X = ASPECT * TAN_Y
@@ -291,12 +305,46 @@ int main(int argc, const char** argv)
 		// 注意: cameraのmClipPlaneNear, mClipPlaneFarは正規化された空間におけるFrustrum(0~1)ではなく
 		// ビュー空間における値
 		// そのため, View行列の深度方向のスケールをかける必要あり
+		camera->mHorizontalFOV = glm::radians(57.0f);
 
-		float fovy = std::atan(std::tan(camera->mHorizontalFOV / 2.0f) / camera->mAspect) * 2.0f;
-		auto projMatrix = glm::perspective(fovy, camera->mAspect, camera->mClipPlaneNear, camera->mClipPlaneFar);
+		auto viewMatrix = RTLib::Matrix4x4();
+		{
+			auto cameraTransform = rootNode->find_node_transform(cameraNode->get_name()).transform;
+
+			auto lookAtLen = camera->mLookAt.Length();
+			auto upLen = camera->mUp.Length();
+
+			auto viewMatrixLocal = glm::lookAt(
+				glm::vec3(camera->mPosition[0], camera->mPosition[1], camera->mPosition[2]),
+				glm::vec3(camera->mPosition[0], camera->mPosition[1], camera->mPosition[2]) +
+				glm::vec3(camera->mLookAt[0], camera->mLookAt[1], camera->mLookAt[2]),
+				glm::vec3(camera->mUp[0], camera->mUp[1], camera->mUp[2])
+			);
+			// T * R * S
+			// R.row0 SX      SX*R.row0.x SY*R.row0.y SZ*R.row0.z
+			// R.row1   SY    SX*R.row1.x SY*R.row1.y SZ*R.row1.z
+			// R.row2     SZ  SX*R.row2.x SY*R.row2.y SZ*R.row2.z
+			auto cameraToWorldBase = cameraTransform; // SCALEが含まれているので正規化する必要有
+			cameraToWorldBase[0] = glm::normalize(cameraToWorldBase[0]);
+			cameraToWorldBase[1] = glm::normalize(cameraToWorldBase[1]);
+			cameraToWorldBase[2] = glm::normalize(cameraToWorldBase[2]);
+
+			auto cameraScale    = cameraNode->m_LocalScaling;
+			auto viewMatrixParent = glm::inverse(cameraToWorldBase);
+
+			viewMatrix = viewMatrixLocal * viewMatrixParent;
+		}
+		auto projMatrix = RTLib::Matrix4x4();
+		{
+
+			float fovy = std::atan(std::tan(camera->mHorizontalFOV / 2.0f) / camera->mAspect) * 2.0f;
+			projMatrix= glm::perspectiveLH(fovy, camera->mAspect, camera->mClipPlaneNear, camera->mClipPlaneFar);
+		}
+			
 
 		auto viewProjMatrix = projMatrix * viewMatrix;
 		{
+
 			std::cout << glm::to_string(viewProjMatrix) << std::endl;
 		}
 
@@ -355,7 +403,34 @@ int main(int argc, const char** argv)
 		//}
 		gl->Enable(GL_DEPTH_TEST);
 		gl->DepthFunc(GL_LESS);
+		gl->Disable(GL_CULL_FACE);
 
+		//auto nodeTrans = std::vector<NodeTransform>();
+		//{
+		//	auto nodeStack = std::stack<aiNode*>();
+		//	auto roomNode = rootNode->find_node("BASE_ROOM1");
+		//	nodeStack.push(roomNode.lock()->m_Node);
+		//	nodeTrans.push_back(rootNode->nodeMap.at(roomNode.lock()->m_Node));
+
+		//	while (!nodeStack.empty()) {
+		//		auto node = nodeStack.top();
+		//		nodeStack.pop();
+		//		for (auto i = 0; i < node->mNumChildren; ++i) {
+		//			nodeStack.push(node->mChildren[i]);
+		//			nodeTrans.push_back(
+		//				rootNode->nodeMap.at(node->mChildren[i])
+		//			);
+		//		}
+		//	}
+
+		//}
+		auto idx = 0;
+		auto idx_delta = 0;
+		auto tickPerSecond = animation->m_TickPerSecond;
+		auto curTime = 0.0f;
+		auto delTime = 0.0f;
+
+		glfwSetTime(0.0f);
 		while (!glfwWindowShouldClose(window))
 		{
 			gl->Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -363,88 +438,116 @@ int main(int argc, const char** argv)
 			gl->ClearDepth(1.0f);
 			gl->Viewport(0, 0, width, height);
 			gl->UseProgram(prg);
-			gl->UniformMatrix4fv(viewProjPos, 1, GL_FALSE, &viewProjMatrix[0][0]);
-			std::unordered_set<RTLib::UInt32> alreadyDrawSet = {};
-			for (auto& [node, model] : modelMatrixMap)
 			{
-				gl->UniformMatrix4fv(modelPos, 1, GL_FALSE, &model[0][0]);
-				for (auto i = 0; i < node->mNumMeshes; ++i) {
+				//for (auto& nodeTran : nodeTrans)
+				//{
+				//	auto node = nodeTran.node.lock()->m_Node;
+				for (auto&[node,nodeTran]:rootNode->nodeMap)
+				{
+					
+					for (auto i = 0; i < node->mNumMeshes; ++i) {
 
-					RTLib::UInt32 meshIdx = node->mMeshes[i];
-					if (alreadyDrawSet.count(meshIdx) > 0) { continue; }
-					std::mt19937 mt1(meshIdx);
-					std::mt19937 mt(mt1);
-					std::uniform_real_distribution<float> uni(0.0f, 1.0f);
-					RTLib::Vector4 vec(uni(mt), uni(mt), uni(mt), 1.0f);
-					GLuint vao = meshVaos.at(meshIdx);
-					GLuint cnt = meshIbos.at(meshIdx).second;
-					gl->Uniform4fv(colorPos, 1, &vec[0]);
-					gl->BindVertexArray(vao);
-					gl->DrawElements(GL_TRIANGLES, scene->mMeshes[meshIdx]->mNumFaces * 3, GL_UNSIGNED_INT, 0);
-					alreadyDrawSet.insert(meshIdx);
+						RTLib::UInt32 meshIdx = node->mMeshes[i];
+
+						std::mt19937 mt1(meshIdx);
+						std::mt19937 mt(mt1);
+						std::uniform_real_distribution<float> uni(0.0f, 1.0f);
+						RTLib::Vector4 vec(uni(mt), uni(mt), uni(mt), 1.0f);
+						GLuint vao = meshVaos.at(meshIdx);
+						GLuint cnt = meshIbos.at(meshIdx).second;
+
+						gl->Uniform4fv(colorPos, 1, &vec[0]);
+						gl->UniformMatrix4fv(modelPos, 1, GL_FALSE, &nodeTran.transform[0][0]);//おそらくあっている
+						gl->UniformMatrix4fv(projPos , 1, GL_FALSE, &projMatrix[0][0]);
+						gl->UniformMatrix4fv(viewPos , 1, GL_FALSE, &viewMatrix[0][0]);
+
+						gl->BindVertexArray(vao);
+						gl->DrawElements(GL_TRIANGLES, scene->mMeshes[meshIdx]->mNumFaces * 3, GL_UNSIGNED_INT, 0);
+					}
 				}
 			}
 			glfwSwapBuffers(window);
 			glfwPollEvents();
+			//{
+			//	float cameraVelocity = 1.0f;
+			//	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+			//	{
+			//		camera->mPosition += cameraVelocity * camera->mLookAt;
+
+			//	}
+			//	if ((glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) ||
+			//		(glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS))
+			//	{
+
+			//		auto right = camera->mUp ^ camera->mLookAt;
+			//		auto rightLen = std::sqrt(right.Length());
+			//		right.Normalize();
+			//		right *= rightLen;
+			//		camera->mPosition -= cameraVelocity * right;
+
+			//	}
+			//	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+			//	{
+			//		camera->mPosition -= cameraVelocity * camera->mLookAt;
+			//	}
+			//	if ((glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) ||
+			//		(glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS))
+			//	{
+			//		auto right = camera->mUp ^ camera->mLookAt;
+			//		auto rightLen = std::sqrt(right.Length());
+			//		right.Normalize();
+			//		right *= rightLen;
+			//		camera->mPosition += cameraVelocity * right;
+			//	}
+			//	if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+			//	{
+			//		camera->mPosition += cameraVelocity * camera->mUp;
+			//	}
+			//	if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+			//	{
+			//		camera->mPosition -= cameraVelocity * camera->mUp;
+			//	}
+			//}
+			curTime = glfwGetTime();
+
+			auto title = std::to_string(delTime);
+			glfwSetWindowTitle(window, title.c_str());
+
+			animation->update_frames(curTime);
+
 			{
-				float cameraVelocity = 1.0f;
-				if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-				{
-					camera->mPosition += cameraVelocity * camera->mLookAt;
+				auto cameraTransform = rootNode->find_node_transform(cameraNode->get_name()).transform;
 
-				}
-				if ((glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) ||
-					(glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS))
-				{
+				auto lookAtLen = camera->mLookAt.Length();
+				auto upLen = camera->mUp.Length();
 
-					auto right = camera->mUp ^ camera->mLookAt;
-					auto rightLen = std::sqrt(right.Length());
-					right.Normalize();
-					right *= rightLen;
-					camera->mPosition -= cameraVelocity * right;
+				auto viewMatrixLocal = glm::lookAt(
+					glm::vec3(camera->mPosition[0], camera->mPosition[1], camera->mPosition[2]),
+					glm::vec3(camera->mPosition[0], camera->mPosition[1], camera->mPosition[2]) +
+					glm::vec3(camera->mLookAt[0], camera->mLookAt[1], camera->mLookAt[2]),
+					glm::vec3(camera->mUp[0], camera->mUp[1], camera->mUp[2])
+				);
+				// T * R * S
+				// R.row0 SX      SX*R.row0.x SY*R.row0.y SZ*R.row0.z
+				// R.row1   SY    SX*R.row1.x SY*R.row1.y SZ*R.row1.z
+				// R.row2     SZ  SX*R.row2.x SY*R.row2.y SZ*R.row2.z
+				auto cameraToWorldBase = cameraTransform; // SCALEが含まれているので正規化する必要有
+				cameraToWorldBase[0] = glm::normalize(cameraToWorldBase[0]);
+				cameraToWorldBase[1] = glm::normalize(cameraToWorldBase[1]);
+				cameraToWorldBase[2] = glm::normalize(cameraToWorldBase[2]);
 
-				}
-				if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-				{
-					camera->mPosition -= cameraVelocity * camera->mLookAt;
-				}
-				if ((glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) ||
-					(glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS))
-				{
-					auto right = camera->mUp ^ camera->mLookAt;
-					auto rightLen = std::sqrt(right.Length());
-					right.Normalize();
-					right *= rightLen;
-					camera->mPosition += cameraVelocity * right;
-				}
-				if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
-				{
-					camera->mPosition += cameraVelocity * camera->mUp;
-				}
-				if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
-				{
-					camera->mPosition -= cameraVelocity * camera->mUp;
-				}
-				{
-					viewMatrix = glm::lookAt(
-						glm::vec3(camera->mPosition[0], camera->mPosition[1], camera->mPosition[2]),
-						glm::vec3(camera->mPosition[0], camera->mPosition[1], camera->mPosition[2]) +
-						glm::vec3(camera->mLookAt[0]  , camera->mLookAt[1]  , camera->mLookAt[2]),
-						glm::vec3(camera->mUp[0], camera->mUp[1], camera->mUp[2])
-					) * viewMatrixBase;
-					// GLMが想定しているFOVはY軸まわり, 一方でASSIMPが想定しているFOVはX軸まわり
-					// なので結果を変える必要有
-					// X = ASPECT * TAN_Y
-					// Y = TAN_Y
-					// 
-					// X = TAN_X
-					// Y = TAN_X / ASPECT
-					fovy = std::atan(std::tan(camera->mHorizontalFOV / 2.0f) / camera->mAspect) * 2.0f;
-					projMatrix = glm::perspective(fovy, camera->mAspect, camera->mClipPlaneNear, camera->mClipPlaneFar);
+				auto cameraScale = cameraNode->m_LocalScaling;
+				auto viewMatrixParent = glm::inverse(cameraToWorldBase);
 
-					viewProjMatrix = projMatrix * viewMatrix;
-				}
+				viewMatrix = viewMatrixLocal * viewMatrixParent;
 			}
+			{
+
+				float fovy = std::atan(std::tan(camera->mHorizontalFOV / 2.0f) / camera->mAspect) * 2.0f;
+				projMatrix = glm::perspectiveLH(fovy, camera->mAspect, camera->mClipPlaneNear, camera->mClipPlaneFar);
+			}
+
+
 		}
 		{
 			gl->DeleteVertexArrays(meshVaos.size(), meshVaos.data());
