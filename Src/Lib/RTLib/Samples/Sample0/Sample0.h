@@ -3,6 +3,168 @@
 #include <RTLib/Core/Vector.h>
 #include <assimp/mesh.h>
 #include <vector>
+
+struct MetaData
+{
+	MetaData(aiMetadata* metadata = nullptr) noexcept
+	{
+		if (!metadata) {
+			return;
+		}
+		for (auto i = 0; i < metadata->mNumProperties; ++i) {
+			auto key = metadata->mKeys[i].C_Str();
+			auto val = metadata->mValues[i];
+			switch (val.mType)
+			{
+			case AI_BOOL:
+			{
+				auto val = false; metadata->Get<bool>(key, val);
+				m_KeyMap.insert({ key, m_TypeIndices.size() });
+				m_TypeIndices.push_back({ Type::eBool, m_Bools.size() });
+				m_Bools.push_back(val);
+			}
+			break;
+			case AI_INT32:
+			{
+				auto val = RTLib::Int32(0); metadata->Get<RTLib::Int32>(key, val);
+				m_KeyMap.insert({ key, m_TypeIndices.size() });
+				m_TypeIndices.push_back({ Type::eInt32, m_Int32s.size() });
+				m_Int32s.push_back(val);
+			}
+			break;
+			case AI_UINT64:
+			{
+				auto val = RTLib::UInt64(0); metadata->Get<RTLib::UInt64>(key, val);
+				m_KeyMap.insert({ key, m_TypeIndices.size() });
+				m_TypeIndices.push_back({ Type::eUInt64, m_UInt64s.size() });
+				m_UInt64s.push_back(val);
+			}
+			break;
+			case AI_FLOAT:
+			{
+				auto val = RTLib::Float32(0); metadata->Get<RTLib::Float32>(key, val);
+				m_KeyMap.insert({ key, m_TypeIndices.size() });
+				m_TypeIndices.push_back({ Type::eFloat32, m_Float32s.size() });
+				m_Float32s.push_back(val);
+			}
+			break;
+			case AI_DOUBLE:
+			{
+				auto val = RTLib::Float64(0); metadata->Get<RTLib::Float64>(key, val);
+				m_KeyMap.insert({ key, m_TypeIndices.size() });
+				m_TypeIndices.push_back({ Type::eFloat64, m_Float64s.size() });
+				m_Float64s.push_back(val);
+			}
+			break;
+			case AI_AISTRING:
+			{
+				auto val = aiString(""); metadata->Get<aiString>(key, val);
+				m_KeyMap.insert({ key, m_TypeIndices.size() });
+				m_TypeIndices.push_back({ Type::eString, m_Strings.size() });
+				m_Strings.push_back(val.C_Str());
+			}
+			break;
+			case AI_AIVECTOR3D:
+			{
+				auto val = aiVector3D(); metadata->Get<aiVector3D>(key, val);
+				m_KeyMap.insert({ key, m_TypeIndices.size() });
+				m_TypeIndices.push_back({ Type::eVector3, m_Vector3s.size() });
+				m_Vector3s.push_back(RTLib::Vector3(val.x, val.y, val.z));
+			}
+			break;
+			case AI_AIMETADATA:
+			{
+				aiMetadata val; metadata->Get<aiMetadata>(key, val);
+				m_KeyMap.insert({ key, m_TypeIndices.size() });
+				m_TypeIndices.push_back({ Type::eMetaData, m_Metadatas.size() });
+				auto metadata = MetaData(&val);
+				m_Metadatas.push_back(std::move(metadata));
+			}
+			break;
+			case AI_META_MAX:
+				break;
+			case FORCE_32BIT:
+				break;
+			default:
+				break;
+			}
+		}
+	}
+
+	bool has_key(std::string name) const noexcept { return m_KeyMap.count(name) > 0; }
+
+	template<typename T>
+	bool get_val(std::string name, T& val) const noexcept {
+		if (!has_key(name)) { return false; }
+		auto [type, index] = m_TypeIndices[m_KeyMap.at(name)];
+		if (type == Type::eBool) {
+			if constexpr (std::is_same_v<T, RTLib::Bool>) { val = m_Bools[index]; return true; }
+		}
+		if (type == Type::eInt32) {
+			if constexpr (std::is_same_v<T, RTLib::Int32>) { val = m_Int32s[index]; return true; }
+		}
+		if (type == Type::eUInt64) {
+			if constexpr (std::is_same_v<T, RTLib::UInt64>) { val = m_UInt64s[index]; return true; }
+		}
+		if (type == Type::eFloat32) {
+			if constexpr (std::is_same_v<T, RTLib::Float32>) { val = m_Float32s[index]; return true; }
+		}
+		if (type == Type::eFloat64) {
+			if constexpr (std::is_same_v<T, RTLib::Float64>) { val = m_Float64s[index]; return true; }
+		}
+		if (type == Type::eString) {
+			if constexpr (std::is_same_v<T, RTLib::String>) { val = m_Strings[index]; return true; }
+		}
+		if (type == Type::eVector3) {
+			if constexpr (std::is_same_v<T, RTLib::Vector3>) { val = m_Vector3s[index]; return true; }
+		}
+		if (type == Type::eMetaData) {
+			if constexpr (std::is_same_v<T, MetaData>) { val = m_Metadatas[index]; return true; }
+		}
+		return false;
+	}
+
+	auto get_keys() const noexcept -> std::vector<std::string> {
+		std::vector<std::string> keys; keys.reserve(m_KeyMap.size());
+		for (auto& [key, idx] : m_KeyMap) { keys.push_back(key); }
+		return keys;
+	}
+
+	template<typename T>
+	auto get_keys_and_vals() const noexcept -> std::vector<std::pair<std::string, T>>
+	{
+		std::vector<std::pair<std::string, T>> res = {};
+		for (auto& [key, idx] : m_KeyMap) {
+			T val = {};
+			if (get_val<T>(key, val)) { res.push_back({ key,val }); }
+		}
+		return res;
+	}
+
+
+	enum class Type
+	{
+		eBool,
+		eInt32,
+		eUInt64,
+		eFloat32,
+		eFloat64,
+		eString,
+		eVector3,
+		eMetaData,
+	};
+
+	std::unordered_map<std::string, std::size_t> m_KeyMap = {};
+	std::vector<std::pair<Type, std::size_t>>    m_TypeIndices = {};
+	std::vector<RTLib::UInt8>                   m_Bools = {};
+	std::vector<RTLib::Int32>                   m_Int32s = {};
+	std::vector<RTLib::UInt64>                  m_UInt64s = {};
+	std::vector<RTLib::Float32>                 m_Float32s = {};
+	std::vector<RTLib::Float64>                 m_Float64s = {};
+	std::vector<RTLib::String>                  m_Strings = {};
+	std::vector<RTLib::Vector3>                 m_Vector3s = {};
+	std::vector<MetaData>                       m_Metadatas = {};
+};
 template <typename T>
 struct BoneKey
 {

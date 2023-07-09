@@ -50,7 +50,7 @@ int main(int argc, const char** argv)
 
 	auto importer = Assimp::Importer();
 	//importer.SetPropertyBool(AI_CONFIG_IMPORT_FBX_PRESERVE_PIVOTS, false);
-	importer.SetPropertyFloat(AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY, 0.01f);
+	//importer.SetPropertyFloat(AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY, 10000.0f);
 	//auto data_path = SAMPLE_SAMPLE0_DATA_PATH"\\Models\\ZeroDay\\MEASURE_ONE\\MEASURE_ONE.fbx";
 	auto data_path = SAMPLE_SAMPLE0_DATA_PATH"\\Models\\Bistro_v5_2\\BistroExterior.fbx";
 	auto data_root = SAMPLE_SAMPLE0_DATA_PATH"\\Models\\ZeroDay";
@@ -69,7 +69,7 @@ int main(int argc, const char** argv)
 	{
 		auto cameras = std::vector<aiCamera*>(scene->mCameras, scene->mCameras + scene->mNumCameras);
 		//auto cameraNode = rootNode->find_node(cameras[0]->mName.C_Str());
-		auto sceneMeta = scene->mMetaData;
+		auto sceneMeta = MetaData(scene->mMetaData);
 
 		for (auto camera : cameras) {
 			auto cameraName = camera->mName;
@@ -106,7 +106,7 @@ int main(int argc, const char** argv)
 
 	scene->mCameras[0]->mAspect = 16.0f / 9.0f;
 
-	RTLib::Int32 width = 1024;
+	RTLib::Int32 width = 2048;
 	RTLib::Int32 height = 0;
 
 	std::vector<GLuint> meshVaos = {};
@@ -225,6 +225,7 @@ int main(int argc, const char** argv)
 				"out vec2 outUv;\n"
 				"void main(){\n"
 				"	gl_Position = proj * view * model * vec4(position,1.0);\n"
+				//"	if (gl_Position.z > gl_Position.w){ gl_Position.z = gl_Position.w; }\n"
 				"	outNormal = normalize(normal);\n"
 				"	outUv = uv;\n"
 				"}\n";
@@ -338,13 +339,12 @@ int main(int argc, const char** argv)
 		{
 
 			float fovy = std::atan(std::tan(camera->mHorizontalFOV / 2.0f) / camera->mAspect) * 2.0f;
-			projMatrix= glm::perspectiveLH(fovy, camera->mAspect, camera->mClipPlaneNear, camera->mClipPlaneFar);
+			projMatrix= glm::perspectiveLH(fovy, camera->mAspect, 100.0f * camera->mClipPlaneNear, camera->mClipPlaneFar);
 		}
 			
 
 		auto viewProjMatrix = projMatrix * viewMatrix;
 		{
-
 			std::cout << glm::to_string(viewProjMatrix) << std::endl;
 		}
 
@@ -403,7 +403,6 @@ int main(int argc, const char** argv)
 		//}
 		gl->Enable(GL_DEPTH_TEST);
 		gl->DepthFunc(GL_LESS);
-		gl->Disable(GL_CULL_FACE);
 
 		//auto nodeTrans = std::vector<NodeTransform>();
 		//{
@@ -433,21 +432,25 @@ int main(int argc, const char** argv)
 		glfwSetTime(0.0f);
 		while (!glfwWindowShouldClose(window))
 		{
-			gl->Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 			gl->ClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 			gl->ClearDepth(1.0f);
+			gl->Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 			gl->Viewport(0, 0, width, height);
 			gl->UseProgram(prg);
 			{
 				//for (auto& nodeTran : nodeTrans)
 				//{
 				//	auto node = nodeTran.node.lock()->m_Node;
-				for (auto&[node,nodeTran]:rootNode->nodeMap)
+				for (auto& [node, nodeTran] : rootNode->nodeMap)
 				{
-					
+
 					for (auto i = 0; i < node->mNumMeshes; ++i) {
 
 						RTLib::UInt32 meshIdx = node->mMeshes[i];
+
+						//if (std::string(node->mName.C_Str()) != "Bistro_Research_Exterior__lod0_Vespa_3937") {
+						//	continue;
+						//}
 
 						std::mt19937 mt1(meshIdx);
 						std::mt19937 mt(mt1);
@@ -458,8 +461,8 @@ int main(int argc, const char** argv)
 
 						gl->Uniform4fv(colorPos, 1, &vec[0]);
 						gl->UniformMatrix4fv(modelPos, 1, GL_FALSE, &nodeTran.transform[0][0]);//おそらくあっている
-						gl->UniformMatrix4fv(projPos , 1, GL_FALSE, &projMatrix[0][0]);
-						gl->UniformMatrix4fv(viewPos , 1, GL_FALSE, &viewMatrix[0][0]);
+						gl->UniformMatrix4fv(projPos, 1, GL_FALSE, &projMatrix[0][0]);
+						gl->UniformMatrix4fv(viewPos, 1, GL_FALSE, &viewMatrix[0][0]);
 
 						gl->BindVertexArray(vao);
 						gl->DrawElements(GL_TRIANGLES, scene->mMeshes[meshIdx]->mNumFaces * 3, GL_UNSIGNED_INT, 0);
@@ -513,7 +516,7 @@ int main(int argc, const char** argv)
 			auto title = std::to_string(delTime);
 			glfwSetWindowTitle(window, title.c_str());
 
-			animation->update_frames(curTime);
+			animation->update_frames(0.5f*curTime);
 
 			{
 				auto cameraTransform = rootNode->find_node_transform(cameraNode->get_name()).transform;
@@ -544,7 +547,7 @@ int main(int argc, const char** argv)
 			{
 
 				float fovy = std::atan(std::tan(camera->mHorizontalFOV / 2.0f) / camera->mAspect) * 2.0f;
-				projMatrix = glm::perspectiveLH(fovy, camera->mAspect, camera->mClipPlaneNear, camera->mClipPlaneFar);
+				projMatrix = glm::perspectiveLH(fovy, camera->mAspect, camera->mClipPlaneNear*100.0f, camera->mClipPlaneFar);
 			}
 
 
