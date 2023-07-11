@@ -1,8 +1,10 @@
 #ifndef RTLIB_SAMPLES_SAMPLE0__H
 #define RTLIB_SAMPLES_SAMPLE0__H
 #include <RTLib/Core/Vector.h>
+#include <assimp/material.h>
 #include <assimp/mesh.h>
 #include <vector>
+#include <optional>
 
 struct MetaData
 {
@@ -447,6 +449,8 @@ struct Bone
 
 		node->m_Dirty = nxtDirty;
 	}
+
+	auto get_node() const noexcept-> std::shared_ptr<Node> { return m_Node.lock(); }
 private:
 	
 	template<typename T>
@@ -578,4 +582,68 @@ struct Animation
 	RTLib::Float32 m_TickPerSecond;
 	std::vector<std::unique_ptr<Bone>> m_Bones;
 };
+struct Texture
+{
+	aiReturn Load(aiMaterial* pMaterial, aiTextureType type, unsigned int index)
+	{ 
+		aiString         path_    = aiString();
+		aiTextureMapping mapping_ = _aiTextureMapping_Force32Bit;
+		unsigned int     uvIndex_ = UINT_MAX;
+		ai_real          blend_   = FLT_MAX;
+		aiTextureOp      op_      = _aiTextureOp_Force32Bit;
+		aiTextureMapMode mapmode_ = _aiTextureMapMode_Force32Bit;
+		auto res = pMaterial->GetTexture(type, index, &path_,&mapping_,&uvIndex_,&blend_,&op_,&mapmode_);
+		if (path_.C_Str() != std::string("")) {
+			path = std::string(path_.C_Str());
+		}
+		else {
+			path = "";
+		}
+		if (mapping_ != _aiTextureMapping_Force32Bit)
+		{
+			mapping = mapping_;
+		}
+		else {
+			mapping = std::nullopt;
+		}
+		if (uvIndex_ != UINT32_MAX) {
+			uvIndex = uvIndex_;
+		}
+		else {
+			uvIndex = std::nullopt;
+		}
+		if (blend_   != FLT_MAX) {
+			blend = blend_;
+		}
+		else {
+			blend = std::nullopt;
+		}
+		if (op_      != _aiTextureOp_Force32Bit) {
+			op = op_;
+		}
+		else {
+			op = std::nullopt;
+		}
+		if (mapmode_ != _aiTextureMapMode_Force32Bit) {
+			mapMode = mapmode_;
+		}
+		else {
+			mapMode = std::nullopt;
+		}
+		return res;
+	}
+
+	std::string path = "";
+	std::optional<aiTextureMapping> mapping = std::nullopt;
+	std::optional<unsigned int>     uvIndex = std::nullopt;
+	std::optional<float>            blend   = std::nullopt;
+	std::optional<aiTextureOp>      op      = std::nullopt;
+	std::optional<aiTextureMapMode> mapMode = std::nullopt;
+
+};
+struct Material
+{
+
+};
+
 #endif

@@ -12,5 +12,5 @@ set(           directxtex_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Install/share/directxt
 #set(        tinyobjloader_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Install/lib/tinyobjloader/cmake            CACHE STRING         "tinyobjloader Config Directory")
 add_subdirectory(Lib/glad/cmake glad)
 add_subdirectory(CMake)
-glad_add_library(glad_gl_core_46 MX API gl:core=4.6 EXTENSIONS GL_ARB_gl_spirv)
+glad_add_library(glad_gl_core_46 MX API gl:core=4.6 EXTENSIONS GL_ARB_gl_spirv  GL_EXT_texture_compression_s3tc GL_EXT_texture_sRGB GL_EXT_texture_compression_rgtc)
 

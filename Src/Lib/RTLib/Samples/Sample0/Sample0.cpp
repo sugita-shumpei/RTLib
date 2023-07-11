@@ -47,13 +47,15 @@ struct Vertex
 
 int main(int argc, const char** argv)
 {
-
+#ifdef WIN32
+	CoInitialize(0);
+#endif
 	auto importer = Assimp::Importer();
 	//importer.SetPropertyBool(AI_CONFIG_IMPORT_FBX_PRESERVE_PIVOTS, false);
 	//importer.SetPropertyFloat(AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY, 10000.0f);
-	//auto data_path = SAMPLE_SAMPLE0_DATA_PATH"\\Models\\ZeroDay\\MEASURE_ONE\\MEASURE_ONE.fbx";
-	auto data_path = SAMPLE_SAMPLE0_DATA_PATH"\\Models\\Bistro_v5_2\\BistroExterior.fbx";
-	auto data_root = SAMPLE_SAMPLE0_DATA_PATH"\\Models\\ZeroDay";
+	auto data_path = SAMPLE_SAMPLE0_DATA_PATH"\\Models\\ZeroDay\\MEASURE_ONE\\MEASURE_ONE.fbx";
+	//auto data_path = SAMPLE_SAMPLE0_DATA_PATH"\\Models\\Bistro_v5_2\\BistroExterior.fbx";
+	auto data_root = std::filesystem::path(data_path).parent_path();
 
 	unsigned int flag = 0;
 	//flag |= aiProcess_PreTransformVertices;
@@ -100,7 +102,13 @@ int main(int argc, const char** argv)
 		}
 	}
 	auto animation = std::shared_ptr<Animation>(new Animation(scene->mAnimations[0], rootNode));
-	
+	{
+		for (auto&bone : animation->m_Bones) {
+			if (bone->get_node()->get_name() == "LOWER_ARM") {
+				std::cout << "OK" << std::endl;
+			}
+		}
+	}
 
 	animation->update_frames(0.0);
 
@@ -109,9 +117,45 @@ int main(int argc, const char** argv)
 	RTLib::Int32 width = 2048;
 	RTLib::Int32 height = 0;
 
-	std::vector<GLuint> meshVaos = {};
-	std::vector<GLuint> meshVbos = {};
-	std::vector<std::pair<GLuint, GLsizei>> meshIbos = {};
+	std::vector<GLuint>                       meshVaos = {};
+	std::vector<GLuint>                       meshVbos = {};
+	std::vector<std::pair<GLuint, GLsizei>>   meshIbos = {};
+	std::vector<aiMaterial*>                  materials(scene->mMaterials, scene->mMaterials + scene->mNumMaterials);
+	std::unordered_map<std::filesystem::path, std::vector<std::tuple<RTLib::UInt32,aiTextureType,RTLib::UInt32>>> textureInfoMap = {};
+	std::vector<std::unordered_map<aiTextureType, std::vector<GLuint>>> texturesForMaterial(scene->mNumMaterials);
+	std::cout << "NumMaterials: " << materials.size() << std::endl;
+	for (auto i = 0; i < materials.size(); ++i) {
+		std::string name = materials[i]->GetName().C_Str();
+		//std::cout << "Materials[" << i << "].name=" << name << std::endl;
+		//auto properties = std::vector<aiMaterialProperty*>(materials[i]->mProperties, materials[i]->mProperties + materials[i]->mNumProperties);
+		//if (name == "Foliage_Leaves.DoubleSided") {
+		//	for (auto& prop : properties) {
+		//		std::cout << "Materials[" << i << "]." << prop->mKey.C_Str() << std::endl;
+		//	}
+		//}
+		for (auto j = 0; j < aiTextureType_TRANSMISSION; ++j) {
+			auto textureCount = materials[i]->GetTextureCount((aiTextureType)j);
+			if (textureCount) {
+				texturesForMaterial[i].insert({ (aiTextureType)j, std::vector<GLuint>{textureCount} });
+			}
+			for (auto k = 0; k < textureCount; ++k) {
+				aiString aiPath;
+				if (materials[i]->Get(AI_MATKEY_TEXTURE((aiTextureType)j, k), aiPath)==aiReturn_SUCCESS) {
+					auto texPath = (data_root / aiPath.C_Str()).lexically_normal();
+					if (textureInfoMap.count(texPath) == 0) {
+						
+						textureInfoMap.insert({ texPath ,{{i,(aiTextureType)j,k }} });
+					}
+					else {
+						auto& textureInfos = textureInfoMap.at(texPath);
+						textureInfos.push_back({ i,(aiTextureType)j,k });
+					}
+				}
+				
+			}
+		}
+	}
+
 
 	glfwInit();
 	{
@@ -210,7 +254,115 @@ int main(int argc, const char** argv)
 				gl->ObjectLabel(GL_VERTEX_ARRAY, vao, -1, mesh->mName.C_Str());
 			}
 		}
+		{
 
+			for (auto& [texPath, texInfos] : textureInfoMap) {
+				auto image = DirectX::ScratchImage();
+				auto meta = DirectX::TexMetadata();
+				auto ext = texPath.extension();
+				auto texPathWStr = texPath.wstring();
+				if (ext == ".dds")
+				{
+					GLenum format;
+					if (DirectX::LoadFromDDSFile(texPathWStr.data(), DirectX::DDS_FLAGS_NONE, &meta, image) >= 0) {
+						std::cout << "Load Texture: DDS" << std::endl;
+					}
+					else {
+						throw std::runtime_error("Error: Failed To Load Texture " + texPath.string());
+					}
+				}
+				else {
+					std::cout << "Load Texture: Not Supported" << std::endl;
+				}
+				for (auto& texInfo : texInfos) {
+					auto& [matIdx, texType, texIdx] = texInfo;
+
+
+					GLenum format;
+					if (meta.format == DXGI_FORMAT_BC1_UNORM) {
+						std::cout << "	DXGI Format: BC1 Unorm" << std::endl;
+						format = GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
+					}
+					else if (meta.format == DXGI_FORMAT_BC2_UNORM) {
+						std::cout << "	DXGI Format: BC2 Unorm" << std::endl;
+						format = GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
+					}
+					else if (meta.format == DXGI_FORMAT_BC3_UNORM) {
+						std::cout << "	DXGI Format: BC3 Unorm" << std::endl;
+						format = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
+					}
+					else if (meta.format == DXGI_FORMAT_BC4_UNORM) {
+						std::cout << "	DXGI Format: BC4 Unorm" << std::endl;
+						format = GL_COMPRESSED_RED_RGTC1_EXT;
+					}
+					else if (meta.format == DXGI_FORMAT_BC5_UNORM) {
+						std::cout << "	DXGI Format: BC5 Unorm" << std::endl;
+						format = GL_COMPRESSED_RED_GREEN_RGTC2_EXT;;
+					}
+					else {
+						throw std::runtime_error("Failed To Support Format!");
+					}
+
+					GLuint tex;
+					gl->GenTextures(1, &tex);
+					// GL_TEXTURE_1D
+					if (meta.dimension == DirectX::TEX_DIMENSION_TEXTURE1D)
+					{
+						if (meta.arraySize <= 1) {
+							// Texture1D
+							throw std::runtime_error("Error: Failed To Load Texture 1D!");
+						}
+						else {
+							// Texture1DArray
+							throw std::runtime_error("Error: Failed To Load Texture 1D Array!");
+						}
+					}
+					if (meta.dimension == DirectX::TEX_DIMENSION_TEXTURE2D)
+					{
+						if (meta.arraySize <= 1) {
+							auto pixelSize = image.GetPixelsSize();
+							// Texture2D
+							gl->BindTexture(GL_TEXTURE_2D, tex);
+							for (int l = 0; l < meta.mipLevels; ++l) {
+								const auto& mipImage = image.GetImage(l, 0, 0);
+								gl->CompressedTexImage2D(GL_TEXTURE_2D, l, format, mipImage->width, mipImage->height, 0, mipImage->slicePitch, mipImage->pixels);
+
+							}
+							gl->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+							gl->TexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+						}
+						else {
+							if (meta.IsCubemap()) {
+								if (meta.arraySize == 6)
+								{
+									// Cubemap
+									throw std::runtime_error("Error: Failed To Load Texture Cubemap!");
+								}
+								else {
+									// Cubemap Array
+									throw std::runtime_error("Error: Failed To Load Texture Cubemap Array!");
+
+								}
+							}
+							else {
+								// Texture2DArray
+								throw std::runtime_error("Error: Failed To Load Texture 2D Array!");
+							}
+							gl->TexImage3D;
+						}
+					}
+					if (meta.dimension == DirectX::TEX_DIMENSION_TEXTURE3D)
+					{
+						//Texture3D
+						throw std::runtime_error("Error: Failed To Load Texture 3D!");
+					}
+
+					texturesForMaterial[matIdx][texType][texIdx] = tex;
+
+				}
+
+			}
+		}
 		auto prg = gl->CreateProgram();
 		{
 			constexpr RTLib::Char vsSource[] =
@@ -226,17 +378,18 @@ int main(int argc, const char** argv)
 				"void main(){\n"
 				"	gl_Position = proj * view * model * vec4(position,1.0);\n"
 				//"	if (gl_Position.z > gl_Position.w){ gl_Position.z = gl_Position.w; }\n"
-				"	outNormal = normalize(normal);\n"
-				"	outUv = uv;\n"
+				"	outNormal = normalize(transpose(inverse(mat3(model))) * normal);\n"
+				"	outUv = vec2(1.0-uv.x,1.0-uv.y);\n"
 				"}\n";
 			constexpr RTLib::Char fsSource[] =
 				"#version 460 core\n"
 				"in vec3 outNormal;\n"
 				"in vec2 outUv;\n"
-				"uniform vec4 color;\n"
+				"uniform sampler2D tex;\n"
 				"layout (location = 0) out vec4 fragColor;\n"
 				"void main(){\n"
-				"	fragColor = vec4(outUv,1.0-dot(outUv,vec2(0.5)),1.0);\n"
+				"	fragColor = texture(tex,outUv);\n"
+				"	if (fragColor.a < 0.5) { discard; }\n"
 				"}\n";
 			const RTLib::Char* pVsSource = vsSource;
 			const RTLib::Char* pFsSource = fsSource;
@@ -291,22 +444,13 @@ int main(int argc, const char** argv)
 		auto modelPos    = gl->GetUniformLocation(prg, "model");
 		auto viewPos     = gl->GetUniformLocation(prg, "view");
 		auto projPos     = gl->GetUniformLocation(prg, "proj");
-		auto colorPos    = gl->GetUniformLocation(prg, "color");
+		auto texPos      = gl->GetUniformLocation(prg, "tex");
 		auto cameraName = scene->mCameras[0]->mName;
 		auto cameraNode = rootNode->find_node(cameraName.C_Str()).lock();
 		auto cameraParent = cameraNode->m_Parent.lock();
 		
-		// OPENGLが想定しているFOVはY軸まわり, 一方でASSIMPが想定しているFOVはX軸まわり
-		// なので結果を変える必要有
-		// X = ASPECT * TAN_Y
-		// Y = TAN_Y
-		// 
-		// X = TAN_X
-		// Y = TAN_X / ASPECT
-		// 注意: cameraのmClipPlaneNear, mClipPlaneFarは正規化された空間におけるFrustrum(0~1)ではなく
-		// ビュー空間における値
-		// そのため, View行列の深度方向のスケールをかける必要あり
 		camera->mHorizontalFOV = glm::radians(57.0f);
+		camera->mClipPlaneNear *= 100.0f;
 
 		auto viewMatrix = RTLib::Matrix4x4();
 		{
@@ -321,10 +465,7 @@ int main(int argc, const char** argv)
 				glm::vec3(camera->mLookAt[0], camera->mLookAt[1], camera->mLookAt[2]),
 				glm::vec3(camera->mUp[0], camera->mUp[1], camera->mUp[2])
 			);
-			// T * R * S
-			// R.row0 SX      SX*R.row0.x SY*R.row0.y SZ*R.row0.z
-			// R.row1   SY    SX*R.row1.x SY*R.row1.y SZ*R.row1.z
-			// R.row2     SZ  SX*R.row2.x SY*R.row2.y SZ*R.row2.z
+
 			auto cameraToWorldBase = cameraTransform; // SCALEが含まれているので正規化する必要有
 			cameraToWorldBase[0] = glm::normalize(cameraToWorldBase[0]);
 			cameraToWorldBase[1] = glm::normalize(cameraToWorldBase[1]);
@@ -339,90 +480,17 @@ int main(int argc, const char** argv)
 		{
 
 			float fovy = std::atan(std::tan(camera->mHorizontalFOV / 2.0f) / camera->mAspect) * 2.0f;
-			projMatrix= glm::perspectiveLH(fovy, camera->mAspect, 100.0f * camera->mClipPlaneNear, camera->mClipPlaneFar);
+			projMatrix= glm::perspectiveLH(fovy, camera->mAspect,  camera->mClipPlaneNear, camera->mClipPlaneFar);
 		}
 			
-
 		auto viewProjMatrix = projMatrix * viewMatrix;
 		{
 			std::cout << glm::to_string(viewProjMatrix) << std::endl;
 		}
 
-		//{
-
-		//	for (auto& [node, modelMatrix] : modelMatrixMap)
-		//	{
-
-		//		for (RTLib::UInt64 i = 0; i < node->mNumMeshes; ++i) {
-		//			auto mesh = scene->mMeshes[node->mMeshes[i]];
-		//			for (RTLib::UInt64 j = 0; j < mesh->mNumVertices; ++j) {
-		//				auto vertex = RTLib::Vector3();
-		//				vertex.x = mesh->mVertices[j][0];
-		//				vertex.y = mesh->mVertices[j][1];
-		//				vertex.z = mesh->mVertices[j][2];
-		//				auto worldVertex = modelMatrix * RTLib::Vector4(vertex, 1.0f);
-		//				std::cout << "VW: " << worldVertex.x << "," << worldVertex.y << "," << worldVertex.z << std::endl;
-
-		//			}
-		//		}
-		//	}
-		//	for (auto& [node, modelMatrix] : modelMatrixMap)
-		//	{
-
-		//		for (RTLib::UInt64 i = 0; i < node->mNumMeshes; ++i) {
-		//			auto mesh = scene->mMeshes[node->mMeshes[i]];
-		//			for (RTLib::UInt64 j = 0; j < mesh->mNumVertices; ++j) {
-		//				auto vertex = RTLib::Vector3();
-		//				vertex.x = mesh->mVertices[j][0];
-		//				vertex.y = mesh->mVertices[j][1];
-		//				vertex.z = mesh->mVertices[j][2];
-		//				auto viewVertex = viewMatrix * modelMatrix * RTLib::Vector4(vertex, 1.0f);
-		//				std::cout << "VV: " << viewVertex.x << "," << viewVertex.y << "," << viewVertex.z << std::endl;
-
-		//			}
-		//		}
-		//	}
-		//	for (auto& [node, modelMatrix] : modelMatrixMap)
-		//	{
-
-		//		for (RTLib::UInt64 i = 0; i < node->mNumMeshes; ++i) {
-		//			auto mesh = scene->mMeshes[node->mMeshes[i]];
-		//			for (RTLib::UInt64 j = 0; j < mesh->mNumVertices; ++j) {
-		//				auto vertex = RTLib::Vector3();
-		//				vertex.x = mesh->mVertices[j][0];
-		//				vertex.y = mesh->mVertices[j][1];
-		//				vertex.z = mesh->mVertices[j][2];
-		//				auto viewVertex = viewMatrix * modelMatrix * RTLib::Vector4(vertex, 1.0f);
-		//				auto projVertex = projMatrix * viewVertex;
-		//				projVertex /= projVertex.w;
-		//				std::cout << "VP: " << projVertex.x << "," << projVertex.y << "," << projVertex.z << std::endl;
-
-		//			}
-		//		}
-		//	}
-		//}
 		gl->Enable(GL_DEPTH_TEST);
 		gl->DepthFunc(GL_LESS);
 
-		//auto nodeTrans = std::vector<NodeTransform>();
-		//{
-		//	auto nodeStack = std::stack<aiNode*>();
-		//	auto roomNode = rootNode->find_node("BASE_ROOM1");
-		//	nodeStack.push(roomNode.lock()->m_Node);
-		//	nodeTrans.push_back(rootNode->nodeMap.at(roomNode.lock()->m_Node));
-
-		//	while (!nodeStack.empty()) {
-		//		auto node = nodeStack.top();
-		//		nodeStack.pop();
-		//		for (auto i = 0; i < node->mNumChildren; ++i) {
-		//			nodeStack.push(node->mChildren[i]);
-		//			nodeTrans.push_back(
-		//				rootNode->nodeMap.at(node->mChildren[i])
-		//			);
-		//		}
-		//	}
-
-		//}
 		auto idx = 0;
 		auto idx_delta = 0;
 		auto tickPerSecond = animation->m_TickPerSecond;
@@ -438,9 +506,6 @@ int main(int argc, const char** argv)
 			gl->Viewport(0, 0, width, height);
 			gl->UseProgram(prg);
 			{
-				//for (auto& nodeTran : nodeTrans)
-				//{
-				//	auto node = nodeTran.node.lock()->m_Node;
 				for (auto& [node, nodeTran] : rootNode->nodeMap)
 				{
 
@@ -448,21 +513,27 @@ int main(int argc, const char** argv)
 
 						RTLib::UInt32 meshIdx = node->mMeshes[i];
 
-						//if (std::string(node->mName.C_Str()) != "Bistro_Research_Exterior__lod0_Vespa_3937") {
-						//	continue;
-						//}
-
 						std::mt19937 mt1(meshIdx);
 						std::mt19937 mt(mt1);
-						std::uniform_real_distribution<float> uni(0.0f, 1.0f);
-						RTLib::Vector4 vec(uni(mt), uni(mt), uni(mt), 1.0f);
+
+
 						GLuint vao = meshVaos.at(meshIdx);
 						GLuint cnt = meshIbos.at(meshIdx).second;
 
-						gl->Uniform4fv(colorPos, 1, &vec[0]);
 						gl->UniformMatrix4fv(modelPos, 1, GL_FALSE, &nodeTran.transform[0][0]);//おそらくあっている
 						gl->UniformMatrix4fv(projPos, 1, GL_FALSE, &projMatrix[0][0]);
 						gl->UniformMatrix4fv(viewPos, 1, GL_FALSE, &viewMatrix[0][0]);
+
+						gl->ActiveTexture(GL_TEXTURE0);
+						auto& texMap      = texturesForMaterial[scene->mMeshes[meshIdx]->mMaterialIndex];
+						if (texMap.count(aiTextureType_DIFFUSE)){
+							auto& texDiffuses = texMap.at(aiTextureType_DIFFUSE);
+							if (!texDiffuses.empty()) {
+								gl->BindTexture(GL_TEXTURE_2D, texDiffuses[0]);
+							}
+						}
+						
+						gl->Uniform1i(texPos, 0);
 
 						gl->BindVertexArray(vao);
 						gl->DrawElements(GL_TRIANGLES, scene->mMeshes[meshIdx]->mNumFaces * 3, GL_UNSIGNED_INT, 0);
@@ -471,52 +542,14 @@ int main(int argc, const char** argv)
 			}
 			glfwSwapBuffers(window);
 			glfwPollEvents();
-			//{
-			//	float cameraVelocity = 1.0f;
-			//	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-			//	{
-			//		camera->mPosition += cameraVelocity * camera->mLookAt;
 
-			//	}
-			//	if ((glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) ||
-			//		(glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS))
-			//	{
-
-			//		auto right = camera->mUp ^ camera->mLookAt;
-			//		auto rightLen = std::sqrt(right.Length());
-			//		right.Normalize();
-			//		right *= rightLen;
-			//		camera->mPosition -= cameraVelocity * right;
-
-			//	}
-			//	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-			//	{
-			//		camera->mPosition -= cameraVelocity * camera->mLookAt;
-			//	}
-			//	if ((glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) ||
-			//		(glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS))
-			//	{
-			//		auto right = camera->mUp ^ camera->mLookAt;
-			//		auto rightLen = std::sqrt(right.Length());
-			//		right.Normalize();
-			//		right *= rightLen;
-			//		camera->mPosition += cameraVelocity * right;
-			//	}
-			//	if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
-			//	{
-			//		camera->mPosition += cameraVelocity * camera->mUp;
-			//	}
-			//	if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
-			//	{
-			//		camera->mPosition -= cameraVelocity * camera->mUp;
-			//	}
-			//}
+			double oldTime = curTime;
 			curTime = glfwGetTime();
-
-			auto title = std::to_string(delTime);
+			delTime = curTime - oldTime;
+			auto title = std::to_string(1.0f/delTime);
 			glfwSetWindowTitle(window, title.c_str());
 
-			animation->update_frames(0.5f*curTime);
+			animation->update_frames(curTime);
 
 			{
 				auto cameraTransform = rootNode->find_node_transform(cameraNode->get_name()).transform;
@@ -525,15 +558,12 @@ int main(int argc, const char** argv)
 				auto upLen = camera->mUp.Length();
 
 				auto viewMatrixLocal = glm::lookAt(
-					glm::vec3(camera->mPosition[0], camera->mPosition[1], camera->mPosition[2]),
-					glm::vec3(camera->mPosition[0], camera->mPosition[1], camera->mPosition[2]) +
-					glm::vec3(camera->mLookAt[0], camera->mLookAt[1], camera->mLookAt[2]),
-					glm::vec3(camera->mUp[0], camera->mUp[1], camera->mUp[2])
+					glm::vec3(camera->mPosition[0], camera->mPosition[1], camera->mPosition[2] ),
+					glm::vec3(camera->mPosition[0], camera->mPosition[1], camera->mPosition[2] ) +
+					glm::vec3(camera->mLookAt[0]  , camera->mLookAt[1]  , camera->mLookAt[2]   ),
+					glm::vec3(camera->mUp[0]      , camera->mUp[1]      , camera->mUp[2]       )
 				);
-				// T * R * S
-				// R.row0 SX      SX*R.row0.x SY*R.row0.y SZ*R.row0.z
-				// R.row1   SY    SX*R.row1.x SY*R.row1.y SZ*R.row1.z
-				// R.row2     SZ  SX*R.row2.x SY*R.row2.y SZ*R.row2.z
+
 				auto cameraToWorldBase = cameraTransform; // SCALEが含まれているので正規化する必要有
 				cameraToWorldBase[0] = glm::normalize(cameraToWorldBase[0]);
 				cameraToWorldBase[1] = glm::normalize(cameraToWorldBase[1]);
@@ -547,17 +577,26 @@ int main(int argc, const char** argv)
 			{
 
 				float fovy = std::atan(std::tan(camera->mHorizontalFOV / 2.0f) / camera->mAspect) * 2.0f;
-				projMatrix = glm::perspectiveLH(fovy, camera->mAspect, camera->mClipPlaneNear*100.0f, camera->mClipPlaneFar);
+				projMatrix = glm::perspectiveLH(fovy, camera->mAspect, camera->mClipPlaneNear, camera->mClipPlaneFar);
 			}
 
 
 		}
 		{
 			gl->DeleteVertexArrays(meshVaos.size(), meshVaos.data());
+			meshVaos.clear();
 			gl->DeleteBuffers(meshVbos.size(), meshVbos.data());
+			meshVbos.clear();
 			for (auto& [ibo, cnt] : meshIbos) {
 				gl->DeleteBuffers(1, &ibo);
 			}
+			meshIbos.clear();
+			for (auto& textureForMaterial : texturesForMaterial) {
+				for (auto& [type, texs] : textureForMaterial) {
+					gl->DeleteTextures(texs.size(), texs.data());
+				}
+			}
+			texturesForMaterial.clear();
 		}
 		gl->DeleteProgram(prg);
 		glfwDestroyWindow(window);
