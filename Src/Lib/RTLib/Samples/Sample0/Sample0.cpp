@@ -103,11 +103,11 @@ int main(int argc, const char** argv)
 	}
 	auto animation = std::shared_ptr<Animation>(new Animation(scene->mAnimations[0], rootNode));
 	{
-		for (auto&bone : animation->m_Bones) {
-			if (bone->get_node()->get_name() == "LOWER_ARM") {
-				std::cout << "OK" << std::endl;
-			}
-		}
+		//for (auto&bone : animation->m_Bones) {
+		//	if (bone->get_node()->get_name() == "LOWER_ARM") {
+		//		std::cout << "OK" << std::endl;
+		//	}
+		//}
 	}
 
 	animation->update_frames(0.0);
@@ -196,7 +196,6 @@ int main(int argc, const char** argv)
 						vertices[j].normal.z = mesh->mNormals[j][2];
 					}
 					else {
-
 						vertices[j].normal.x = 0.0f;
 						vertices[j].normal.y = 0.0f;
 						vertices[j].normal.z = 1.0f;
@@ -449,7 +448,7 @@ int main(int argc, const char** argv)
 		auto cameraNode = rootNode->find_node(cameraName.C_Str()).lock();
 		auto cameraParent = cameraNode->m_Parent.lock();
 		
-		camera->mHorizontalFOV = glm::radians(57.0f);
+		camera->mHorizontalFOV = glm::radians(90.0f);
 		camera->mClipPlaneNear *= 100.0f;
 
 		auto viewMatrix = RTLib::Matrix4x4();
@@ -481,6 +480,11 @@ int main(int argc, const char** argv)
 
 			float fovy = std::atan(std::tan(camera->mHorizontalFOV / 2.0f) / camera->mAspect) * 2.0f;
 			projMatrix= glm::perspectiveLH(fovy, camera->mAspect,  camera->mClipPlaneNear, camera->mClipPlaneFar);
+
+			projMatrix[0].x *= -1.0f;
+			projMatrix[1].x *= -1.0f;
+			projMatrix[2].x *= -1.0f;
+			projMatrix[3].x *= -1.0f;
 		}
 			
 		auto viewProjMatrix = projMatrix * viewMatrix;
@@ -500,6 +504,50 @@ int main(int argc, const char** argv)
 		glfwSetTime(0.0f);
 		while (!glfwWindowShouldClose(window))
 		{
+
+			double oldTime = curTime;
+			curTime = glfwGetTime();
+			delTime = curTime - oldTime;
+			auto title = std::to_string(curTime * animation->m_TickPerSecond);
+			glfwSetWindowTitle(window, title.c_str());
+
+			animation->update_frames(curTime);
+
+			{
+				auto cameraTransform = rootNode->find_node_transform(cameraNode->get_name()).transform;
+
+				auto lookAtLen = camera->mLookAt.Length();
+				auto upLen = camera->mUp.Length();
+
+				auto viewMatrixLocal = glm::lookAt(
+					glm::vec3(camera->mPosition[0], camera->mPosition[1], camera->mPosition[2]),
+					glm::vec3(camera->mPosition[0], camera->mPosition[1], camera->mPosition[2]) +
+					glm::vec3(camera->mLookAt[0], camera->mLookAt[1], camera->mLookAt[2]),
+					glm::vec3(camera->mUp[0], camera->mUp[1], camera->mUp[2])
+				);
+
+				auto cameraToWorldBase = cameraTransform; // SCALEが含まれているので正規化する必要有
+				cameraToWorldBase[0] = glm::normalize(cameraToWorldBase[0]);
+				cameraToWorldBase[1] = glm::normalize(cameraToWorldBase[1]);
+				cameraToWorldBase[2] = glm::normalize(cameraToWorldBase[2]);
+
+				auto cameraScale = cameraNode->m_LocalScaling;
+				auto viewMatrixParent = glm::inverse(cameraToWorldBase);
+
+				viewMatrix = viewMatrixLocal * viewMatrixParent;
+			}
+			{
+				float fovy = std::atan(std::tan(camera->mHorizontalFOV / 2.0f) / camera->mAspect) * 2.0f;
+				projMatrix = glm::perspectiveLH(fovy, camera->mAspect, camera->mClipPlaneNear, camera->mClipPlaneFar);
+
+				projMatrix[0].x *= -1.0f;
+				projMatrix[1].x *= -1.0f;
+				projMatrix[2].x *= -1.0f;
+				projMatrix[3].x *= -1.0f;
+
+			}
+
+
 			gl->ClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 			gl->ClearDepth(1.0f);
 			gl->Clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -516,11 +564,10 @@ int main(int argc, const char** argv)
 						std::mt19937 mt1(meshIdx);
 						std::mt19937 mt(mt1);
 
-
 						GLuint vao = meshVaos.at(meshIdx);
 						GLuint cnt = meshIbos.at(meshIdx).second;
 
-						gl->UniformMatrix4fv(modelPos, 1, GL_FALSE, &nodeTran.transform[0][0]);//おそらくあっている
+						gl->UniformMatrix4fv(modelPos, 1, GL_FALSE,&nodeTran.transform[0][0]);//おそらくあっている
 						gl->UniformMatrix4fv(projPos, 1, GL_FALSE, &projMatrix[0][0]);
 						gl->UniformMatrix4fv(viewPos, 1, GL_FALSE, &viewMatrix[0][0]);
 
@@ -542,43 +589,6 @@ int main(int argc, const char** argv)
 			}
 			glfwSwapBuffers(window);
 			glfwPollEvents();
-
-			double oldTime = curTime;
-			curTime = glfwGetTime();
-			delTime = curTime - oldTime;
-			auto title = std::to_string(1.0f/delTime);
-			glfwSetWindowTitle(window, title.c_str());
-
-			animation->update_frames(curTime);
-
-			{
-				auto cameraTransform = rootNode->find_node_transform(cameraNode->get_name()).transform;
-
-				auto lookAtLen = camera->mLookAt.Length();
-				auto upLen = camera->mUp.Length();
-
-				auto viewMatrixLocal = glm::lookAt(
-					glm::vec3(camera->mPosition[0], camera->mPosition[1], camera->mPosition[2] ),
-					glm::vec3(camera->mPosition[0], camera->mPosition[1], camera->mPosition[2] ) +
-					glm::vec3(camera->mLookAt[0]  , camera->mLookAt[1]  , camera->mLookAt[2]   ),
-					glm::vec3(camera->mUp[0]      , camera->mUp[1]      , camera->mUp[2]       )
-				);
-
-				auto cameraToWorldBase = cameraTransform; // SCALEが含まれているので正規化する必要有
-				cameraToWorldBase[0] = glm::normalize(cameraToWorldBase[0]);
-				cameraToWorldBase[1] = glm::normalize(cameraToWorldBase[1]);
-				cameraToWorldBase[2] = glm::normalize(cameraToWorldBase[2]);
-
-				auto cameraScale = cameraNode->m_LocalScaling;
-				auto viewMatrixParent = glm::inverse(cameraToWorldBase);
-
-				viewMatrix = viewMatrixLocal * viewMatrixParent;
-			}
-			{
-
-				float fovy = std::atan(std::tan(camera->mHorizontalFOV / 2.0f) / camera->mAspect) * 2.0f;
-				projMatrix = glm::perspectiveLH(fovy, camera->mAspect, camera->mClipPlaneNear, camera->mClipPlaneFar);
-			}
 
 
 		}

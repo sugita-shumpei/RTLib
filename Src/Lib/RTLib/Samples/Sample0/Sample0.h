@@ -456,8 +456,8 @@ private:
 	template<typename T>
 	static auto get_interpolated_value(RTLib::Float32 time, RTLib::UInt32 begIdx, const std::vector<BoneKey<T>>& keys) noexcept -> T
 	{
-		auto i0 = begIdx;
-		auto i1 = begIdx + 1;
+		auto i0        = begIdx;
+		auto i1        = begIdx + 1;
 		const auto& k0 = keys.at(i0);
 		const auto& k1 = keys.at(i1);
 		const auto& t0 = k0.time;
@@ -466,7 +466,7 @@ private:
 		const auto& v1 = k1.value;
 		auto alpha = (time - t0) / (t1 - t0);
 		if constexpr (std::is_same_v<T, RTLib::Quat>) {
-			return glm::slerp(v0, v1, alpha);
+			return glm::normalize(glm::slerp(v0, v1, alpha));
 		}
 		else {
 			return glm::lerp(v0, v1, alpha);
@@ -475,7 +475,9 @@ private:
 	template<typename T>
 	static auto get_nearest_key_index(RTLib::Float32 time, const std::vector<BoneKey<T>>& keys) noexcept -> RTLib::UInt32
 	{
-		if (keys.front().time  > time) { return keyIndex_Pre; }
+		//最初の時刻以前なら
+		if (keys.front().time >= time) { return keyIndex_Pre ; }
+		//最後の時刻以降なら
 		if (keys.back().time  <= time) { return keyIndex_Post; }
 		for (size_t i = 0; i < keys.size() - 1; ++i) {
 			if (keys[i + 1].time > time) {
@@ -524,8 +526,8 @@ private:
 	static auto get_value(RTLib::Float32 time, aiAnimBehaviour preState, aiAnimBehaviour postState, const std::vector<BoneKey<T>>& keys, const T& baseVal) noexcept -> T
 	{
 		auto i0 = get_nearest_key_index(time, keys);
-		if (i0 == keyIndex_Pre)  { return get_value_without_key(time, preState , keys, baseVal,keys.front().value); }
-		if (i0 == keyIndex_Post) { return get_value_without_key(time, postState, keys, baseVal,keys.back().value); }
+		if (i0 == keyIndex_Pre)  { return get_value_without_key(time, preState , keys, keys.front().value,keys.front().value); }
+		if (i0 == keyIndex_Post) { return get_value_without_key(time, postState, keys, keys.back().value,keys.back().value); }
 		return get_interpolated_value(time, i0, keys);
 	}
 private:
