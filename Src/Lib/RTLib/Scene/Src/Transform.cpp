@@ -1,7 +1,7 @@
 #include <RTLib/Scene/Transform.h>
-#include <RTLib/Scene/TransformGraph.h>
 #include <RTLib/Scene/Component.h>
 #include <RTLib/Scene/Object.h>
+#include "Internals/TransformGraphNode.h"
 RTLib::Scene::Transform::Transform(std::shared_ptr<Scene::Object> object, const Core::Transform& localTransform)
 	:m_Object{ object }, m_Local{ localTransform }, m_Node{}
 {
@@ -41,6 +41,14 @@ auto RTLib::Scene::Transform::get_wolrd_to_local_matrix() const noexcept -> Matr
 	else {
 		return get_parent_to_local_matrix();
 	}
+}
+
+bool RTLib::Scene::Transform::contain_in_graph(const std::shared_ptr<Scene::Transform>& transform) const noexcept
+{
+	if (!transform) { return false; }
+	auto parent = m_Node.lock();
+	auto node = transform->internal_get_node();
+	return parent->contain_in_graph(node);
 }
 
 void RTLib::Scene::Transform::set_local_position(const Vector3& localPosition) noexcept
@@ -169,11 +177,11 @@ void RTLib::Scene::Transform::set_parent(std::shared_ptr<Scene::Transform> paren
 	m_Node = newNode;
 }
 
-auto RTLib::Scene::Transform::internal_get_node() const noexcept-> std::shared_ptr<Scene::TransformGraphNode>
+auto RTLib::Scene::Transform::internal_get_node() const noexcept-> std::shared_ptr<Scene::Internals::TransformGraphNode>
 {
 	return m_Node.lock();
 }
-auto RTLib::Scene::Transform::internal_get_parent_node() const noexcept-> std::shared_ptr<Scene::TransformGraphNode>
+auto RTLib::Scene::Transform::internal_get_parent_node() const noexcept-> std::shared_ptr<Scene::Internals::TransformGraphNode>
 {
 	auto node = internal_get_node();
 	if (node) {
@@ -183,7 +191,7 @@ auto RTLib::Scene::Transform::internal_get_parent_node() const noexcept-> std::s
 		return nullptr;
 	}
 }
-void RTLib::Scene::Transform::internal_set_node(std::shared_ptr<Scene::TransformGraphNode> node)
+void RTLib::Scene::Transform::internal_set_node(std::shared_ptr<Scene::Internals::TransformGraphNode> node)
 {
 	m_Node = node;
 }
@@ -226,6 +234,18 @@ auto RTLib::Scene::Transform::internal_get_parent_cache_scaling() const noexcept
 	else {
 		return Vector3(1.0f);
 	}
+}
+void RTLib::Scene::Transform::internal_set_local_position_without_update(const Vector3& localPosition) noexcept
+{
+	m_Local.position = localPosition;
+}
+void RTLib::Scene::Transform::internal_set_local_rotation_without_update(const Quat& localRotation) noexcept
+{
+	m_Local.rotation = localRotation;
+}
+void RTLib::Scene::Transform::internal_set_local_scaling_without_update(const Vector3& localScaling) noexcept
+{
+	m_Local.scaling  = localScaling;
 }
 void RTLib::Scene::Transform::internal_update_cache()
 {

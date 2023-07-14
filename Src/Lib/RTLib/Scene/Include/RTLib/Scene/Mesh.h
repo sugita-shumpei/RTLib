@@ -13,10 +13,11 @@ namespace RTLib
 		{
 			static auto New(std::shared_ptr<Scene::Object> object) -> std::shared_ptr<Scene::Mesh>;
 			virtual~Mesh() noexcept;
-
+			// Derive From RTLib::Core::Object
 			virtual auto query_object(const TypeID& typeID) -> std::shared_ptr<Core::Object> override;
 			virtual auto get_transform() -> std::shared_ptr<Scene::Transform> override;
 			virtual auto get_object() -> std::shared_ptr<Scene::Object> override;
+			// Derive From RTLib::Scene::Component
 			virtual auto get_type_id() const noexcept -> TypeID override;
 			virtual auto get_name() const noexcept -> String override;
 

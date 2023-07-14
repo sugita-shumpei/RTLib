@@ -8,6 +8,7 @@ find_package(stduuid REQUIRED)
 add_library(RTLib-Core    STATIC )
 target_sources(RTLib-Core PRIVATE
 	Include/RTLib/Core/Animation.h
+	Include/RTLib/Core/AnimateTransform.h
 	Include/RTLib/Core/Camera.h
 	Include/RTLib/Core/DataTypes.h
 	Include/RTLib/Core/Json.h
@@ -23,6 +24,7 @@ target_sources(RTLib-Core PRIVATE
 	Include/RTLib/Core/Vector.h
 	
 	Src/Animation.cpp
+	Src/AnimateTransform.cpp
 	Src/Camera.cpp
 	Src/DataTypes.cpp
 	Src/Json.cpp

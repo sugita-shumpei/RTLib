@@ -18,12 +18,14 @@ namespace RTLib
 
 			friend class Transform;
 
-			static auto New(String name = "", const Core::Transform& transform = {}) -> std::shared_ptr<Scene::Object>;
+			static auto New(String name = "", const Core::Transform& transform = {}) -> std::shared_ptr<RTLib::Scene::Object>;
 			virtual ~Object() noexcept;
-
+			// Derive From RTLib::Core::Object
 			virtual auto query_object(const TypeID& typeID) -> std::shared_ptr<Core::Object> override;
+			virtual auto get_type_id() const noexcept -> TypeID override;
+			virtual auto get_name() const noexcept -> String override;
 
-			auto get_transform() const noexcept -> std::shared_ptr<Scene::Transform>;
+			auto get_transform() const noexcept -> std::shared_ptr<RTLib::Scene::Transform>;
 
 			template<typename ComponentType>
 			auto get_component() const noexcept ->  std::shared_ptr<ComponentType>
@@ -70,7 +72,7 @@ namespace RTLib
 			template<typename ComponentType>
 			auto add_component() noexcept -> std::shared_ptr<ComponentType>
 			{
-				if constexpr (std::is_same_v<ComponentType, Scene::Transform>)
+				if constexpr (std::is_same_v<ComponentType, RTLib::Scene::Transform>)
 				{
 					return get_transform();
 				}
@@ -87,24 +89,22 @@ namespace RTLib
 				internal_remove_component(ObjectTraits<ComponentType>::typeID);
 			}
 
-			virtual auto get_type_id() const noexcept -> TypeID override;
-			virtual auto get_name() const noexcept -> String override;
 		private:
 			Object(String name = "") noexcept;
-			void internal_set_transform(std::shared_ptr<Scene::Transform> transform);
-			auto internal_get_object() noexcept -> std::shared_ptr<Scene::Object>;
-			auto internal_get_component(ObjectTypeID typeID) const noexcept ->  std::shared_ptr<Scene::Component>;
-			auto internal_get_components(ObjectTypeID typeID) const noexcept -> std::vector<std::shared_ptr<Scene::Component>>;
-			auto internal_get_components_in_parent(ObjectTypeID typeID) const noexcept -> std::vector<std::shared_ptr<Scene::Component>>;
-			auto internal_get_components_in_children(ObjectTypeID typeID) const noexcept -> std::vector<std::shared_ptr<Scene::Component>>;
-			auto internal_get_transforms_in_children() const noexcept -> std::vector<std::shared_ptr<Scene::Transform>>;
+			void internal_set_transform(std::shared_ptr<RTLib::Scene::Transform> transform);
+			auto internal_get_object() noexcept -> std::shared_ptr<RTLib::Scene::Object>;
+			auto internal_get_component(ObjectTypeID typeID) const noexcept ->  std::shared_ptr<RTLib::Scene::Component>;
+			auto internal_get_components(ObjectTypeID typeID) const noexcept -> std::vector<std::shared_ptr<RTLib::Scene::Component>>;
+			auto internal_get_components_in_parent(ObjectTypeID typeID) const noexcept -> std::vector<std::shared_ptr<RTLib::Scene::Component>>;
+			auto internal_get_components_in_children(ObjectTypeID typeID) const noexcept -> std::vector<std::shared_ptr<RTLib::Scene::Component>>;
+			auto internal_get_transforms_in_children() const noexcept -> std::vector<std::shared_ptr<RTLib::Scene::Transform>>;
 			void internal_remove_component(ObjectTypeID typeID) noexcept;
 		private:
 			// Transformの扱い
 			// Sceneに紐づいていないときのみ, 強参照,　
 			// そうではない時は弱参照で保持
-			std::vector<std::shared_ptr<Scene::Component>> m_Components = {};
-			std::shared_ptr<Scene::Transform> m_Transform = {};
+			std::vector<std::shared_ptr<RTLib::Scene::Component>> m_Components = {};
+			std::shared_ptr<RTLib::Scene::Transform> m_Transform = {};
 			String m_Name = "";
 		};
 	}

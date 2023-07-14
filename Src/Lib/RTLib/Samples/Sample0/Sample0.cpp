@@ -6,7 +6,6 @@
 
 #include <RTLib/Scene/Object.h>
 #include <RTLib/Scene/Transform.h>
-#include <RTLib/Scene/TransformGraph.h>
 #include <RTLib/Scene/Camera.h>
 #include <RTLib/Scene/Mesh.h>
 #include <RTLib/Core/Quaternion.h>
@@ -53,8 +52,8 @@ int main(int argc, const char** argv)
 	auto importer = Assimp::Importer();
 	//importer.SetPropertyBool(AI_CONFIG_IMPORT_FBX_PRESERVE_PIVOTS, false);
 	//importer.SetPropertyFloat(AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY, 10000.0f);
-	auto data_path = SAMPLE_SAMPLE0_DATA_PATH"\\Models\\ZeroDay\\MEASURE_ONE\\MEASURE_ONE.fbx";
-	//auto data_path = SAMPLE_SAMPLE0_DATA_PATH"\\Models\\Bistro_v5_2\\BistroExterior.fbx";
+	//auto data_path = SAMPLE_SAMPLE0_DATA_PATH"\\Models\\ZeroDay\\MEASURE_ONE\\MEASURE_ONE.fbx";
+	auto data_path = SAMPLE_SAMPLE0_DATA_PATH"\\Models\\Bistro_v5_2\\BistroExterior.fbx";
 	auto data_root = std::filesystem::path(data_path).parent_path();
 
 	unsigned int flag = 0;
@@ -378,7 +377,7 @@ int main(int argc, const char** argv)
 				"	gl_Position = proj * view * model * vec4(position,1.0);\n"
 				//"	if (gl_Position.z > gl_Position.w){ gl_Position.z = gl_Position.w; }\n"
 				"	outNormal = normalize(transpose(inverse(mat3(model))) * normal);\n"
-				"	outUv = vec2(1.0-uv.x,1.0-uv.y);\n"
+				"	outUv = vec2(uv.x,1.0-uv.y);\n"
 				"}\n";
 			constexpr RTLib::Char fsSource[] =
 				"#version 460 core\n"

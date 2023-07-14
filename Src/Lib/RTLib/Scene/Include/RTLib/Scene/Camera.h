@@ -18,16 +18,17 @@ namespace RTLib
 	namespace Scene
 	{
 		struct Object;
-		struct Camera : public Scene::Component
+		struct Camera : public RTLib::Scene::Component
 		{
-			static auto New(std::shared_ptr<Scene::Object> object) -> std::shared_ptr < Scene::Camera>;
+			static auto New(std::shared_ptr<RTLib::Scene::Object> object) -> std::shared_ptr < RTLib::Scene::Camera>;
 			virtual ~Camera() noexcept;
-
-			virtual auto query_object(const TypeID& typeID) -> std::shared_ptr<Core::Object> override;
+			// Derive From RTLib::Core::Object
+			virtual auto query_object(const TypeID& typeID) -> std::shared_ptr<RTLib::Core::Object> override;
 			virtual auto get_type_id() const noexcept -> TypeID override;
 			virtual auto get_name() const noexcept -> String override;
-			virtual auto get_transform() -> std::shared_ptr<Scene::Transform> override;
-			virtual auto get_object() -> std::shared_ptr<Scene::Object> override;
+			// Derive From RTLib::Scene::Component
+			virtual auto get_transform() -> std::shared_ptr<RTLib::Scene::Transform> override;
+			virtual auto get_object() -> std::shared_ptr<RTLib::Scene::Object> override;
 
 			auto get_position() const noexcept -> Vector3;
 			auto get_rotation() const noexcept -> Quat;
@@ -54,12 +55,12 @@ namespace RTLib
 			auto get_far_clip_plane() const noexcept -> Float32 { return m_Camera.get_far_clip_plane(); }
 			void set_far_clip_plane(Float32 farClipPlane)noexcept { return m_Camera.set_far_clip_plane(farClipPlane); }
 		private:
-			auto internal_get_transform() const noexcept -> std::shared_ptr<Scene::Transform>;
-			auto internal_get_object() const noexcept -> std::shared_ptr<Scene::Object>;
+			auto internal_get_transform() const noexcept -> std::shared_ptr<RTLib::Scene::Transform>;
+			auto internal_get_object() const noexcept -> std::shared_ptr<RTLib::Scene::Object>;
 		private:
-			Camera(std::shared_ptr<Scene::Object> object);
+			Camera(std::shared_ptr<RTLib::Scene::Object> object);
 		private:
-			std::weak_ptr<Scene::Object> m_Object;
+			std::weak_ptr<RTLib::Scene::Object> m_Object;
 			Core::Camera m_Camera = {};
 		};
 	}

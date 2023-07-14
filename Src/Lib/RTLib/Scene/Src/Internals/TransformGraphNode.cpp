@@ -1,8 +1,9 @@
-#include <RTLib/Scene/TransformGraph.h>
 #include <RTLib/Scene/Transform.h>
 #include <RTLib/Scene/Object.h>
+#include "TransformGraphNode.h"
+#include <stack>
 
-RTLib::Scene::TransformGraphNode::TransformGraphNode(Scene::TransformPtr transform, std::shared_ptr<Scene::TransformGraphNode> parent)
+RTLib::Scene::Internals::TransformGraphNode::TransformGraphNode(RTLib::Scene::TransformPtr transform, std::shared_ptr<RTLib::Scene::Internals::TransformGraphNode> parent)
     :m_Parent{ parent }, m_Children{}, m_Object{},
     m_CacheTransformPointMatrix{ 1.0f },
     m_CacheTransformVectorMatrix{ 1.0f },
@@ -30,9 +31,9 @@ RTLib::Scene::TransformGraphNode::TransformGraphNode(Scene::TransformPtr transfo
     }
 }
 
-auto RTLib::Scene::TransformGraphNode::New(std::shared_ptr<Scene::Transform> transform, std::shared_ptr<Scene::TransformGraphNode> parent) -> std::shared_ptr<TransformGraphNode>
+auto RTLib::Scene::Internals::TransformGraphNode::New(std::shared_ptr<RTLib::Scene::Transform> transform, std::shared_ptr<RTLib::Scene::Internals::TransformGraphNode> parent) -> std::shared_ptr<RTLib::Scene::Internals::TransformGraphNode>
 {
-    auto res = std::shared_ptr<Scene::TransformGraphNode>(new TransformGraphNode(transform, parent));
+    auto res = std::shared_ptr<Scene::Internals::TransformGraphNode>(new TransformGraphNode(transform, parent));
     if (parent) {
         parent->m_Children.push_back(res);
     }
@@ -42,24 +43,24 @@ auto RTLib::Scene::TransformGraphNode::New(std::shared_ptr<Scene::Transform> tra
     return res;
 }
 
-RTLib::Scene::TransformGraphNode::~TransformGraphNode() noexcept
+RTLib::Scene::Internals::TransformGraphNode::~TransformGraphNode() noexcept
 {
 }
 
 
-auto RTLib::Scene::TransformGraphNode::get_transform() const noexcept -> std::shared_ptr<Scene::Transform>
+auto RTLib::Scene::Internals::TransformGraphNode::get_transform() const noexcept -> std::shared_ptr<RTLib::Scene::Transform>
 {
     if (m_Object) { return m_Object->get_transform(); }
     return std::shared_ptr<Scene::Transform>();
 }
 
-auto RTLib::Scene::TransformGraphNode::attach_child(std::shared_ptr<Scene::Transform> transform) -> std::shared_ptr<Scene::TransformGraphNode>
+auto RTLib::Scene::Internals::TransformGraphNode::attach_child(std::shared_ptr<RTLib::Scene::Transform> transform) -> std::shared_ptr<RTLib::Scene::Internals::TransformGraphNode>
 {
     if (!transform) { return  std::shared_ptr<TransformGraphNode>(); }
     return TransformGraphNode::New(transform, shared_from_this());
 }
 
-auto RTLib::Scene::TransformGraphNode::remove_child(std::shared_ptr<TransformGraphNode> node) -> Scene::TransformPtr
+auto RTLib::Scene::Internals::TransformGraphNode::remove_child(std::shared_ptr<RTLib::Scene::Internals::TransformGraphNode> node) -> RTLib::Scene::TransformPtr
 {
     auto idx = 0;
     for (auto i = 0; i < m_Children.size(); ++i) {
@@ -77,7 +78,7 @@ auto RTLib::Scene::TransformGraphNode::remove_child(std::shared_ptr<TransformGra
     return nullptr;
 }
 
-auto RTLib::Scene::TransformGraphNode::get_child(UInt32 idx) const noexcept -> std::shared_ptr<Scene::TransformGraphNode>
+auto RTLib::Scene::Internals::TransformGraphNode::get_child(UInt32 idx) const noexcept -> std::shared_ptr<RTLib::Scene::Internals::TransformGraphNode>
 {
     if (idx < m_Children.size()) {
         return m_Children.at(idx);
@@ -85,57 +86,57 @@ auto RTLib::Scene::TransformGraphNode::get_child(UInt32 idx) const noexcept -> s
     return nullptr;
 }
 
-auto RTLib::Scene::TransformGraphNode::get_parent() const noexcept -> std::shared_ptr<Scene::TransformGraphNode>
+auto RTLib::Scene::Internals::TransformGraphNode::get_parent() const noexcept -> std::shared_ptr<Scene::Internals::TransformGraphNode>
 {
     auto parent = m_Parent.lock();
     return parent;
 }
-auto RTLib::Scene::TransformGraphNode::get_local_to_parent_matrix() const noexcept -> Matrix4x4
+auto RTLib::Scene::Internals::TransformGraphNode::get_local_to_parent_matrix() const noexcept -> Matrix4x4
 {
     auto transform = get_transform();
     if (transform) { return transform->get_local_to_parent_matrix(); }
     else { return Matrix4x4(1.0f); }
 }
 
-auto RTLib::Scene::TransformGraphNode::get_local_position() const noexcept -> Vector3
+auto RTLib::Scene::Internals::TransformGraphNode::get_local_position() const noexcept -> Vector3
 {
     auto transform = get_transform();
 
     if (transform) { return transform->get_local_position(); }
     else { return Vector3(1.0f); }
 }
-auto RTLib::Scene::TransformGraphNode::get_local_rotation() const noexcept -> Quat
+auto RTLib::Scene::Internals::TransformGraphNode::get_local_rotation() const noexcept -> Quat
 {
 
     auto transform = get_transform();
     if (transform) { return transform->get_local_rotation(); }
     else { return Quat(1.0f, 0.0f, 0.0f, 0.0f); }
 }
-auto RTLib::Scene::TransformGraphNode::get_local_scaling()  const noexcept -> Vector3
+auto RTLib::Scene::Internals::TransformGraphNode::get_local_scaling()  const noexcept -> Vector3
 {
     auto transform = get_transform();
     if (transform) { return transform->get_local_scaling(); }
     else { return Vector3(1.0f); }
 }
 
-auto RTLib::Scene::TransformGraphNode::get_cache_transform_point_matrix() const noexcept -> Matrix4x4
+auto RTLib::Scene::Internals::TransformGraphNode::get_cache_transform_point_matrix() const noexcept -> Matrix4x4
 {
     return m_CacheTransformPointMatrix;
 }
 
-auto RTLib::Scene::TransformGraphNode::get_cache_transform_vector_matrix() const noexcept -> Matrix4x4
+auto RTLib::Scene::Internals::TransformGraphNode::get_cache_transform_vector_matrix() const noexcept -> Matrix4x4
 {
     return m_CacheTransformVectorMatrix;
 }
-auto RTLib::Scene::TransformGraphNode::get_cache_transform_direction_matrix() const noexcept -> Matrix4x4
+auto RTLib::Scene::Internals::TransformGraphNode::get_cache_transform_direction_matrix() const noexcept -> Matrix4x4
 {
     return m_CacheTransformDirectionMatrix;
 }
-auto RTLib::Scene::TransformGraphNode::get_cache_transform_scaling() const noexcept -> Vector3
+auto RTLib::Scene::Internals::TransformGraphNode::get_cache_transform_scaling() const noexcept -> Vector3
 {
     return m_CacheTransformScaling;
 }
-void RTLib::Scene::TransformGraphNode::update_cache_transform() noexcept
+void RTLib::Scene::Internals::TransformGraphNode::update_cache_transform() noexcept
 {
     auto parent = get_parent();
     auto parentCacheTransformPointMatrix = Matrix4x4(1.0f);
@@ -157,4 +158,23 @@ void RTLib::Scene::TransformGraphNode::update_cache_transform() noexcept
     for (auto& child : m_Children) {
         child->update_cache_transform();
     }
+}
+
+bool RTLib::Scene::Internals::TransformGraphNode::contain_in_graph(const std::shared_ptr<Scene::Internals::TransformGraphNode>& node) const noexcept
+{
+    std::stack<std::shared_ptr<Scene::Internals::TransformGraphNode>> searchStack = {};
+    {
+        for (auto& child : m_Children) {
+            searchStack.push(child);
+        }
+    }
+    while (!searchStack.empty()) {
+        auto searchNode = searchStack.top();
+        searchStack.pop();
+        if (searchNode == node) { return true; }
+        for (auto& child : searchNode->m_Children) {
+            searchStack.push(child);
+        }
+    }
+    return false;
 }

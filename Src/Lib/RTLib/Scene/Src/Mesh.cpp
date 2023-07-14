@@ -13,7 +13,7 @@ RTLib::Scene::Mesh::~Mesh() noexcept
 
 }
 
-auto RTLib::Scene::Mesh::query_object(const TypeID& typeID) -> std::shared_ptr<Core::Object>
+auto RTLib::Scene::Mesh::query_object(const TypeID& typeID) -> std::shared_ptr<RTLib::Core::Object>
 {
 	if (typeID == ObjectTypeID_Unknown || typeID == ObjectTypeID_SceneComponent || typeID == ObjectTypeID_SceneMesh)
 	{

@@ -10,13 +10,13 @@ namespace RTLib
 		struct Object;
 		struct Transform;
 
-		struct Component :public Core::Object
+		struct Component :public RTLib::Core::Object
 		{
-			Component() noexcept : Core::Object() {}
+			Component() noexcept : RTLib::Core::Object() {}
 			virtual ~Component() noexcept {}
 
-			virtual auto get_transform() -> std::shared_ptr<Scene::Transform> = 0;
-			virtual auto get_object() -> std::shared_ptr<Scene::Object> = 0;
+			virtual auto get_transform() -> std::shared_ptr<RTLib::Scene::Transform> = 0;
+			virtual auto get_object() -> std::shared_ptr<RTLib::Scene::Object> = 0;
 		};
 	}
 }
