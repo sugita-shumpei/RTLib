@@ -1,6 +1,10 @@
 #include <RTLib/Scene/Animator.h>
 #include <RTLib/Scene/AnimateTransform.h>
 #include <RTLib/Scene/Object.h>
+#include "Internals/Container.h"
+#include <stack>
+#include <queue>
+
 auto RTLib::Scene::Animator::New(std::shared_ptr<RTLib::Scene::Object> object) -> std::shared_ptr<Animator>
 {
     return std::shared_ptr<Animator>(new Animator(object));
@@ -26,74 +30,34 @@ auto RTLib::Scene::Animator::get_ticks_per_second() const noexcept -> Float32
     return m_TicksPerSecond;
 }
 
-void RTLib::Scene::Animator::internal_add_animate_transform(const std::shared_ptr<RTLib::Scene::AnimateTransform>& transform)
+void RTLib::Scene::Animator::internal_add_animate_transform(const std::shared_ptr<RTLib::Scene::AnimateTransform>& newAnim)
 {
-    if (!transform) { return; }
-    if (m_HandleMap.count(transform.get()) > 0) { return; }
-    m_HandleMap.insert({ transform.get(),transform });
-    // 依存関係を構築する
-    // もし, 今回追加するtransformに対応するnodeが既存のノードに含まれている場合
-    // →追加せず, 通常通りの更新に任せる
-    // そうではない場合
-    // →追加
-    {
-        RTLib::Scene::AnimateTransform* keyUpdate = nullptr;
-        std::vector<RTLib::Scene::AnimateTransform*> shouldErase = {};
-        for (auto [transformKeyUpdate,transformKeysDepend] : m_UpdateMap)
-        {
-            auto transformUpdateW = m_HandleMap.at(transformKeyUpdate);
-            if (!transformUpdateW.expired()) {
-                auto transformUpdate = transformUpdateW.lock();
-                if (transformUpdate->get_transform()->contain_in_graph(transform->get_transform())) {
-                    keyUpdate = transformKeyUpdate;
-                    break;
-                }
-            }
-        }
-        if (keyUpdate) {
-            m_UpdateMap.at(keyUpdate).push_back(transform.get());
-            return;
+    if (!newAnim) { return; }
+    if (m_HandleMap.count(newAnim.get())) { return; }
+    if (!newAnim->m_Animator.expired()) {
+        auto oldAnimator = newAnim->m_Animator.lock();
+        if (oldAnimator) {
+            oldAnimator->m_HandleMap.erase(newAnim.get());
         }
     }
-    //　逆にほかの依存ノードのうち新たに追加するノードに含まれるものは削除
-    {
-        std::vector<RTLib::Scene::AnimateTransform*> keyDependsRoot = {};
-        for (auto [transformKeyUpdate, transformKeysDepend] : m_UpdateMap)
-        {
-            auto transformUpdateW = m_HandleMap.at(transformKeyUpdate);
-            if (!transformUpdateW.expired()) {
-                auto transformUpdate = transformUpdateW.lock();
-                if (transform->get_transform()->contain_in_graph(transformUpdate->get_transform())) {
-                    keyDependsRoot.push_back(transformKeyUpdate);
-                }
-            }
-        }
-        std::vector<RTLib::Scene::AnimateTransform*> keyDependsNode = {};
-        for (auto keyDependRoot : keyDependsRoot) {
-            keyDependsNode.push_back(keyDependRoot);
-            for (auto& transformKeyDepend : m_UpdateMap.at(keyDependRoot)) {
-                auto transformDependW = m_HandleMap.at(transformKeyDepend);
-                if (!transformDependW.expired()) {
-                    keyDependsNode.push_back(transformKeyDepend);
-                }
-            }
-        }
-        for (auto keyDependRoot : keyDependsRoot) {
-            m_UpdateMap.erase(keyDependRoot);
-        }
+    m_HandleMap.insert({ newAnim.get(), newAnim });
+    newAnim->m_Animator = std::static_pointer_cast<Animator>(shared_from_this());
+}
 
-        m_UpdateMap.insert({ transform.get(),keyDependsNode });
-    }
+void RTLib::Scene::Animator::internal_pop_animate_transform(const std::shared_ptr<RTLib::Scene::AnimateTransform>& newAnim)
+{
+    if (!newAnim) { return; }
+    if (!m_HandleMap.count(newAnim.get())) { return; }
+    m_HandleMap.erase(newAnim.get());
+    newAnim->m_Animator = {};
 }
 
 auto RTLib::Scene::Animator::get_transforms() const noexcept -> std::vector<std::shared_ptr<RTLib::Scene::AnimateTransform>>
 {
     std::vector<std::shared_ptr<RTLib::Scene::AnimateTransform>> transforms = {};
-    for (auto& [key,valueW] : m_HandleMap) {
+    for (auto& [key, valueW] : m_HandleMap) {
         auto value = valueW.lock();
-        if (value) {
-            transforms.push_back(value);
-        }
+        if (!value) { transforms.push_back(value); }
     }
     return transforms;
 }
@@ -101,21 +65,60 @@ auto RTLib::Scene::Animator::get_transforms() const noexcept -> std::vector<std:
 void RTLib::Scene::Animator::update_time(Float32 time)
 {
     auto tick = std::fmod(time * m_TicksPerSecond, m_Duration);
+    auto candiQueue = RTLib::Scene::Internals::VectorQueue<std::shared_ptr<Transform>>();
     // Local Update
     for (auto& [key, valueW] : m_HandleMap) {
-        auto updateW = m_HandleMap.at(key);
-        if (!updateW.expired()) {
-            auto updateTransform = updateW.lock();
-            updateTransform->internal_update_tick(tick);
+        auto value = valueW.lock();
+        // もしいずれかの
+        if (value) {
+            if (value->internal_update_tick(tick)) {
+                candiQueue.push(value->get_transform());
+            }
         }
     }
-    // Global Update
-    for (auto& [updateKey,dependKeys]:m_UpdateMap) {
-        auto updateW = m_HandleMap.at(updateKey);
-        if (!updateW.expired()) {
-            auto updateTransform = updateW.lock();
-            updateTransform->get_transform()->internal_update_cache();
+    auto updateTransforms = std::vector<std::shared_ptr<Transform>>();
+    updateTransforms.reserve(candiQueue.get_deque().size());
+    {
+        //選択ノードの各ノードのうち
+        //  自分自身がいずれかのgraph上に存在
+        //→最終ノードに追加しない
+        //  いずれかが自分自身のgraph上に存在
+        //→選択ノードから削除
+        while (!candiQueue.empty()) {
+            //一つ取り出す
+            auto candidate = candiQueue.front();
+            candiQueue.pop();
+
+            bool insertFinal = true;
+            // 候補を調べる
+            auto candiQueueSize = candiQueue.get_deque().size();
+            {
+                auto i = 0;
+                while (!candiQueue.empty() && (i < candiQueueSize)) {
+                    auto other = candiQueue.front();
+                    candiQueue.pop();
+                    // もし取り出したノードがgraphに含まれていたら
+                    if (other->contain_in_graph(candidate)) {
+                        // 最終的なupdateは行わない
+                        insertFinal = false;
+                    }
+                    // もし取り出したノードのgraphに含まれていなかったら,
+                    if (!candidate->contain_in_graph(other)) {
+                        // 再度候補に追加
+                        candiQueue.push(other);
+                    }
+                    ++i;
+                }
+            }
+            // もし他のノードのgraphに含まれていなかったら
+            if (insertFinal) {
+                // 最終的なノードに追加
+                updateTransforms.push_back(candidate);
+            }
         }
+    }
+    for (auto& value : updateTransforms) {
+        value->internal_update_cache();
     }
 }
 

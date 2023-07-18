@@ -41,7 +41,7 @@ namespace RTLib
 			}
 
 			auto get_field_of_view() const noexcept -> Float32 { return m_FieldOfViewOrOrthographicsSize; }
-			void set_field_of_View(Float32 fieldOfView) noexcept {
+			void set_field_of_view(Float32 fieldOfView) noexcept {
 				if (m_Type == CameraType::ePerspective) {
 					m_FieldOfViewOrOrthographicsSize = fieldOfView;
 				}

@@ -194,6 +194,7 @@ auto RTLib::Scene::Transform::internal_get_parent_node() const noexcept-> std::s
 void RTLib::Scene::Transform::internal_set_node(std::shared_ptr<Scene::Internals::TransformGraphNode> node)
 {
 	m_Node = node;
+	node->update_cache_transform();
 }
 
 auto RTLib::Scene::Transform::internal_get_parent_cache_point_matrix() const noexcept -> Matrix4x4

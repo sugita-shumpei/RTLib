@@ -14,6 +14,7 @@ namespace RTLib
 	{
 		struct Animator : public RTLib::Scene::Component
 		{
+			friend class AnimateTransform;
 			static auto New(std::shared_ptr<RTLib::Scene::Object> object) -> std::shared_ptr<Animator>;
 			virtual ~Animator() noexcept {}
 			// Derive From RTLib::Core::Object
@@ -21,8 +22,8 @@ namespace RTLib
 			virtual auto get_type_id() const noexcept -> TypeID override;
 			virtual auto get_name() const noexcept -> String override;
 			// Derive From RTLib::Scene::Component
-			virtual auto get_transform() -> std::shared_ptr<Scene::Transform> override;
-			virtual auto get_object() -> std::shared_ptr<Scene::Object> override;
+			virtual auto get_transform() -> std::shared_ptr<RTLib::Scene::Transform> override;
+			virtual auto get_object() -> std::shared_ptr<RTLib::Scene::Object> override;
 
 			void set_duration(Float32 duration) noexcept;
 			auto get_duration() const noexcept -> Float32;
@@ -38,16 +39,12 @@ namespace RTLib
 			auto internal_get_transform() const noexcept -> std::shared_ptr<RTLib::Scene::Transform>;
 			auto internal_get_object() const noexcept -> std::shared_ptr<RTLib::Scene::Object>;
 			void internal_add_animate_transform(const std::shared_ptr<RTLib::Scene::AnimateTransform>& transform);
+			void internal_pop_animate_transform(const std::shared_ptr<RTLib::Scene::AnimateTransform>& transform);
 		private:
 			RTLib::Float32 m_Duration = 1.0f;
 			RTLib::Float32 m_TicksPerSecond = 60.0f;
 			std::weak_ptr<RTLib::Scene::Object> m_Object = {};
-			// 紐づけられている全てのAnimateTransformのマップ
-			// TODO: Unordered Setにする
-			std::unordered_map<RTLib::Scene::AnimateTransform*, std::weak_ptr<RTLib::Scene::AnimateTransform>> m_HandleMap = {};
-			// Transform Cacheの更新に必要なRootTransformと, 依存関係にある全てのAnimateTransformのマップ
-			// TODO: Unordered Map<std::weak_ptr<RTLib::Scene::AnimateTransform>, std::vector<std::weak_ptr<RTLib::Scene::AnimateTransform>>> にする
-			std::unordered_map<RTLib::Scene::AnimateTransform*, std::vector<RTLib::Scene::AnimateTransform*>>  m_UpdateMap = {};
+			std::unordered_map<RTLib::Scene::AnimateTransform*,std::weak_ptr<RTLib::Scene::AnimateTransform>> m_HandleMap = {};
 		};
 	}
 }

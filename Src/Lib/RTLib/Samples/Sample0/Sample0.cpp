@@ -52,8 +52,8 @@ int main(int argc, const char** argv)
 	auto importer = Assimp::Importer();
 	//importer.SetPropertyBool(AI_CONFIG_IMPORT_FBX_PRESERVE_PIVOTS, false);
 	//importer.SetPropertyFloat(AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY, 10000.0f);
-	//auto data_path = SAMPLE_SAMPLE0_DATA_PATH"\\Models\\ZeroDay\\MEASURE_ONE\\MEASURE_ONE.fbx";
-	auto data_path = SAMPLE_SAMPLE0_DATA_PATH"\\Models\\Bistro_v5_2\\BistroExterior.fbx";
+	auto data_path = SAMPLE_SAMPLE0_DATA_PATH"\\Models\\ZeroDay\\MEASURE_ONE\\MEASURE_ONE.fbx";
+	//auto data_path = SAMPLE_SAMPLE0_DATA_PATH"\\Models\\Bistro_v5_2\\BistroExterior.fbx";
 	auto data_root = std::filesystem::path(data_path).parent_path();
 
 	unsigned int flag = 0;

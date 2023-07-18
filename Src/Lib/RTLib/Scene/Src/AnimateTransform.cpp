@@ -8,11 +8,20 @@ auto RTLib::Scene::AnimateTransform::New(std::shared_ptr<Scene::Object> object) 
 
 void RTLib::Scene::AnimateTransform::set_animator(std::shared_ptr<Animator> animator)
 {
+    if (!animator) {
+        if (!m_Animator.expired()) {
+            auto eraseAnim = m_Animator.lock();
+            eraseAnim->internal_pop_animate_transform(std::static_pointer_cast<AnimateTransform>(shared_from_this()));
+        }
+    }
+    else {
+        animator->internal_add_animate_transform(std::static_pointer_cast<AnimateTransform>(shared_from_this()));
+    }
 }
 
 auto RTLib::Scene::AnimateTransform::get_animator() const -> std::shared_ptr<Animator>
 {
-    return std::shared_ptr<Animator>();
+    return m_Animator.lock();
 }
 
 void RTLib::Scene::AnimateTransform::update_tick(Float32 tick)

@@ -78,9 +78,9 @@ namespace RTLib
             auto get_rotation_keys() const noexcept -> const std::vector<KeyValue<Quat>>&    { return m_RotationKeys; }
             auto get_scaling_keys () const noexcept -> const std::vector<KeyValue<Vector3>>& { return m_ScalingKeys;  }
             
-            auto get_interpolated_position(Float32 tick) const noexcept -> Vector3 { return internal_get_value(tick, m_PreState, m_PostState, m_PositionKeys); }
-            auto get_interpolated_rotation(Float32 tick) const noexcept -> Quat    { return internal_get_value(tick, m_PreState, m_PostState, m_RotationKeys); }
-            auto get_interpolated_scaling (Float32 tick) const noexcept -> Vector3 { return internal_get_value(tick, m_PreState, m_PostState, m_ScalingKeys ); }
+            auto get_interpolated_position(Float32 tick) const noexcept -> Vector3 { return internal_get_value(tick, m_PreState, m_PostState, m_PositionKeys, m_BasePosition); }
+            auto get_interpolated_rotation(Float32 tick) const noexcept -> Quat    { return internal_get_value(tick, m_PreState, m_PostState, m_RotationKeys, m_BaseRotation); }
+            auto get_interpolated_scaling (Float32 tick) const noexcept -> Vector3 { return internal_get_value(tick, m_PreState, m_PostState, m_ScalingKeys , m_BaseScaling ); }
 
             auto get_interpolated_transform(Float32 tick) const noexcept -> Transform {
                 Transform transform;
@@ -176,8 +176,9 @@ namespace RTLib
                 return baseVal;
             }
             template<typename T>
-            static auto internal_get_value(RTLib::Float32 tick, AnimateBehavior preState, AnimateBehavior postState, const std::vector<KeyValue<T>>& keys) noexcept -> T
+            static auto internal_get_value(RTLib::Float32 tick, AnimateBehavior preState, AnimateBehavior postState, const std::vector<KeyValue<T>>& keys, const T& baseValue) noexcept -> T
             {
+                if (keys.empty()) { return baseValue; }
                 auto i0 = internal_get_nearest_key_index(tick, keys);
                 if (i0 == keyIndex_Pre)  { return internal_get_value_without_key(tick, preState , keys, keys.front().value, keys.front().value); }
                 if (i0 == keyIndex_Post) { return internal_get_value_without_key(tick, postState, keys, keys.back().value , keys.back().value); }

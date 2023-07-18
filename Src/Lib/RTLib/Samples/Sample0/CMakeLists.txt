@@ -7,9 +7,6 @@ add_executable(
 	Sample0.h 
 	Sample0.cpp 
 	 
-	 
-	 
-	
 	${CMAKE_CURRENT_BINARY_DIR}/Sample0Config.h
 )
 target_include_directories(RTLib-Samples-Sample0  PRIVATE ${CMAKE_CURRENT_BINARY_DIR})

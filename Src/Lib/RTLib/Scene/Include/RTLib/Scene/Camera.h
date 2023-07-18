@@ -44,7 +44,7 @@ namespace RTLib
 			void set_aspect(Float32 aspect) noexcept { m_Camera.set_aspect(aspect); }
 
 			auto get_field_of_view() const noexcept -> Float32 { return m_Camera.get_field_of_view(); }
-			void set_field_of_View(Float32 fieldOfView) noexcept { m_Camera.set_field_of_View(fieldOfView); }
+			void set_field_of_view(Float32 fieldOfView) noexcept { m_Camera.set_field_of_view(fieldOfView); }
 
 			auto get_orthographics_size() const noexcept -> Float32 { return m_Camera.get_orthographics_size(); }
 			void set_orthographics_size(Float32 orthographicsSize) noexcept { m_Camera.set_orthographics_size(orthographicsSize); }
