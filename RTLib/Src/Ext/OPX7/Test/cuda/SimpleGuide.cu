@@ -83,18 +83,18 @@ extern "C" __global__ void     __raygen__default () {
         while (true) {
             unsigned int traceVertexDepth = RTLib::Ext::CUDA::Math::min(hrec.userData.depth, (unsigned int)rtlib::test::kTraceVertexSize);
             TraceRadiance(params.gasHandle, hrec.rayOrigin, hrec.rayDirection, 0.0001f, 1.0e20f, hrec);
-            traceVertices[hrec.userData.depth].rayOrigin = hrec.rayOrigin;
-            traceVertices[hrec.userData.depth].rayDirection = hrec.rayDirection;
-            traceVertices[hrec.userData.depth].cosine   = hrec.cosine;
-            traceVertices[hrec.userData.depth].bsdfVal  = hrec.userData.bsdfVal;
-            traceVertices[hrec.userData.depth].bsdfPdf  = hrec.userData.bsdfPdf;
-            traceVertices[hrec.userData.depth].dTreePdf = hrec.userData.dTreePdf;
-            traceVertices[hrec.userData.depth].woPdf    = hrec.userData.woPdf;
-            traceVertices[hrec.userData.depth].dTree    = hrec.userData.dTree;
+            traceVertices[hrec.userData.depth].rayOrigin      = hrec.rayOrigin;
+            traceVertices[hrec.userData.depth].rayDirection   = hrec.rayDirection;
+            traceVertices[hrec.userData.depth].cosine         = hrec.cosine;
+            traceVertices[hrec.userData.depth].bsdfVal        = hrec.userData.bsdfVal;
+            traceVertices[hrec.userData.depth].bsdfPdf        = hrec.userData.bsdfPdf;
+            traceVertices[hrec.userData.depth].dTreePdf       = hrec.userData.dTreePdf;
+            traceVertices[hrec.userData.depth].woPdf          = hrec.userData.woPdf;
+            traceVertices[hrec.userData.depth].dTree          = hrec.userData.dTree;
             traceVertices[hrec.userData.depth].dTreeVoxelSize = hrec.userData.dTreeVoxelSize;
-            traceVertices[hrec.userData.depth].radiance = make_float3(0.0f);
-            traceVertices[hrec.userData.depth].throughPut = hrec.userData.throughPut;
-            traceVertices[hrec.userData.depth].isDelta = (hrec.flags & HIT_RECORD_FLAG_DELTA_MATERIAL) == HIT_RECORD_FLAG_DELTA_MATERIAL;
+            traceVertices[hrec.userData.depth].radiance       = make_float3(0.0f);
+            traceVertices[hrec.userData.depth].throughPut     = hrec.userData.throughPut;
+            traceVertices[hrec.userData.depth].isDelta        = (hrec.flags & HIT_RECORD_FLAG_DELTA_MATERIAL) == HIT_RECORD_FLAG_DELTA_MATERIAL;
 
             for (unsigned int d = 0; d < traceVertexDepth; ++d) {
                 traceVertices[d].Record(hrec.userData.radiance);

@@ -1,6 +1,10 @@
 /.vscode
 /build
 /Data
+/.vs/*
+/Ext/build/*
+/Ext/install/*
+/Src/Generator
 /Result/*
 !/Result/test.sh
 !/Result/test2.sh
